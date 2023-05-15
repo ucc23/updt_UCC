@@ -1,4 +1,4 @@
-Cluster,GLON,s_GLON,GLAT,s_GLAT,Plx,s_Plx,pmRA,s_pmRA,pmDE,s_pmDE,RV,s_RV,o_RV,m-M,AG,logAge,Z,N70,minProb,NminProb,Class,_RA.icrs,_DE.icrs
+Cluster,GLON,s_GLON,GLAT,s_GLAT,Plx,s_Plx,pmRA,s_pmRA,pmDE,s_pmDE,RV,s_RV,o_RV,dm,AG,logt,Z,N70,minProb,NminProb,Class,_RA.icrs,_DE.icrs
 CWNU_1,346.147,0.06,-2.132,0.06,0.6,0.06,-0.03,0.12,-3.58,0.08,-18.1,0.2,1,10.6,2.6,8.3,0.008,115,0.7,115,1,259.2575,-41.6921
 CWNU_2,283.662,0.61,-11.431,0.22,1.39,0.04,-9.45,0.14,5.9,0.23,8.6,3.3,3,9.5,0.45,7.7,0.036,24,1,24,1,140.0578,-66.0403
 CWNU_3,131.435,0.2,3.074,0.19,1.28,0.03,-2.42,0.09,-1.06,0.09,-7.6,17.8,2,9.2,1.45,7.6,0.006,48,0.96,48,1,32.9997,64.6075

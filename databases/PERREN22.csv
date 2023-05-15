@@ -1,4 +1,4 @@
-"Cluster","[Fe/H]","log(Age)","E(B-V)","MOD","Dist","Mass","bfr","N","SimbadName","_RA","_DE"
+"Cluster","FeH","logt","Ebv","dm","Dist","Mass","bfr","N","SimbadName","_RA","_DE"
 "Berkeley 73      ",-0.41,9.6,0.16,13.7,5.49,3300,0.53,103,"Cl Berkeley 73 ",95.52,-6.321
 "Berkeley 25      ",-0.2,9.72,0.39,14.34,7.37,15000,0.82,213,"Cl Berkeley 25 ",100.317,-16.487
 "Berkeley 75      ",-0.39,9.74,0.11,14.52,8.03,6800,0.77,95,"Cl Berkeley 75 ",102.252,-23.999
