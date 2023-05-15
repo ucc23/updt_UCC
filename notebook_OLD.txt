@@ -1,0 +1,167 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "provenance": [],
+      "toc_visible": true
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "source": [
+        "This notebook allows you to explore the data for each process cluster in the UCC. The cluster files contain the members estimated by the fastMP method.\n",
+        "\n",
+        "First we define the name of the cluster to be analyzed:"
+      ],
+      "metadata": {
+        "id": "O8NeCU5gf2nF"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": ["cluster = \"XXXXXX\""],
+      "metadata": {
+        "id": "VYRdlogIf_Mm"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "4wsf7BVHfxLf"
+      },
+      "outputs": [],
+      "source": [
+        "import pandas as pd\n",
+        "import numpy as np\n",
+        "import matplotlib.pyplot as plt"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "After importing the required packages, we load the cluster data into the dataframe `df`"
+      ],
+      "metadata": {
+        "id": "nwgjBGDUfzeC"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "path = \"https://github.com/ucc23/XXX/raw/main/datafiles/\"\n",
+        "df = pd.read_csv(path + cluster + \".csv.gz\", compression='gzip')\n",
+        "df = df.sort_values('probs', ascending=True)"
+      ],
+      "metadata": {
+        "id": "s4LRz8aBgaHV"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Now we can generate some plots. For example the distribution of equatorial coordinates for the selected members"
+      ],
+      "metadata": {
+        "id": "slrhDE9wggG2"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "plt.scatter(df['GLON'], df['GLAT'], c=df['probs'], alpha=.5, vmin=.5)\n",
+        "plt.colorbar()\n",
+        "plt.xlabel(\"GLON\")\n",
+        "plt.ylabel(\"GLAT\")"
+      ],
+      "metadata": {
+        "id": "wIsOhv2Kgi9S"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "And a color-magnitude diagram"
+      ],
+      "metadata": {
+        "id": "QAb8SYmegkKA"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "plt.scatter(df['BP-RP'], df['Gmag'], c=df['probs'], alpha=.5, vmin=.5)\n",
+        "plt.gca().invert_yaxis()\n",
+        "plt.colorbar()\n",
+        "plt.xlabel(\"BP-RP\")\n",
+        "plt.ylabel(\"Gmag\")"
+      ],
+      "metadata": {
+        "id": "SjOTh85IgkT7"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Distribution of proper motions"
+      ],
+      "metadata": {
+        "id": "QkXB-D3vhWq-"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "plt.scatter(df['pmRA'], df['pmDE'], c=df['probs'], alpha=.5, vmin=.5)\n",
+        "plt.colorbar()\n",
+        "plt.xlabel(\"pmRA\")\n",
+        "plt.ylabel(\"pmDE\")"
+      ],
+      "metadata": {
+        "id": "vwl2z0BwhYrU"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Histogram of the parallaxes with the median value displayed with a red dotted line"
+      ],
+      "metadata": {
+        "id": "EkqgwmBMhhm1"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "plt.hist(df['Plx'], 20)\n",
+        "plt.axvline(np.median(df['Plx']), c='r', ls=':', lw=2)\n",
+        "plt.xlabel(\"Plx\")\n",
+        "plt.show()"
+      ],
+      "metadata": {
+        "id": "lkL73ewShj_b"
+      },
+      "execution_count": null,
+      "outputs": []
+    }
+  ]
+}

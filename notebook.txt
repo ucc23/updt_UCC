@@ -18,34 +18,62 @@
     {
       "cell_type": "markdown",
       "source": [
-        "This notebook allows you to explore the data for each process cluster in the UCC. The cluster files contain the members estimated by the fastMP method.\n",
+        "# Exploring UCC cluster data\n",
+        "\n",
+        "This notebook allows you to explore the data for each cluster in the UCC. The cluster datafiles contain the frame processed by `fastMP` with membership probabilities assigned for all the stars."
+      ],
+      "metadata": {
+        "id": ""
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "## Import packages and load data\n",
         "\n",
         "First we define the name of the cluster to be analyzed:"
       ],
       "metadata": {
-        "id": "O8NeCU5gf2nF"
+        "id": ""
       }
     },
     {
       "cell_type": "code",
-      "source": ["cluster = \"XXXXXX\""],
+      "source": [
+        "cluster = \"XXXXXX\""
+      ],
       "metadata": {
-        "id": "VYRdlogIf_Mm"
+        "id": ""
       },
       "execution_count": null,
       "outputs": []
     },
     {
+      "cell_type": "markdown",
+      "source": [
+        "and import the required packages:"
+      ],
+      "metadata": {
+        "id": ""
+      }
+    },
+    {
       "cell_type": "code",
       "execution_count": null,
       "metadata": {
-        "id": "4wsf7BVHfxLf"
+        "id": ""
       },
       "outputs": [],
       "source": [
         "import pandas as pd\n",
         "import numpy as np\n",
-        "import matplotlib.pyplot as plt"
+        "from bokeh.plotting import figure, show\n",
+        "from bokeh.models import LinearColorMapper\n",
+        "from bokeh.models import ColumnDataSource\n",
+        "from bokeh.models import ColorBar\n",
+        "from bokeh.models import Range1d\n",
+        "from bokeh.io import output_notebook\n",
+        "output_notebook()"
       ]
     },
     {
@@ -54,17 +82,17 @@
         "After importing the required packages, we load the cluster data into the dataframe `df`"
       ],
       "metadata": {
-        "id": "nwgjBGDUfzeC"
+        "id": ""
       }
     },
     {
       "cell_type": "code",
       "source": [
-        "path = \"https://github.com/ucc23/datafiles/raw/main/datafiles/\"\n",
+        "path = \"https://github.com/ucc23/XXX/raw/main/datafiles/\"\n",
         "df = pd.read_csv(path + cluster + \".csv.gz\", compression='gzip')"
       ],
       "metadata": {
-        "id": "s4LRz8aBgaHV"
+        "id": ""
       },
       "execution_count": null,
       "outputs": []
@@ -72,22 +100,135 @@
     {
       "cell_type": "markdown",
       "source": [
-        "Now we can generate some plots. For example the distribution of equatorial coordinates for the selected members"
+        "## Define members, field stars, and plotting functions\n",
+        "\n",
+        "We define here a subset of the most probable members using `P>0.5`, with the remaining stars defined as field stars. We set the minimum number of member stars to `25` so that if less than `25` stars have `P>0.5` we select as the most probable members the `25` stars with the largest probability values.\n",
+        "\n",
+        "You can customize these values as you wish."
       ],
       "metadata": {
-        "id": "slrhDE9wggG2"
+        "id": ""
       }
     },
     {
       "cell_type": "code",
       "source": [
-        "plt.scatter(df['GLON'], df['GLAT'], c=df['probs'], alpha=.5)\n",
-        "plt.colorbar()\n",
-        "plt.xlabel(\"GLON\")\n",
-        "plt.ylabel(\"GLAT\")"
+        "N_membs_min = 25\n",
+        "prob_min = 0.5\n",
+        "msk_membs = df['probs'] > prob_min\n",
+        "# Check to see if there are more than N_membs_min with P>prob_min\n",
+        "if msk_membs.sum() < N_membs_min:\n",
+        "  # If not, select the N_membs_min with the largest probabilities as members\n",
+        "    msk_membs = np.full(len(df), False)\n",
+        "    msk_membs[:N_membs_min] = True\n",
+        "df_membs = df[msk_membs]\n",
+        "df_field = df[~msk_membs]"
       ],
       "metadata": {
-        "id": "wIsOhv2Kgi9S"
+        "id": ""
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Define a function to generate scatter plots"
+      ],
+      "metadata": {
+        "id": ""
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def scatter_plot(x, y, col, flip_yaxis=False):\n",
+        "    members = ColumnDataSource({'xm':df_membs[x], 'ym':df_membs[y], 'col':df_membs[col]})\n",
+        "    field = ColumnDataSource({'xf':df_field[x], 'yf':df_field[y]})\n",
+        "    cmap = LinearColorMapper(palette=\"Viridis256\", low = .5, high = 1)\n",
+        "\n",
+        "    p = figure()\n",
+        "    p.circle(\"xf\", \"yf\", size=10, source=field, line_color='white', alpha=.35,\n",
+        "            fill_color='grey')\n",
+        "    p.circle(\"xm\", \"ym\", size=10, source=members, line_color='black', alpha=.75,\n",
+        "            fill_color={\"field\":\"col\", \"transform\":cmap})\n",
+        "    if flip_yaxis:\n",
+        "        p.y_range.flipped = True\n",
+        "    bar = ColorBar(color_mapper=cmap)\n",
+        "    p.add_layout(bar, \"right\")\n",
+        "    p.xaxis.axis_label = x\n",
+        "    p.yaxis.axis_label = y\n",
+        "    show(p)\n"
+      ],
+      "metadata": {
+        "id": ""
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "And a function to generate histograms"
+      ],
+      "metadata": {
+        "id": ""
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def histo_plot(x):\n",
+        "    # Define number of bins with equal density in members and field\n",
+        "    Nbins_membs = 20\n",
+        "    dens = len(df_membs) / Nbins_membs\n",
+        "    Nbins_field = max(10, int(len(df_field)/dens))\n",
+        "\n",
+        "    p = figure()\n",
+        "    # Histogram for field stars\n",
+        "    hist, edges = np.histogram(df_field[x], bins=Nbins_field)\n",
+        "    p.quad(top=hist, bottom=0, left=edges[:-1], right=edges[1:],\n",
+        "            fill_color=\"grey\", line_color=\"white\", alpha=.35,\n",
+        "          legend_label='field')\n",
+        "    # Histogram for member stars\n",
+        "    hist, edges = np.histogram(df_membs[x], bins=Nbins_membs)\n",
+        "    p.quad(top=hist, bottom=0, left=edges[:-1], right=edges[1:],\n",
+        "            fill_color=\"skyblue\", line_color=\"white\", alpha=.75,\n",
+        "          legend_label='members')\n",
+        "    # Vertical line\n",
+        "    p.ray(x=[np.nanmedian(df_membs[x])], y=[0], length=0, angle=90,\n",
+        "          angle_units='deg', line_width=3, line_color='red')\n",
+        "    left, right = np.nanmin(df_membs[x]) * 0.9, np.nanmax(df_membs[x]) * 1.1\n",
+        "    p.x_range=Range1d(left, right)\n",
+        "    p.xaxis.axis_label = x\n",
+        "    p.yaxis.axis_label = \"N\"\n",
+        "    show(p)"
+      ],
+      "metadata": {
+        "id": ""
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "## Generate interactive plots\n",
+        "\n",
+        "Now we can generate some interactive plots. For example the distribution of galactic coordinates for stars in the field, colored by their membership probability"
+      ],
+      "metadata": {
+        "id": ""
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "x, y, col = 'GLON', 'GLAT', 'probs'\n",
+        "scatter_plot(x, y, col)"
+      ],
+      "metadata": {
+        "id": ""
       },
       "execution_count": null,
       "outputs": []
@@ -98,20 +239,17 @@
         "And a color-magnitude diagram"
       ],
       "metadata": {
-        "id": "QAb8SYmegkKA"
+        "id": ""
       }
     },
     {
       "cell_type": "code",
       "source": [
-        "plt.scatter(df['BP-RP'], df['Gmag'], c=df['probs'], alpha=.5)\n",
-        "plt.gca().invert_yaxis()\n",
-        "plt.colorbar()\n",
-        "plt.xlabel(\"BP-RP\")\n",
-        "plt.ylabel(\"Gmag\")"
+        "x, y, col = 'BP-RP', 'Gmag', 'probs'\n",
+        "scatter_plot(x, y, col, True)"
       ],
       "metadata": {
-        "id": "SjOTh85IgkT7"
+        "id": ""
       },
       "execution_count": null,
       "outputs": []
@@ -122,19 +260,17 @@
         "Distribution of proper motions"
       ],
       "metadata": {
-        "id": "QkXB-D3vhWq-"
+        "id": ""
       }
     },
     {
       "cell_type": "code",
       "source": [
-        "plt.scatter(df['pmRA'], df['pmDE'], c=df['probs'], alpha=.5)\n",
-        "plt.colorbar()\n",
-        "plt.xlabel(\"pmRA\")\n",
-        "plt.ylabel(\"pmDE\")"
+        "x, y, col = 'pmRA', 'pmDE', 'probs'\n",
+        "scatter_plot(x, y, col)"
       ],
       "metadata": {
-        "id": "vwl2z0BwhYrU"
+        "id": ""
       },
       "execution_count": null,
       "outputs": []
@@ -142,22 +278,19 @@
     {
       "cell_type": "markdown",
       "source": [
-        "Histogram of the parallaxes with the median value displayed with a red dotted line"
+        "Histogram of the parallaxes with the median value of the selected members shown as a red vertical line"
       ],
       "metadata": {
-        "id": "EkqgwmBMhhm1"
+        "id": ""
       }
     },
     {
       "cell_type": "code",
       "source": [
-        "plt.hist(df['Plx'], 20)\n",
-        "plt.axvline(np.median(df['Plx']), c='r', ls=':', lw=2)\n",
-        "plt.xlabel(\"Plx\")\n",
-        "plt.show()"
+        "histo_plot('Plx')"
       ],
       "metadata": {
-        "id": "lkL73ewShj_b"
+        "id": ""
       },
       "execution_count": null,
       "outputs": []
