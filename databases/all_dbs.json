@@ -2,13 +2,13 @@
   "KHARCHENKO12": {
     "ref": "[Kharchenko et al. (2012)](https://ui.adsabs.harvard.edu/abs/2012A%26A...543A.156K)",
     "names": "name",
-    "pars": "E_BV,dm,logAge,FeH",
+    "pars": "Ebv,dm,logt,FeH",
     "pos": "ra,dec,None,pm_ra,pm_dec,None"
  },
   "LOKTIN17": {
     "ref": "[Loktin & Popova (2017)](https://ui.adsabs.harvard.edu/abs/2017AstBu..72..257L/abstract)",
     "names": "Name",
-    "pars": "E(B-V),Dmod,logt,None",
+    "pars": "Ebv,dm,logt,None",
     "pos": "RAJ2000,DEJ2000,None,pmRA,pmDE,RV"
  },
   "CASTRO18": {
@@ -32,13 +32,13 @@
   "SIM19": {
     "ref": "[Sim et al. (2019)](https://ui.adsabs.harvard.edu/abs/2019JKAS...52..145S/abstract)",
     "names": "ID",
-    "pars": "None,dist_pc,log(age),None",
+    "pars": "None,d_pc,logt,None",
     "pos": "RA_ICRS,DE_ICRS,plx,pmRA*,pmDE,None"
  },
   "LIUPANG19": {
     "ref": "[Liu & Pang (2019)](https://ui.adsabs.harvard.edu/abs/2019ApJS..245...32L/abstract)",
     "names": "ID",
-    "pars": "None,None,Age,Z",
+    "pars": "None,None,logt,Z",
     "pos": "_RA.icrs,_DE.icrs,plx,pmRA,pmDE,None"
  }, 
   "FERREIRA19": {
@@ -50,7 +50,7 @@
   "CANTAT20": {
     "ref": "[Cantat-Gaudin et al. (2020)](https://ui.adsabs.harvard.edu/abs/2020A%26A...640A...1C)",
     "names": "Cluster",
-    "pars": "AVNN,DMNN,AgeNN,None",
+    "pars": "Av,dm,logt,None",
     "pos": "RA_ICRS,DE_ICRS,plx,pmRA*,pmDE,None"
  },
   "CASTRO20": {
@@ -62,19 +62,19 @@
   "FERREIRA20": {
     "ref": "[Ferreira et al. (2020)](https://ui.adsabs.harvard.edu/abs/2020MNRAS.496.2021F/abstract)",
     "names": "Name",
-    "pars": "E(B-V),m-M,logt,None",
+    "pars": "Ebv,dm,logt,None",
     "pos": "RA_ICRS,DE_ICRS,plxcl,pmRAcl,pmDEcl,None"
  },
   "HAO20": {
     "ref": "[Hao et al. (2020)](https://ui.adsabs.harvard.edu/abs/2020PASP..132c4502H/abstract)",
     "names": "Name",
-    "pars": "AG,d_pc,logage,None",
+    "pars": "AG,d_pc,logt,None",
     "pos": "ra,dec,plx,pmra,pmde,None"
  },
   "DIAS21": {
     "ref": "[Dias et al. (2021)](https://ui.adsabs.harvard.edu/abs/2021MNRAS.504..356D)",
     "names": "Cluster",
-    "pars": "Av,Dist,logage,[Fe/H]",
+    "pars": "Av,d_pc,logt,FeH",
     "pos": "RA_ICRS,DE_ICRS,Plx,pmRA,pmDE,None"
  },
   "CASADO21": {
@@ -86,7 +86,7 @@
   "FERREIRA21": {
     "ref": "[Ferreira et al. (2021)](https://ui.adsabs.harvard.edu/abs/2021MNRAS.502L..90F/abstract)",
     "names": "Name",
-    "pars": "E(B-V),Dmod,logt,None",
+    "pars": "Ebv,dm,logt,None",
     "pos": "RAJ2000,DEJ2000,plx,pmRA,pmDE,None"
  },
   "HUNT21": {
@@ -104,73 +104,67 @@
   "SANTOS21": {
     "ref": "[Santos-Silva et al. (2021)](https://ui.adsabs.harvard.edu/abs/2021MNRAS.508.1033S/abstract)",
     "names": "Name",
-    "pars": "AV,d_pc,Age_Myr,FeH",
+    "pars": "Av,d_pc,logt,FeH",
     "pos": "ra,dec,plx,pmra,pmde,None"
  },
   "HE21": {
     "ref": "[He et al. (2021)](https://ui.adsabs.harvard.edu/abs/2021RAA....21...93H/abstract)",
     "names": "OC",
-    "pars": "AG,m-M,logAge,Z",
+    "pars": "AG,dm,logt,Z",
     "pos": "RA_ICRS,DE_ICRS,plx,pmRA,pmDE,None"
  },
   "CASTRO22": {
     "ref": "[Castro-Ginard et al. (2022)](https://ui.adsabs.harvard.edu/abs/2022A%26A...661A.118C/abstract)",
     "names": "Cluster",
-    "pars": "AV,Dist,logAge,None",
+    "pars": "Av,d_pc,logt,None",
     "pos": "RA_ICRS,DE_ICRS,plx,pmRA,pmDE,RV"
  },
   "TARRICQ22": {
     "ref": "[Tarricq et al. (2022)](https://ui.adsabs.harvard.edu/abs/2022A%26A...659A..59T/abstract)",
     "names": "Cluster",
-    "pars": "None,Dist,logAgeNN,None",
+    "pars": "None,d_pc,logt,None",
     "pos": "RA_ICRS,DE_ICRS,plx,pmRA,pmDE,None"
  },
   "LI22": {
     "ref": "[Li et al. (2022)](https://ui.adsabs.harvard.edu/abs/2022ApJS..259...19L/abstract)",
     "names": "id",
-    "pars": "E(V-I),m_M,t,Z",
+    "pars": "Evi,dm,None,Z",
     "pos": "ra,dec,plx,pmRA,pmDE,None"
  },
   "HE22": {
     "ref": "[He et al. (2022)](https://ui.adsabs.harvard.edu/abs/2022ApJS..260....8H/abstract)",
     "names": "Cluster",
-    "pars": "AG,m-M,logAge,Z",
+    "pars": "AG,dm,logt,Z",
     "pos": "_RA.icrs,_DE.icrs,Plx,pmRA,pmDE,RV"
  },
   "HE22_1": {
     "ref": "[He et al. (2022)](https://ui.adsabs.harvard.edu/abs/2022ApJS..262....7H/abstract)",
     "names": "Cluster",
-    "pars": "A0,None,logA,None",
+    "pars": "A0,None,logt,None",
     "pos": "_RA.icrs,_DE.icrs,plx,pmRA,pmDE,None"
  },
   "HE22_2": {
     "ref": "[He et al. (2022)](https://ui.adsabs.harvard.edu/abs/2022arXiv220908504H/abstract)",
     "names": "CWNU_id",
-    "pars": "A0,m-M,logage,None",
+    "pars": "A0,dm,logt,None",
     "pos": "RA_ICRS,DE_ICRS,plx,pmx,pmy,rv"
  },
   "HAO22": {
     "ref": "[Hao et al. (2022)](https://ui.adsabs.harvard.edu/abs/2022A%26A...660A...4H/abstract)",
     "names": "Cluster",
-    "pars": "AG,None,age,Z",
+    "pars": "AG,None,logt,Z",
     "pos": "RA_ICRS,DE_ICRS,plx,pmRA,pmDE,RV"
- },
-  "PERREN22": {
-    "ref": "[Perren et al. (2022)](https://ui.adsabs.harvard.edu/abs/2022A%26A...663A.131P/abstract)",
-    "names": "Cluster",
-    "pars": "E(B-V),MOD,log(Age),[Fe/H]",
-    "pos": "_RA,_DE,None,None,None,None"
  },
   "HUNT23": {
     "ref": "[Hunt & Reffert (2023)](https://ui.adsabs.harvard.edu/abs/2023arXiv230313424H/abstract)",
     "names": "name",
-    "pars": "av,dm,log_age,None",
+    "pars": "Av,dm,logt,None",
     "pos": "ra,dec,parallax,pmra,pmdec,radial_velocity"
  },
   "QIN23": {
     "ref": "[Qin et al. (2023)](https://ui.adsabs.harvard.edu/abs/2023ApJS..265...12Q/abstract)",
     "names": "Name",
-    "pars": "E(B-V),m-M,logAge,None",
+    "pars": "Ebv,dm,logt,None",
     "pos": "RAdeg,DEdeg,plx,pmRA,pmDE,RV"
  },
   "LI23": {
@@ -182,19 +176,19 @@
   "CHI23_2": {
     "ref": "[Chi et al. (2023)](https://ui.adsabs.harvard.edu/abs/2023ApJS..265...20C/abstract)",
     "names": "Name",
-    "pars": "None,None,Age,Z",
+    "pars": "None,None,logt,Z",
     "pos": "ra,dec,plx,pmra,pmde,None"
  },
   "CHI23": {
     "ref": "[Chi et al. (2023)](https://ui.adsabs.harvard.edu/abs/2023arXiv230208926C/abstract)",
     "names": "name",
-    "pars": "E(V-I),m-M,None,Z",
+    "pars": "Evi,dm,None,Z",
     "pos": "RA_ICRS,DE_ICRS,plx,pmra,pmdec,None"
  },
   "CHI23_3": {
     "ref": "[Chi et al. (2023)](https://ui.adsabs.harvard.edu/abs/2023arXiv230310380C/abstrac)",
     "names": "Id",
-    "pars": "None,None,age,Z",
+    "pars": "None,None,logt,Z",
     "pos": "ra,dec,plx,pmra,pmdec,RV_mean"
  }
 }
