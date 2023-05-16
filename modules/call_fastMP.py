@@ -124,9 +124,7 @@ def run(
         C2_all.append(C2)
 
         # Write member stars for cluster and some field
-        quad = QXY_fold(cl)
-        quad_all.append(quad)
-        save_cl_datafile(cl, df_comb, out_path, quad)
+        save_cl_datafile(cl, df_comb, out_path)
 
         print(f"*** Cluster {cl['ID']} processed with fastMP\n")
 
@@ -138,7 +136,6 @@ def run(
         df_UCC.at[idx, 'cent_flags'] = cent_flags_all[i]
         df_UCC.at[idx, 'C1'] = C1_all[i]
         df_UCC.at[idx, 'C2'] = C2_all[i]
-        df_UCC.at[idx, 'quad'] = quad_all[i]
     df_UCC.to_csv(UCC_cat, na_rep='nan', index=False,
                   quoting=csv.QUOTE_NONNUMERIC)
 
@@ -409,10 +406,11 @@ def split_membs_field(data, probs_all, prob_min=0.5, N_membs_min=25):
     return df_comb, df_membs, df_field, r_50, xy_c, vpd_c, plx_c
 
 
-def save_cl_datafile(cl, df_comb, out_path, quad):
+def save_cl_datafile(cl, df_comb, out_path):
     """
     """
     fname0 = cl['fnames'].split(';')[0]
+    quad = cl['quad']
 
     # Order by probabilities
     df_comb = df_comb.sort_values('probs', ascending=False)
@@ -423,34 +421,6 @@ def save_cl_datafile(cl, df_comb, out_path, quad):
     # df_comb.to_parquet(
     #     out_path + Qfold + "/datafiles/" + fname0 + ".parquet.gz",
     #     index=False, compression='gzip')
-
-
-def QXY_fold(cl):
-    """
-    """
-    UCC_ID = cl['UCC_ID']
-    lonlat = UCC_ID.split('G')[1]
-    lon = float(lonlat[:5])
-    try:
-        lat = float(lonlat[5:])
-    except ValueError:
-        lat = float(lonlat[5:-1])
-
-    Qfold = "Q"
-    if lon >= 0 and lon < 90:
-        Qfold += "1"
-    elif lon >= 90 and lon < 180:
-        Qfold += "2"
-    elif lon >= 180 and lon < 270:
-        Qfold += "3"
-    elif lon >= 270 and lon < 3600:
-        Qfold += "4"
-    if lat >= 0:
-        Qfold += 'P'
-    else:
-        Qfold += "N"
-
-    return Qfold
 
 
 def get_classif(df_membs, df_field, xy_c, vpd_c, plx_c, rad_max=2):

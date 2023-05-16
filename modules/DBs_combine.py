@@ -321,6 +321,34 @@ def trunc(values, decs=1):
     return np.trunc(values*10**decs)/(10**decs)
 
 
+def QXY_fold(UCC_ID):
+    """
+    """
+    # UCC_ID = cl['UCC_ID']
+    lonlat = UCC_ID.split('G')[1]
+    lon = float(lonlat[:5])
+    try:
+        lat = float(lonlat[5:])
+    except ValueError:
+        lat = float(lonlat[5:-1])
+
+    Qfold = "Q"
+    if lon >= 0 and lon < 90:
+        Qfold += "1"
+    elif lon >= 90 and lon < 180:
+        Qfold += "2"
+    elif lon >= 180 and lon < 270:
+        Qfold += "3"
+    elif lon >= 270 and lon < 3600:
+        Qfold += "4"
+    if lat >= 0:
+        Qfold += 'P'
+    else:
+        Qfold += "N"
+
+    return Qfold
+
+
 def dups_identify(df, N_dups, noXY):
     """
     Find the closest clusters to all clusters
