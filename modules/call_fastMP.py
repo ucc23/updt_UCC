@@ -44,18 +44,19 @@ def run(
     else:
         # Full list
         clusters_list = df_UCC
+    # clusters_list = df_UCC
 
-    jj = 0
+    # jj = 0
 
     index_all, r50_all, N_survived_all, fixed_centers_all, cent_flags_all,\
-        C1_all, C2_all = [[] for _ in range(7)]
+        C1_all, C2_all, quad_all = [[] for _ in range(8)]
     for index, cl in clusters_list.iterrows():
 
         # if 'ngc2516' not in cl['fnames']:
         #     continue
-        if jj > 2:
-            break
-        jj += 1
+        # if jj > 1:
+        #     break
+        # jj += 1
 
         index_all.append(index)
 
@@ -123,19 +124,21 @@ def run(
         C2_all.append(C2)
 
         # Write member stars for cluster and some field
-        save_cl_datafile(cl, df_comb, out_path)
+        quad = QXY_fold(cl)
+        quad_all.append(quad)
+        save_cl_datafile(cl, df_comb, out_path, quad)
 
         print(f"*** Cluster {cl['ID']} processed with fastMP\n")
 
     # Update these values for all the processed clusters
     for i, idx in enumerate(index_all):
-        print(i, idx)
         df_UCC.at[idx, 'r_50'] = r50_all[i]
         df_UCC.at[idx, 'Nmembs'] = int(N_survived_all[i])
         df_UCC.at[idx, 'fixed_cent'] = fixed_centers_all[i]
         df_UCC.at[idx, 'cent_flags'] = cent_flags_all[i]
         df_UCC.at[idx, 'C1'] = C1_all[i]
         df_UCC.at[idx, 'C2'] = C2_all[i]
+        df_UCC.at[idx, 'quad'] = quad_all[i]
     df_UCC.to_csv(UCC_cat, na_rep='nan', index=False,
                   quoting=csv.QUOTE_NONNUMERIC)
 
@@ -376,16 +379,13 @@ def split_membs_field(data, probs_all, prob_min=0.5, N_membs_min=25):
     data['probs'] = np.round(probs_all, 5)
     # This dataframe contains both members and a selected portion of
     # field stars
-    breakpoint()
-    print("1")
     df_comb = data.loc[msk]
-    print("2")
     df_comb.reset_index(drop=True, inplace=True)
 
     # Split into members and field, now using the filtered dataframe
     msk_membs = df_comb['probs'] > 0.5
     if msk_membs.sum() < N_membs_min:
-        idx = np.argsort(df_comb['probs'])[::-1][:N_membs_min]
+        idx = np.argsort(df_comb['probs'].values)[::-1][:N_membs_min]
         msk_membs = np.full(len(df_comb['probs']), False)
         msk_membs[idx] = True
     df_membs, df_field = df_comb[msk_membs], df_comb[~msk_membs]
@@ -409,7 +409,7 @@ def split_membs_field(data, probs_all, prob_min=0.5, N_membs_min=25):
     return df_comb, df_membs, df_field, r_50, xy_c, vpd_c, plx_c
 
 
-def save_cl_datafile(cl, df_comb, out_path):
+def save_cl_datafile(cl, df_comb, out_path, quad):
     """
     """
     fname0 = cl['fnames'].split(';')[0]
@@ -417,9 +417,12 @@ def save_cl_datafile(cl, df_comb, out_path):
     # Order by probabilities
     df_comb = df_comb.sort_values('probs', ascending=False)
 
-    Qfold = QXY_fold(cl)
-    df_comb.to_csv(out_path + Qfold + "/datafiles/" + fname0 + ".csv.gz",
+    df_comb.to_csv(out_path + quad + "/datafiles/" + fname0 + ".csv.gz",
                    index=False, compression='gzip')
+    # # There's a ~10% reduction in size using parquet
+    # df_comb.to_parquet(
+    #     out_path + Qfold + "/datafiles/" + fname0 + ".parquet.gz",
+    #     index=False, compression='gzip')
 
 
 def QXY_fold(cl):
