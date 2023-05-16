@@ -35,7 +35,13 @@ df = df.replace(r'^\s*$', np.nan, regex=True)
 df.to_csv("newDB.csv", na_rep='nan', index=False, quoting=csv.QUOTE_NONNUMERIC)
 ```
 
-4. Add the new DB to the `databases/all_dbs.json` file (adjusting its position
+4. Edit the parameters column names (if any) following:
+  - `Av`/`Ebv`: absorption / extinction
+  - `dm`/`d_pc /d_kpc`: distance modulus / distance
+  - `logt`: logarithmic age
+  - `FeH`/`Z`: metallicity
+
+5. Add the new DB to the `databases/all_dbs.json` file (adjusting its position
 according to the publication year)
 
 
@@ -55,7 +61,7 @@ Summary:
 
 1. Updates the `UCC_cat_XXXYYZZ.csv` file with data from the new DB
 2. Updates the `../ucc/_clusters/clusters.json` file with data from the new DB
-3. Generates the new clusters' datafiles and stores them in the proper repos
+3. Generates the new clusters' datafiles and stores them in the `QXY` repos
 
 
 ## Generate new cluster entries
@@ -66,4 +72,11 @@ to first edit it with the proper date of the recently updated UCC catalogue
 same day).
 
 This script will process all the clusters with the new DB identifier in the
-loaded `UCC_cat_XXXYYZZ.csv` file
+loaded `UCC_cat_XXXYYZZ.csv` file and generate a plot, `.ipynb` notebook, and
+proper .md entry in the `../ucc/_clusters/` folder for each cluster.
+
+Summary (for every cluster in the new DB):
+
+1. Generate an `.md` entry in the `../ucc/_clusters/` folder
+2. Generate a `.ipynb` notebook
+3. Generate a plot
