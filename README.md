@@ -9,8 +9,21 @@ This repository contains:
 3. `notebook.txt`: template used to generate the notebooks
 4. `UCC_cat_XXXYYZZ.csv`: latest version of the catalogue
 5. `add_new_DB.py`: script used to update the UCC catalogue with a new DB
-6. `make_entries.py`: 
- 
+6. `make_entries.py`: script used to generate new entries for the clusters
+   added through the new DB. This includes: `.md` files for the site, plots
+   files, notebook files, and datafiles
+
+
+# Initial version of the catalogue
+
+The initial version is generated using the `initial_DBs_comb` script in the
+article's repo. This initial version is processed with the `fastMP_process`
+script (in the same repo) to generate the datafiles for each catalogued cluster,
+through the use of the `fastMP` package.
+
+These datafiles need to be processed with the `make_entries` script to generate
+the files that will populate the site `ucc.ar`.
+
 
 # Updating the catalogue
 
