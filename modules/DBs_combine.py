@@ -164,7 +164,7 @@ def get_matches_new_DB(df_comb, new_DB_fnames):
 
 
 def combine_new_DB(
-    DB_new_ID, df_comb, df_new, json_pars, DBs_fnames, db_matches, sep
+    new_DB_ID, df_comb, df_new, json_pars, new_DB_fnames, db_matches, sep
 ):
     """
     """
@@ -176,12 +176,14 @@ def combine_new_DB(
     # Remove Rv column
     ra_c, dec_c, plx_c, pmra_c, pmde_c = cols[:-1]
 
-    new_db_dict = {
-        'DB': [], 'DB_i': [], 'ID': [], 'RA_ICRS': [], 'DE_ICRS': [],
-        'GLON': [], 'GLAT': [], 'plx': [], 'pmRA': [], 'pmDE': [],
-        'UCC_ID': [], 'fnames': [], 'dups_fnames': []}
+    new_db_dict = {_: [] for _ in df_comb.keys()}
+        # 'DB': [], 'DB_i': [], 'ID': [], 'RA_ICRS': [], 'DE_ICRS': [],
+        # 'GLON': [], 'GLAT': [], 'plx': [], 'pmRA': [], 'pmDE': [],
+        # "fnames": [], "UCC_ID": [], "quad": [], "dups_fnames": [],
+        # "dups_pm_plx": [], "r_50": [], "Nmembs": [], "fixed_cent": [],
+        # "cent_flags": [], "C1": [], "C2": []}
     idx_rm_comb_db = []
-    for i, new_cl in enumerate(DBs_fnames):
+    for i, new_cl in enumerate(new_DB_fnames):
 
         row_n = df_new.iloc[i]
 
@@ -189,19 +191,20 @@ def combine_new_DB(
         new_names = [_.strip() for _ in new_names]
         new_names = ';'.join(new_names)
 
-        plx_m, pmra_m, pmde_m = np.nan, np.nan, np.nan
-        ra_m, dec_m = row_n[ra_c], row_n[dec_c]
+        # Coordinates for this cluster in the new DB
+        plx_n, pmra_n, pmde_n = np.nan, np.nan, np.nan
+        ra_n, dec_n = row_n[ra_c], row_n[dec_c]
         if plx_c is not None:
-            plx_m = row_n[plx_c]
+            plx_n = row_n[plx_c]
         if pmra_c is not None:
-            pmra_m = row_n[pmra_c]
+            pmra_n = row_n[pmra_c]
         if pmde_c is not None:
-            pmde_m = row_n[pmde_c]
+            pmde_n = row_n[pmde_c]
 
         # Index of the match for this new cluster in the old DB (if any)
         db_match_j = db_matches[i]
 
-        # If the cluster is already present in the combined DB
+        # If the cluster is already present in the 'old' combined DB
         if db_match_j is not None:
             # Store indexes in old DB of clusters present in new DB
             idx_rm_comb_db.append(db_match_j)
@@ -210,30 +213,71 @@ def combine_new_DB(
             row = df_comb.iloc[db_match_j]
 
             # Combine old data with that of the new matched cluster
-            ra_m = np.nanmedian([row['RA_ICRS'], ra_m])
-            dec_m = np.nanmedian([row['DE_ICRS'], dec_m])
-            if not np.isnan([row['plx'], plx_m]).all():
-                plx_m = np.nanmedian([row['plx'], plx_m])
-            if not np.isnan([row['pmRA'], pmra_m]).all():
-                pmra_m = np.nanmedian([row['pmRA'], pmra_m])
-            if not np.isnan([row['pmDE'], pmde_m]).all():
-                pmde_m = np.nanmedian([row['pmDE'], pmde_m])
+            ra_n = np.nanmedian([row['RA_ICRS'], ra_n])
+            dec_n = np.nanmedian([row['DE_ICRS'], dec_n])
+            if not np.isnan([row['plx'], plx_n]).all():
+                plx_n = np.nanmedian([row['plx'], plx_n])
+            if not np.isnan([row['pmRA'], pmra_n]).all():
+                pmra_n = np.nanmedian([row['pmRA'], pmra_n])
+            if not np.isnan([row['pmDE'], pmde_n]).all():
+                pmde_n = np.nanmedian([row['pmDE'], pmde_n])
 
-            DB_ID = row['DB'] + ';' + DB_new_ID
+            # Add new DB information
+            DB_ID = row['DB'] + ';' + new_DB_ID
             DB_i = row['DB_i'] + ';' + str(i)
-
+            # Add name in new DB
             ID = row['ID'] + ';' + new_names
-            UCC_ID = row['UCC_ID']
+            # Add fnames in new DB
             fnames = row['fnames'] + ';' + ';'.join(new_cl)
+
+            # Copy values from the 'old' DB for these columns
+            UCC_ID = row['UCC_ID']
+            quad = row['quad']
             dups_fnames = row['dups_fnames']
+            dups_pm_plx = row['dups_pm_plx']
+            r_50 = row['r_50']
+            N_50 = row['N_50']
+            Nmembs = row['Nmembs']
+            fixed_cent = row['fixed_cent']
+            cent_flags = row['cent_flags']
+            C1 = row['C1']
+            C2 = row['C2']
+            GLON_m = row['GLON_m']
+            GLAT_m = row['GLAT_m']
+            RA_ICRS_m = row['RA_ICRS_m']
+            DE_ICRS_m = row['DE_ICRS_m']
+            plx_m = row['plx_m']
+            pmRA_m = row['pmRA_m']
+            pmDE_m = row['pmDE_m']
+            Rv_m = row['Rv_m']
+            N_Rv = row['N_Rv']
+
         else:
-            DB_ID = DB_new_ID
+            DB_ID = new_DB_ID
             DB_i = str(i)
             ID = new_names
             fnames = ';'.join(new_cl)
             # These values will be assigned later on for these new clusters
             UCC_ID = np.nan
+            quad = np.nan
             dups_fnames = np.nan
+            dups_pm_plx = np.nan
+            r_50 = np.nan
+            N_50 = np.nan
+            Nmembs = np.nan
+            fixed_cent = np.nan
+            cent_flags = np.nan
+            C1 = np.nan
+            C2 = np.nan
+            GLON_m = np.nan
+            GLAT_m = np.nan
+            RA_ICRS_m = np.nan
+            DE_ICRS_m = np.nan
+            plx_m = np.nan
+            pmRA_m = np.nan
+            pmDE_m = np.nan
+            Rv_m = np.nan
+            N_Rv = np.nan
 
         new_db_dict['DB'].append(DB_ID)
         new_db_dict['DB_i'].append(DB_i)
@@ -241,20 +285,38 @@ def combine_new_DB(
         if ';' in ID:
             ID = ';'.join(list(dict.fromkeys(ID.split(';'))))
         new_db_dict['ID'].append(ID)
-        lon, lat = radec2lonlat(ra_m, dec_m)
-        new_db_dict['RA_ICRS'].append(round(ra_m, 4))
-        new_db_dict['DE_ICRS'].append(round(dec_m, 4))
-        new_db_dict['GLON'].append(lon)
-        new_db_dict['GLAT'].append(lat)
-        new_db_dict['plx'].append(plx_m)
-        new_db_dict['pmRA'].append(pmra_m)
-        new_db_dict['pmDE'].append(pmde_m)
-        new_db_dict['UCC_ID'].append(UCC_ID)
+        lon_n, lat_n = radec2lonlat(ra_n, dec_n)
+        new_db_dict['RA_ICRS'].append(round(ra_n, 4))
+        new_db_dict['DE_ICRS'].append(round(dec_n, 4))
+        new_db_dict['GLON'].append(lon_n)
+        new_db_dict['GLAT'].append(lat_n)
+        new_db_dict['plx'].append(plx_n)
+        new_db_dict['pmRA'].append(pmra_n)
+        new_db_dict['pmDE'].append(pmde_n)
         # Remove duplicates
         if ';' in fnames:
             fnames = ';'.join(list(dict.fromkeys(fnames.split(';'))))
         new_db_dict['fnames'].append(fnames)
+        new_db_dict['UCC_ID'].append(UCC_ID)
+        new_db_dict['quad'].append(quad)
         new_db_dict['dups_fnames'].append(dups_fnames)
+        new_db_dict['dups_pm_plx'].append(dups_pm_plx)
+        new_db_dict['r_50'].append(r_50)
+        new_db_dict['N_50'].append(N_50)
+        new_db_dict['Nmembs'].append(Nmembs)
+        new_db_dict['fixed_cent'].append(fixed_cent)
+        new_db_dict['cent_flags'].append(cent_flags)
+        new_db_dict['C1'].append(C1)
+        new_db_dict['C2'].append(C2)
+        new_db_dict['GLON_m'].append(GLON_m)
+        new_db_dict['GLAT_m'].append(GLAT_m)
+        new_db_dict['RA_ICRS_m'].append(RA_ICRS_m)
+        new_db_dict['DE_ICRS_m'].append(DE_ICRS_m)
+        new_db_dict['plx_m'].append(plx_m)
+        new_db_dict['pmRA_m'].append(pmRA_m)
+        new_db_dict['pmDE_m'].append(pmDE_m)
+        new_db_dict['Rv_m'].append(Rv_m)
+        new_db_dict['N_Rv'].append(N_Rv)
 
     # Remove duplicates of the kind: Berkeley 102, Berkeley102,
     # Berkeley_102; keeping only the name with the space

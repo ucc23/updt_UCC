@@ -1,4 +1,5 @@
 
+from pathlib import Path
 import numpy as np
 import pandas as pd
 from scipy import spatial
@@ -6,21 +7,20 @@ import csv
 
 
 def run(
-    fastMP, G3Q, frames_path, frames_ranges, UCC_cat, GCs_cat, out_path,
-    new_DB=None, ij=None, Nj=5, N_cl_extra=10, max_mag=20
+    fastMP, G3Q, frames_path, frames_data, df_UCC, df_gcs, UCC_cat, out_path,
+    clusters_list, N_cl_extra=10, max_mag=20
 ):
     """
-    new_DB: ID of new database to process
-
-    ij: index of job (for cluster run)
-    Nj: number of jobs (for cluster run)
-
     N_cl_extra: number of extra clusters in frame to detect
     max_mag: maximum magnitude to retrieve
     """
 
-    # Read data
-    frames_data, df_UCC, df_gcs = read_input(frames_ranges, UCC_cat, GCs_cat)
+    # Create output folders if not present
+    for quad in ('1', '2', '3', '4'):
+        for s in ('P', 'N'):
+            Qfold = 'Q' + quad + s
+            Path(out_path + Qfold + '/datafiles/').mkdir(
+                parents=True, exist_ok=True)
 
     # Parameters used to search for close-by clusters
     xys = np.array([
@@ -28,39 +28,26 @@ def run(
     tree = spatial.cKDTree(xys)
     close_cl_idx = tree.query(xys, k=N_cl_extra + 1)
 
-    if ij is not None:
-        # Split into N_j jobs
-        N_r = int(len(df_UCC) / Nj)
-        clusters_list = df_UCC[ij*N_r:(ij + 1)*N_r]
-    elif new_DB is not None:
-        # Only process 'new_DB' (if given)
-        msk_new_clusters = []
-        for index, cl in df_UCC.iterrows():
-            if new_DB in cl['DB']:
-                msk_new_clusters.append(True)
-            else:
-                msk_new_clusters.append(False)
-        clusters_list = df_UCC[np.array(msk_new_clusters)]
-    else:
-        # Full list
-        clusters_list = df_UCC
-    # clusters_list = df_UCC
-
     # jj = 0
 
     index_all, r50_all, N_survived_all, fixed_centers_all, cent_flags_all,\
-        C1_all, C2_all, quad_all = [[] for _ in range(8)]
+        C1_all, C2_all, quad_all, membs_cents_all = [[] for _ in range(9)]
     for index, cl in clusters_list.iterrows():
 
-        # if 'ngc2516' not in cl['fnames']:
+        # fname0 = cl['fnames'].split(';')[0]
+        # print(out_path + cl['quad'] + "/datafiles/" + fname0)
+        # continue
+
+        # if 'ngc' not in cl['fnames']:
         #     continue
-        # if jj > 1:
+        # if jj > 3:
         #     break
         # jj += 1
 
         index_all.append(index)
 
-        print(f"*** Processing {cl['ID']} with fastMP...")
+        print(f"*** {index} Processing {cl['ID']} with fastMP...")
+        print(cl['GLON'], cl['GLAT'], cl['pmRA'], cl['pmDE'], cl['plx'])
 
         # Get close clusters coords
         centers_ex = get_close_cls(
@@ -112,8 +99,8 @@ def run(
 
         bad_center = check_centers(*X[:5, :], xy_c, vpd_c, plx_c, probs_all)
         cent_flags_all.append(bad_center)
-        # print("Nsurv={}, Nmembs(P>0.5)={}, cents={}".format(
-        #       N_survived, (probs_all > 0.5).sum(), bad_center))
+        print("Nsurv={}, Nmembs(P>0.5)={}, cents={}".format(
+              N_survived, (probs_all > 0.5).sum(), bad_center))
 
         df_comb, df_membs, df_field, r_50, xy_c, vpd_c, plx_c =\
             split_membs_field(data, probs_all)
@@ -123,11 +110,17 @@ def run(
         C1_all.append(C1)
         C2_all.append(C2)
 
+        N_50, lon, lat, ra, dec, plx, pmRA, pmDE, RV, N_Rv = extract_cl_data(
+            df_membs)
+        membs_cents_all.append([
+            N_50, lon, lat, ra, dec, plx, pmRA, pmDE, RV, N_Rv])
+
         # Write member stars for cluster and some field
         save_cl_datafile(cl, df_comb, out_path)
 
         print(f"*** Cluster {cl['ID']} processed with fastMP\n")
 
+    membs_cents_all = np.array(membs_cents_all).T
     # Update these values for all the processed clusters
     for i, idx in enumerate(index_all):
         df_UCC.at[idx, 'r_50'] = r50_all[i]
@@ -136,6 +129,17 @@ def run(
         df_UCC.at[idx, 'cent_flags'] = cent_flags_all[i]
         df_UCC.at[idx, 'C1'] = C1_all[i]
         df_UCC.at[idx, 'C2'] = C2_all[i]
+        df_UCC.at[idx, 'N_50'] = membs_cents_all[0][i]
+        df_UCC.at[idx, 'GLON_m'] = membs_cents_all[1][i]
+        df_UCC.at[idx, 'GLAT_m'] = membs_cents_all[2][i]
+        df_UCC.at[idx, 'RA_ICRS_m'] = membs_cents_all[3][i]
+        df_UCC.at[idx, 'DE_ICRS_m'] = membs_cents_all[4][i]
+        df_UCC.at[idx, 'plx_m'] = membs_cents_all[5][i]
+        df_UCC.at[idx, 'pmRA_m'] = membs_cents_all[6][i]
+        df_UCC.at[idx, 'pmDE_m'] = membs_cents_all[7][i]
+        df_UCC.at[idx, 'Rv_m'] = membs_cents_all[8][i]
+        df_UCC.at[idx, 'N_Rv'] = membs_cents_all[9][i]
+
     df_UCC.to_csv(UCC_cat, na_rep='nan', index=False,
                   quoting=csv.QUOTE_NONNUMERIC)
 
@@ -347,7 +351,7 @@ def split_membs_field(data, probs_all, prob_min=0.5, N_membs_min=25):
     # of the most likely members
 
     # Select most likely members
-    msk_membs = probs_all > 0.5
+    msk_membs = probs_all >= 0.5
     if msk_membs.sum() < N_membs_min:
         # Select the 'N_membs_min' stars with the largest probabilities
         idx = np.argsort(probs_all)[::-1][:N_membs_min]
@@ -404,23 +408,6 @@ def split_membs_field(data, probs_all, prob_min=0.5, N_membs_min=25):
     plx_c = np.nanmedian(df_membs['Plx'].values)
 
     return df_comb, df_membs, df_field, r_50, xy_c, vpd_c, plx_c
-
-
-def save_cl_datafile(cl, df_comb, out_path):
-    """
-    """
-    fname0 = cl['fnames'].split(';')[0]
-    quad = cl['quad']
-
-    # Order by probabilities
-    df_comb = df_comb.sort_values('probs', ascending=False)
-
-    df_comb.to_csv(out_path + quad + "/datafiles/" + fname0 + ".csv.gz",
-                   index=False, compression='gzip')
-    # # There's a ~10% reduction in size using parquet
-    # df_comb.to_parquet(
-    #     out_path + Qfold + "/datafiles/" + fname0 + ".parquet.gz",
-    #     index=False, compression='gzip')
 
 
 def get_classif(df_membs, df_field, xy_c, vpd_c, plx_c, rad_max=2):
@@ -480,7 +467,48 @@ def get_classif(df_membs, df_field, xy_c, vpd_c, plx_c, rad_max=2):
     c_xy, ratio_xy = ABCD_classif(N_memb_xy, N_field_xy)
     c_pm, ratio_pm = ABCD_classif(N_memb_pm, N_field_pm)
     c_plx, ratio_plx = ABCD_classif(N_memb_plx, N_field_plx)
-    classif = c_xy + c_pm + c_plx
-    classif_v = round((ratio_xy + ratio_pm + ratio_plx), 2)
 
-    return classif, classif_v
+    C1 = c_xy + c_pm + c_plx
+    C2 = round((ratio_xy + ratio_pm + ratio_plx), 2)
+
+    return C1, C2
+
+
+def extract_cl_data(df_membs):
+    """
+    """
+    N_50 = (df_membs['probs'] >= 0.5).sum()
+    lon, lat = np.nanmedian(df_membs['GLON']), np.nanmedian(df_membs['GLAT'])
+    ra, dec = np.nanmedian(
+        df_membs['RA_ICRS']), np.nanmedian(df_membs['DE_ICRS'])
+    plx = np.nanmedian(df_membs['Plx'])
+    pmRA, pmDE = np.nanmedian(df_membs['pmRA']), np.nanmedian(df_membs['pmDE'])
+    RV, N_Rv = np.nan, 0
+    if not np.isnan(df_membs['RV'].values).all():
+        RV = np.nanmedian(df_membs['RV'])
+        N_Rv = len(df_membs['RV']) - np.isnan(df_membs['RV'].values).sum()
+    lon, lat = round(lon, 3), round(lat, 3)
+    ra, dec = round(ra, 3), round(dec, 3)
+    plx = round(plx, 3)
+    pmRA, pmDE = round(pmRA, 3), round(pmDE, 3)
+    RV = round(RV, 3)
+
+    return N_50, lon, lat, ra, dec, plx, pmRA, pmDE, RV, N_Rv
+
+
+def save_cl_datafile(cl, df_comb, out_path):
+    """
+    """
+    fname0 = cl['fnames'].split(';')[0]
+    quad = cl['quad']
+
+    # Order by probabilities
+    df_comb = df_comb.sort_values('probs', ascending=False)
+
+    df_comb.to_csv(out_path + quad + "/datafiles/" + fname0 + ".csv.gz",
+                   index=False, compression='gzip')
+    # # There's a ~10% reduction in size using parquet
+    # df_comb.to_parquet(
+    #     out_path + Qfold + "/datafiles/" + fname0 + ".parquet.gz",
+    #     index=False, compression='gzip')
+
