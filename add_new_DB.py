@@ -10,13 +10,12 @@ from modules import fastMP_process, DBs_combine
 new_DB = "PERREN22"
 
 # Date of the latest version of the UCC catalogue
-UCC_cat_date_old = "20230508"
+UCC_cat_date_old = "20230517"
 
 # Paths to required files for the fastMP call
 GAIADR3_path = '/media/gabriel/backup/gabriel/GaiaDR3/'
 frames_path = GAIADR3_path + 'datafiles_G20/'
 frames_ranges = GAIADR3_path + 'files_G20/frame_ranges.txt'
-UCC_cat = "UCC_cat_20230511.csv"
 GCs_cat = "./databases/globulars.csv"
 out_path = "../../"
 # Load local version of fastMP
@@ -53,6 +52,7 @@ def main(
         new_DB, df_comb, df_new, json_pars, new_DB_fnames, db_matches, sep)
     print(f"N={len(df_new) - len(idx_rm_comb_db)} new clusters in new DB")
 
+    # Add UCC_IDs and quadrant for new clusters
     ucc_ids_old = list(df_comb['UCC_ID'].values)
     for i, UCC_ID in enumerate(new_db_dict['UCC_ID']):
         if str(UCC_ID) != 'nan':
@@ -61,6 +61,7 @@ def main(
         lon_i, lat_i = new_db_dict['GLON'][i], new_db_dict['GLAT'][i]
         new_db_dict['UCC_ID'][i] = DBs_combine.assign_UCC_ids(
             lon_i, lat_i, ucc_ids_old)
+        new_db_dict['quad'][i] = DBs_combine.QXY_fold(new_db_dict['UCC_ID'][i])
         ucc_ids_old += [new_db_dict['UCC_ID'][i]]
 
     # Remove clusters in the new DB that were already in the old combined DB
@@ -70,7 +71,8 @@ def main(
                        ignore_index=True)
 
     print(f"Finding possible duplicates (max={N_dups})...")
-    df_all['dups_fnames'] = DBs_combine.dups_identify(df_all, N_dups)
+    df_all['dups_fnames'] = DBs_combine.dups_identify(df_all, N_dups, False)
+    df_all['dups_pm_plx'] = DBs_combine.dups_identify(df_all, N_dups, True)
 
     # Save new version of the UCC catalogue to file
     d = datetime.datetime.now()
@@ -87,9 +89,18 @@ def main(
     df.to_json('../ucc/_clusters/clusters.json', orient="records", indent=1)
     print("File 'clusters.json' updated")
 
+    breakpoint()
+
+    # PROCESS ONLY THE FILES THAT WERE EITHER NOT INCLUDED IN THE OLD
+    # CATALOGUE OR WHOSE POSITION CHANGED A MINIMUM AMOUNT TO WARRANT NEW VALUES
+    # FOR THEIR PARAMETERS
+
+    # This process the entire UCC_cat
+    # new_DB = None
+
     # Process each cluster in the new DB with fastMP and store the result in
-    # the output folder
-    # fastMP_process.run(new_DB, UCC_cat)
+    # the output folder. This function will also update the UCC cat file
+    # with values for the columns that are still marked with 'nan'
     fastMP_process.run(
         fastMP, new_DB, frames_path, frames_ranges, UCC_cat, GCs_cat, out_path)
 
