@@ -143,17 +143,17 @@
     "pars": "A0,None,logt,None",
     "pos": "_RA.icrs,_DE.icrs,plx,pmRA,pmDE,None"
  },
-  "HE22_2": {
-    "ref": "[He et al. (2022)](https://ui.adsabs.harvard.edu/abs/2022arXiv220908504H/abstract)",
-    "names": "CWNU_id",
-    "pars": "A0,dm,logt,None",
-    "pos": "RA_ICRS,DE_ICRS,plx,pmx,pmy,rv"
- },
   "HAO22": {
     "ref": "[Hao et al. (2022)](https://ui.adsabs.harvard.edu/abs/2022A%26A...660A...4H/abstract)",
     "names": "Cluster",
     "pars": "AG,None,logt,Z",
     "pos": "RA_ICRS,DE_ICRS,plx,pmRA,pmDE,RV"
+ },
+  "HE23": {
+    "ref": "[He et al. (2023)](https://ui.adsabs.harvard.edu/abs/2023ApJS..264....8H/abstract)",
+    "names": "CWNU_id",
+    "pars": "A0,dm,logt,None",
+    "pos": "RA_ICRS,DE_ICRS,plx,pmx,pmy,rv"
  },
   "HUNT23": {
     "ref": "[Hunt & Reffert (2023)](https://ui.adsabs.harvard.edu/abs/2023arXiv230313424H/abstract)",
