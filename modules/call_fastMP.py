@@ -38,7 +38,7 @@ def run(
         # print(out_path + cl['quad'] + "/datafiles/" + fname0)
         # continue
 
-        # if 'ngc' not in cl['fnames']:
+        # if 'hsc2161' not in cl['fnames']:
         #     continue
         # if jj > 3:
         #     break
@@ -446,12 +446,12 @@ def get_classif(df_membs, df_field, xy_c, vpd_c, plx_c, rad_max=2):
     N_field_pm = (pm_dists_f < pm_50).sum()
     N_field_plx = (plx_dists_f < plx_50).sum()
 
-    def ABCD_classif(Nm, Nf):
+    def ABCD_classif(Nm, Nf, ratio_max=10):
         """Obtain 'ABCD' classification"""
         if Nm == 0:
-            return "D"
+            return "D", 0
         if Nf == 0:
-            return "A"
+            return "A", ratio_max
         N_ratio = Nm / Nf
 
         if N_ratio >= 1:
@@ -462,7 +462,7 @@ def get_classif(df_membs, df_field, xy_c, vpd_c, plx_c, rad_max=2):
             cl = "C"
         else:
             cl = "D"
-        return cl, min(N_ratio, 1)
+        return cl, min(N_ratio, ratio_max)
 
     c_xy, ratio_xy = ABCD_classif(N_memb_xy, N_field_xy)
     c_pm, ratio_pm = ABCD_classif(N_memb_pm, N_field_pm)
