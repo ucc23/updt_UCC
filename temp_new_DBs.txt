@@ -1,0 +1,13 @@
+  "PERREN22": {
+    "ref": "[Perren et al. (2022)](https://ui.adsabs.harvard.edu/abs/2022A%26A...663A.131P/abstract)",
+    "names": "Cluster",
+    "pars": "Ebv,dm,logt,FeH",
+    "pos": "_RA,_DE,None,None,None,None"
+ },
+
+  "HE23_1": {
+    "ref": "[He et al. (2023)](https://ui.adsabs.harvard.edu/abs/2023ApJS..264....8H/abstract)",
+    "names": "??",
+    "pars": "Ebv,dm,logt,FeH", ???
+    "pos": "_RA,_DE,None,None,None,None" ???
+ },
