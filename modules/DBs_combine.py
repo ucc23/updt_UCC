@@ -177,11 +177,6 @@ def combine_new_DB(
     ra_c, dec_c, plx_c, pmra_c, pmde_c = cols[:-1]
 
     new_db_dict = {_: [] for _ in df_comb.keys()}
-        # 'DB': [], 'DB_i': [], 'ID': [], 'RA_ICRS': [], 'DE_ICRS': [],
-        # 'GLON': [], 'GLAT': [], 'plx': [], 'pmRA': [], 'pmDE': [],
-        # "fnames": [], "UCC_ID": [], "quad": [], "dups_fnames": [],
-        # "dups_pm_plx": [], "r_50": [], "Nmembs": [], "fixed_cent": [],
-        # "cent_flags": [], "C1": [], "C2": []}
     idx_rm_comb_db = []
     for i, new_cl in enumerate(new_DB_fnames):
 
@@ -234,7 +229,6 @@ def combine_new_DB(
             UCC_ID = row['UCC_ID']
             quad = row['quad']
             dups_fnames = row['dups_fnames']
-            dups_pm_plx = row['dups_pm_plx']
             r_50 = row['r_50']
             N_50 = row['N_50']
             Nmembs = row['Nmembs']
@@ -253,15 +247,18 @@ def combine_new_DB(
             N_Rv = row['N_Rv']
 
         else:
+            # The cluster is not present in the 'old' combined DB
             DB_ID = new_DB_ID
             DB_i = str(i)
             ID = new_names
             fnames = ';'.join(new_cl)
+
             # These values will be assigned later on for these new clusters
             UCC_ID = np.nan
             quad = np.nan
             dups_fnames = np.nan
-            dups_pm_plx = np.nan
+
+            # These values will be assigned by the 'call_fastMP' module
             r_50 = np.nan
             N_50 = np.nan
             Nmembs = np.nan
@@ -300,7 +297,6 @@ def combine_new_DB(
         new_db_dict['UCC_ID'].append(UCC_ID)
         new_db_dict['quad'].append(quad)
         new_db_dict['dups_fnames'].append(dups_fnames)
-        new_db_dict['dups_pm_plx'].append(dups_pm_plx)
         new_db_dict['r_50'].append(r_50)
         new_db_dict['N_50'].append(N_50)
         new_db_dict['Nmembs'].append(Nmembs)
@@ -411,11 +407,9 @@ def QXY_fold(UCC_ID):
     return Qfold
 
 
-def dups_identify(df, N_dups, noXY):
+def dups_identify(df, N_dups):
     """
     Find the closest clusters to all clusters
-
-    noXY: flag indicating whether to use (x, y) coordinates
     """
     x, y = df['GLON'], df['GLAT']
     pmRA, pmDE, plx = df['pmRA'], df['pmDE'], df['plx']
@@ -432,7 +426,7 @@ def dups_identify(df, N_dups, noXY):
 
         dups_fname = []
         for j in idx:
-            if duplicate_find(x, y, pmRA, pmDE, plx, i, j, noXY):
+            if duplicate_find(x, y, pmRA, pmDE, plx, i, j):
                 # Store just the first fname
                 dups_fname.append(df['fnames'][j].split(';')[0])
 
@@ -447,52 +441,31 @@ def dups_identify(df, N_dups, noXY):
     return dups_fnames
 
 
-def duplicate_find(x, y, pmRA, pmDE, plx, i, j, noXY=False):
+def duplicate_find(x, y, pmRA, pmDE, plx, i, j):
     """
     Identify a cluster as a duplicate following an arbitrary definition
     that depends on the parallax
-
-    The 'noXY' is required because the results obtained with noXY=False are
-    used to reject duplicates when running the 'fastMP' script. The noXY=True
-    results are only used for showing in the clusters' entries in the UCC
-    site.
     """
-    #  If the 'noXY' flag is True, the coordinates distance is not used
-    if noXY is False:
-        # Define 'duplicate regions' for different parallax brackets
-        if np.isnan(plx[i]):
-            plx_r, rad, pm_r = np.nan, 5, 0.5
-        elif plx[i] >= 4:
-            rad, plx_r, pm_r = 15, 0.5, 1
-        elif 3 <= plx[i] and plx[i] < 4:
-            rad, plx_r, pm_r = 10, 0.25, 0.5
-        elif 2 <= plx[i] and plx[i] < 3:
-            rad, plx_r, pm_r = 5, 0.15, 0.25
-        elif 1 <= plx[i] and plx[i] < 2:
-            rad, plx_r, pm_r = 2.5, 0.1, 0.15
-        elif plx[i] < 1:
-            rad, plx_r, pm_r = 1, 0.05, 0.1
+    # Arbitrary 'duplicate regions' for different parallax brackets
+    if np.isnan(plx[i]):
+        plx_r, rad, pm_r = np.nan, 5, 0.5
+    elif plx[i] >= 4:
+        rad, plx_r, pm_r = 15, 0.5, 1
+    elif 3 <= plx[i] and plx[i] < 4:
+        rad, plx_r, pm_r = 10, 0.25, 0.5
+    elif 2 <= plx[i] and plx[i] < 3:
+        rad, plx_r, pm_r = 5, 0.15, 0.25
+    elif 1 <= plx[i] and plx[i] < 2:
+        rad, plx_r, pm_r = 2.5, 0.1, 0.15
+    elif plx[i] < 1:
+        rad, plx_r, pm_r = 1, 0.05, 0.1
 
-        # Angular distance in arcmin
-        d = np.sqrt((x[i]-x[j])**2 + (y[i]-y[j])**2) * 60
-        # If the coordinates distance is larger than the defined radius,
-        # mark as no duplicate
-        if d > rad:
-            return False
-    else:
-        # Define larger 'duplicate regions' for this run
-        if np.isnan(plx[i]):
-            plx_r, pm_r = np.nan, 0.5
-        elif plx[i] >= 4:
-            plx_r, pm_r = 0.5, 1
-        elif 3 <= plx[i] and plx[i] < 4:
-            plx_r, pm_r = 0.25, 0.5
-        elif 2 <= plx[i] and plx[i] < 3:
-            plx_r, pm_r = 0.2, 0.35
-        elif 1 <= plx[i] and plx[i] < 2:
-            plx_r, pm_r = 0.15, 0.2
-        elif plx[i] < 1:
-            plx_r, pm_r = 0.1, 0.15
+    # Angular distance in arcmin
+    d = np.sqrt((x[i]-x[j])**2 + (y[i]-y[j])**2) * 60
+    # If the coordinates distance is larger than the defined radius,
+    # mark as no duplicate
+    if d > rad:
+        return False
 
     # PMs distance
     pm_d = np.sqrt((pmRA[i]-pmRA[j])**2 + (pmDE[i]-pmDE[j])**2)
@@ -512,7 +485,6 @@ def duplicate_find(x, y, pmRA, pmDE, plx, i, j, noXY=False):
         # If the coordinates distance is within the duplicates range and
         # neither PMs or Plx distances could be obtained, also mark as
         # possible duplicate
-        if noXY is False:
-            return True
+        return True
 
     return False

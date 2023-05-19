@@ -3,15 +3,16 @@ import datetime
 import json
 import csv
 import pandas as pd
-from modules import fastMP_process, DBs_combine
+from modules import fastMP_process, DBs_combine, duplicates_id
 
-
+#
+# EDIT THIS TWO VARIABLES AS REQUIRED
 # Name of the DB to add
 new_DB = "PERREN22"
-
 # Date of the latest version of the UCC catalogue
 UCC_cat_date_old = "20230517"
 
+#
 # Paths to required files for the fastMP call
 GAIADR3_path = '/media/gabriel/backup/gabriel/GaiaDR3/'
 frames_path = GAIADR3_path + 'datafiles_G20/'
@@ -70,39 +71,43 @@ def main(
     df_all = pd.concat([df_comb_no_new, pd.DataFrame(new_db_dict)],
                        ignore_index=True)
 
+    # These duplicates are different from the final ones that are stored in
+    # the final version of the catalogue. These are used to remove close
+    # clusters from the field so that fastMP won't get confused
     print(f"Finding possible duplicates (max={N_dups})...")
-    df_all['dups_fnames'] = DBs_combine.dups_identify(df_all, N_dups, False)
-    df_all['dups_pm_plx'] = DBs_combine.dups_identify(df_all, N_dups, True)
+    df_all['dups_fnames'] = DBs_combine.dups_identify(df_all, N_dups)
 
-    # Save new version of the UCC catalogue to file
     d = datetime.datetime.now()
     date = d.strftime('%Y%m%d')
     UCC_cat = 'UCC_cat_' + date + '.csv'
+    # Save new version of the UCC catalogue to file before processing with
+    # fastMP
     df_all.to_csv(
         UCC_cat, na_rep='nan', index=False, quoting=csv.QUOTE_NONNUMERIC)
     print(f"File {UCC_cat} updated")
 
+    # Process each cluster in the new DB with fastMP and store the result in
+    # the output folder. This function will also update the UCC cat file
+    # 'df_UCC' with values for the columns that are still marked with 'nan'
+    df_UCC = fastMP_process.run(
+        fastMP, new_DB, frames_path, frames_ranges, UCC_cat, GCs_cat, out_path)
+
+    # Finally identify possible duplicates (and assign a probability) using
+    # the positions estimated with the most likely members.
+    print("Finding final duplicates and their probabilities...")
+    dups_fnames, dups_probs = duplicates_id.run(df_UCC)
+    df_UCC['dups_fnames'] = dups_fnames  # This column is rewritten here
+    df_UCC['dups_probs'] = dups_probs
+    df_UCC.to_csv(
+        UCC_cat, na_rep='nan', index=False, quoting=csv.QUOTE_NONNUMERIC)
+    print(f"File {UCC_cat} updated")
+
     # Update cluster's JSON file (used by 'ucc.ar' seach)
-    df = pd.DataFrame(df_all[[
+    df = pd.DataFrame(df_UCC[[
         'ID', 'fnames', 'UCC_ID', 'RA_ICRS', 'DE_ICRS', 'GLON', 'GLAT']])
     df['ID'] = [_.split(';')[0] for _ in df['ID']]
     df.to_json('../ucc/_clusters/clusters.json', orient="records", indent=1)
     print("File 'clusters.json' updated")
-
-    breakpoint()
-
-    # PROCESS ONLY THE FILES THAT WERE EITHER NOT INCLUDED IN THE OLD
-    # CATALOGUE OR WHOSE POSITION CHANGED A MINIMUM AMOUNT TO WARRANT NEW VALUES
-    # FOR THEIR PARAMETERS
-
-    # This process the entire UCC_cat
-    # new_DB = None
-
-    # Process each cluster in the new DB with fastMP and store the result in
-    # the output folder. This function will also update the UCC cat file
-    # with values for the columns that are still marked with 'nan'
-    fastMP_process.run(
-        fastMP, new_DB, frames_path, frames_ranges, UCC_cat, GCs_cat, out_path)
 
 
 if __name__ == '__main__':
