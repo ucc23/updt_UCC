@@ -19,10 +19,13 @@ This repository contains:
 The initial version is generated using the `initial_DBs_comb` script in the
 article's repo. This initial version is processed with the `fastMP_process`
 script (in the same repo) to generate the datafiles for each catalogued cluster,
-through the use of the `fastMP` package.
+through the use of the `fastMP` package. The `fastMP_process` script calls the
+`call_fastMP` module that handles the datafile generation for each cluster and
+the updating of the `UCC_cat_XXXYYZZ.csv` catalogue file with the obtained
+parameters.
 
-These datafiles need to be processed with the `make_entries` script to generate
-the files that will populate the site `ucc.ar`.
+These datafiles need to be processed with the `make_entries` script once to
+generate the files that will populate the site `ucc.ar`.
 
 
 # Updating the catalogue
@@ -38,7 +41,9 @@ these steps must be followed.
 2. Edit to change instances of 'vdBergh-Hagen' to 'VDBH' and 'vdBergh' to
 'VDB', per CDS recommendation
 
-3. Replace possible empty entries in columns using:
+3. Make sure no globular clusters are included
+
+4. Replace possible empty entries in columns using:
 
 ```
 import csv
@@ -48,24 +53,28 @@ df = df.replace(r'^\s*$', np.nan, regex=True)
 df.to_csv("newDB.csv", na_rep='nan', index=False, quoting=csv.QUOTE_NONNUMERIC)
 ```
 
-4. Edit the parameters column names (if any) following:
+5. Edit the parameters column names (if any) following:
   - `Av`/`Ebv`: absorption / extinction
   - `dm`/`d_pc /d_kpc`: distance modulus / distance
   - `logt`: logarithmic age
   - `FeH`/`Z`: metallicity
 
-5. Add the new DB to the `databases/all_dbs.json` file (adjusting its position
+6. Add the new DB to the `databases/all_dbs.json` file (adjusting its position
 according to the publication year)
 
 
 ## Generating a new catalogue and datafiles
 
 Run the `add_new_DB.py` script **making sure** to first edit it with the proper
-name of the new DB and the date of the latest UCC catalogue file
+ID of the new DB and the date of the latest UCC catalogue file
 
-This script will generate a new `UCC_cat_XXXYYZZ.csv` catalogue with the
-current date and run the `fastMP` code for all the new clusters. The clusters'
-datafiles are stored in the  `QXY` repositories in the `datafiles/` subfolders.
+This script will combine the old `UCC_cat_XXXYYZZ.csv` catalogue with the new
+database and generate a new `UCC_cat_XXXYYZZ.csv` catalogue with the
+current date. It will also run the `fastMP` code for those clusters in the new
+DB that ??????.
+
+The clusters' datafiles are stored in the  `QXY` repositories in the
+`datafiles/` subfolders.
 
 The script will also update the `../ucc/_clusters/clusters.json` file used
 by the `ucc.ar` site for searching.
@@ -86,9 +95,9 @@ same day).
 
 This script will process all the clusters with the new DB identifier in the
 loaded `UCC_cat_XXXYYZZ.csv` file and generate a plot, `.ipynb` notebook, and
-proper .md entry in the `../ucc/_clusters/` folder for each cluster.
+proper `.md` entry in the `../ucc/_clusters/` folder for each cluster.
 
-Summary (for every cluster in the new DB):
+Summary (for each processed cluster from the new DB):
 
 1. Generate an `.md` entry in the `../ucc/_clusters/` folder
 2. Generate a `.ipynb` notebook
