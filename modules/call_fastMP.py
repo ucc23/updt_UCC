@@ -162,10 +162,12 @@ def get_frame(G3Q, max_mag, frames_path, frames_data, cl):
     if c_plx is None:
         box_s_eq = 1
     else:
-        if c_plx > 15:
-            box_s_eq = 30
-        elif c_plx > 4:
-            box_s_eq = 20
+        if c_plx > 3:
+            box_s_eq = min(50, 20 * np.log(.5*c_plx))
+        # if c_plx > 15:
+        #     box_s_eq = 30
+        # elif c_plx > 4:
+        #     box_s_eq = 20
         elif c_plx > 2:
             box_s_eq = 6
         elif c_plx > 1.5:
