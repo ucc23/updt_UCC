@@ -28,21 +28,13 @@ def run(
     tree = spatial.cKDTree(xys)
     close_cl_idx = tree.query(xys, k=N_cl_extra + 1)
 
-    # jj = 0
-
-    index_all, r50_all, N_survived_all, fixed_centers_all, cent_flags_all,\
-        C1_all, C2_all, quad_all, membs_cents_all = [[] for _ in range(9)]
+    index_all, r50_all, N_fixed_all, N_survived_all, fixed_centers_all,\
+        cent_flags_all, C1_all, C2_all, quad_all, membs_cents_all =\
+        [[] for _ in range(10)]
     for index, cl in clusters_list.iterrows():
 
-        # fname0 = cl['fnames'].split(';')[0]
-        # print(out_path + cl['quad'] + "/datafiles/" + fname0)
-        # continue
-
-        # if 'hsc2161' not in cl['fnames']:
+        # if 'berkeley29' not in cl['fnames']:
         #     continue
-        # if jj > 3:
-        #     break
-        # jj += 1
 
         index_all.append(index)
 
@@ -68,6 +60,7 @@ def run(
         if not np.isnan(cl['plx']):
             plx_c = cl['plx']
 
+        fix_N_clust = False
         fixed_centers = False
         if vpd_c is None and plx_c is None:
             fixed_centers = True
@@ -94,12 +87,13 @@ def run(
                 # print("Re-run with fixed_centers = True")
                 fixed_centers = True
 
-        N_survived_all.append(int(N_survived))
         fixed_centers_all.append(fixed_centers)
+        N_fixed_all.append(fix_N_clust)
+        N_survived_all.append(int(N_survived))
 
         bad_center = check_centers(*X[:5, :], xy_c, vpd_c, plx_c, probs_all)
         cent_flags_all.append(bad_center)
-        print("Nsurv={}, Nmembs(P>0.5)={}, cents={}".format(
+        print("Nsurv={}, (P>0.5)={}, cents={}".format(
               N_survived, (probs_all > 0.5).sum(), bad_center))
 
         df_comb, df_membs, df_field, r_50, xy_c, vpd_c, plx_c =\
@@ -121,10 +115,13 @@ def run(
         print(f"*** Cluster {cl['ID']} processed with fastMP\n")
 
     membs_cents_all = np.array(membs_cents_all).T
+    # Load again in case it was updates while the script run
+    df_UCC = pd.read_csv(UCC_cat)
     # Update these values for all the processed clusters
     for i, idx in enumerate(index_all):
         df_UCC.at[idx, 'r_50'] = r50_all[i]
-        df_UCC.at[idx, 'Nmembs'] = int(N_survived_all[i])
+        df_UCC.at[idx, 'N_fixed'] = N_fixed_all[i]
+        df_UCC.at[idx, 'N_membs'] = int(N_survived_all[i])
         df_UCC.at[idx, 'fixed_cent'] = fixed_centers_all[i]
         df_UCC.at[idx, 'cent_flags'] = cent_flags_all[i]
         df_UCC.at[idx, 'C1'] = C1_all[i]
