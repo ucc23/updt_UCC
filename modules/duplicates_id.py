@@ -43,18 +43,17 @@ def run(df, N_dups=20):
         dups_fnames.append(dups_fname)
         dups_probs.append(dups_prob)
 
-    df['dups_fnames'] = dups_fnames
-    df['dups_probs'] = dups_probs
-    df.to_csv("/home/gabriel/Descargas/temp.csv", index=False)
-    breakpoint()
-
     return dups_fnames, dups_probs
 
 
-def duplicate_find(x, y, pmRA, pmDE, plx, i, j):
+def duplicate_find(x, y, pmRA, pmDE, plx, i, j, Nmax=3):
     """
     Identify a cluster as a duplicate following an arbitrary definition
     that depends on the parallax
+
+    Nmax: maximum number of times allowed for the two objects to be apart
+    in any of the dimensions. If this happens for any of the dimensions,
+    return a probability of zero
     """
 
     # Arbitrary 'duplicate regions' for different parallax brackets
@@ -76,18 +75,24 @@ def duplicate_find(x, y, pmRA, pmDE, plx, i, j):
     # Angular distance in arcmin
     d_prob = 0.
     d = np.sqrt((x[i]-x[j])**2 + (y[i]-y[j])**2) * 60
+    if d > Nmax * rad:
+        return 0
     if d < rad:
         d_prob = lin_relation(d, rad)
 
     # PMs distance
     pms_prob = 0.
     pm_d = np.sqrt((pmRA[i]-pmRA[j])**2 + (pmDE[i]-pmDE[j])**2)
+    if pm_d > Nmax * pm_r:
+        return 0
     if pm_d < pm_r:
         pms_prob = lin_relation(pm_d, pm_r)
 
     # Parallax distance
     plx_prob = 0.
     plx_d = abs(plx[i] - plx[j])
+    if plx_d > Nmax * plx_r:
+        return 0
     if plx_d < plx_r:
         plx_prob = lin_relation(plx_d, plx_r)
 
@@ -103,9 +108,3 @@ def lin_relation(dist, d_max):
     # prob = (dist - h) / m
     # m, h = -d_max, d_max
     return (dist - d_max) / -d_max
-
-
-if __name__ == '__main__':
-    import pandas as pd
-    df = pd.read_csv("/home/gabriel/Github/UCC/add_New_DB/UCC_cat_20230519.csv")
-    run(df)
