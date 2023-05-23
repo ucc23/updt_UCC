@@ -17,15 +17,25 @@ This repository contains:
 # Initial version of the catalogue
 
 The initial version is generated using the `initial_DBs_comb` script in the
-article's repo. This initial version is processed with the `fastMP_process`
-script (in the same repo) to generate the datafiles for each catalogued cluster,
+article's repo. This initial version is then processed with the `fastMP_process`
+script in the same repo to generate the datafiles for each catalogued cluster,
 through the use of the `fastMP` package. The `fastMP_process` script calls the
 `call_fastMP` module that handles the datafile generation for each cluster and
 the updating of the `UCC_cat_XXXYYZZ.csv` catalogue file with the obtained
-parameters.
+parameters. Finally, the `add_duplicates` script is applied on the
+`UCC_cat_XXXYYZZ.csv` catalogue file to add the probable duplicates for each
+cluster
 
-These datafiles need to be processed with the `make_entries` script once to
-generate the files that will populate the site `ucc.ar`.
+The datafiles generated in this initial run need to be processed with the
+`make_entries` script once to generate the files that will populate the site
+`ucc.ar`.
+
+Summary:
+
+1. `initial_DBs_comb` generates the initial version of the catalogue
+2. `fastMP_process` (`call_fastMP` module) generates the the datafiles and
+   updates the `UCC_cat_XXXYYZZ.csv` catalogue
+3. `add_duplicates` adds the probable duplicates for each cluster
 
 
 # Updating the catalogue
