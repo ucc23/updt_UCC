@@ -450,7 +450,7 @@ def duplicate_find(x, y, pmRA, pmDE, plx, i, j):
     if np.isnan(plx[i]):
         plx_r, rad, pm_r = np.nan, 5, 0.5
     elif plx[i] >= 4:
-        rad, plx_r, pm_r = 15, 0.5, 1
+        rad, plx_r, pm_r = 20, 0.5, 1
     elif 3 <= plx[i] and plx[i] < 4:
         rad, plx_r, pm_r = 10, 0.25, 0.5
     elif 2 <= plx[i] and plx[i] < 3:
