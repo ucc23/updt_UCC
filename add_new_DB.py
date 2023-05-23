@@ -78,8 +78,10 @@ def main(
     df_all['dups_fnames'] = DBs_combine.dups_identify(df_all, N_dups)
 
     d = datetime.datetime.now()
-    date = d.strftime('%Y%m%d')
-    UCC_cat = 'UCC_cat_' + date + '.csv'
+    date_new = d.strftime('%Y%m%d')
+    if date_new == UCC_cat_date_old:
+        date_new = date_new + '_2'
+    UCC_cat = 'UCC_cat_' + date_new + '.csv'
     # Save new version of the UCC catalogue to file before processing with
     # fastMP
     df_all.to_csv(
