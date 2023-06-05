@@ -47,6 +47,9 @@ def run(
         data_in_files, xmin_cl, xmax_cl, ymin_cl, ymax_cl = findFrames(
             c_ra, c_dec, box_s_eq, fdata, verbose)
 
+        if len(data_in_files) == 0:
+            continue
+
         all_frames = query(
             c_ra, c_dec, box_s_eq, frames_path, max_mag, data_in_files,
             xmin_cl, xmax_cl, ymin_cl, ymax_cl, plx_min, verbose)
