@@ -1,5 +1,5 @@
 
-import gzip
+# import gzip
 import pandas as pd
 import astropy.units as u
 from astropy.coordinates import SkyCoord
@@ -20,29 +20,36 @@ Zp_BP, sigma_ZBP_2 = 25.3385422158, 0.000007785
 Zp_RP, sigma_ZRP_2 = 24.7478955012, 0.00001428
 
 
-def run(frames_path, fdata, c_ra, c_dec, box_s_eq, plx_min, max_mag):
+def verbose_p(txt, v, verbose):
+    if verbose >= v:
+        print(txt)
+
+
+def run(
+    frames_path, fdata, c_ra, c_dec, box_s_eq, plx_min, max_mag, verbose=0
+):
     """
     box_s_eq: Size of box to query (in degrees)
     """
-    print("  ({:.3f}, {:.3f}); Box size: {:.2f}, Plx min: {:.2f}".format(
-          c_ra, c_dec, box_s_eq, plx_min))
+    verbose_p("  ({:.3f}, {:.3f}); Box size: {:.2f}, Plx min: {:.2f}".format(
+          c_ra, c_dec, box_s_eq, plx_min), 1, verbose)
 
     c_ra_l = [c_ra]
     if c_ra - box_s_eq < 0:
-        print("Split frame, c_ra + 360")
+        verbose_p("Split frame, c_ra + 360", 2, verbose)
         c_ra_l.append(c_ra + 360)
     if c_ra > box_s_eq > 360:
-        print("Split frame, c_ra - 360")
+        verbose_p("Split frame, c_ra - 360", 2, verbose)
         c_ra_l.append(c_ra - 360)
 
     dicts = []
     for c_ra in c_ra_l:
         data_in_files, xmin_cl, xmax_cl, ymin_cl, ymax_cl = findFrames(
-            c_ra, c_dec, box_s_eq, fdata)
+            c_ra, c_dec, box_s_eq, fdata, verbose)
 
         all_frames = query(
-            c_ra, c_dec, box_s_eq, frames_path, max_mag, data_in_files, xmin_cl,
-            xmax_cl, ymin_cl, ymax_cl, plx_min)
+            c_ra, c_dec, box_s_eq, frames_path, max_mag, data_in_files,
+            xmin_cl, xmax_cl, ymin_cl, ymax_cl, plx_min, verbose)
 
         dicts.append(all_frames)
 
@@ -53,7 +60,6 @@ def run(frames_path, fdata, c_ra, c_dec, box_s_eq, plx_min, max_mag):
     else:
         all_frames = dicts[0]
 
-    # print("Adding uncertainties")
     all_frames = uncertMags(all_frames)
     all_frames = all_frames.drop(columns=[
         'FG', 'e_FG', 'FBP', 'e_FBP', 'FRP', 'e_FRP'])
@@ -61,19 +67,9 @@ def run(frames_path, fdata, c_ra, c_dec, box_s_eq, plx_min, max_mag):
     return all_frames
 
 
-def findFrames(c_ra, c_dec, box_s_eq, fdata):
+def findFrames(c_ra, c_dec, box_s_eq, fdata, verbose):
     """
     """
-    # # These are the points that determine the range of *all* the frames
-    # l_min, l_max = fdata['l_min'], fdata['l_max']
-    # b_min, b_max = fdata['b_min'], fdata['b_max']
-
-    # xl, yl = box_s_eq * .5, box_s_eq * .5
-
-    # # Limits of the cluster's region in Equatorial
-    # xmin_cl, xmax_cl = c_lon - xl, c_lon + xl
-    # ymin_cl, ymax_cl = c_lat - yl, c_lat + yl
-
     # These are the points that determine the range of *all* the frames
     ra_min, ra_max = fdata['ra_min'].values, fdata['ra_max'].values
     dec_min, dec_max = fdata['dec_min'].values, fdata['dec_max'].values
@@ -99,7 +95,8 @@ def findFrames(c_ra, c_dec, box_s_eq, fdata):
         frame_intersec[i] = doOverlap(l1, r1, l2, r2)
 
     data_in_files = list(fdata[frame_intersec]['filename'])
-    print(f"  Cluster is present in {len(data_in_files)} frames")
+    verbose_p(
+        f"  Cluster is present in {len(data_in_files)} frames", 1, verbose)
 
     return data_in_files, xmin_cl, xmax_cl, ymin_cl, ymax_cl
 
@@ -131,7 +128,7 @@ def doOverlap(l1, r1, l2, r2):
 
 def query(
     c_ra, c_dec, box_s_eq, frames_path, max_mag, data_in_files, xmin_cl,
-    xmax_cl, ymin_cl, ymax_cl, plx_min
+    xmax_cl, ymin_cl, ymax_cl, plx_min, verbose
 ):
     """
     """
@@ -140,30 +137,33 @@ def query(
 
     all_frames = []
     for i, file in enumerate(data_in_files):
-        with gzip.open(frames_path + file) as f:
-            data = pd.read_csv(f, index_col=False)
+        if '.csv' in file:
+            data = pd.read_csv(frames_path + file)
+        elif '.parquet' in file:
+            data = pd.read_parquet(frames_path + file)
 
-            mx = (data['ra'] >= xmin_cl) & (data['ra'] <= xmax_cl)
-            my = (data['dec'] >= ymin_cl) & (data['dec'] <= ymax_cl)
-            m_plx = data['parallax'] > plx_min
-            m_gmag = data['phot_g_mean_flux'] > min_G_flux
-            msk = (mx & my & m_plx & m_gmag)
+        mx = (data['ra'] >= xmin_cl) & (data['ra'] <= xmax_cl)
+        my = (data['dec'] >= ymin_cl) & (data['dec'] <= ymax_cl)
+        m_plx = data['parallax'] > plx_min
+        m_gmag = data['phot_g_mean_flux'] > min_G_flux
+        msk = (mx & my & m_plx & m_gmag)
 
-            # print(f"{i+1}, {file} contains {msk.sum()} cluster stars")
-            if msk.sum() == 0:
-                continue
+        verbose_p(
+            f"{i+1}, {file} contains {msk.sum()} cluster stars", 2, verbose)
+        if msk.sum() == 0:
+            continue
 
-            all_frames.append(data[msk])
+        all_frames.append(data[msk])
     all_frames = pd.concat(all_frames)
 
-    # print(f"  {len(all_frames)} stars retrieved")
+    verbose_p(f"  {len(all_frames)} stars retrieved", 2, verbose)
 
     c_ra, c_dec = c_ra, c_dec
     box_s_h = box_s_eq * .5
     gal_cent = radec2lonlat(c_ra, c_dec)
 
     if all_frames['l'].max() - all_frames['l'].min() > 180:
-        print("Frame wraps around 360 in longitude. Fixing..")
+        verbose_p("Frame wraps around 360 in longitude. Fixing..", 1, verbose)
 
         lon = all_frames['l'].values
         if gal_cent[0] > 180:
@@ -192,7 +192,7 @@ def query(
         'radial_velocity': 'RV', 'radial_velocity_error': 'e_RV'}
     )
 
-    print(f"  {len(all_frames)} stars final")
+    verbose_p(f"  {len(all_frames)} stars final", 1, verbose)
     return all_frames
 
 
