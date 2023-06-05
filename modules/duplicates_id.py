@@ -3,7 +3,7 @@ import numpy as np
 from scipy.spatial.distance import cdist
 
 
-def run(df, N_dups=20):
+def run(df, N_dups=20, prob_cut=0.5):
     """
     Assign a 'duplicate probability' for each cluster in 'df' compared to the
     rest of the listed clusters
@@ -29,7 +29,7 @@ def run(df, N_dups=20):
         dups_fname, dups_prob = [], []
         for j in idx:
             dup_prob = duplicate_find(x, y, pmRA, pmDE, plx, i, j)
-            if dup_prob >= 0.5:
+            if dup_prob >= prob_cut:
                 # Store just the first fname
                 dups_fname.append(df['fnames'][j].split(';')[0])
                 dups_prob.append(str(dup_prob))
