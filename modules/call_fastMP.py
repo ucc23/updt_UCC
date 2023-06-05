@@ -8,10 +8,9 @@ import csv
 
 def run(
     fastMP, G3Q, frames_path, frames_data, df_UCC, df_gcs, UCC_cat, out_path,
-    clusters_list, N_cl_extra=10, max_mag=20
+    clusters_list, max_mag=20
 ):
     """
-    N_cl_extra: number of extra clusters in frame to detect
     max_mag: maximum magnitude to retrieve
     """
 
@@ -26,14 +25,13 @@ def run(
     xys = np.array([
         df_UCC['GLON'].values, df_UCC['GLAT'].values]).T
     tree = spatial.cKDTree(xys)
-    close_cl_idx = tree.query(xys, k=N_cl_extra + 1)
 
     index_all, r50_all, N_fixed_all, N_survived_all, fixed_centers_all,\
         cent_flags_all, C1_all, C2_all, quad_all, membs_cents_all =\
         [[] for _ in range(10)]
     for index, cl in clusters_list.iterrows():
 
-        # if 'berkeley29' not in cl['fnames']:
+        # if 'theia361' not in cl['fnames']:
         #     continue
 
         index_all.append(index)
@@ -41,17 +39,27 @@ def run(
         print(f"*** {index} Processing {cl['ID']} with fastMP...")
         print(cl['GLON'], cl['GLAT'], cl['pmRA'], cl['pmDE'], cl['plx'])
 
-        # Get close clusters coords
-        centers_ex = get_close_cls(
-            index, df_UCC, close_cl_idx, cl['dups_fnames'], df_gcs)
-
         # Generate frame
-        data = get_frame(G3Q, max_mag, frames_path, frames_data, cl)
+        box_s, plx_min = get_frame(cl)
+
+        # Request data
+        data = G3Q.run(frames_path, frames_data, cl['RA_ICRS'], cl['DE_ICRS'],
+                       box_s, plx_min, max_mag)
         # fname0 = cl['fnames'].split(';')[0]
         # Store full file
-        # data.to_csv(out_path + fname0 + "_full.csv", index=False)
+        # # data.to_csv(out_path + fname0 + "_full.csv", index=False)
+        # data.to_parquet(out_path + fname0 + "_full.parquet", index=False)
         # Read from file
         # data = pd.read_csv(out_path + fname0 + "_full.csv")
+        # data.to_parquet(out_path + fname0 + "_full.parquet", index=False)
+        # data = pd.read_parquet(out_path + fname0 + "_full.parquet")
+        # data.to_csv(out_path + fname0 + "_full.csv", index=False)
+        # breakpoint()
+
+        # Get close clusters coords
+        centers_ex = get_close_cls(
+            cl['GLON'], cl['GLAT'], tree, box_s, index, df_UCC,
+            cl['dups_fnames'], df_gcs)
 
         # Extract center coordinates
         xy_c, vpd_c, plx_c = (cl['GLON'], cl['GLAT']), None, None
@@ -76,7 +84,7 @@ def run(
             print("Fixed centers?:", fixed_centers)
             probs_all, N_survived = fastMP(
                 xy_c=xy_c, vpd_c=vpd_c, plx_c=plx_c, centers_ex=centers_ex,
-                fixed_centers=fixed_centers).fit(X)
+                fixed_centers=fixed_centers, fix_N_clust=fix_N_clust).fit(X)
 
             bad_center = check_centers(
                 *X[:5, :], xy_c, vpd_c, plx_c, probs_all)
@@ -151,7 +159,7 @@ def read_input(frames_ranges, UCC_cat, GCs_cat):
     return frames_data, df_UCC, df_gcs
 
 
-def get_frame(G3Q, max_mag, frames_path, frames_data, cl):
+def get_frame(cl):
     """
     """
     if not np.isnan(cl['plx']):
@@ -160,30 +168,36 @@ def get_frame(G3Q, max_mag, frames_path, frames_data, cl):
         c_plx = None
 
     if c_plx is None:
-        box_s_eq = 1
+        box_s_eq = .5
     else:
-        if c_plx > 3:
-            box_s_eq = min(50, 20 * np.log(.5*c_plx))
-        # if c_plx > 15:
-        #     box_s_eq = 30
-        # elif c_plx > 4:
-        #     box_s_eq = 20
+        # if c_plx > 3:
+        #     box_s_eq = min(50, 20 * np.log(.5*c_plx))
+        if c_plx > 10:
+            box_s_eq = 25
+        elif c_plx > 8:
+            box_s_eq = 20
+        elif c_plx > 6:
+            box_s_eq = 15
+        elif c_plx > 5:
+            box_s_eq = 10
+        elif c_plx > 4:
+            box_s_eq = 7.5
         elif c_plx > 2:
-            box_s_eq = 6
-        elif c_plx > 1.5:
             box_s_eq = 5
-        elif c_plx > 1:
-            box_s_eq = 4
-        elif c_plx > .75:
+        elif c_plx > 1.5:
             box_s_eq = 3
-        elif c_plx > .5:
+        elif c_plx > 1:
             box_s_eq = 2
-        elif c_plx > .25:
+        elif c_plx > .75:
             box_s_eq = 1.5
-        elif c_plx > .1:
+        elif c_plx > .5:
             box_s_eq = 1
-        else:
+        elif c_plx > .25:
+            box_s_eq = .75
+        elif c_plx > .1:
             box_s_eq = .5
+        else:
+            box_s_eq = .25  # 15 arcmin
 
     if 'Ryu' in cl['ID']:
         box_s_eq = 10 / 60
@@ -203,24 +217,26 @@ def get_frame(G3Q, max_mag, frames_path, frames_data, cl):
             plx_p = .6
         plx_min = c_plx - plx_p
 
-    data = G3Q.run(frames_path, frames_data, cl['RA_ICRS'], cl['DE_ICRS'],
-                   box_s_eq, plx_min, max_mag)
-
-    return data
+    return box_s_eq, plx_min
 
 
-def get_close_cls(idx, database_full, close_cl_idx, dups, df_gcs):
+def get_close_cls(x, y, tree, box_s, idx, df_UCC, dups_fnames, df_gcs):
     """
     Get data on the closest clusters to the one being processed
 
     idx: Index to the cluster in the full list
     """
+
+    # Radius that contains the entire frame
+    rad = np.sqrt(2 * (box_s/2)**2)
     # Indexes to the closest clusters in XY
-    ex_cls_idx = close_cl_idx[1][idx][1:]
+    ex_cls_idx = tree.query_ball_point([x, y], rad)
+    # Remove self cluster
+    del ex_cls_idx[ex_cls_idx.index(idx)]
 
     duplicate_cls = []
-    if str(dups) != 'nan':
-        duplicate_cls = dups.split(';')
+    if str(dups_fnames) != 'nan':
+        duplicate_cls = dups_fnames.split(';')
 
     centers_ex = []
     for i in ex_cls_idx:
@@ -230,42 +246,54 @@ def get_close_cls(idx, database_full, close_cl_idx, dups, df_gcs):
         # clusters in the frame
         skip_cl = False
         if duplicate_cls:
-            for dup_fname_i in database_full['fnames'][i].split(';'):
+            for dup_fname_i in df_UCC['fnames'][i].split(';'):
                 if dup_fname_i in duplicate_cls:
-                    # print("skip", database_full['fnames'][i])
+                    # print("skip", df_UCC['fnames'][i])
                     skip_cl = True
                     break
             if skip_cl:
                 continue
 
+        # If the cluster does not contain PM or Plx information, check its
+        # distance in (lon, lat) with the main cluster. If the distance locates
+        # this cluster within 0.5 of the frame's radius (i.e.: within the
+        # expected region of the main cluster), don't store it for removal.
+        #
+        # This prevents clusters with no PM|Plx data from disrupting
+        # neighbouring clusters (e.g.: NGC 2516 disrupted by FSR 1479) and
+        # at the same time removes more distant clusters that disrupt the
+        # number of members estimation process in fastMP
+        if np.isnan(df_UCC['pmRA'][i]) or np.isnan(df_UCC['plx'][i]):
+            xy_dist = np.sqrt(
+                (x-df_UCC['GLON'][i])**2+(y-df_UCC['GLAT'][i])**2)
+            if xy_dist < 0.5 * rad:
+                # print(df_UCC['ID'][i], df_UCC['GLON'][i], df_UCC['GLAT'][i], xy_dist)
+                continue
+
+        # if np.isnan(df_UCC['pmRA'][i]) or np.isnan(df_UCC['plx'][i]):
+        #     continue
+
         ex_cl_dict = {
-            'xy': [database_full['GLON'][i], database_full['GLAT'][i]]}
+            'xy': [df_UCC['GLON'][i], df_UCC['GLAT'][i]]}
+        if not np.isnan(df_UCC['pmRA'][i]):
+            ex_cl_dict['pms'] = [df_UCC['pmRA'][i], df_UCC['pmDE'][i]]
+        if not np.isnan(df_UCC['plx'][i]):
+            ex_cl_dict['plx'] = [df_UCC['plx'][i]]
 
-        # Only use clusters with defined centers in PMs and Plx, otherwise
-        # non-bonafide clusters disrupt the process for established clusters
-        # like NGC 2516
-        if np.isnan(database_full['pmRA'][i])\
-                or np.isnan(database_full['plx'][i]):
-            continue
-
-        if not np.isnan(database_full['pmRA'][i]):
-            ex_cl_dict['pms'] = [
-                database_full['pmRA'][i], database_full['pmDE'][i]]
-        if not np.isnan(database_full['plx'][i]):
-            ex_cl_dict['plx'] = [database_full['plx'][i]]
-
-        # print(database_full['ID'][i], ex_cl_dict)
-
+        # print(df_UCC['ID'][i], ex_cl_dict)
         centers_ex.append(ex_cl_dict)
 
     # Add closest GC
-    x, y = database_full['GLON'][idx], database_full['GLAT'][idx]
-    gc_i = np.argmin((x-df_gcs['GLON'])**2 + (y-df_gcs['GLAT'])**2)
-    ex_cl_dict = {'xy': [df_gcs['GLON'][gc_i], df_gcs['GLAT'][gc_i]],
-                  'pms': [df_gcs['pmRA'][gc_i], df_gcs['pmDE'][gc_i]],
-                  'plx': [df_gcs['plx'][gc_i]]}
-    # print(df_gcs['Name'][gc_i], ex_cl_dict)
-    centers_ex.append(ex_cl_dict)
+    # print()
+    x, y = df_UCC['GLON'][idx], df_UCC['GLAT'][idx]
+    gc_d = np.sqrt((x-df_gcs['GLON'])**2 + (y-df_gcs['GLAT'])**2).values
+    for gc_i in range(len(df_gcs)):
+        if gc_d[gc_i] < rad:
+            ex_cl_dict = {'xy': [df_gcs['GLON'][gc_i], df_gcs['GLAT'][gc_i]],
+                          'pms': [df_gcs['pmRA'][gc_i], df_gcs['pmDE'][gc_i]],
+                          'plx': [df_gcs['plx'][gc_i]]}
+            # print(df_gcs['Name'][gc_i], ex_cl_dict)
+            centers_ex.append(ex_cl_dict)
 
     return centers_ex
 
@@ -504,10 +532,7 @@ def save_cl_datafile(cl, df_comb, out_path):
     # Order by probabilities
     df_comb = df_comb.sort_values('probs', ascending=False)
 
-    df_comb.to_csv(out_path + quad + "/datafiles/" + fname0 + ".csv.gz",
-                   index=False, compression='gzip')
-    # # There's a ~10% reduction in size using parquet
-    # df_comb.to_parquet(
-    #     out_path + Qfold + "/datafiles/" + fname0 + ".parquet.gz",
-    #     index=False, compression='gzip')
-
+    # df_comb.to_csv(out_path + quad + "/datafiles/" + fname0 + ".csv.gz",
+    #                index=False, compression='gzip')
+    df_comb.to_parquet(
+        out_path + quad + "/datafiles/" + fname0 + ".parquet", index=False)
