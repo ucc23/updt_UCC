@@ -456,15 +456,17 @@ def duplicate_find(x, y, pmRA, pmDE, plx, i, j):
     elif plx[i] >= 4:
         rad, plx_r, pm_r = 20, 0.5, 1
     elif 3 <= plx[i] and plx[i] < 4:
-        rad, plx_r, pm_r = 10, 0.25, 0.5
+        rad, plx_r, pm_r = 15, 0.25, 0.75
     elif 2 <= plx[i] and plx[i] < 3:
-        rad, plx_r, pm_r = 5, 0.15, 0.25
-    elif 1 <= plx[i] and plx[i] < 2:
-        rad, plx_r, pm_r = 2.5, 0.1, 0.2
+        rad, plx_r, pm_r = 10, 0.2, 0.5
+    elif 1.5 <= plx[i] and plx[i] < 2:
+        rad, plx_r, pm_r = 7.5, 0.15, 0.35
+    elif 1 <= plx[i] and plx[i] < 1.5:
+        rad, plx_r, pm_r = 5, 0.1, 0.25
     elif .5 <= plx[i] < 1:
-        rad, plx_r, pm_r = 1.5, 0.075, 0.15
+        rad, plx_r, pm_r = 2.5, 0.075, 0.15
     elif plx[i] < .5:
-        rad, plx_r, pm_r = 1, 0.05, 0.1
+        rad, plx_r, pm_r = 1.5, 0.05, 0.1
 
     # Angular distance in arcmin
     d = np.sqrt((x[i]-x[j])**2 + (y[i]-y[j])**2) * 60
