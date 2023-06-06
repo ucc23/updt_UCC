@@ -341,8 +341,8 @@ def check_centers(
                 pm_max.append(50)
             else:
                 pm_max.append(70)
-        pmra_p = 100 * abs(vpd_c_f[0] - vpd_c[0]) / (vpd_c[0] + 0.001)
-        pmde_p = 100 * abs(vpd_c_f[1] - vpd_c[1]) / (vpd_c[1] + 0.001)
+        pmra_p = 100 * abs((vpd_c_f[0] - vpd_c[0]) / (vpd_c[0] + 0.001))
+        pmde_p = 100 * abs((vpd_c_f[1] - vpd_c[1]) / (vpd_c[1] + 0.001))
         if pmra_p > pm_max[0] or pmde_p > pm_max[1]:
             # print("pm: {:.2f} {:.2f}".format(pmra_p, pmde_p))
             # print(vpd_c, vpd_c_f)
