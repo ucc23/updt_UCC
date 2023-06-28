@@ -56,11 +56,13 @@ these steps must be followed.
 4. Replace possible empty entries in columns using:
 
 ```
+import numpy as np
 import csv
 import pandas as pd
-df = pd.read_csv("newDB.csv")
+path_db = "newDB.csv"
+df = pd.read_csv(path_db)
 df = df.replace(r'^\s*$', np.nan, regex=True)
-df.to_csv("newDB.csv", na_rep='nan', index=False, quoting=csv.QUOTE_NONNUMERIC)
+df.to_csv(path_db, na_rep='nan', index=False, quoting=csv.QUOTE_NONNUMERIC)
 ```
 
 5. Edit the parameters column names (if any) following:
