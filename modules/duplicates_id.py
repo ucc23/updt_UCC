@@ -3,7 +3,7 @@ import numpy as np
 from scipy.spatial.distance import cdist
 
 
-def run(df, N_dups=20, prob_cut=0.5):
+def run(df, N_dups=20, prob_cut=0.25):
     """
     Assign a 'duplicate probability' for each cluster in 'df' compared to the
     rest of the listed clusters
@@ -28,7 +28,7 @@ def run(df, N_dups=20, prob_cut=0.5):
 
         dups_fname, dups_prob = [], []
         for j in idx:
-            dup_prob = duplicate_find(x, y, pmRA, pmDE, plx, i, j)
+            dup_prob = duplicate_probs(x, y, pmRA, pmDE, plx, i, j)
             if dup_prob >= prob_cut:
                 # Store just the first fname
                 dups_fname.append(df['fnames'][j].split(';')[0])
@@ -46,7 +46,7 @@ def run(df, N_dups=20, prob_cut=0.5):
     return dups_fnames, dups_probs
 
 
-def duplicate_find(x, y, pmRA, pmDE, plx, i, j, Nmax=3):
+def duplicate_probs(x, y, pmRA, pmDE, plx, i, j, Nmax=2):
     """
     Identify a cluster as a duplicate following an arbitrary definition
     that depends on the parallax
@@ -56,47 +56,85 @@ def duplicate_find(x, y, pmRA, pmDE, plx, i, j, Nmax=3):
     return a probability of zero
     """
 
+    # Define reference parallax
+    if np.isnan(plx[i]) and np.isnan(plx[j]):
+        plx_ref = np.nan
+    elif np.isnan(plx[i]):
+        plx_ref = plx[j]
+    elif np.isnan(plx[j]):
+        plx_ref = plx[i]
+    else:
+        plx_ref = (plx[i] + plx[i]) * .5
+
     # Arbitrary 'duplicate regions' for different parallax brackets
-    if np.isnan(plx[i]):
-        plx_r, rad, pm_r = np.nan, 5, 0.5
-    elif plx[i] >= 4:
-        rad, plx_r, pm_r = 15, 0.5, 1
-    elif 3 <= plx[i] and plx[i] < 4:
-        rad, plx_r, pm_r = 10, 0.25, 0.5
-    elif 2 <= plx[i] and plx[i] < 3:
-        rad, plx_r, pm_r = 5, 0.15, 0.25
-    elif 1 <= plx[i] and plx[i] < 2:
-        rad, plx_r, pm_r = 2.5, 0.1, 0.15
-    elif plx[i] < 1:
-        rad, plx_r, pm_r = 2, 0.75, 0.1
-    elif plx[i] < .5:
-        rad, plx_r, pm_r = 1, 0.05, 0.75
+    if np.isnan(plx_ref):
+        rad, plx_r, pm_r = 2.5, np.nan, 0.2
+    elif plx_ref >= 4:
+        rad, plx_r, pm_r = 20, 0.5, 1
+    elif 3 <= plx_ref and plx_ref < 4:
+        rad, plx_r, pm_r = 15, 0.25, 0.75
+    elif 2 <= plx_ref and plx_ref < 3:
+        rad, plx_r, pm_r = 10, 0.2, 0.5
+    elif 1.5 <= plx_ref and plx_ref < 2:
+        rad, plx_r, pm_r = 7.5, 0.15, 0.35
+    elif 1 <= plx_ref and plx_ref < 1.5:
+        rad, plx_r, pm_r = 5, 0.1, 0.25
+    elif .5 <= plx_ref < 1:
+        rad, plx_r, pm_r = 2.5, 0.075, 0.2
+    elif plx_ref < .5:
+        rad, plx_r, pm_r = 2, 0.05, 0.15
+    elif plx_ref < .25:
+        rad, plx_r, pm_r = 1.5, 0.025, 0.1
 
     # Angular distance in arcmin
-    d_prob = 0.
     d = np.sqrt((x[i]-x[j])**2 + (y[i]-y[j])**2) * 60
-    if d > Nmax * rad:
-        return 0
-    if d < rad:
-        d_prob = lin_relation(d, rad)
-
     # PMs distance
-    pms_prob = 0.
     pm_d = np.sqrt((pmRA[i]-pmRA[j])**2 + (pmDE[i]-pmDE[j])**2)
-    if pm_d > Nmax * pm_r:
-        return 0
-    if pm_d < pm_r:
-        pms_prob = lin_relation(pm_d, pm_r)
-
     # Parallax distance
-    plx_prob = 0.
     plx_d = abs(plx[i] - plx[j])
-    if plx_d > Nmax * plx_r:
-        return 0
-    if plx_d < plx_r:
-        plx_prob = lin_relation(plx_d, plx_r)
 
-    return round((d_prob+pms_prob+plx_prob)/3., 2)
+    # If *any* distance is *very* far away, return no duplicate disregarding
+    # the rest with 0 probability
+    if d > Nmax * rad or pm_d > Nmax * pm_r or plx_d > Nmax * plx_r:
+        return 0
+
+    d_prob = lin_relation(d, rad)
+    pms_prob = lin_relation(pm_d, pm_r)
+    plx_prob = lin_relation(plx_d, plx_r)
+    # prob = round((d_prob+pms_prob+plx_prob)/3., 2)
+    prob = np.nanmean((d_prob, pms_prob, plx_prob))
+
+    return round(prob, 2)
+
+    # # # If the coordinates distance is larger than the defined radius,
+    # # # mark as no duplicate disregarding PMs and Plx, but return the
+    # # # probability value
+    # # if d > rad:
+    # #     return False, prob
+
+    # # PMs+plx not nans
+    # if not np.isnan(plx_d) and not np.isnan(pm_d):
+    #     if pm_d < pm_r and plx_d < plx_r:
+    #         return True, prob
+
+    # # plx not nan & PMs nan
+    # if not np.isnan(plx_d) and np.isnan(pm_d):
+    #     if plx_d < plx_r:
+    #         return True, prob
+
+    # # PMs not nan & plx nan
+    # if np.isnan(plx_d) and not np.isnan(pm_d):
+    #     if pm_d < pm_r:
+    #         return True, prob
+
+    # # PMs+plx both nans
+    # if np.isnan(plx_d) and np.isnan(pm_d):
+    #     # If the coordinates distance is within the duplicates range and
+    #     # neither PMs or Plx distances could be obtained, also mark as
+    #     # possible duplicate
+    #     return True, prob
+
+    # return False, prob
 
 
 def lin_relation(dist, d_max):
@@ -107,4 +145,19 @@ def lin_relation(dist, d_max):
     # m, h = (d_min - d_max), d_max
     # prob = (dist - h) / m
     # m, h = -d_max, d_max
-    return (dist - d_max) / -d_max
+    p = (dist - d_max) / -d_max
+    if p < 0:  # np.isnan(p) or
+        return 0
+    return p
+
+
+if __name__ == '__main__':
+    arr = np.array([
+        [112.6979,   0.9084,  np.nan, np.nan, np.nan],
+        [112.7202,   0.875,   0.589,   -3.998, -3.058],
+    ])
+    x, y, plx, pmRA, pmDE = arr.T
+    i, j = 0, 1
+    print(duplicate_probs(x, y, pmRA, pmDE, plx, i, j))
+    breakpoint()
+
