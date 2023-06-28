@@ -4,6 +4,7 @@ from astropy.coordinates import SkyCoord
 import astropy.units as u
 from scipy.spatial.distance import cdist
 from string import ascii_lowercase
+from duplicates_id import duplicate_probs
 
 
 """
@@ -407,112 +408,72 @@ def QXY_fold(UCC_ID):
     return Qfold
 
 
-def dups_identify(df, N_dups, prob_cut=0.5):
+def dups_identify(df, prob_cut=0.5, Nmax=3):
     """
     Find the closest clusters to all clusters
     """
     x, y = df['GLON'], df['GLAT']
-    pmRA, pmDE, plx = df['pmRA'], df['pmDE'], df['plx']
     coords = np.array([x, y]).T
     # Find the distances to all clusters, for all clusters
     dist = cdist(coords, coords)
-    # Change distance to itself from 0 to inf
-    msk = dist == 0.
-    dist[msk] = np.inf
+    pmRA, pmDE, plx = df['pmRA'], df['pmDE'], df['plx']
 
     dups_fnames, dups_probs = [], []
-    for i, cl in enumerate(dist):
-        idx = np.argsort(cl)[:N_dups]
+    for i, dists_i in enumerate(dist):
 
-        dups_fname, dups_prob = [], []
-        for j in idx:
-            dup_flag, dup_prob = duplicate_find(x, y, pmRA, pmDE, plx, i, j)
-            if dup_flag or dup_prob > prob_cut:
+        # Only process relatively close clusters
+        rad_max = Nmax * max_coords_rad(plx[i])
+        msk_rad = dists_i <= rad_max
+        idx_j = np.arange(0, len(dists_i))
+        dists_i_msk = dists_i[msk_rad]
+        j_msk = idx_j[msk_rad]
+
+        dups_fname_i, dups_prob_i = [], []
+        for k, d_ij in enumerate(dists_i_msk):
+            j = j_msk[k]
+            # Skip itself
+            if j == i:
+                continue
+
+            # Fetch duplicated flag and probability for the i,j clusters
+            dup_prob = duplicate_probs(x, y, pmRA, pmDE, plx, i, j)
+            if dup_prob >= prob_cut:
+                # print(df['fnames'][i], df['fnames'][j], dup_prob)
                 # Store just the first fname
-                dups_fname.append(df['fnames'][j].split(';')[0])
-                dups_prob.append(str(dup_prob))
+                dups_fname_i.append(df['fnames'][j].split(';')[0])
+                dups_prob_i.append(str(dup_prob))
 
-        if dups_fname:
-            # print(i, df['DB'][i], df['fnames'][i], dups_fname)
-            dups_fname = ";".join(dups_fname)
-            dups_prob = ";".join(dups_prob)
+        if dups_fname_i:
+            dups_fname_i = ";".join(dups_fname_i)
+            dups_prob_i = ";".join(dups_prob_i)
         else:
-            dups_fname, dups_prob = 'nan', 'nan'
+            dups_fname_i, dups_prob_i = 'nan', 'nan'
 
-        dups_fnames.append(dups_fname)
-        dups_probs.append(dups_prob)
+        dups_fnames.append(dups_fname_i)
+        dups_probs.append(dups_prob_i)
 
     return dups_fnames, dups_probs
 
 
-def duplicate_find(x, y, pmRA, pmDE, plx, i, j):
+def max_coords_rad(plx_i):
     """
-    Identify a cluster as a duplicate following an arbitrary definition
-    that depends on the parallax
+    Parallax dependent maximum radius in arcmin
     """
-    # Arbitrary 'duplicate regions' for different parallax brackets
-    if np.isnan(plx[i]):
-        plx_r, rad, pm_r = np.nan, 5, 0.5
-    elif plx[i] >= 4:
-        rad, plx_r, pm_r = 20, 0.5, 1
-    elif 3 <= plx[i] and plx[i] < 4:
-        rad, plx_r, pm_r = 15, 0.25, 0.75
-    elif 2 <= plx[i] and plx[i] < 3:
-        rad, plx_r, pm_r = 10, 0.2, 0.5
-    elif 1.5 <= plx[i] and plx[i] < 2:
-        rad, plx_r, pm_r = 7.5, 0.15, 0.35
-    elif 1 <= plx[i] and plx[i] < 1.5:
-        rad, plx_r, pm_r = 5, 0.1, 0.25
-    elif .5 <= plx[i] < 1:
-        rad, plx_r, pm_r = 2.5, 0.075, 0.15
-    elif plx[i] < .5:
-        rad, plx_r, pm_r = 1.5, 0.05, 0.1
-
-    # Angular distance in arcmin
-    d = np.sqrt((x[i]-x[j])**2 + (y[i]-y[j])**2) * 60
-    # PMs distance
-    pm_d = np.sqrt((pmRA[i]-pmRA[j])**2 + (pmDE[i]-pmDE[j])**2)
-    # Parallax distance
-    plx_d = abs(plx[i] - plx[j])
-
-    d_prob = lin_relation(d, rad)
-    pms_prob = lin_relation(pm_d, pm_r)
-    plx_prob = lin_relation(plx_d, plx_r)
-    prob = round((d_prob+pms_prob+plx_prob)/3., 2)
-
-    # If the coordinates distance is larger than the defined radius,
-    # mark as no duplicate
-    if d > rad:
-        return False, prob
-
-    if not np.isnan(plx_d) and not np.isnan(pm_d):
-        # PMs+plx not nans
-        if pm_d < pm_r and plx_d < plx_r:
-            return True, prob
-    elif not np.isnan(plx_d) and np.isnan(pm_d):
-        # plx not nan & PMs nan
-        if plx_d < plx_r:
-            return True, prob
-    elif np.isnan(plx_d) and not np.isnan(pm_d):
-        # PMs not nan & plx nan
-        if pm_d < pm_r:
-            return True, prob
-    elif np.isnan(plx_d) and np.isnan(pm_d):
-        # PMs+plx both nans
-        # If the coordinates distance is within the duplicates range and
-        # neither PMs or Plx distances could be obtained, also mark as
-        # possible duplicate
-        return True, prob
-
-    return False, prob
-
-
-def lin_relation(dist, d_max):
-    """
-    d_min=0 is fixed
-    Linear relation for: (0, d_max), (1, d_min)
-    """
-    # m, h = (d_min - d_max), d_max
-    # prob = (dist - h) / m
-    # m, h = -d_max, d_max
-    return max(0, (dist - d_max) / -d_max)
+    if np.isnan(plx_i):
+        rad = 5
+    elif plx_i >= 4:
+        rad = 20
+    elif 3 <= plx_i and plx_i < 4:
+        rad = 15
+    elif 2 <= plx_i and plx_i < 3:
+        rad = 10
+    elif 1.5 <= plx_i and plx_i < 2:
+        rad = 7.5
+    elif 1 <= plx_i and plx_i < 1.5:
+        rad = 5
+    elif .5 <= plx_i < 1:
+        rad = 2.5
+    elif plx_i < .5:
+        rad = 1.5
+    rad = rad / 60  # To degrees
+    return rad
