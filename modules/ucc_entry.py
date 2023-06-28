@@ -22,7 +22,7 @@ aladin_table1 = r"""
       <!-- Aladin Lite viewer -->
       <div id="aladin-lite-div" align="left" style="width:285px;height:250px;"></div>
       <script type="text/javascript" src="https://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.js" charset="utf-8"></script>
-      <script type="text/javascript">var aladin = A.aladin('#aladin-lite-div', {survey: "P/DSS2/color", fov:0.25, target: " """
+      <script type="text/javascript">var aladin = A.aladin('#aladin-lite-div', {survey: "P/DSS2/color", cooFrame: 'galactic', fov:0.25, target: " """
 
 aladin_table2 = r""""});</script>
    </div>
@@ -89,12 +89,12 @@ other_names = """
 """
 
 cl_plot = """
-![CLUSTER](https://raw.githubusercontent.com/ucc23/datafiles/main/plots/{}.png)
+![CLUSTER](https://raw.githubusercontent.com/ucc23/{}/main/plots/{}.png)
 
 """
 
 notebook_url = """
-> <p style="text-align:center; font-weight: bold; font-size:20px">Explore data in <a href="https://colab.research.google.com/github/UCC23/datafiles/blob/master/notebooks/{}.ipynb" target="_blank">Colab</a></p>
+> <p style="text-align:center; font-weight: bold; font-size:20px">Explore data in <a href="https://colab.research.google.com/github/UCC23/{}/blob/master/notebooks/{}.ipynb" target="_blank">Colab</a></p>
 """
 
 fpars_table_top = """\n
@@ -128,13 +128,14 @@ close_table_top = """\n
 
 data_foot = """\n
 <br>
-<font color="b3b1b1"><i>Last time modified {}</i></font>
+<font color="b3b1b1"><i>Last modified: {}</i></font>
 """
 
 
 def make_entry(
-    entries_path, cl_names, fname, ucc_id, abcd_v, abcd_c, Nmemb, lon, lat,
-    ra, dec, plx, pmra, pmde, rv, fpars_table, posit_table, close_table
+    entries_path, cl_names, Qfold, fname, ucc_id, C1, C2, abcd_c, Nmemb,
+    lon, lat, ra, dec, plx, pmra, pmde, rv, fpars_table, posit_table,
+    close_table
 ):
     """
     """
@@ -148,8 +149,8 @@ def make_entry(
     txt += data_table2.format(plx, pmra, pmde, rv, Nmemb)
     if len(cl_names) > 1:
         txt += other_names.format(", ".join(cl_names[1:]))
-    txt += cl_plot.format(fname)
-    txt += notebook_url.format(fname)
+    txt += cl_plot.format(Qfold, fname)
+    txt += notebook_url.format(Qfold, fname)
     txt += fpars_table_top
     txt += fpars_table
     txt += nasa_url.format(cl_names[0].replace(' ', '%20'))
