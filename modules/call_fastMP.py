@@ -3,6 +3,10 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from scipy import spatial
+from scipy.stats import gaussian_kde
+from scipy.special import loggamma
+from scipy.integrate import quad
+import warnings
 import csv
 
 
@@ -15,9 +19,9 @@ def run(
     """
 
     # Create output folders if not present
-    for quad in ('1', '2', '3', '4'):
+    for quadrant in ('1', '2', '3', '4'):
         for s in ('P', 'N'):
-            Qfold = 'Q' + quad + s
+            Qfold = 'Q' + quadrant + s
             Path(out_path + Qfold + '/datafiles/').mkdir(
                 parents=True, exist_ok=True)
 
@@ -27,25 +31,41 @@ def run(
     tree = spatial.cKDTree(xys)
 
     index_all, r50_all, N_fixed_all, N_survived_all, fixed_centers_all,\
-        cent_flags_all, C1_all, C2_all, quad_all, membs_cents_all =\
-        [[] for _ in range(10)]
+        cent_flags_all, C1_all, C2_all, C3_all, quad_all, membs_cents_all,\
+        N_ex_cls_all = [[] for _ in range(12)]
     for index, cl in clusters_list.iterrows():
-
-        # if 'theia361' not in cl['fnames']:
-        #     continue
-
-        index_all.append(index)
 
         print(f"*** {index} Processing {cl['ID']} with fastMP...")
         print(cl['GLON'], cl['GLAT'], cl['pmRA'], cl['pmDE'], cl['plx'])
 
+        if 'hsc46' not in cl['fnames']:
+            continue
+
         # Generate frame
         box_s, plx_min = get_frame(cl)
+
+        fname0 = cl['fnames'].split(';')[0]
+        # These clusters are extended require a larger frame
+        if fname0.startswith('ubc'):
+            box_s *= 3
+
+        # Get close clusters coords
+        centers_ex = get_close_cls(
+            cl['GLON'], cl['GLAT'], tree, box_s, index, df_UCC,
+            cl['dups_fnames'], df_gcs)
+
+        if np.isnan(cl['N_ex_cls']):
+            pass
+        elif int(cl['N_ex_cls']) == len(centers_ex):
+            print("No difference in extra clusters. Skip")
+            continue
+
+        index_all.append(index)
+        N_ex_cls_all.append(len(centers_ex))
 
         # Request data
         data = G3Q.run(frames_path, frames_data, cl['RA_ICRS'], cl['DE_ICRS'],
                        box_s, plx_min, max_mag)
-        # fname0 = cl['fnames'].split(';')[0]
         # Store full file
         # # data.to_csv(out_path + fname0 + "_full.csv", index=False)
         # data.to_parquet(out_path + fname0 + "_full.parquet", index=False)
@@ -54,12 +74,6 @@ def run(
         # data.to_parquet(out_path + fname0 + "_full.parquet", index=False)
         # data = pd.read_parquet(out_path + fname0 + "_full.parquet")
         # data.to_csv(out_path + fname0 + "_full.csv", index=False)
-        # breakpoint()
-
-        # Get close clusters coords
-        centers_ex = get_close_cls(
-            cl['GLON'], cl['GLAT'], tree, box_s, index, df_UCC,
-            cl['dups_fnames'], df_gcs)
 
         # Extract center coordinates
         xy_c, vpd_c, plx_c = (cl['GLON'], cl['GLAT']), None, None
@@ -108,9 +122,10 @@ def run(
             split_membs_field(data, probs_all)
         r50_all.append(r_50)
 
-        C1, C2 = get_classif(df_membs, df_field, xy_c, vpd_c, plx_c)
+        C1, C2, C3 = get_classif(df_membs, df_field)
         C1_all.append(C1)
         C2_all.append(C2)
+        C3_all.append(C3)
 
         N_50, lon, lat, ra, dec, plx, pmRA, pmDE, RV, N_Rv = extract_cl_data(
             df_membs)
@@ -134,6 +149,7 @@ def run(
         df_UCC.at[idx, 'cent_flags'] = cent_flags_all[i]
         df_UCC.at[idx, 'C1'] = C1_all[i]
         df_UCC.at[idx, 'C2'] = C2_all[i]
+        df_UCC.at[idx, 'C3'] = C3_all[i]
         df_UCC.at[idx, 'N_50'] = membs_cents_all[0][i]
         df_UCC.at[idx, 'GLON_m'] = membs_cents_all[1][i]
         df_UCC.at[idx, 'GLAT_m'] = membs_cents_all[2][i]
@@ -144,6 +160,7 @@ def run(
         df_UCC.at[idx, 'pmDE_m'] = membs_cents_all[7][i]
         df_UCC.at[idx, 'Rv_m'] = membs_cents_all[8][i]
         df_UCC.at[idx, 'N_Rv'] = membs_cents_all[9][i]
+        df_UCC.at[idx, 'N_ex_cls'] = N_ex_cls_all[i]
 
     df_UCC.to_csv(UCC_cat, na_rep='nan', index=False,
                   quoting=csv.QUOTE_NONNUMERIC)
@@ -331,16 +348,16 @@ def check_centers(
     if vpd_c is not None:
         pm_max = []
         for vpd_c_i in abs(np.array(vpd_c)):
-            if vpd_c_i > 10:
-                pm_max.append(20)
+            if vpd_c_i > 5:
+                pm_max.append(10)
             elif vpd_c_i > 1:
-                pm_max.append(25)
+                pm_max.append(15)
             elif vpd_c_i > 0.1:
-                pm_max.append(35)
+                pm_max.append(20)
             elif vpd_c_i > 0.01:
-                pm_max.append(50)
+                pm_max.append(25)
             else:
-                pm_max.append(70)
+                pm_max.append(50)
         pmra_p = 100 * abs((vpd_c_f[0] - vpd_c[0]) / (vpd_c[0] + 0.001))
         pmde_p = 100 * abs((vpd_c_f[1] - vpd_c[1]) / (vpd_c[1] + 0.001))
         if pmra_p > pm_max[0] or pmde_p > pm_max[1]:
@@ -371,14 +388,16 @@ def check_centers(
     return bad_center
 
 
-def split_membs_field(data, probs_all, prob_min=0.5, N_membs_min=25):
+def split_membs_field(
+    data, probs_all, prob_cut=0.5, N_membs_min=25, perc_cut=95, N_perc=2
+):
     """
     """
     # This first filter removes stars beyond 2 times the 95th percentile
     # of the most likely members
 
     # Select most likely members
-    msk_membs = probs_all >= 0.5
+    msk_membs = probs_all >= prob_cut
     if msk_membs.sum() < N_membs_min:
         # Select the 'N_membs_min' stars with the largest probabilities
         idx = np.argsort(probs_all)[::-1][:N_membs_min]
@@ -392,13 +411,13 @@ def split_membs_field(data, probs_all, prob_min=0.5, N_membs_min=25):
     x_dist = abs(xy[:, 0] - xy_c[0])
     y_dist = abs(xy[:, 1] - xy_c[1])
     # 2x95th percentile XY mask
-    xy_95 = np.percentile(xy_dists[msk_membs], 95)
-    xy_rad = xy_95 * 2
+    xy_95 = np.percentile(xy_dists[msk_membs], perc_cut)
+    xy_rad = xy_95 * N_perc
     msk_rad = (x_dist <= xy_rad) & (y_dist <= xy_rad)
 
     # Add a minimum probability mask to ensure that all stars with P>prob_min
     # are included
-    msk_pmin = probs_all >= prob_min
+    msk_pmin = probs_all >= prob_cut
 
     # Combine masks with logical OR
     msk = msk_rad | msk_pmin
@@ -411,7 +430,7 @@ def split_membs_field(data, probs_all, prob_min=0.5, N_membs_min=25):
     df_comb.reset_index(drop=True, inplace=True)
 
     # Split into members and field, now using the filtered dataframe
-    msk_membs = df_comb['probs'] > 0.5
+    msk_membs = df_comb['probs'] > prob_cut
     if msk_membs.sum() < N_membs_min:
         idx = np.argsort(df_comb['probs'].values)[::-1][:N_membs_min]
         msk_membs = np.full(len(df_comb['probs']), False)
@@ -437,68 +456,219 @@ def split_membs_field(data, probs_all, prob_min=0.5, N_membs_min=25):
     return df_comb, df_membs, df_field, r_50, xy_c, vpd_c, plx_c
 
 
-def get_classif(df_membs, df_field, xy_c, vpd_c, plx_c, rad_max=2):
+def get_classif(df_membs, df_field):
     """
     """
-    lon_f, lat_f, pmRA_f, pmDE_f, plx_f = df_field['GLON'].values,\
-        df_field['GLAT'].values, df_field['pmRA'].values,\
-        df_field['pmDE'].values, df_field['Plx'].values
+    C1 = lkl_phot(df_membs, df_field)
+    C2 = dens_ratio(df_membs, df_field)
 
-    lon_m, lat_m, pmRA_m, pmDE_m, plx_m, = df_membs['GLON'].values,\
-        df_membs['GLAT'].values, df_membs['pmRA'].values,\
-        df_membs['pmDE'].values, df_membs['Plx'].values
-
-    # Median distances to centers for members
-    xy = np.array([lon_m, lat_m]).T
-    xy_dists = spatial.distance.cdist(xy, np.array([xy_c])).T[0]
-    xy_50 = np.nanmedian(xy_dists)
-    pm = np.array([pmRA_m, pmDE_m]).T
-    pm_dists = spatial.distance.cdist(pm, np.array([vpd_c])).T[0]
-    pm_50 = np.nanmedian(pm_dists)
-    plx_dists = abs(plx_m - plx_c)
-    plx_50 = np.nanmedian(plx_dists)
-    # Count member stars within median distances
-    N_memb_xy = (xy_dists < xy_50).sum()
-    N_memb_pm = (pm_dists < pm_50).sum()
-    N_memb_plx = (plx_dists < plx_50).sum()
-
-    # Median distances to centers for field stars
-    xy = np.array([lon_f, lat_f]).T
-    xy_dists_f = spatial.distance.cdist(xy, np.array([xy_c])).T[0]
-    pm = np.array([pmRA_f, pmDE_f]).T
-    pm_dists_f = spatial.distance.cdist(pm, np.array([vpd_c])).T[0]
-    plx_dists_f = abs(plx_f - plx_c)
-    # Count field stars within median distances
-    N_field_xy = (xy_dists_f < xy_50).sum()
-    N_field_pm = (pm_dists_f < pm_50).sum()
-    N_field_plx = (plx_dists_f < plx_50).sum()
-
-    def ABCD_classif(Nm, Nf, ratio_max=10):
+    def ABCD_classif(CC):
         """Obtain 'ABCD' classification"""
-        if Nm == 0:
-            return "D", 0
-        if Nf == 0:
-            return "A", ratio_max
-        N_ratio = Nm / Nf
-
-        if N_ratio >= 1:
-            cl = "A"
-        elif N_ratio < 1 and N_ratio >= 0.5:
-            cl = "B"
-        elif N_ratio < 0.5 and N_ratio > 0.1:
-            cl = "C"
+        if CC >= 0.75:
+            return "A"
+        elif CC >= 0.5:
+            return "B"
+        elif CC >= 0.25:
+            return "C"
         else:
-            cl = "D"
-        return cl, min(N_ratio, ratio_max)
+            return "D"
 
-    c_xy, ratio_xy = ABCD_classif(N_memb_xy, N_field_xy)
-    c_pm, ratio_pm = ABCD_classif(N_memb_pm, N_field_pm)
-    c_plx, ratio_plx = ABCD_classif(N_memb_plx, N_field_plx)
+    C3 = ABCD_classif(C1) + ABCD_classif(C2)
 
-    C1 = c_xy + c_pm + c_plx
-    C2 = round((ratio_xy + ratio_pm + ratio_plx), 2)
+    return round(C1, 2), round(C2, 2), C3
 
-    return C1, C2
+
+def lkl_phot(df_membs, df_field):
+    """
+    """
+    x_cl, y_cl = df_membs['Gmag'].values, df_membs['BP-RP'].values
+    msk_nan = np.isnan(x_cl) | np.isnan(y_cl)
+    x_cl, y_cl = x_cl[~msk_nan], y_cl[~msk_nan]
+    max_mag = max(x_cl)
+
+    x_fl, y_fl = df_field['Gmag'].values, df_field['BP-RP'].values
+    msk_mag = x_fl <= max_mag
+    x_fl, y_fl = x_fl[msk_mag], y_fl[msk_mag]
+    msk_nan = np.isnan(x_fl) | np.isnan(y_fl)
+    x_fl, y_fl = x_fl[~msk_nan], y_fl[~msk_nan]
+
+    N_membs, N_field = len(x_cl), len(x_fl)
+
+    if N_field < 1.5 * N_membs:
+        # Not enough field stars
+        return np.nan
+    elif N_field < 2 * N_membs:
+        runs = 10
+    elif N_field < 5 * N_membs:
+        runs = 50
+    else:
+        runs = 100
+
+    idx = np.arange(0, N_field)
+    prep_clust_cl = prep_data(x_cl, y_cl)
+    lkl_cl_max = tremmel([x_cl, y_cl], prep_clust_cl)
+
+    pv_cl, pv_fr = [], []
+    for run_num in range(runs):
+
+        # Sample two field regions
+        msk1 = np.random.choice(idx, N_membs, replace=False)
+        field1 = [x_fl[msk1], y_fl[msk1]]
+        msk2 = np.random.choice(idx, N_membs, replace=False)
+        field2 = [x_fl[msk2], y_fl[msk2]]
+
+        prep_clust_f1 = prep_data(field1[0], field1[1])
+        lkl_fl_max = tremmel(field1, prep_clust_f1)
+
+        lkl_cl = tremmel(field1, prep_clust_cl) - lkl_cl_max
+        lkl_fl = tremmel(field2, prep_clust_f1) - lkl_fl_max
+        pv_cl.append(lkl_cl)
+        pv_fr.append(lkl_fl)
+
+    C1 = KDEoverlap(pv_cl, pv_fr)
+    return C1
+
+
+def KDEoverlap(p_vals_cl, p_vals_fl):
+    """
+    Calculate overlap between the two KDEs
+    """
+    def y_pts(pt):
+        y_pt = min(kcl(pt), kfr(pt))
+        return y_pt
+
+    kcl, kfr = gaussian_kde(p_vals_cl), gaussian_kde(p_vals_fl)
+
+    all_pvals = np.concatenate([p_vals_cl, p_vals_fl])
+    pmin, pmax = all_pvals.min(), all_pvals.max()
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        overlap = quad(y_pts, pmin, pmax)[0]
+
+    # Probability value for the cluster.
+    prob_cl = 1. - overlap
+
+    return prob_cl
+
+
+def prep_data(mag, col):
+    """
+    """
+
+    # Obtain bin edges for each dimension, defining a grid.
+    bin_edges = bin_edges_f(mag, col)
+
+    # Histogram for observed cluster.
+    cl_histo = np.histogramdd([mag, col], bins=bin_edges)[0]
+
+    # Flatten N-dimensional histograms.
+    cl_histo_f = np.array(cl_histo).ravel()
+
+    # Index of bins where stars were observed
+    cl_z_idx = (cl_histo_f != 0)
+
+    # Remove all bins where n_i=0 (no observed stars)
+    cl_histo_f_z = cl_histo_f[cl_z_idx]
+
+    return [bin_edges, cl_histo_f_z, cl_z_idx]
+
+
+def bin_edges_f(mag, col, min_bins=2, max_bins=50):
+    """
+    Obtain bin edges for each photometric dimension using the cluster region
+    diagram. The 'bin_edges' list will contain all magnitudes first, and then
+    all colors (in the same order in which they are read).
+    """
+    bin_edges = []
+    b_num = int(round(max(2, (max(mag) - min(mag)) / 1.)))
+    bin_edges.append(np.histogram(mag, bins=b_num)[1])
+    b_num = int(round(max(2, (max(col) - min(col)) / .5)))
+    bin_edges.append(np.histogram(col, bins=b_num)[1])
+
+    # Impose a minimum of 'min_bins' cells per dimension. The number of bins
+    # is the number of edges minus 1.
+    for i, be in enumerate(bin_edges):
+        N_bins = len(be) - 1
+        if N_bins < min_bins:
+            bin_edges[i] = np.linspace(be[0], be[-1], min_bins + 1)
+
+    # Impose a maximum of 'max_bins' cells per dimension.
+    for i, be in enumerate(bin_edges):
+        N_bins = len(be) - 1
+        if N_bins > max_bins:
+            bin_edges[i] = np.linspace(be[0], be[-1], max_bins)
+
+    return bin_edges
+
+
+def tremmel(field, prep_clust):
+    """
+    Poisson likelihood ratio as defined in Tremmel et al (2013), Eq 10 with
+    v_{i,j}=1.
+    """
+
+    # Observed cluster's data.
+    bin_edges, cl_histo_f_z, cl_z_idx = prep_clust
+
+    # Histogram of the synthetic cluster, using the bin edges calculated
+    # with the observed cluster.
+    syn_histo = np.histogramdd(field, bins=bin_edges)[0]
+
+    # TODO: testing this implementation of histodd. Related:
+    # #258, #515
+    # syn_histo = histogramdd(field, bins=bin_edges)
+
+    # Flatten N-dimensional histogram.
+    syn_histo_f = syn_histo.ravel()
+    # Remove all bins where n_i = 0 (no observed stars).
+    syn_histo_f_z = syn_histo_f[cl_z_idx]
+
+    SumLogGamma = np.sum(
+        loggamma(cl_histo_f_z + syn_histo_f_z + .5)
+        - loggamma(syn_histo_f_z + .5))
+
+    # M = field.shape[0]
+    # ln(2) ~ 0.693
+    tremmel_lkl = SumLogGamma - 0.693 * len(field[0])
+
+    return tremmel_lkl
+
+
+def dens_ratio(df_membs, df_field, N_neigh=10, N_max=1000, norm_v=5):
+    """
+    """
+    # Obtain the median distance to the 'N_neigh' closest neighbours in 5D
+    # for each member
+    arr = df_membs[['GLON', 'GLAT', 'pmRA', 'pmDE', 'Plx']].values
+    # arr = data_norm[:N_stars, :]
+    tree = spatial.KDTree(arr)
+    dists = tree.query(arr, min(arr.shape[0], N_neigh))[0]
+    med_d_membs = np.median(dists[1:, :])
+
+    # Radius that contains 95th of the members for the coordinates
+    xy = np.array([df_membs['GLON'].values, df_membs['GLAT'].values]).T
+    xy_c = np.nanmedian(xy, 0)
+    xy_dists = spatial.distance.cdist(xy, np.array([xy_c])).T[0]
+    rad = np.percentile(xy_dists, 95)
+
+    # Select field stars within the above radius from the member's center
+    xy = np.array([df_field['GLON'].values, df_field['GLAT'].values]).T
+    xy_dists = spatial.distance.cdist(xy, np.array([xy_c])).T[0]
+    msk = np.arange(0, len(xy_dists))[xy_dists < rad]
+    if len(msk) > N_max:
+        step = max(1, int(len(msk) / N_max))
+        msk = msk[::step]
+
+    arr = df_field[['GLON', 'GLAT', 'pmRA', 'pmDE', 'Plx']].values
+    if len(df_field) > 10:
+        arr = arr[msk, :]
+    tree = spatial.KDTree(arr)
+    dists = tree.query(arr, min(arr.shape[0], N_neigh))[0]
+    med_d_field = np.median(dists[1:, :])
+
+    d_ratio = min(med_d_field/med_d_membs, norm_v) / norm_v
+
+    return d_ratio
 
 
 def extract_cl_data(df_membs):
