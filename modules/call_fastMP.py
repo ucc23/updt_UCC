@@ -128,19 +128,17 @@ def run(
         print("Nsurv={}, (P>0.5)={}, cents={}".format(
               N_survived, (probs_all > 0.5).sum(), bad_center))
 
-        df_comb, df_membs, df_field, r_50, xy_c, vpd_c, plx_c =\
-            split_membs_field(data, probs_all)
-        r50_all.append(r_50)
+        df_comb, df_membs, df_field = split_membs_field(data, probs_all)
 
-        C1, C2, C3 = classiff.get_classif(df_membs, df_field)
+        C1, C2, C3 = classif.get_classif(df_membs, df_field)
         C1_all.append(C1)
         C2_all.append(C2)
         C3_all.append(C3)
 
-        N_50, lon, lat, ra, dec, plx, pmRA, pmDE, RV, N_Rv = extract_cl_data(
-            df_membs)
+        lon, lat, ra, dec, plx, pmRA, pmDE, RV, N_Rv, N_50, r_50 =\
+            extract_cl_data(df_membs)
         membs_cents_all.append([
-            N_50, lon, lat, ra, dec, plx, pmRA, pmDE, RV, N_Rv])
+            lon, lat, ra, dec, plx, pmRA, pmDE, RV, N_Rv, N_50, r_50])
 
         # Write member stars for cluster and some field
         save_cl_datafile(cl, df_comb, out_path)
@@ -447,25 +445,7 @@ def split_membs_field(
         msk_membs[idx] = True
     df_membs, df_field = df_comb[msk_membs], df_comb[~msk_membs]
 
-    # XY center and distances
-    xy = np.array([df_membs['GLON'].values, df_membs['GLAT'].values]).T
-    xy_c = np.nanmedian(xy, 0)
-    xy_dists = spatial.distance.cdist(xy, np.array([xy_c])).T[0]
-
-    # Radius that contains half the members
-    r50_idx = np.argsort(xy_dists)[int(len(df_membs)/2)]
-    r_50 = xy_dists[r50_idx]
-    # To arcmin
-    r_50 = round(r_50 * 60, 1)
-
-    # PMs and Plx centers
-    vpd_c = np.nanmedian(np.array([
-        df_membs['pmRA'].values, df_membs['pmDE'].values]).T, 0)
-    plx_c = np.nanmedian(df_membs['Plx'].values)
-
-    return df_comb, df_membs, df_field, r_50, xy_c, vpd_c, plx_c
-
-
+    return df_comb, df_membs, df_field
 
 
 def extract_cl_data(df_membs):
@@ -487,7 +467,15 @@ def extract_cl_data(df_membs):
     pmRA, pmDE = round(pmRA, 3), round(pmDE, 3)
     RV = round(RV, 3)
 
-    return N_50, lon, lat, ra, dec, plx, pmRA, pmDE, RV, N_Rv
+    # Radius that contains half the members
+    xy = np.array([df_membs['GLON'].values, df_membs['GLAT'].values]).T
+    xy_dists = spatial.distance.cdist(xy, np.array([[lon, lat]])).T[0]
+    r50_idx = np.argsort(xy_dists)[int(len(df_membs)/2)]
+    r_50 = xy_dists[r50_idx]
+    # To arcmin
+    r_50 = round(r_50 * 60, 1)
+
+    return lon, lat, ra, dec, plx, pmRA, pmDE, RV, N_Rv, N_50, r_50
 
 
 def save_cl_datafile(cl, df_comb, out_path):
