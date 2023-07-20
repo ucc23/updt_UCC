@@ -3,10 +3,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from scipy import spatial
-from scipy.stats import gaussian_kde
-from scipy.special import loggamma
-from scipy.integrate import quad
-import warnings
 import csv
 import classif
 
@@ -195,8 +191,6 @@ def get_frame(cl):
     if c_plx is None:
         box_s_eq = .5
     else:
-        # if c_plx > 3:
-        #     box_s_eq = min(50, 20 * np.log(.5*c_plx))
         if c_plx > 10:
             box_s_eq = 25
         elif c_plx > 8:
@@ -309,7 +303,6 @@ def get_close_cls(x, y, tree, box_s, idx, df_UCC, dups_fnames, df_gcs):
         centers_ex.append(ex_cl_dict)
 
     # Add closest GC
-    # print()
     x, y = df_UCC['GLON'][idx], df_UCC['GLAT'][idx]
     gc_d = np.sqrt((x-df_gcs['GLON'])**2 + (y-df_gcs['GLAT'])**2).values
     for gc_i in range(len(df_gcs)):
