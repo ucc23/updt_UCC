@@ -4,7 +4,7 @@ from astropy.coordinates import SkyCoord
 import astropy.units as u
 from scipy.spatial.distance import cdist
 from string import ascii_lowercase
-from duplicates_id import duplicate_probs
+import duplicate_probs
 
 
 """
@@ -422,7 +422,7 @@ def dups_identify(df, prob_cut=0.5, Nmax=3):
     for i, dists_i in enumerate(dist):
 
         # Only process relatively close clusters
-        rad_max = Nmax * max_coords_rad(plx[i])
+        rad_max = Nmax * duplicate_probs.max_coords_rad(plx[i])
         msk_rad = dists_i <= rad_max
         idx_j = np.arange(0, len(dists_i))
         dists_i_msk = dists_i[msk_rad]
@@ -436,7 +436,7 @@ def dups_identify(df, prob_cut=0.5, Nmax=3):
                 continue
 
             # Fetch duplicated flag and probability for the i,j clusters
-            dup_prob = duplicate_probs(x, y, pmRA, pmDE, plx, i, j)
+            dup_prob = duplicate_probs.run(x, y, pmRA, pmDE, plx, i, j)
             if dup_prob >= prob_cut:
                 # print(df['fnames'][i], df['fnames'][j], dup_prob)
                 # Store just the first fname
@@ -453,27 +453,3 @@ def dups_identify(df, prob_cut=0.5, Nmax=3):
         dups_probs.append(dups_prob_i)
 
     return dups_fnames, dups_probs
-
-
-def max_coords_rad(plx_i):
-    """
-    Parallax dependent maximum radius in arcmin
-    """
-    if np.isnan(plx_i):
-        rad = 5
-    elif plx_i >= 4:
-        rad = 20
-    elif 3 <= plx_i and plx_i < 4:
-        rad = 15
-    elif 2 <= plx_i and plx_i < 3:
-        rad = 10
-    elif 1.5 <= plx_i and plx_i < 2:
-        rad = 7.5
-    elif 1 <= plx_i and plx_i < 1.5:
-        rad = 5
-    elif .5 <= plx_i < 1:
-        rad = 2.5
-    elif plx_i < .5:
-        rad = 1.5
-    rad = rad / 60  # To degrees
-    return rad
