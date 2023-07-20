@@ -8,6 +8,9 @@ from scipy.special import loggamma
 from scipy.integrate import quad
 import warnings
 import csv
+import classif
+
+manual_box_s = {'latham1': 10}
 
 
 def run(
@@ -45,9 +48,16 @@ def run(
         box_s, plx_min = get_frame(cl)
 
         fname0 = cl['fnames'].split(';')[0]
-        # These clusters are extended require a larger frame
+        # These clusters are extended and require a larger frame
         if fname0.startswith('ubc'):
             box_s *= 3
+            box_s = min(box_s, 25)
+
+        try:
+            box_s = manual_box_s[fname0]
+            print(f"Manual box size applied: {box_s}")
+        except KeyError:
+            pass
 
         # Get close clusters coords
         centers_ex = get_close_cls(
