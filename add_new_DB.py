@@ -3,7 +3,7 @@ import datetime
 import json
 import csv
 import pandas as pd
-from modules import fastMP_process, DBs_combine, duplicates_id
+from modules import fastMP_process, DBs_combine, duplicate_probs
 
 #
 # EDIT THIS TWO VARIABLES AS REQUIRED
@@ -97,7 +97,7 @@ def main(
     # Finally identify possible duplicates (and assign a probability) using
     # the positions estimated with the most likely members.
     print("Finding final duplicates and their probabilities...")
-    dups_fnames, dups_probs = duplicates_id.run(df_UCC)
+    dups_fnames, dups_probs = duplicate_probs.run(df_UCC)
     df_UCC['dups_fnames'] = dups_fnames  # This column is rewritten here
     df_UCC['dups_probs'] = dups_probs
     df_UCC.to_csv(
