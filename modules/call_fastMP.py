@@ -146,7 +146,6 @@ def run(
     df_UCC = pd.read_csv(UCC_cat)
     # Update these values for all the processed clusters
     for i, idx in enumerate(index_all):
-        df_UCC.at[idx, 'r_50'] = r50_all[i]
         df_UCC.at[idx, 'N_fixed'] = N_fixed_all[i]
         df_UCC.at[idx, 'N_membs'] = int(N_survived_all[i])
         df_UCC.at[idx, 'fixed_cent'] = fixed_centers_all[i]
