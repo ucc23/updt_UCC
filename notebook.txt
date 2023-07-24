@@ -89,7 +89,7 @@
       "cell_type": "code",
       "source": [
         "path = \"https://github.com/ucc23/XXX/raw/main/datafiles/\"\n",
-        "df = pd.read_csv(path + cluster + \".csv.gz\", compression='gzip')"
+        "df = pd.read_parquet(path + cluster + \".parquet\")"
       ],
       "metadata": {
         "id": ""
