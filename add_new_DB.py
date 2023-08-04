@@ -104,13 +104,6 @@ def main(
         UCC_cat, na_rep='nan', index=False, quoting=csv.QUOTE_NONNUMERIC)
     print(f"File {UCC_cat} updated")
 
-    # Update cluster's JSON file (used by 'ucc.ar' seach)
-    df = pd.DataFrame(df_UCC[[
-        'ID', 'fnames', 'UCC_ID', 'RA_ICRS', 'DE_ICRS', 'GLON', 'GLAT']])
-    df['ID'] = [_.split(';')[0] for _ in df['ID']]
-    df.to_json('../ucc/_clusters/clusters.json', orient="records", indent=1)
-    print("File 'clusters.json' updated")
-
 
 if __name__ == '__main__':
     main()

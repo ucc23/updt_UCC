@@ -1,19 +1,19 @@
 
+import warnings
 import numpy as np
 import json
 import pandas as pd
-from add_new_DB import new_DB
 from modules import ucc_plots, ucc_entry
 
+# from add_new_DB import new_DB
+# This will process the entire UCC_cat_date_new catalogue
+new_DB = ''
 
 # Date of the latest version of the catalogue
-UCC_cat_date_new = "20230508"
-
-# # This will process the entire UCC_cat_date_new catalogue
-# new_DB = ''
+UCC_cat_date_new = "230702"
 
 
-def main(entries_path="../ucc/_clusters/", N_membs_min=25):
+def main(entries_path="../ucc/_clusters/"):
     """
     """
     print("Reading databases...")
@@ -39,58 +39,67 @@ def main(entries_path="../ucc/_clusters/", N_membs_min=25):
 
         fname0 = row['fnames'].split(';')[0]
 
-        # if 'berkeley102' not in row['fnames']:
+        # if i < 12209:
         #     continue
+        # if not ('ngc6791' in row['fnames'] or 'ngc6743' in row['fnames']):
+        #     continue
+        # if 'ngc2516' not in row['fnames']:
+        #     continue
+        if 'CHI23_3' not in row['DB']:
+            continue
 
         Qfold = row['quad']
-        print(row['DB'], Qfold, fname0)
+        # print(i, row['DB'], Qfold, fname0)
         # Folder name where the datafile is stored
         files_path = "../" + Qfold + "/datafiles/"
         # Folder names where the plot and notebook files will be stored
         notb_path = "../" + Qfold + "/notebooks/"
         plots_path = "../" + Qfold + "/plots/"
 
-        # Load datafile with members+field for this cluster
-        df_cl = pd.read_csv(files_path + fname0 + '.csv.gz')
-
-        # Split between members and field stars
-        df_membs, df_field = split_membs_field(df_cl, N_membs_min)
+        # Load datafile with members for this cluster
+        # df_cl = pd.read_parquet(files_path + fname0 + '.parquet')
 
         # Make catalogue entry
         DBs, DBs_i = row['DB'].split(';'), row['DB_i'].split(';')
         fpars_table = fpars_in_lit(DBs_used, DBs_data, DBs, DBs_i)
-        posit_table = positions_in_lit(DBs_used, DBs_data, DBs, DBs_i)
+        posit_table = positions_in_lit(DBs_used, DBs_data, DBs, DBs_i, row)
         close_table = close_cat_cluster(UCC_data, UCC_data['fnames'], row)
+
         # Color used by the 'C1' classification
-        abcd_c = UCC_color(row['C1'])
+        abcd_c = UCC_color(row['C3'])
 
         # All names for this cluster
         cl_names = row['ID'].split(';')
         ucc_entry.make_entry(
             entries_path, cl_names, Qfold, fname0, row['UCC_ID'],
-            row['C1'], row['C2'], abcd_c, Nmemb, lon_c, lat_c, ra_c, dec_c, plx_c, pmRA_c,
-            pmDE_c, RV_c, fpars_table, posit_table, close_table)
+            row['C1'], row['C2'], abcd_c, row['r_50'],
+            row['N_50'], row['RA_ICRS_m'], row['DE_ICRS_m'],
+            row['plx_m'], row['pmRA_m'], row['pmDE_m'], row['Rv_m'],
+            fpars_table, posit_table, close_table)
 
-        # Make notebook
-        make_notebook(Qfold, notb_path, ntbk_str, fname0)
+        # # Make notebook
+        # make_notebook(Qfold, notb_path, ntbk_str, fname0)
 
-        # Make plot
-        ucc_plots.make_plot(plots_path, fname0, df_cl, N_membs_min)
-        breakpoint()
-        
+        # # Make plot
+        # with warnings.catch_warnings():
+        #     warnings.simplefilter("ignore")
+        #     ucc_plots.make_plot(plots_path, fname0, df_cl)
 
-def split_membs_field(df_cl, N_membs_min, prob_min=0.5):
-    """
-    """
-    probs_final = df_cl['probs']
-    msk = probs_final > prob_min
-    if msk.sum() < N_membs_min:
-        idx = np.argsort(probs_final)[::-1][:N_membs_min]
-        msk = np.full(len(probs_final), False)
-        msk[idx] = True
-    df_membs, df_field = df_cl[msk], df_cl[~msk]
+        # breakpoint()
 
-    return df_membs, df_field
+
+# def split_membs_field(df_cl, N_membs_min, prob_min=0.5):
+#     """
+#     """
+#     probs_final = df_cl['probs']
+#     msk = probs_final > prob_min
+#     if msk.sum() < N_membs_min:
+#         idx = np.argsort(probs_final)[::-1][:N_membs_min]
+#         msk = np.full(len(probs_final), False)
+#         msk[idx] = True
+#     df_membs, df_field = df_cl[msk], df_cl[~msk]
+
+#     return df_membs, df_field
 
 
 def UCC_color(abcd):
@@ -100,7 +109,7 @@ def UCC_color(abcd):
     line = r"""<span style="color: {}; font-weight: bold;">{}</span>"""
     cc = {'A': 'green', 'B': '#FFC300', 'C': 'red', 'D': 'purple'}
     for letter in abcd:
-        abcd_c += line.format(cc[letter], letter) + '\n'
+        abcd_c += line.format(cc[letter], letter)# + '\n'
     return abcd_c
 
 
@@ -169,7 +178,7 @@ def fpars_in_lit(DBs_used, DBs_data, DBs, DBs_i):
     return table
 
 
-def positions_in_lit(DBs_used, DBs_data, DBs, DBs_i):
+def positions_in_lit(DBs_used, DBs_data, DBs, DBs_i, row):
     """
     """
     # Re-arrange DBs by year
@@ -180,13 +189,13 @@ def positions_in_lit(DBs_used, DBs_data, DBs, DBs_i):
     DBs_sort = np.array(DBs)[sort_idxs]
     DBs_i_sort = np.array(DBs_i)[sort_idxs]
 
-    txt = ''
+    table = ''
     for i, db in enumerate(DBs_sort):
-        txt += '|'
+        table += '|'
         # Full 'db' database
         df = DBs_data[db]
         # Add reference
-        txt += DBs_used[db]['ref'] + ' | '
+        table += DBs_used[db]['ref'] + ' | '
 
         # Add positions
         for c in DBs_used[db]['pos'].split(','):
@@ -196,19 +205,23 @@ def positions_in_lit(DBs_used, DBs_data, DBs, DBs_i):
                 # Remove empty spaces if any
                 pos_v = pos_v.replace(' ', '')
                 if pos_v != '' and pos_v != 'nan':
-                    txt += str(round(float(pos_v), 3)) + ' | '
+                    table += str(round(float(pos_v), 3)) + ' | '
                 else:
-                    txt += '--' + ' | '
+                    table += '--' + ' | '
             else:
-                txt += '--' + ' | '
+                table += '--' + ' | '
         # Close row
-        txt = txt[:-2] + ' |\n'
+        table = table[:-1] + '\n'
 
-    # Remove final new line
-    if txt != '':
-        table = txt[:-1]
-    else:
-        table = ''
+    # Add UCC positions
+    table += '| **UCC** |'
+    for col in ('RA_ICRS_m', 'DE_ICRS_m', "plx_m", "pmRA_m", "pmDE_m", "Rv_m"):
+        val = '--'
+        if row[col] != '' and not np.isnan(row[col]):
+            val = str(round(float(row[col]), 3))
+        table += val + ' | '
+    # Close row
+    table = table[:-1] + '\n'
 
     return table
 
@@ -217,27 +230,44 @@ def close_cat_cluster(fMP_data, fMP_fnames, row):
     """
     """
     close_table = ''
-    if str(row['dups_fnames']) == 'nan':
+
+    if str(row['dups_fnames_m']) == 'nan':
         return close_table
 
     fnames0 = [_.split(';')[0] for _ in fMP_fnames]
 
-    dups_fnames = row['dups_fnames'].split(';')
+    dups_fnames = row['dups_fnames_m'].split(';')
+    dups_probs = row['dups_probs_m'].split(';')
 
     for i, fname in enumerate(dups_fnames):
-        close_table += '|'
+
         j = fnames0.index(fname)
         name = fMP_data['ID'][j].split(';')[0]
-        close_table += f"[{name}](https://ucc.ar/_clusters/{fname}/) | "
 
-        ra, dec, plx, pmRA, pmDE = [round(fMP_data[_][j], 3) for _ in (
-            'RA_ICRS', 'DE_ICRS', 'plx', 'pmRA', 'pmDE')]
+        vals = []
+        for col in (
+                'RA_ICRS_m', 'DE_ICRS_m', 'plx_m', 'pmRA_m', 'pmDE_m', 'Rv_m'):
+            val = round(float(fMP_data[col][j]), 3)
+            if np.isnan(val):
+                vals.append('--')
+            else:
+                vals.append(val)
+        val = round(float(dups_probs[i]), 3)
+        if np.isnan(val):
+            vals.append('--')
+        else:
+            vals.append(val)
+
+        ra, dec, plx, pmRA, pmDE, Rv, prob = vals
+
+        close_table += f"|[{name}](https://ucc.ar/_clusters/{fname}/)| "
+        close_table += f"{int(100 * prob)} | "
         close_table += f"{ra} | "
         close_table += f"{dec} | "
         close_table += f"{plx} | "
         close_table += f"{pmRA} | "
-        close_table += f"{pmDE} |\n"
-        # close_table += f"{Rv} |\n"
+        close_table += f"{pmDE} | "
+        close_table += f"{Rv} |\n"
     # Remove final new line
     close_table = close_table[:-1]
 
@@ -247,7 +277,7 @@ def close_cat_cluster(fMP_data, fMP_fnames, row):
 def make_notebook(Qfold, notb_path, ntbk_str, fname0):
     """
     """
-    cl_str = r""""source": ["cluster = \"{}\""],""".format(fname0)
+    cl_str = r"""  "cluster = \"{}\"" """.format(fname0)
     ntbk_str[42] = '      ' + cl_str + '\n'
     ntbk_str[90] = r"""        "path = \"https://github.com/ucc23/{}/raw/main/datafiles/\"\n",""".format(Qfold)  + '\n'
     with open(notb_path + fname0 + ".ipynb", "w") as f:
