@@ -100,35 +100,20 @@
     {
       "cell_type": "markdown",
       "source": [
-        "## Define members, field stars, and plotting functions\n",
-        "\n",
-        "We define here a subset of the most probable members using `P>0.5`, with the remaining stars defined as field stars. We set the minimum number of member stars to `25` so that if less than `25` stars have `P>0.5` we select as the most probable members the `25` stars with the largest probability values.\n",
-        "\n",
-        "You can customize these values as you wish."
+        "The most probable members are stored using a probability cut `P>0.5`. A minimum number of member stars is set to `25`, so that if less than `25` stars have `P>0.5` then the most probable members are those `25` stars with the largest probability values."
       ],
       "metadata": {
         "id": ""
       }
     },
     {
-      "cell_type": "code",
+      "cell_type": "markdown",
       "source": [
-        "N_membs_min = 25\n",
-        "prob_min = 0.5\n",
-        "msk_membs = df['probs'] > prob_min\n",
-        "# Check to see if there are more than N_membs_min with P>prob_min\n",
-        "if msk_membs.sum() < N_membs_min:\n",
-        "  # If not, select the N_membs_min with the largest probabilities as members\n",
-        "    msk_membs = np.full(len(df), False)\n",
-        "    msk_membs[:N_membs_min] = True\n",
-        "df_membs = df[msk_membs]\n",
-        "df_field = df[~msk_membs]"
+        "## Define plotting functions\n"
       ],
       "metadata": {
         "id": ""
-      },
-      "execution_count": null,
-      "outputs": []
+      }
     },
     {
       "cell_type": "markdown",
@@ -143,13 +128,10 @@
       "cell_type": "code",
       "source": [
         "def scatter_plot(x, y, col, flip_yaxis=False):\n",
-        "    members = ColumnDataSource({'xm':df_membs[x], 'ym':df_membs[y], 'col':df_membs[col]})\n",
-        "    field = ColumnDataSource({'xf':df_field[x], 'yf':df_field[y]})\n",
+        "    members = ColumnDataSource({'xm':df[x], 'ym':df[y], 'col':df[col]})\n",
         "    cmap = LinearColorMapper(palette=\"Viridis256\", low = .5, high = 1)\n",
         "\n",
         "    p = figure()\n",
-        "    p.circle(\"xf\", \"yf\", size=10, source=field, line_color='white', alpha=.35,\n",
-        "            fill_color='grey')\n",
         "    p.circle(\"xm\", \"ym\", size=10, source=members, line_color='black', alpha=.75,\n",
         "            fill_color={\"field\":\"col\", \"transform\":cmap})\n",
         "    if flip_yaxis:\n",
@@ -179,26 +161,15 @@
       "cell_type": "code",
       "source": [
         "def histo_plot(x):\n",
-        "    # Define number of bins with equal density in members and field\n",
-        "    Nbins_membs = 20\n",
-        "    dens = len(df_membs) / Nbins_membs\n",
-        "    Nbins_field = max(10, int(len(df_field)/dens))\n",
-        "\n",
         "    p = figure()\n",
-        "    # Histogram for field stars\n",
-        "    hist, edges = np.histogram(df_field[x], bins=Nbins_field)\n",
-        "    p.quad(top=hist, bottom=0, left=edges[:-1], right=edges[1:],\n",
-        "            fill_color=\"grey\", line_color=\"white\", alpha=.35,\n",
-        "          legend_label='field')\n",
         "    # Histogram for member stars\n",
-        "    hist, edges = np.histogram(df_membs[x], bins=Nbins_membs)\n",
+        "    hist, edges = np.histogram(df[x], bins=20)\n",
         "    p.quad(top=hist, bottom=0, left=edges[:-1], right=edges[1:],\n",
-        "            fill_color=\"skyblue\", line_color=\"white\", alpha=.75,\n",
-        "          legend_label='members')\n",
+        "            fill_color=\"skyblue\", line_color=\"white\", alpha=.75)\n",
         "    # Vertical line\n",
-        "    p.ray(x=[np.nanmedian(df_membs[x])], y=[0], length=0, angle=90,\n",
+        "    p.ray(x=[np.nanmedian(df[x])], y=[0], length=0, angle=90,\n",
         "          angle_units='deg', line_width=3, line_color='red')\n",
-        "    left, right = np.nanmin(df_membs[x]) * 0.9, np.nanmax(df_membs[x]) * 1.1\n",
+        "    left, right = np.nanmin(df[x]) * 0.9, np.nanmax(df[x]) * 1.1\n",
         "    p.x_range=Range1d(left, right)\n",
         "    p.xaxis.axis_label = x\n",
         "    p.yaxis.axis_label = \"N\"\n",
@@ -215,7 +186,7 @@
       "source": [
         "## Generate interactive plots\n",
         "\n",
-        "Now we can generate some interactive plots. For example the distribution of galactic coordinates for stars in the field, colored by their membership probability"
+        "Now we can generate some interactive plots. For example the distribution of galactic coordinates for member stars, colored by their membership probability"
       ],
       "metadata": {
         "id": ""

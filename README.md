@@ -80,22 +80,20 @@ according to the publication year)
 Run the `add_new_DB.py` script **making sure** to first edit it with the proper
 ID of the new DB and the date of the latest UCC catalogue file
 
-This script will combine the old `UCC_cat_XXXYYZZ.csv` catalogue with the new
-database and generate a new `UCC_cat_XXXYYZZ.csv` catalogue with the
+This script will combine the old `UCC_cat_XYYZZ.csv` catalogue with the new
+database and generate a new `UCC_cat_XYYZZ.csv` catalogue with the
 current date. It will also run the `fastMP` code for those clusters in the new
 DB that ??????.
 
 The clusters' datafiles are stored in the  `QXY` repositories in the
 `datafiles/` subfolders.
 
-The script will also update the `../ucc/_clusters/clusters.json` file used
-by the `ucc.ar` site for searching.
-
 Summary:
-
 1. Updates the `UCC_cat_XXXYYZZ.csv` file with data from the new DB
-2. Updates the `../ucc/_clusters/clusters.json` file with data from the new DB
-3. Generates the new clusters' datafiles and stores them in the `QXY` repos
+2. Generates the new clusters' datafiles and stores them in the `QXY` repos
+
+Finally, run the script `updt_clusters_JSON.py` to update the
+`../ucc/_clusters/clusters.json` file used by the `ucc.ar` site for searching.
 
 
 ## Generate new cluster entries
@@ -106,7 +104,7 @@ to first edit it with the proper date of the recently updated UCC catalogue
 same day).
 
 This script will process all the clusters with the new DB identifier in the
-loaded `UCC_cat_XXXYYZZ.csv` file and generate a plot, `.ipynb` notebook, and
+loaded `UCC_cat_XYYZZ.csv` file and generate a plot, `.ipynb` notebook, and
 proper `.md` entry in the `../ucc/_clusters/` folder for each cluster.
 
 Summary (for each processed cluster from the new DB):

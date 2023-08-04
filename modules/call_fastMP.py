@@ -7,6 +7,7 @@ import csv
 import classif
 
 manual_box_s = {'latham1': 10}
+manual_N_fixed = {'berkeley29': 200}
 
 
 def run(
@@ -34,11 +35,12 @@ def run(
         N_ex_cls_all = [[] for _ in range(12)]
     for index, cl in clusters_list.iterrows():
 
+        # if 'alessi1' not in cl['fnames']:
+        if 'berkeley29' != cl['fnames'].split(';')[0]:
+            continue
+
         print(f"*** {index} Processing {cl['ID']} with fastMP...")
         print(cl['GLON'], cl['GLAT'], cl['pmRA'], cl['pmDE'], cl['plx'])
-
-        if 'hsc46' not in cl['fnames']:
-            continue
 
         # Generate frame
         box_s, plx_min = get_frame(cl)
@@ -54,6 +56,12 @@ def run(
             print(f"Manual box size applied: {box_s}")
         except KeyError:
             pass
+
+        try:
+            fix_N_clust = manual_N_fixed[fname0]
+            print(f"Manual N_fixed applied: {fix_N_clust}")
+        except KeyError:
+            fix_N_clust = False
 
         # Get close clusters coords
         centers_ex = get_close_cls(
@@ -88,7 +96,6 @@ def run(
         if not np.isnan(cl['plx']):
             plx_c = cl['plx']
 
-        fix_N_clust = False
         fixed_centers = False
         if vpd_c is None and plx_c is None:
             fixed_centers = True
@@ -140,6 +147,10 @@ def run(
         save_cl_datafile(cl, df_comb, out_path)
 
         print(f"*** Cluster {cl['ID']} processed with fastMP\n")
+
+    print("NO CHANGES TO INPUT DATABASE")
+    breakpoint()
+    return
 
     membs_cents_all = np.array(membs_cents_all).T
     # Load again in case it was updates while the script run
@@ -275,7 +286,7 @@ def get_close_cls(x, y, tree, box_s, idx, df_UCC, dups_fnames, df_gcs):
 
         # If the cluster does not contain PM or Plx information, check its
         # distance in (lon, lat) with the main cluster. If the distance locates
-        # this cluster within 0.5 of the frame's radius (i.e.: within the
+        # this cluster within 0.75 of the frame's radius (i.e.: within the
         # expected region of the main cluster), don't store it for removal.
         #
         # This prevents clusters with no PM|Plx data from disrupting
@@ -285,7 +296,7 @@ def get_close_cls(x, y, tree, box_s, idx, df_UCC, dups_fnames, df_gcs):
         if np.isnan(df_UCC['pmRA'][i]) or np.isnan(df_UCC['plx'][i]):
             xy_dist = np.sqrt(
                 (x-df_UCC['GLON'][i])**2+(y-df_UCC['GLAT'][i])**2)
-            if xy_dist < 0.5 * rad:
+            if xy_dist < 0.75 * rad:
                 # print(df_UCC['ID'][i], df_UCC['GLON'][i], df_UCC['GLAT'][i], xy_dist)
                 continue
 

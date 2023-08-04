@@ -8,88 +8,89 @@ title:  {}
 ---
 """
 
-aladin_header = """
-<!-- include Aladin Lite CSS file in the head section of your page -->
-<link rel="stylesheet" href="https://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.css" />
-<script type="text/javascript" src="https://code.jquery.com/jquery-1.12.1.min.js" charset="utf-8"></script>
-<!-- Aladin Lite CS -->
-"""
+more_names = """<h3><span style="color: #808080;"><i>(cl_names_str)</i></span></h3>"""
 
-aladin_table1 = r"""
+aladin_snippet = r"""
 <div style="display: flex; justify-content: space-between;">
-   <div style="text-align: center;">
-      <!-- Left block -->
-      <!-- Aladin Lite viewer -->
-      <div id="aladin-lite-div" align="left" style="width:285px;height:250px;"></div>
-      <script type="text/javascript" src="https://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.js" charset="utf-8"></script>
-      <script type="text/javascript">var aladin = A.aladin('#aladin-lite-div', {survey: "P/DSS2/color", cooFrame: 'galactic', fov:0.25, target: " """
-
-aladin_table2 = r""""});</script>
-   </div>
-   <!-- Aladin Lite viewer -->
-   <!-- Left block -->
+ <div style="text-align: center;">
+ <!-- Left block -->
+ <div id="aladin-lite-div" style="width:355px;height:250px;"></div>
+ <script type="text/javascript" src="https://aladin.cds.unistra.fr/AladinLite/api/v3/latest/aladin.js" charset="utf-8"></script>
+ <script type="text/javascript">
+   let aladin;
+   A.init.then(() => {
+      aladin = A.aladin('#aladin-lite-div', {survey: "P/DSS2/color", fov:RAD_DEG, target: "RA_ICRS DE_ICRS"});
+   });
+ </script>
+</div>
+<!-- Left block -->
 """
 
-data_table1 = """   <!-- Right block -->
-   <table style="text-align: center;">
-      <!-- Row 0 (title) -->
-      <tr>
-         <td align="center" colspan="5"><b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{} (<a href="#" title="Cluster class">{}</a>)</b></td>
-      </tr>
-      <!-- Row 1 -->
-      <tr>
-         <th>RA</th>
-         <th>DEC</th>
-         <th>GLON</th>
-         <th>GLAT</th>
-         <th>Class</th>
-      </tr>
-      <!-- Row 2 -->
-      <tr>
-         <td>{}</td>
-         <td>{}</td>
-         <td>{}</td>
-         <td>{}</td>
-         <td>
-"""
-
-data_table2 = """         </td>
-      </tr>
-      <!-- Row 3 -->
-      <tr>
-         <th>plx</th>
-         <th>pmRA</th>
-         <th>pmDE</th>
-         <th>Rv</th>
-         <th>N_20</th>
-      </tr>
-      <!-- Row 4 -->
-      <tr>
-         <td>{}</td>
-         <td>{}</td>
-         <td>{}</td>
-         <td>{}</td>
-         <td>{}</td>
-      </tr>
-   </table>
-   <!-- Right block -->
+table_right_col = """
+<table style="text-align: center; width:355px;height:250px;">
+  <!-- Row 1 (title) -->
+  <tr>
+    <td colspan="5"><h3>UCC_ID</h3></td>
+  </tr>
+  <!-- Row 2 -->
+  <tr>
+    <th><a href="https://ucc.ar/faq#what-are-the-c1-c2-and-c3-parameters" title="Photometric class">C1</a></th>
+    <th><a href="https://ucc.ar/faq#what-are-the-c1-c2-and-c3-parameters" title="Density class">C2</a></th>
+    <th><a href="https://ucc.ar/faq#what-are-the-c1-c2-and-c3-parameters" title="Combined class">C3</a></th>
+    <th><div title="Stars with membership probability >50%">N_50</div></th>
+    <th><div title="Radius that contains half the members [arcmin]">r_50</div></th>
+  </tr>
+  <!-- Row 3 -->
+  <tr>
+    <td>Class1</td>
+    <td>Class2</td>
+    <td>Class3</td>
+    <td>N_50_val</td>
+    <td>r_50_val</td>
+  </tr>
+</table>
 </div>
 """
 
-
-hidden_classif = """
-<!-- Hidden for search purposes -->
-<font color="#FFFFFF">{}</font>
+no_membs_50_warning = """
+<div style="text-align: center;">
+   <span style="color: #99180f; font-weight: bold;">Warning: </span><span>no stars with <i>P>0.5</i> were found</span>
+</div>
 """
 
-other_names = """
-<div style="text-align: left;">
-   <span style="color: #99180f; font-weight: bold;">Other denominations: </span><span>{}</span>
-</div>
+# hidden_classif = """
+# <!-- Hidden for search purposes -->
+# <font color="#FFFFFF">{}</font>
+# """
+
+# other_names = """
+# <div style="text-align: left;">
+#    <span style="color: #99180f; font-weight: bold;">Other denominations: </span><span>{}</span>
+# </div>
+# """
+
+nasa_simbad_url = """
+> <p style="text-align:center; font-weight: bold; font-size:20px">Search object in <a href="https://ui.adsabs.harvard.edu/search/q=%20collection%3Aastronomy%20body%3A%22XXNASAXX%22&sort=date%20desc%2C%20bibcode%20desc&p_=0" target="_blank">NASA/SAO ADS</a> | <a href="http://simbad.cds.unistra.fr/simbad/sim-id-refs?Ident=XXSIMBADXX" target="_blank">Simbad</a></p>
+"""
+
+#  Mobile url
+# https://simbad.cds.unistra.fr/mobile/bib_list.html?ident=
+
+posit_table_top = """\n
+### Position in UCC and published works (not exhaustive)
+
+| Reference    | RA    | DEC   | plx  | pmRA  | pmDE   |  Rv  |
+| :---         | :---: | :---: | :---: | :---: | :---: | :---: |
+"""
+
+cds_simbad_url = """
+> <p style="text-align:center; font-weight: bold; font-size:20px">Search coordinates in <a href="http://cdsportal.u-strasbg.fr/?target=RADEC_CDS" target="_blank">CDS</a> | <a href="https://simbad.cds.unistra.fr/mobile/object_list.html?coord=RADEC_SMB&output=json&radius=5&userEntry=XCLUSTX" target="_blank">Simbad</a></p>
 """
 
 cl_plot = """
-![CLUSTER](https://raw.githubusercontent.com/ucc23/{}/main/plots/{}.png)
+### Plots for selected probable members
+
+![CLUSTER](https://raw.githubusercontent.com/ucc23/{}/main/plots/{}.webp)
 
 """
 
@@ -104,26 +105,11 @@ fpars_table_top = """\n
 | :---         |     :---:      |
 """
 
-nasa_url = """\n
-> <p style="text-align:center; font-weight: bold; font-size:20px">Search name in <a href="https://ui.adsabs.harvard.edu/search/q=%20collection%3Aastronomy%20%3Dbody%3A%22{}%22&sort=date%20desc%2C%20bibcode%20desc&p_=0" target="_blank">NASA/SAO ADS</a></p>
-"""
-
-posit_table_top = """\n
-### Position in published works (not exhaustive)
-
-| Reference    | RA    | DEC   | plx  | pmRA  | pmDE   |  Rv  |
-| :---         | :---: | :---: | :---: | :---: | :---: | :---: |
-"""
-
-cds_url = """\n
-> <p style="text-align:center; font-weight: bold; font-size:20px">Search region in <a href="http://cdsportal.u-strasbg.fr/?target={}" target="_blank">CDS</a></p>
-"""
-
 close_table_top = """\n
-### Catalogued clusters in <a href="faq.html" title="See FAQ for definition of proximity">proximity</a>
+### Probable <a href="https://ucc.ar/faq#probable-duplicates" title="See FAQ for definition of proximity">duplicates</a> and clusters in proximity
 
-| Cluster | RA    | DEC   | plx   | pmRA  | pmDE  |
-| :---    | :---: | :---: | :---: | :---: | :---: |
+| Cluster | P (%) | RA    | DEC   | plx   | pmRA  | pmDE  | Rv    |
+| :---:   | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 """
 
 data_foot = """\n
@@ -133,34 +119,52 @@ data_foot = """\n
 
 
 def make_entry(
-    entries_path, cl_names, Qfold, fname, ucc_id, C1, C2, abcd_c, Nmemb,
-    lon, lat, ra, dec, plx, pmra, pmde, rv, fpars_table, posit_table,
-    close_table
+    entries_path, cl_names, Qfold, fname, ucc_id, C1, C2, abcd_c,
+    r_50, N_50, ra, dec, plx, pmra, pmde, rv, fpars_table,
+    posit_table, close_table
 ):
     """
     """
     txt = ""
     txt += header.format(cl_names[0])
-    txt += aladin_header
-    txt += aladin_table1[:-1] + "{}".format(ra) + " " + "{}".format(dec)
-    txt += aladin_table2
-    txt += data_table1.format(ucc_id, abcd_v, ra, dec, lon, lat, )
-    txt += abcd_c
-    txt += data_table2.format(plx, pmra, pmde, rv, Nmemb)
     if len(cl_names) > 1:
-        txt += other_names.format(", ".join(cl_names[1:]))
-    txt += cl_plot.format(Qfold, fname)
-    txt += notebook_url.format(Qfold, fname)
-    txt += fpars_table_top
-    txt += fpars_table
-    txt += nasa_url.format(cl_names[0].replace(' ', '%20'))
+        txt += more_names.replace("cl_names_str", '; '.join(cl_names[1:]))
+
+    rad_deg = round(2 * (r_50 / 60.), 3)
+    txt += aladin_snippet.replace('RAD_DEG', str(rad_deg)).replace(
+        'RA_ICRS', str(ra)).replace('DE_ICRS', str(dec))
+
+    txt += table_right_col.replace('UCC_ID', ucc_id).replace(
+      'Class1', str(C1)).replace('Class2', str(C2)).replace(
+      'Class3', abcd_c).replace('r_50_val', str(r_50)).replace(
+      'N_50_val', str(N_50))
+
+    if N_50 == 0:
+        txt += no_membs_50_warning
+
+    txt += nasa_simbad_url.replace(
+        'XXNASAXX', cl_names[0].replace(' ', '%20')).replace(
+        'XXSIMBADXX', fname)
+
     txt += posit_table_top
     txt += posit_table
-    ra_dec = "{}%20{}".format(ra, dec)
-    txt += cds_url.format(ra_dec)
+
     if close_table != '':
         txt += close_table_top
-        txt += close_table
+        txt += close_table + '\n'
+
+    txt += cds_simbad_url.replace(
+        "RADEC_CDS", "{}%20{}".format(ra, dec)).replace(
+        "RADEC_SMB", "{}%20{}".format(ra, dec)).replace(
+        "XCLUSTX", fname)
+
+    txt += cl_plot.format(Qfold, fname)
+
+    txt += notebook_url.format(Qfold, fname)
+
+    txt += fpars_table_top
+    txt += fpars_table
+
     txt += data_foot.format(datetime.today().strftime('%Y-%m-%d'))
 
     with open(entries_path + fname + ".md", "w") as f:
