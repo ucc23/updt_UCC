@@ -44,7 +44,7 @@
   "FERREIRA19": {
     "ref": "[Ferreira et al. (2019)](https://ui.adsabs.harvard.edu/abs/2019MNRAS.483.5508F/abstract)",
     "names": "Name",
-    "pars": "E(B-V),m-M,logt,[Fe/H]",
+    "pars": "Ebv,dm,logt,FeH",
     "pos": "RA_ICRS,DE_ICRS,None,pmRA*,pmDE,None"
  }, 
   "CANTAT20": {
@@ -186,7 +186,7 @@
     "pos": "RA_ICRS,DE_ICRS,plx,pmra,pmdec,None"
  },
   "CHI23_3": {
-    "ref": "[Chi et al. (2023)](https://ui.adsabs.harvard.edu/abs/2023arXiv230310380C/abstrac)",
+    "ref": "[Chi et al. (2023)](https://ui.adsabs.harvard.edu/abs/2023arXiv230310380C/abstract)",
     "names": "Id",
     "pars": "None,None,logt,Z",
     "pos": "ra,dec,plx,pmra,pmdec,RV_mean"
