@@ -1,194 +1,6 @@
 
-from pathlib import Path
 import numpy as np
-import pandas as pd
 from scipy import spatial
-import csv
-import classif
-
-manual_box_s = {'latham1': 10}
-manual_N_fixed = {'berkeley29': 200}
-
-
-def run(
-    fastMP, G3Q, frames_path, frames_data, df_UCC, df_gcs, UCC_cat, out_path,
-    clusters_list, max_mag=20
-):
-    """
-    max_mag: maximum magnitude to retrieve
-    """
-
-    # Create output folders if not present
-    for quadrant in ('1', '2', '3', '4'):
-        for s in ('P', 'N'):
-            Qfold = 'Q' + quadrant + s
-            Path(out_path + Qfold + '/datafiles/').mkdir(
-                parents=True, exist_ok=True)
-
-    # Parameters used to search for close-by clusters
-    xys = np.array([
-        df_UCC['GLON'].values, df_UCC['GLAT'].values]).T
-    tree = spatial.cKDTree(xys)
-
-    index_all, r50_all, N_fixed_all, N_survived_all, fixed_centers_all,\
-        cent_flags_all, C1_all, C2_all, C3_all, quad_all, membs_cents_all,\
-        N_ex_cls_all = [[] for _ in range(12)]
-    for index, cl in clusters_list.iterrows():
-
-        # if 'alessi1' not in cl['fnames']:
-        if 'berkeley29' != cl['fnames'].split(';')[0]:
-            continue
-
-        print(f"*** {index} Processing {cl['ID']} with fastMP...")
-        print(cl['GLON'], cl['GLAT'], cl['pmRA'], cl['pmDE'], cl['plx'])
-
-        # Generate frame
-        box_s, plx_min = get_frame(cl)
-
-        fname0 = cl['fnames'].split(';')[0]
-        # These clusters are extended and require a larger frame
-        if fname0.startswith('ubc'):
-            box_s *= 3
-            box_s = min(box_s, 25)
-
-        try:
-            box_s = manual_box_s[fname0]
-            print(f"Manual box size applied: {box_s}")
-        except KeyError:
-            pass
-
-        try:
-            fix_N_clust = manual_N_fixed[fname0]
-            print(f"Manual N_fixed applied: {fix_N_clust}")
-        except KeyError:
-            fix_N_clust = False
-
-        # Get close clusters coords
-        centers_ex = get_close_cls(
-            cl['GLON'], cl['GLAT'], tree, box_s, index, df_UCC,
-            cl['dups_fnames'], df_gcs)
-
-        if np.isnan(cl['N_ex_cls']):
-            pass
-        elif int(cl['N_ex_cls']) == len(centers_ex):
-            print("No difference in extra clusters. Skip")
-            continue
-
-        index_all.append(index)
-        N_ex_cls_all.append(len(centers_ex))
-
-        # Request data
-        data = G3Q.run(frames_path, frames_data, cl['RA_ICRS'], cl['DE_ICRS'],
-                       box_s, plx_min, max_mag)
-        # Store full file
-        # # data.to_csv(out_path + fname0 + "_full.csv", index=False)
-        # data.to_parquet(out_path + fname0 + "_full.parquet", index=False)
-        # Read from file
-        # data = pd.read_csv(out_path + fname0 + "_full.csv")
-        # data.to_parquet(out_path + fname0 + "_full.parquet", index=False)
-        # data = pd.read_parquet(out_path + fname0 + "_full.parquet")
-        # data.to_csv(out_path + fname0 + "_full.csv", index=False)
-
-        # Extract center coordinates
-        xy_c, vpd_c, plx_c = (cl['GLON'], cl['GLAT']), None, None
-        if not np.isnan(cl['pmRA']):
-            vpd_c = (cl['pmRA'], cl['pmDE'])
-        if not np.isnan(cl['plx']):
-            plx_c = cl['plx']
-
-        fixed_centers = False
-        if vpd_c is None and plx_c is None:
-            fixed_centers = True
-
-        # Generate input data array for fastMP
-        X = np.array([
-            data['GLON'].values, data['GLAT'].values, data['pmRA'].values,
-            data['pmDE'].values, data['Plx'].values, data['e_pmRA'].values,
-            data['e_pmDE'].values, data['e_Plx'].values])
-
-        # Process with fastMP
-        while True:
-            print("Fixed centers?:", fixed_centers)
-            probs_all, N_survived = fastMP(
-                xy_c=xy_c, vpd_c=vpd_c, plx_c=plx_c, centers_ex=centers_ex,
-                fixed_centers=fixed_centers, fix_N_clust=fix_N_clust).fit(X)
-
-            bad_center = check_centers(
-                *X[:5, :], xy_c, vpd_c, plx_c, probs_all)
-
-            if bad_center == '000' or fixed_centers is True:
-                break
-            else:
-                # print("Re-run with fixed_centers = True")
-                fixed_centers = True
-
-        fixed_centers_all.append(fixed_centers)
-        N_fixed_all.append(fix_N_clust)
-        N_survived_all.append(int(N_survived))
-
-        bad_center = check_centers(*X[:5, :], xy_c, vpd_c, plx_c, probs_all)
-        cent_flags_all.append(bad_center)
-        print("Nsurv={}, (P>0.5)={}, cents={}".format(
-              N_survived, (probs_all > 0.5).sum(), bad_center))
-
-        df_comb, df_membs, df_field = split_membs_field(data, probs_all)
-
-        C1, C2, C3 = classif.get_classif(df_membs, df_field)
-        C1_all.append(C1)
-        C2_all.append(C2)
-        C3_all.append(C3)
-
-        lon, lat, ra, dec, plx, pmRA, pmDE, RV, N_Rv, N_50, r_50 =\
-            extract_cl_data(df_membs)
-        membs_cents_all.append([
-            lon, lat, ra, dec, plx, pmRA, pmDE, RV, N_Rv, N_50, r_50])
-
-        # Write member stars for cluster and some field
-        save_cl_datafile(cl, df_comb, out_path)
-
-        print(f"*** Cluster {cl['ID']} processed with fastMP\n")
-
-    print("NO CHANGES TO INPUT DATABASE")
-    breakpoint()
-    return
-
-    membs_cents_all = np.array(membs_cents_all).T
-    # Load again in case it was updates while the script run
-    df_UCC = pd.read_csv(UCC_cat)
-    # Update these values for all the processed clusters
-    for i, idx in enumerate(index_all):
-        df_UCC.at[idx, 'N_fixed'] = N_fixed_all[i]
-        df_UCC.at[idx, 'N_membs'] = int(N_survived_all[i])
-        df_UCC.at[idx, 'fixed_cent'] = fixed_centers_all[i]
-        df_UCC.at[idx, 'cent_flags'] = cent_flags_all[i]
-        df_UCC.at[idx, 'C1'] = C1_all[i]
-        df_UCC.at[idx, 'C2'] = C2_all[i]
-        df_UCC.at[idx, 'C3'] = C3_all[i]
-        df_UCC.at[idx, 'GLON_m'] = membs_cents_all[0][i]
-        df_UCC.at[idx, 'GLAT_m'] = membs_cents_all[1][i]
-        df_UCC.at[idx, 'RA_ICRS_m'] = membs_cents_all[2][i]
-        df_UCC.at[idx, 'DE_ICRS_m'] = membs_cents_all[3][i]
-        df_UCC.at[idx, 'plx_m'] = membs_cents_all[4][i]
-        df_UCC.at[idx, 'pmRA_m'] = membs_cents_all[5][i]
-        df_UCC.at[idx, 'pmDE_m'] = membs_cents_all[6][i]
-        df_UCC.at[idx, 'Rv_m'] = membs_cents_all[7][i]
-        df_UCC.at[idx, 'N_Rv'] = membs_cents_all[8][i]
-        df_UCC.at[idx, 'N_50'] = membs_cents_all[9][i]
-        df_UCC.at[idx, 'r_50'] = membs_cents_all[10][i]
-        df_UCC.at[idx, 'N_ex_cls'] = N_ex_cls_all[i]
-
-    df_UCC.to_csv(UCC_cat, na_rep='nan', index=False,
-                  quoting=csv.QUOTE_NONNUMERIC)
-
-
-def read_input(frames_ranges, UCC_cat, GCs_cat):
-    """
-    Read input file with the list of clusters to process
-    """
-    frames_data = pd.read_csv(frames_ranges)
-    df_UCC = pd.read_csv(UCC_cat)
-    df_gcs = pd.read_csv(GCs_cat)
-    return frames_data, df_UCC, df_gcs
 
 
 def get_frame(cl):
@@ -449,7 +261,7 @@ def split_membs_field(
         msk_membs[idx] = True
     df_membs, df_field = df_comb[msk_membs], df_comb[~msk_membs]
 
-    return df_comb, df_membs, df_field
+    return df_membs, df_field
 
 
 def extract_cl_data(df_membs):
@@ -482,7 +294,7 @@ def extract_cl_data(df_membs):
     return lon, lat, ra, dec, plx, pmRA, pmDE, RV, N_Rv, N_50, r_50
 
 
-def save_cl_datafile(cl, df_comb, out_path):
+def save_cl_datafile(cl, df_comb, logging):
     """
     """
     fname0 = cl['fnames'].split(';')[0]
@@ -491,7 +303,6 @@ def save_cl_datafile(cl, df_comb, out_path):
     # Order by probabilities
     df_comb = df_comb.sort_values('probs', ascending=False)
 
-    # df_comb.to_csv(out_path + quad + "/datafiles/" + fname0 + ".csv.gz",
-    #                index=False, compression='gzip')
-    df_comb.to_parquet(
-        out_path + quad + "/datafiles/" + fname0 + ".parquet", index=False)
+    out_fname = '../../' + quad + "/datafiles/" + fname0 + ".parquet"
+    df_comb.to_parquet(out_fname, index=False)
+    logging.info(f"Saved file to: {out_fname}")

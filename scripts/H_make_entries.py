@@ -3,103 +3,107 @@ import warnings
 import numpy as np
 import json
 import pandas as pd
+from modules import logger
+from modules import read_ini_file
+from modules import UCC_new_match
 from modules import ucc_plots, ucc_entry
 
-# from add_new_DB import new_DB
-# This will process the entire UCC_cat_date_new catalogue
-new_DB = ''
 
-# Date of the latest version of the catalogue
-UCC_cat_date_new = "230702"
-
-
-def main(entries_path="../ucc/_clusters/"):
+def main():
     """
     """
+    logging = logger.main()
+    logging.info("\nRunning 'make_entries' script\n")
+
+    pars_dict = read_ini_file.main()
+    UCC_folder, dbs_folder, all_DBs_json, new_OCs_fpath, root_UCC_path, \
+        md_folder, members_folder, ntbks_folder, plots_folder = \
+        pars_dict['UCC_folder'], pars_dict['dbs_folder'], \
+        pars_dict['all_DBs_json'], pars_dict['new_OCs_fpath'], \
+        pars_dict['root_UCC_path'], pars_dict['md_folder'], \
+        pars_dict['members_folder'], pars_dict['ntbks_folder'], \
+        pars_dict['plots_folder']
+
+    # Folder name where the datafile is stored
+    entries_path = root_UCC_path + f"{md_folder}/"
+
+    # Read file produced by the `check_new_DB` script
+    new_OCs_info = pd.read_csv(new_OCs_fpath)
+    logging.info(f"Generating/updating {len(new_OCs_info)} entries")
+
     print("Reading databases...")
-    with open('databases/all_dbs.json') as f:
+    with open(dbs_folder + all_DBs_json) as f:
         DBs_used = json.load(f)
     DBs_data = {}
     for k, v in DBs_used.items():
-        DBs_data[k] = pd.read_csv("databases/" + k + '.csv')
+        DBs_data[k] = pd.read_csv(dbs_folder + k + '.csv')
 
-    # Read latest UCC catalogue
-    UCC_data = pd.read_csv('UCC_cat_' + UCC_cat_date_new + '.csv')
+    # Read latest version of the UCC
+    df_UCC, UCC_cat = UCC_new_match.latest_cat_detect(logging, UCC_folder)
 
     # Load notebook template
     with open("notebook.txt", "r") as f:
         ntbk_str = f.readlines()
 
-    for i, row in UCC_data.iterrows():
-
-        # Only generate new entries for those clusters in the recently added
-        # database
-        if new_DB not in row['DB']:
+    for index, new_cl in new_OCs_info.iterrows():
+        # Only generate new entries for flagged OCs
+        if new_cl['process_f'] is False:
             continue
 
-        fname0 = row['fnames'].split(';')[0]
+        # Identify position in the UCC
+        fname0 = new_cl['fnames'].split(',')[0]
+        UCC_index = None
+        for _, UCC_fnames in enumerate(df_UCC['fnames']):
+            # for ucc_fname in UCC_fnames.split(';'):
+            if fname0 == UCC_fnames:
+                UCC_index = _
+                break
+        if UCC_index is None:
+            logging.info(f"ERROR: could not find {fname0} in UCC DB")
+            return
+        UCC_cl = df_UCC.iloc[UCC_index]
+        logging.info(f"{index} Processing {UCC_cl['fnames']}")
 
-        # if i < 12209:
-        #     continue
-        # if not ('ngc6791' in row['fnames'] or 'ngc6743' in row['fnames']):
-        #     continue
-        # if 'ngc2516' not in row['fnames']:
-        #     continue
-        if 'CHI23_3' not in row['DB']:
-            continue
+        fname0 = UCC_cl['fnames'].split(';')[0]
 
-        Qfold = row['quad']
-        # print(i, row['DB'], Qfold, fname0)
-        # Folder name where the datafile is stored
-        files_path = "../" + Qfold + "/datafiles/"
-        # Folder names where the plot and notebook files will be stored
-        notb_path = "../" + Qfold + "/notebooks/"
-        plots_path = "../" + Qfold + "/plots/"
-
-        # Load datafile with members for this cluster
-        # df_cl = pd.read_parquet(files_path + fname0 + '.parquet')
+        Qfold = UCC_cl['quad']
 
         # Make catalogue entry
-        DBs, DBs_i = row['DB'].split(';'), row['DB_i'].split(';')
+        DBs, DBs_i = UCC_cl['DB'].split(';'), UCC_cl['DB_i'].split(';')
         fpars_table = fpars_in_lit(DBs_used, DBs_data, DBs, DBs_i)
-        posit_table = positions_in_lit(DBs_used, DBs_data, DBs, DBs_i, row)
-        close_table = close_cat_cluster(UCC_data, UCC_data['fnames'], row)
+        posit_table = positions_in_lit(DBs_used, DBs_data, DBs, DBs_i, UCC_cl)
+        close_table = close_cat_cluster(df_UCC, df_UCC['fnames'], UCC_cl)
 
         # Color used by the 'C1' classification
-        abcd_c = UCC_color(row['C3'])
+        abcd_c = UCC_color(UCC_cl['C3'])
 
         # All names for this cluster
-        cl_names = row['ID'].split(';')
+        cl_names = UCC_cl['ID'].split(';')
         ucc_entry.make_entry(
-            entries_path, cl_names, Qfold, fname0, row['UCC_ID'],
-            row['C1'], row['C2'], abcd_c, row['r_50'],
-            row['N_50'], row['RA_ICRS_m'], row['DE_ICRS_m'],
-            row['plx_m'], row['pmRA_m'], row['pmDE_m'], row['Rv_m'],
-            fpars_table, posit_table, close_table)
+            entries_path, cl_names, Qfold, fname0, UCC_cl['UCC_ID'],
+            UCC_cl['C1'], UCC_cl['C2'], abcd_c, UCC_cl['r_50'],
+            UCC_cl['N_50'], UCC_cl['RA_ICRS_m'], UCC_cl['DE_ICRS_m'],
+            UCC_cl['plx_m'], UCC_cl['pmRA_m'], UCC_cl['pmDE_m'],
+            UCC_cl['Rv_m'], fpars_table, posit_table, close_table)
 
-        # # Make notebook
-        # make_notebook(Qfold, notb_path, ntbk_str, fname0)
+        # Folder names where the members, plot and notebook files are stored
+        files_path = root_UCC_path + Qfold + f"/{members_folder}/"
+        notb_path = root_UCC_path + Qfold + f"/{ntbks_folder}/"
+        plots_path = root_UCC_path + Qfold + f"/{plots_folder}/"
 
-        # # Make plot
-        # with warnings.catch_warnings():
-        #     warnings.simplefilter("ignore")
-        #     ucc_plots.make_plot(plots_path, fname0, df_cl)
+        # Make notebook
+        make_notebook(Qfold, notb_path, ntbk_str, fname0)
 
-        # breakpoint()
+        # Load datafile with members for this cluster
+        df_cl = pd.read_parquet(files_path + fname0 + '.parquet')
 
+        # Make plot
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            ucc_plots.make_plot(plots_path, fname0, df_cl)
 
-# def split_membs_field(df_cl, N_membs_min, prob_min=0.5):
-#     """
-#     """
-#     probs_final = df_cl['probs']
-#     msk = probs_final > prob_min
-#     if msk.sum() < N_membs_min:
-#         idx = np.argsort(probs_final)[::-1][:N_membs_min]
-#         msk = np.full(len(probs_final), False)
-#         msk[idx] = True
-#     df_membs, df_field = df_cl[msk], df_cl[~msk]
-
-#     return df_membs, df_field
+        fname0 = UCC_cl['fnames'].split(';')[0]
+        logging.info(f"File+notebook+plot generated for {Qfold}/{fname0}\n")
 
 
 def UCC_color(abcd):
@@ -164,8 +168,8 @@ def fpars_in_lit(DBs_used, DBs_data, DBs, DBs_i):
                     # DBs like SANTOS21 list more than 1 value for
                     # parameter
                     txt += par + '=' + par_v + ', '
-            else:
-                txt += '--=--, '
+            # else:
+            #     txt += '--=--, '
         # Close row
         txt = txt[:-2] + '` |\n'
 
