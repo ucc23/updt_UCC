@@ -4,7 +4,7 @@ from astropy.coordinates import SkyCoord
 import astropy.units as u
 from scipy.spatial.distance import cdist
 from string import ascii_lowercase
-import duplicate_probs
+from . import duplicate_probs
 
 
 """
@@ -16,7 +16,7 @@ the initial combined DBs generation.
 
 def get_fnames_new_DB(df_new, json_pars, sep) -> list:
     """
-    Extract and standardize all names in new catalogue
+    Extract and standardize all names in the new catalogue
     """
     names_all = df_new[json_pars['names']]
     new_DB_fnames = []
@@ -132,6 +132,8 @@ def rm_name_dups(names_l):
     Remove duplicates of the kind: Berkeley 102, Berkeley102,
     Berkeley_102; keeping only the name with the space
     """
+    if 'NGC 1976' in names_l:
+        print(names_l)
     for i, n in enumerate(names_l):
         n2 = n.replace(' ', '')
         if n2 in names_l:
@@ -141,16 +143,20 @@ def rm_name_dups(names_l):
         if n2 in names_l:
             j = names_l.index(n2)
             names_l[j] = n
+
+    if 'NGC 1976' in names_l:
+        print(';'.join(list(dict.fromkeys(names_l))))
+
     return ';'.join(list(dict.fromkeys(names_l)))
 
 
-def get_matches_new_DB(df_comb, new_DB_fnames):
+def get_matches_new_DB(df_UCC, new_DB_fnames):
     """
     Get cluster matches for the new DB being added to the combined DB
     """
     def match_fname(new_cl):
         for name_new in new_cl:
-            for j, old_cl in enumerate(df_comb['fnames']):
+            for j, old_cl in enumerate(df_UCC['fnames']):
                 for name_old in old_cl.split(';'):
                     if name_new == name_old:
                         return j
@@ -165,10 +171,12 @@ def get_matches_new_DB(df_comb, new_DB_fnames):
 
 
 def combine_new_DB(
-    new_DB_ID, df_comb, df_new, json_pars, new_DB_fnames, db_matches, sep
+    logging, new_OCs_info, new_DB_ID, df_UCC, df_new, json_pars, new_DB_fnames,
+    db_matches, sep
 ):
     """
     """
+    # Extract names of (ra, dec, plx, pmRA, pmDE) columns
     cols = []
     for v in json_pars['pos'].split(','):
         if str(v) == 'None':
@@ -177,7 +185,7 @@ def combine_new_DB(
     # Remove Rv column
     ra_c, dec_c, plx_c, pmra_c, pmde_c = cols[:-1]
 
-    new_db_dict = {_: [] for _ in df_comb.keys()}
+    new_db_dict = {_: [] for _ in df_UCC.keys()}
     idx_rm_comb_db = []
     for i, new_cl in enumerate(new_DB_fnames):
 
@@ -197,26 +205,44 @@ def combine_new_DB(
         if pmde_c is not None:
             pmde_n = row_n[pmde_c]
 
-        # Index of the match for this new cluster in the old DB (if any)
+        # Index of the match for this new cluster in the UCC (if any)
         db_match_j = db_matches[i]
 
-        # If the cluster is already present in the 'old' combined DB
+        # If the cluster is already present in the UCC
         if db_match_j is not None:
-            # Store indexes in old DB of clusters present in new DB
+            # Store indexes in UCC of clusters present in new DB
             idx_rm_comb_db.append(db_match_j)
 
-            # Identify row in old DB where this match is
-            row = df_comb.iloc[db_match_j]
+            # Identify row in UCC where this match is located
+            row = df_UCC.iloc[db_match_j]
 
-            # Combine old data with that of the new matched cluster
-            ra_n = np.nanmedian([row['RA_ICRS'], ra_n])
-            dec_n = np.nanmedian([row['DE_ICRS'], dec_n])
-            if not np.isnan([row['plx'], plx_n]).all():
-                plx_n = np.nanmedian([row['plx'], plx_n])
-            if not np.isnan([row['pmRA'], pmra_n]).all():
-                pmra_n = np.nanmedian([row['pmRA'], pmra_n])
-            if not np.isnan([row['pmDE'], pmde_n]).all():
-                pmde_n = np.nanmedian([row['pmDE'], pmde_n])
+            # Read the flag that informs if the data for this OC should be
+            # combined (thus changing the values in the 5D space) or not
+            fname0 = new_cl[0]
+            if fname0 in new_OCs_info['fnames'][i]:
+                combine_flag = new_OCs_info['process_f'][i]
+            else:
+                # The 'fnames' should be aligned. Here just in case
+                print("ERROR")
+                return
+
+            if combine_flag:
+                # Combine UCC data with that of the new matched cluster
+                ra_n = np.nanmedian([row['RA_ICRS'], ra_n])
+                dec_n = np.nanmedian([row['DE_ICRS'], dec_n])
+                if not np.isnan([row['plx'], plx_n]).all():
+                    plx_n = np.nanmedian([row['plx'], plx_n])
+                if not np.isnan([row['pmRA'], pmra_n]).all():
+                    pmra_n = np.nanmedian([row['pmRA'], pmra_n])
+                if not np.isnan([row['pmDE'], pmde_n]).all():
+                    pmde_n = np.nanmedian([row['pmDE'], pmde_n])
+            else:
+                # Use UCC data, do not combine with new DB data
+                ra_n = row['RA_ICRS']
+                dec_n = row['DE_ICRS']
+                plx_n = row['plx']
+                pmra_n = row['pmRA']
+                pmde_n = row['pmDE']
 
             # Add new DB information
             DB_ID = row['DB'] + ';' + new_DB_ID
@@ -226,17 +252,20 @@ def combine_new_DB(
             # Add fnames in new DB
             fnames = row['fnames'] + ';' + ';'.join(new_cl)
 
-            # Copy values from the 'old' DB for these columns
+            # Copy values from the UCC for these columns
             UCC_ID = row['UCC_ID']
             quad = row['quad']
             dups_fnames = row['dups_fnames']
+            dups_probs = row['dups_probs']
             r_50 = row['r_50']
             N_50 = row['N_50']
-            Nmembs = row['Nmembs']
+            N_fixed = row['N_fixed']
+            N_membs = row['N_membs']
             fixed_cent = row['fixed_cent']
             cent_flags = row['cent_flags']
             C1 = row['C1']
             C2 = row['C2']
+            C3 = row['C3']
             GLON_m = row['GLON_m']
             GLAT_m = row['GLAT_m']
             RA_ICRS_m = row['RA_ICRS_m']
@@ -246,27 +275,34 @@ def combine_new_DB(
             pmDE_m = row['pmDE_m']
             Rv_m = row['Rv_m']
             N_Rv = row['N_Rv']
+            dups_fnames_m = row['dups_fnames_m']
+            dups_probs_m = row['dups_probs_m']
 
         else:
-            # The cluster is not present in the 'old' combined DB
+            # The cluster is not present in the UCC
+            logging.info(f"New OC found: {i}, {new_names}")
+            idx_rm_comb_db.append(None)
             DB_ID = new_DB_ID
             DB_i = str(i)
             ID = new_names
             fnames = ';'.join(new_cl)
 
             # These values will be assigned later on for these new clusters
-            UCC_ID = np.nan
-            quad = np.nan
-            dups_fnames = np.nan
+            UCC_ID = 'nan'
+            quad = 'nan'
+            dups_fnames = 'nan'
+            dups_probs = 'nan'
 
-            # These values will be assigned by the 'call_fastMP' module
+            # These values will be assigned later when fastMP is run
             r_50 = np.nan
-            N_50 = np.nan
-            Nmembs = np.nan
-            fixed_cent = np.nan
-            cent_flags = np.nan
+            N_50 = 0
+            N_fixed = 0
+            N_membs = 0
+            fixed_cent = 'nan'
+            cent_flags = 'nan'
             C1 = np.nan
             C2 = np.nan
+            C3 = 'nan'
             GLON_m = np.nan
             GLAT_m = np.nan
             RA_ICRS_m = np.nan
@@ -275,7 +311,9 @@ def combine_new_DB(
             pmRA_m = np.nan
             pmDE_m = np.nan
             Rv_m = np.nan
-            N_Rv = np.nan
+            N_Rv = 0
+            dups_fnames_m = 'nan'
+            dups_probs_m = 'nan'
 
         new_db_dict['DB'].append(DB_ID)
         new_db_dict['DB_i'].append(DB_i)
@@ -286,11 +324,11 @@ def combine_new_DB(
         lon_n, lat_n = radec2lonlat(ra_n, dec_n)
         new_db_dict['RA_ICRS'].append(round(ra_n, 4))
         new_db_dict['DE_ICRS'].append(round(dec_n, 4))
-        new_db_dict['GLON'].append(lon_n)
-        new_db_dict['GLAT'].append(lat_n)
-        new_db_dict['plx'].append(plx_n)
-        new_db_dict['pmRA'].append(pmra_n)
-        new_db_dict['pmDE'].append(pmde_n)
+        new_db_dict['GLON'].append(round(lon_n, 4))
+        new_db_dict['GLAT'].append(round(lat_n, 4))
+        new_db_dict['plx'].append(round(plx_n, 4))
+        new_db_dict['pmRA'].append(round(pmra_n, 4))
+        new_db_dict['pmDE'].append(round(pmde_n, 4))
         # Remove duplicates
         if ';' in fnames:
             fnames = ';'.join(list(dict.fromkeys(fnames.split(';'))))
@@ -298,13 +336,16 @@ def combine_new_DB(
         new_db_dict['UCC_ID'].append(UCC_ID)
         new_db_dict['quad'].append(quad)
         new_db_dict['dups_fnames'].append(dups_fnames)
+        new_db_dict['dups_probs'].append(dups_probs)
         new_db_dict['r_50'].append(r_50)
         new_db_dict['N_50'].append(N_50)
-        new_db_dict['Nmembs'].append(Nmembs)
+        new_db_dict['N_fixed'].append(N_fixed)
+        new_db_dict['N_membs'].append(N_membs)
         new_db_dict['fixed_cent'].append(fixed_cent)
         new_db_dict['cent_flags'].append(cent_flags)
         new_db_dict['C1'].append(C1)
         new_db_dict['C2'].append(C2)
+        new_db_dict['C3'].append(C3)
         new_db_dict['GLON_m'].append(GLON_m)
         new_db_dict['GLAT_m'].append(GLAT_m)
         new_db_dict['RA_ICRS_m'].append(RA_ICRS_m)
@@ -314,12 +355,14 @@ def combine_new_DB(
         new_db_dict['pmDE_m'].append(pmDE_m)
         new_db_dict['Rv_m'].append(Rv_m)
         new_db_dict['N_Rv'].append(N_Rv)
+        new_db_dict['dups_fnames_m'].append(dups_fnames_m)
+        new_db_dict['dups_probs_m'].append(dups_probs_m)
 
     # Remove duplicates of the kind: Berkeley 102, Berkeley102,
     # Berkeley_102; keeping only the name with the space
     for q, names in enumerate(new_db_dict['ID']):
         names_l = names.split(';')
-        names = rm_name_dups(names_l)
+        new_db_dict['ID'][q] = rm_name_dups(names_l)
 
     return new_db_dict, idx_rm_comb_db
 
@@ -453,3 +496,55 @@ def dups_identify(df, prob_cut=0.5, Nmax=3):
         dups_probs.append(dups_prob_i)
 
     return dups_fnames, dups_probs
+
+
+def check_cents_diff(xy_c_o, vpd_c_o, plx_c_o, xy_c_n, vpd_c_n, plx_c_n):
+    """
+    """
+    # cents_diff_close = False
+
+    bad_center_xy, bad_center_pm, bad_center_plx = '0', '0', '0'
+
+    # 5 arcmin maximum
+    d_arcmin = np.sqrt((xy_c_o[0]-xy_c_n[0])**2+(xy_c_o[1]-xy_c_n[1])**2) * 60
+    if d_arcmin > 5:
+        bad_center_xy = '1'
+
+    # Relative difference
+    if not np.isnan(vpd_c_o[0]):
+        pm_max = []
+        for vpd_c_i in abs(np.array(vpd_c_o)):
+            if vpd_c_i > 5:
+                pm_max.append(10)
+            elif vpd_c_i > 1:
+                pm_max.append(15)
+            elif vpd_c_i > 0.1:
+                pm_max.append(20)
+            elif vpd_c_i > 0.01:
+                pm_max.append(25)
+            else:
+                pm_max.append(50)
+        pmra_p = 100 * abs((vpd_c_o[0] - vpd_c_n[0]) / (vpd_c_o[0] + 0.001))
+        pmde_p = 100 * abs((vpd_c_o[1] - vpd_c_n[1]) / (vpd_c_o[1] + 0.001))
+        if pmra_p > pm_max[0] or pmde_p > pm_max[1]:
+            bad_center_pm = '1'
+
+    # Relative difference
+    if not np.isnan(plx_c_o):
+        if plx_c_o > 0.2:
+            plx_max = 25
+        elif plx_c_o > 0.1:
+            plx_max = 30
+        elif plx_c_o > 0.05:
+            plx_max = 35
+        elif plx_c_o > 0.01:
+            plx_max = 50
+        else:
+            plx_max = 70
+        plx_p = 100 * abs(plx_c_o - plx_c_n) / (plx_c_o + 0.001)
+        if abs(plx_p) > plx_max:
+            bad_center_plx = '1'
+
+    bad_center = bad_center_xy + bad_center_pm + bad_center_plx
+
+    return bad_center

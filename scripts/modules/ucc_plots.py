@@ -2,7 +2,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from astropy.visualization import ZScaleInterval
+# from astropy.visualization import ZScaleInterval
 
 import scienceplots
 plt.style.use('science')
@@ -30,7 +30,10 @@ def make_plot(out_path, fname0, df_membs, cmap='plasma', dpi=200):
     else:
         size = 25
 
-    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(5.5, 5))
+    # num=1, clear=True are there to release memory as per.
+    # https://stackoverflow.com/a/65910539/1391441
+    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(
+        2, 2, figsize=(5.5, 5), num=1, clear=True)
 
     ax1.scatter(
         df_membs['GLON'], df_membs['GLAT'], c=pr, alpha=.8, ec=ec, lw=.2,
@@ -100,6 +103,10 @@ def make_plot(out_path, fname0, df_membs, cmap='plasma', dpi=200):
 
     fig.tight_layout()
     plt.savefig(out_path + fname0 + ".webp", dpi=dpi)
+
+    # https://stackoverflow.com/a/65910539/1391441
+    fig.clear()
+    plt.close(fig)
 
 
 def colorbar(mappable):

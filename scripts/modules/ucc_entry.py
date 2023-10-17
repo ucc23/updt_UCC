@@ -58,19 +58,8 @@ no_membs_50_warning = """
 </div>
 """
 
-# hidden_classif = """
-# <!-- Hidden for search purposes -->
-# <font color="#FFFFFF">{}</font>
-# """
-
-# other_names = """
-# <div style="text-align: left;">
-#    <span style="color: #99180f; font-weight: bold;">Other denominations: </span><span>{}</span>
-# </div>
-# """
-
 nasa_simbad_url = """
-> <p style="text-align:center; font-weight: bold; font-size:20px">Search object in <a href="https://ui.adsabs.harvard.edu/search/q=%20collection%3Aastronomy%20body%3A%22XXNASAXX%22&sort=date%20desc%2C%20bibcode%20desc&p_=0" target="_blank">NASA/SAO ADS</a> | <a href="http://simbad.cds.unistra.fr/simbad/sim-id-refs?Ident=XXSIMBADXX" target="_blank">Simbad</a></p>
+> <p style="text-align:center; font-weight: bold; font-size:20px">Search object in <a href="https://ui.adsabs.harvard.edu/search/q=%20collection%3Aastronomy%20body%3A%22XXNASAXX%22&sort=date%20desc%2C%20bibcode%20desc&p_=0" target="_blank">NASA/SAO ADS</a> | <a href="https://simbad.cds.unistra.fr/simbad/sim-id-refs?Ident=XXSIMBADXX" target="_blank">Simbad</a></p>
 """
 
 #  Mobile url
@@ -84,7 +73,7 @@ posit_table_top = """\n
 """
 
 cds_simbad_url = """
-> <p style="text-align:center; font-weight: bold; font-size:20px">Search coordinates in <a href="http://cdsportal.u-strasbg.fr/?target=RADEC_CDS" target="_blank">CDS</a> | <a href="https://simbad.cds.unistra.fr/mobile/object_list.html?coord=RADEC_SMB&output=json&radius=5&userEntry=XCLUSTX" target="_blank">Simbad</a></p>
+> <p style="text-align:center; font-weight: bold; font-size:20px">Search coordinates in <a href="https://cdsportal.u-strasbg.fr/?target=RADEC_CDS" target="_blank">CDS</a> | <a href="https://simbad.cds.unistra.fr/mobile/object_list.html?coord=RADEC_SMB&output=json&radius=5&userEntry=XCLUSTX" target="_blank">Simbad</a></p>
 """
 
 cl_plot = """
@@ -137,7 +126,7 @@ def make_entry(
     txt += table_right_col.replace('UCC_ID', ucc_id).replace(
       'Class1', str(C1)).replace('Class2', str(C2)).replace(
       'Class3', abcd_c).replace('r_50_val', str(r_50)).replace(
-      'N_50_val', str(N_50))
+      'N_50_val', str(int(N_50)))
 
     if N_50 == 0:
         txt += no_membs_50_warning
@@ -162,8 +151,9 @@ def make_entry(
 
     txt += notebook_url.format(Qfold, fname)
 
-    txt += fpars_table_top
-    txt += fpars_table
+    if fpars_table != '':
+        txt += fpars_table_top
+        txt += fpars_table
 
     txt += data_foot.format(datetime.today().strftime('%Y-%m-%d'))
 

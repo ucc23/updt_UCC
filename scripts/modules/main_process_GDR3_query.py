@@ -20,39 +20,40 @@ Zp_BP, sigma_ZBP_2 = 25.3385422158, 0.000007785
 Zp_RP, sigma_ZRP_2 = 24.7478955012, 0.00001428
 
 
-def verbose_p(txt, v, verbose):
+def verbose_p(txt, v, verbose, logging):
     if verbose >= v:
-        print(txt)
+        logging.info(txt)
 
 
 def run(
-    frames_path, fdata, c_ra, c_dec, box_s_eq, plx_min, max_mag, verbose=0
+    frames_path, fdata, c_ra, c_dec, box_s_eq, plx_min, max_mag, verbose,
+    logging
 ):
     """
     box_s_eq: Size of box to query (in degrees)
     """
     verbose_p("  ({:.3f}, {:.3f}); Box size: {:.2f}, Plx min: {:.2f}".format(
-          c_ra, c_dec, box_s_eq, plx_min), 1, verbose)
+          c_ra, c_dec, box_s_eq, plx_min), 1, verbose, logging)
 
     c_ra_l = [c_ra]
     if c_ra - box_s_eq < 0:
-        verbose_p("Split frame, c_ra + 360", 2, verbose)
+        verbose_p("Split frame, c_ra + 360", 2, verbose, logging)
         c_ra_l.append(c_ra + 360)
     if c_ra > box_s_eq > 360:
-        verbose_p("Split frame, c_ra - 360", 2, verbose)
+        verbose_p("Split frame, c_ra - 360", 2, verbose, logging)
         c_ra_l.append(c_ra - 360)
 
     dicts = []
     for c_ra in c_ra_l:
         data_in_files, xmin_cl, xmax_cl, ymin_cl, ymax_cl = findFrames(
-            c_ra, c_dec, box_s_eq, fdata, verbose)
+            c_ra, c_dec, box_s_eq, fdata, verbose, logging)
 
         if len(data_in_files) == 0:
             continue
 
         all_frames = query(
             c_ra, c_dec, box_s_eq, frames_path, max_mag, data_in_files,
-            xmin_cl, xmax_cl, ymin_cl, ymax_cl, plx_min, verbose)
+            xmin_cl, xmax_cl, ymin_cl, ymax_cl, plx_min, verbose, logging)
 
         dicts.append(all_frames)
 
@@ -70,7 +71,7 @@ def run(
     return all_frames
 
 
-def findFrames(c_ra, c_dec, box_s_eq, fdata, verbose):
+def findFrames(c_ra, c_dec, box_s_eq, fdata, verbose, logging):
     """
     """
     # These are the points that determine the range of *all* the frames
@@ -99,7 +100,8 @@ def findFrames(c_ra, c_dec, box_s_eq, fdata, verbose):
 
     data_in_files = list(fdata[frame_intersec]['filename'])
     verbose_p(
-        f"  Cluster is present in {len(data_in_files)} frames", 1, verbose)
+        f"  Cluster is present in {len(data_in_files)} frames", 1, verbose,
+        logging)
 
     return data_in_files, xmin_cl, xmax_cl, ymin_cl, ymax_cl
 
@@ -131,7 +133,7 @@ def doOverlap(l1, r1, l2, r2):
 
 def query(
     c_ra, c_dec, box_s_eq, frames_path, max_mag, data_in_files, xmin_cl,
-    xmax_cl, ymin_cl, ymax_cl, plx_min, verbose
+    xmax_cl, ymin_cl, ymax_cl, plx_min, verbose, logging
 ):
     """
     """
@@ -152,21 +154,23 @@ def query(
         msk = (mx & my & m_plx & m_gmag)
 
         verbose_p(
-            f"{i+1}, {file} contains {msk.sum()} cluster stars", 2, verbose)
+            f"{i+1}, {file} contains {msk.sum()} cluster stars", 2, verbose,
+            logging)
         if msk.sum() == 0:
             continue
 
         all_frames.append(data[msk])
     all_frames = pd.concat(all_frames)
 
-    verbose_p(f"  {len(all_frames)} stars retrieved", 2, verbose)
+    verbose_p(f"  {len(all_frames)} stars retrieved", 2, verbose, logging)
 
     c_ra, c_dec = c_ra, c_dec
     box_s_h = box_s_eq * .5
     gal_cent = radec2lonlat(c_ra, c_dec)
 
     if all_frames['l'].max() - all_frames['l'].min() > 180:
-        verbose_p("Frame wraps around 360 in longitude. Fixing..", 1, verbose)
+        verbose_p("Frame wraps around 360 in longitude. Fixing..", 1, verbose,
+                  logging)
 
         lon = all_frames['l'].values
         if gal_cent[0] > 180:
@@ -195,7 +199,7 @@ def query(
         'radial_velocity': 'RV', 'radial_velocity_error': 'e_RV'}
     )
 
-    verbose_p(f"  {len(all_frames)} stars final", 1, verbose)
+    verbose_p(f"  {len(all_frames)} stars final", 1, verbose, logging)
     return all_frames
 
 
