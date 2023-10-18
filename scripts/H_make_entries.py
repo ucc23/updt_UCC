@@ -13,7 +13,7 @@ def main():
     """
     """
     logging = logger.main()
-    logging.info("\nRunning 'make_entries' script\n")
+    logging.info("Running 'make_entries' script\n")
 
     pars_dict = read_ini_file.main()
     UCC_folder, dbs_folder, all_DBs_json, new_OCs_fpath, root_UCC_path, \
@@ -45,17 +45,17 @@ def main():
     with open("notebook.txt", "r") as f:
         ntbk_str = f.readlines()
 
+    logging.info("")
     for index, new_cl in new_OCs_info.iterrows():
         # Only generate new entries for flagged OCs
         if new_cl['process_f'] is False:
             continue
 
         # Identify position in the UCC
-        fname0 = new_cl['fnames'].split(',')[0]
+        fname0 = new_cl['fnames'].split(';')[0]
         UCC_index = None
         for _, UCC_fnames in enumerate(df_UCC['fnames']):
-            # for ucc_fname in UCC_fnames.split(';'):
-            if fname0 == UCC_fnames:
+            if new_cl['fnames'] == UCC_fnames:
                 UCC_index = _
                 break
         if UCC_index is None:
@@ -94,16 +94,15 @@ def main():
         # Make notebook
         make_notebook(Qfold, notb_path, ntbk_str, fname0)
 
+        # Make plot
         # Load datafile with members for this cluster
         df_cl = pd.read_parquet(files_path + fname0 + '.parquet')
-
-        # Make plot
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             ucc_plots.make_plot(plots_path, fname0, df_cl)
 
         fname0 = UCC_cl['fnames'].split(';')[0]
-        logging.info(f"File+notebook+plot generated for {Qfold}/{fname0}\n")
+        logging.info(f"File+notebook+plot generated for {Qfold}/{fname0}")
 
 
 def UCC_color(abcd):
@@ -120,7 +119,6 @@ def UCC_color(abcd):
 def fpars_in_lit(DBs_used, DBs_data, DBs, DBs_i):
     """
     """
-
     # Select DBs with parameters and re-arrange them by year
     DBs_w_pars, DBs_i_w_pars = [], []
     for i, db in enumerate(DBs):

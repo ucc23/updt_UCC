@@ -223,7 +223,7 @@ def combine_new_DB(
                 combine_flag = new_OCs_info['process_f'][i]
             else:
                 # The 'fnames' should be aligned. Here just in case
-                print("ERROR")
+                print(f"ERROR: could not find {fname0} in 'new_OCs_info.csv'")
                 return
 
             if combine_flag:

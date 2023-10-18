@@ -45,7 +45,7 @@ def main():
     pars = in_params['Check versions']
     pars_dict['old_UCC_name'] = pars.get('old_UCC_name')
 
-    pars = in_params['Make entries']
+    pars = in_params['Make entries/notebooks/plots']
     pars_dict['root_UCC_path'] = pars.get('root_UCC_path')
     pars_dict['md_folder'] = pars.get('md_folder')
     pars_dict['pages_folder'] = pars.get('pages_folder')

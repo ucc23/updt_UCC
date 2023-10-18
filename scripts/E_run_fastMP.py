@@ -66,11 +66,10 @@ def main():
             continue
 
         # Identify position in the UCC
-        fname0 = new_cl['fnames'].split(',')[0]
+        fname0 = new_cl['fnames'].split(';')[0]
         UCC_index = None
         for _, UCC_fnames in enumerate(df_UCC['fnames']):
-            # for ucc_fname in UCC_fnames.split(';'):
-            if fname0 == UCC_fnames:
+            if new_cl['fnames'] == UCC_fnames:
                 UCC_index = _
                 break
         if UCC_index is None:

@@ -49,7 +49,8 @@ def prep_newDB(
         'pmDE': [], 'plx': [], 'UCC_idx': []}
 
     for i, fnames_lst in enumerate(new_DB_fnames):
-        fnames = ','.join(fnames_lst)
+        # Use semi-colon here to math the UCC format
+        fnames = ';'.join(fnames_lst)
         row_n = df_new.iloc[i]
 
         # Coordinates for this cluster in the new DB

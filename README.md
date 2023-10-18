@@ -259,7 +259,7 @@ Delete `new_OCs_info.csv` once this script is finished.
 <!-- TOC --><a name="update-the-ucc"></a>
 ## Update the UCC
 
-1. Run the script `i_final_updt.py`
+1. Run the script `I_final_updt.py`
 
 This script will
 
