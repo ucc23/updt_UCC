@@ -91,7 +91,7 @@ This script checks the new DB for proper formatting:
 - Check for possible duplicates in the new DB
 - Possible instances of 'vdBergh-Hagen'/'vdBergh' that must be changed to
   'VDBH' & 'VDB', per CDS recommendation
-- OCs with multiple names must not use ';' as a separating character
+- OCs with multiple names must **not** use ';' as a separating character
 - Possible empty entries in columns are replaced by 'nan's
 
 Once finished, correct any issues that are shown.
@@ -108,7 +108,6 @@ Once finished, correct any issues that are shown.
  },
 ```
 
-JAEHNIG21
 SANTOS21
 HE21
 CASTRO22
@@ -139,44 +138,33 @@ CHI23_3
 
 1. Run the `C_check_new_DB.py` script
 
-This script will find the name-based matches and display any issues with OCs
-that are present in the UCC and the new DB. It will also generate the file
-`new_OCs_info.csv` which contains information about what to process for each OC
-in the new DB, based on an algorithm.
-
-The algorithm to decide whether to run `fastMP` to estimate members for a
-specific OC and produce its plot/notebook files (the `md` files will always be
-updated/generated), is as follows:
+This script will find the name-based matches and display any issues between OCs
+that are present in the UCC and the new DB.
 
 ```
 Is the OC already present in the UCC?
     |         |
-    v         |--> No --> flag=True
+    v         |--> No --> do nothing
    Yes
     |
     v
 Is the difference between the old vs new centers values large?
     |         |
-    v         |--> No --> flag=False
+    v         |--> No --> do nothing
    Yes
     |
     v
-Request attention --> flag=False
-
-
-flag:
-True  --> add centers + fastMP + md entry + plot + notebook
-False --> only update md entry
+Request attention
 ```
 
-Go through the `new_OCs_info.csv` file and fix any possible issues flagged
-before running the `add_new_DB.py` script.
+Fix any possible issues that were flagged for attention **before** running the
+`D_add_new_DB.py` script.
 
 ### Summary
 
 - Scripts used: `C_check_new_DB.py`
 - Files edited: None
-- Files generated: `new_OCs_info.csv`
+- Files generated: None
 
 
 
@@ -185,9 +173,11 @@ before running the `add_new_DB.py` script.
 
 1. Run the `D_add_new_DB.py` script
 
-This script will use the information in the `new_OCs_info.csv` file to update
-the current `UCC_cat_XXYYZZ.csv` catalogue. The new version will have the same
-name format, with an updated date.
+This script will update the current `UCC_cat_XXYYZZ.csv` catalogue with the
+OCs in the new DB. The 5D coordinates are **not** updated here if the
+OC(s) are present in the UCC.
+
+The new UCC version will have the same name format, with an updated date.
 
 ### Summary
 
@@ -202,12 +192,13 @@ name format, with an updated date.
 
 1. Run the `E_run_fastMP.py` script
 
-This will process the clusters present in the `new_OCs_info.csv` file as
-indicated by the OCs flags, and generate new datafiles with members using
-`fastMP`.  The member files are automatically stored in the proper
-`../UCC/QXY/datafiles/` repositories. This script generates a `new_OCs_data.csv`
-file with parameters for the new OCs obtained from their members and surrounding
-field stars.
+This will process **only** the new clusters in the  new DB, and generate new
+datafiles with members using `fastMP`. The 'C3' column is used to identify
+the new OCs, as those with a 'nan' value. The member files are automatically
+stored in the proper `../UCC/QXY/datafiles/` repositories.
+
+This script generates a `new_OCs_data.csv` file with parameters for the new
+OCs, obtained from their members and surrounding field stars.
 
 2. Run the `F_updt_UCC.py` script
 
@@ -236,23 +227,22 @@ to be found.
 
 1.  Run the `H_make_entries.py` script
 
-This script will process all OCs flagged to be processed in the
-`new_OCs_info.csv` file and generate a plot, `.ipynb` notebook, and
-proper `.md` entry in the `../ucc/_clusters/` folder for each one.
+This script will process the **entire** UCC and generate an md file, ipynb
+notebook, and plot, for every OC for which either file does not exist.
+In the case of the md entries, it will also check if the entry changed
+compared to the old one, and it will update it if it did.
 
-For each processed OC:
+For each processed OC that is missing either file:
 
-1. Generate an `.md` entry, stored in `../ucc/_clusters/`
+1. Generate or update an `.md` entry, stored in `../ucc/_clusters/`
 2. Generate a `.ipynb` notebook, stored in `../UCC/QXY/notebooks/`
 3. Generate a plot, stored in `../UCC/QXY/plots/`
-
-Delete `new_OCs_info.csv` once this script is finished.
 
 ### Summary
 
 - Scripts used: `H_make_entries.py`
-- Files edited: None
-- Files generated: md + notebooks + plots
+- Files edited: md entries (if there are changes in the new UCC)
+- Files generated: md + notebooks + plots (if files are missing)
 
 
 
