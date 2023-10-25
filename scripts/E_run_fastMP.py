@@ -13,6 +13,7 @@ from modules import UCC_new_match
 # insert at 1, 0 is the script path (or '' in REPL)
 import sys
 sys.path.insert(1, '/home/gabriel/Github/Gabriel_p/fastmp/')  # Path to fastMP
+# sys.path.insert(1, '/home/gperren/UCC/updt_ucc/fastmp/')  # Path to fastMP
 from fastmp import fastMP
 
 
@@ -22,13 +23,14 @@ def main():
     logging = logger.main()
 
     pars_dict = read_ini_file.main()
-    dbs_folder, GCs_cat, UCC_folder, new_OCs_fpath, frames_path, \
-        frames_ranges, max_mag, manual_pars_f, verbose, new_OCs_data = \
-        pars_dict['dbs_folder'], pars_dict['GCs_cat'], \
-        pars_dict['UCC_folder'], pars_dict['new_OCs_fpath'], \
+    new_DB, dbs_folder, GCs_cat, UCC_folder, frames_path, frames_ranges, \
+        max_mag, manual_pars_f, verbose, new_OCs_data, root_UCC_path = \
+        pars_dict['new_DB'], pars_dict['dbs_folder'], \
+        pars_dict['GCs_cat'], pars_dict['UCC_folder'], \
         pars_dict['frames_path'], pars_dict['frames_ranges'], \
         pars_dict['max_mag'], pars_dict['manual_pars_f'], \
-        pars_dict['verbose'], pars_dict['new_OCs_data']
+        pars_dict['verbose'], pars_dict['new_OCs_data'], \
+        pars_dict['root_UCC_path']
 
     # Read latest version of the UCC
     df_UCC, UCC_cat = UCC_new_match.latest_cat_detect(logging, UCC_folder)
@@ -37,13 +39,14 @@ def main():
     frames_data = pd.read_csv(frames_ranges)
     df_gcs = pd.read_csv(dbs_folder + GCs_cat)
 
-    # Read info on what OCs to process
-    new_OCs_info = pd.read_csv(new_OCs_fpath)
+    # # Read info on what OCs to process
+    # new_OCs_info = pd.read_csv(new_OCs_fpath)
     # Read OCs manual parameters
     manual_pars = pd.read_csv(manual_pars_f)
 
-    N_process = new_OCs_info['process_f'].sum()
-    logging.info(f"Processing {N_process} OCs with fastMP...\n")
+    # N_process = new_OCs_info['process_f'].sum()
+    # logging.info(f"Processing {N_process} OCs with fastMP...\n")
+    logging.info(f"Processing {new_DB} with fastMP...\n")
 
     # Parameters used to search for close-by clusters
     xys = np.array([
@@ -58,11 +61,11 @@ def main():
             + "pmDE_m,Rv_m,N_Rv,N_50,r_50,N_ex_cls\n")
 
     # For each new OC
-    for index, new_cl in new_OCs_info.iterrows():
+    for index, new_cl in df_UCC.iterrows():
         params_updt = []
 
-        # Check if process flag is True
-        if new_cl['process_f'] is False:
+        # Check if this is a new OC that should be processed
+        if str(new_cl['C3']) != 'nan':
             continue
 
         # Identify position in the UCC
@@ -149,7 +152,7 @@ def main():
 
         df_membs, df_field = fMPf.split_membs_field(data, probs_all)
         # Write member stars for cluster and some field
-        fMPf.save_cl_datafile(cl, df_membs, logging)
+        fMPf.save_cl_datafile(root_UCC_path, cl, df_membs, logging)
 
         C1, C2, C3 = classif.get_classif(df_membs, df_field)
         lon, lat, ra, dec, plx, pmRA, pmDE, Rv, N_Rv, N_50, r_50 =\

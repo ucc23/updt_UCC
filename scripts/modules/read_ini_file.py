@@ -31,7 +31,7 @@ def main():
 
     pars = in_params['Check/Add new DB']
     pars_dict['all_DBs_json'] = pars.get('all_DBs_json')
-    pars_dict['new_OCs_fpath'] = pars.get('new_OCs_fpath')
+    # pars_dict['new_OCs_fpath'] = pars.get('new_OCs_fpath')
 
     pars = in_params['Run fastMP / Updt UCC']
     pars_dict['frames_path'] = pars.get('frames_path')

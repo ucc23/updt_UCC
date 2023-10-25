@@ -57,6 +57,10 @@ def updt_cls_JSON(df_UCC, root_UCC_path, clusters_json, _ra, _dec, _lon, _lat):
 
     df = df.sort_values('GLON')
 
+    df.rename(columns={
+        'ID': 'N', 'fnames': 'F', 'UCC_ID': 'U', 'RA_ICRS': 'R',
+        'DE_ICRS': 'D', 'GLON': 'L', 'GLAT': 'B'}, inplace=True)
+
     df.to_json(root_UCC_path + clusters_json, orient="records", indent=1)
 
 

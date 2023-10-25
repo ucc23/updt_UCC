@@ -2,21 +2,17 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-# from astropy.visualization import ZScaleInterval
+# Load local style file taken from https://github.com/garrettj403/SciencePlots
+# but with a line commented out to avoid an issue with LaTeX and the
+# logging module: https://github.com/garrettj403/SciencePlots/issues/103
+plt.style.use('./modules/science.mplstyle')
 
-import scienceplots
-plt.style.use('science')
 
-
-def make_plot(out_path, fname0, df_membs, cmap='plasma', dpi=200):
+def make_plot(plot_fpath, df_membs, cmap='plasma', dpi=200):
     """
     """
     pr = df_membs['probs']
     vmin = min(pr)
-
-    # pr_norm = pr - pr.min()
-    # pr_norm /= pr_norm.max()
-    # size = 5 + np.exp(3.5*pr_norm)
 
     ec = 'grey'
     fs = 7
@@ -40,13 +36,24 @@ def make_plot(out_path, fname0, df_membs, cmap='plasma', dpi=200):
         s=size, cmap=cmap)
     ax1.set_xlabel("GLON", fontsize=fs)
     ax1.set_ylabel("GLAT", fontsize=fs)
+
+    # xmin, xmax = np.nanmin(df_membs['GLON']), np.nanmax(df_membs['GLON'])
+    # ymin, ymax = np.nanmin(df_membs['GLAT']), np.nanmax(df_membs['GLAT'])
+    # xr, yr = xmax - xmin, ymax - ymin
+    # rad = max(xr, yr) * .6
+    # xc, yc = np.nanmedian(df_membs['GLON']), np.nanmedian(df_membs['GLAT'])
+    # ax1.set_xlim(xc - rad, xc + rad)
+    # ax1.set_ylim(yc - rad, yc + rad)
+
     xmin, xmax = np.nanmin(df_membs['GLON']), np.nanmax(df_membs['GLON'])
     ymin, ymax = np.nanmin(df_membs['GLAT']), np.nanmax(df_membs['GLAT'])
-    xr, yr = xmax - xmin, ymax - ymin
-    rad = max(xr, yr) * .6
-    xc, yc = np.nanmedian(df_membs['GLON']), np.nanmedian(df_membs['GLAT'])
-    ax1.set_xlim(xc - rad, xc + rad)
-    ax1.set_ylim(yc - rad, yc + rad)
+    xr = (xmax - xmin) * .1
+    yr = (ymax - ymin) * .1
+    xmin, xmax = xmin - xr, xmax + xr
+    ymin, ymax = ymin - yr, ymax + yr
+    ax1.set_xlim(xmin, xmax)
+    ax1.set_ylim(ymin, ymax)
+
     ax1.tick_params(axis='both', which='major', labelsize=fs)
 
     im2 = ax2.scatter(
@@ -102,7 +109,7 @@ def make_plot(out_path, fname0, df_membs, cmap='plasma', dpi=200):
     ax4.tick_params(axis='both', which='major', labelsize=fs)
 
     fig.tight_layout()
-    plt.savefig(out_path + fname0 + ".webp", dpi=dpi)
+    plt.savefig(plot_fpath, dpi=dpi)
 
     # https://stackoverflow.com/a/65910539/1391441
     fig.clear()
@@ -115,31 +122,6 @@ def colorbar(mappable):
     divider = make_axes_locatable(ax)
     cax = divider.append_axes("right", size="5%", pad=0.05)
     return fig.colorbar(mappable, cax=cax)
-
-
-# def mag_size(mag):
-#     """
-#     Convert magnitudes into intensities and define sizes of stars in
-#     finding chart.
-#     """
-#     N = len(mag)
-#     interval = ZScaleInterval()
-#     zmin, zmax = interval.get_limits(mag)
-
-#     mag = mag.clip(zmin, zmax)
-#     factor = 500. * (1 - 1 / (1 + 150 / N ** 0.85))
-#     flux = (10 ** ((mag - zmin) / -2.5))
-#     sizes = 10 + factor * flux
-#     return sizes
-
-
-# def plx_size(plx, max_s=100):
-#     plx = np.clip(plx, a_min=0.01, a_max=20)
-#     delta_p = plx.max() - plx.min()
-#     m = max_s / delta_p
-#     h = -m * plx.min()
-#     s = 10 + (h + m * plx)
-#     return s
 
 
 def diag_limits(phot_x, phot_y):
@@ -158,3 +140,14 @@ def diag_limits(phot_x, phot_y):
     y_max_cmd = np.nanmin(phot_y) - .5
 
     return x_max_cmd, x_min_cmd, y_min_cmd, y_max_cmd
+
+
+if __name__ == '__main__':
+    import pandas as pd
+
+    fname0 = "melotte111"
+    # Load datafile with members for this cluster
+    membs_file = f"/home/gabriel/Github/UCC/Q3P/datafiles/{fname0}.parquet"
+    df_cl = pd.read_parquet(membs_file)
+    plots_path = "/home/gabriel/Descargas/"
+    make_plot(plots_path, fname0, df_cl)

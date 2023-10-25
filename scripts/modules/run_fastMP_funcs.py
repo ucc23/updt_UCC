@@ -294,7 +294,7 @@ def extract_cl_data(df_membs):
     return lon, lat, ra, dec, plx, pmRA, pmDE, RV, N_Rv, N_50, r_50
 
 
-def save_cl_datafile(cl, df_comb, logging):
+def save_cl_datafile(root_UCC_path, cl, df_comb, logging):
     """
     """
     fname0 = cl['fnames'].split(';')[0]
@@ -303,6 +303,6 @@ def save_cl_datafile(cl, df_comb, logging):
     # Order by probabilities
     df_comb = df_comb.sort_values('probs', ascending=False)
 
-    out_fname = '../../' + quad + "/datafiles/" + fname0 + ".parquet"
+    out_fname = root_UCC_path + quad + "/datafiles/" + fname0 + ".parquet"
     df_comb.to_parquet(out_fname, index=False)
     logging.info(f"Saved file to: {out_fname}")

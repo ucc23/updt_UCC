@@ -38,7 +38,8 @@ def main():
             continue
 
         # If 'fnames_new' was NOT found in the old UCC
-        print(f"New entry (not in old UCC): {fnames_new}")
+        # print(f"New entry (not in old UCC): {fnames_new}")
+
         # idxs_old_match = []
         # for i_old, fnames_old in enumerate(fnames_old_all):
         #     for fname_new in fnames_new.split(';'):
@@ -60,18 +61,18 @@ def check_rows(UCC_new, UCC_old, i_new, i_old):
     # If rows are not equal
     if df.empty is False:
 
+        # If the only diffs are in these columns, don't show anything
+        df_dict = df.to_dict()
+        diff_cols = list(df_dict['self'].keys())
+        if diff_cols == ['DB', 'DB_i']:
+            return
+
         fname_old = UCC_old['fnames'][i_old]
         fname_new = UCC_new['fnames'][i_new]
-        print(f"\nDiff old vs new: {fname_old}, {fname_new}")
-        print(df, '\n')
-
-        # df_dict = df.to_dict()
-        # diff_cols = list(df_dict['self'].keys())
+        print(f"Diff old vs new {fname_old}: {UCC_old['dups_probs_m'][i_old]}, {UCC_new['dups_probs_m'][i_new]}")
+        # print(df, '\n')
 
         # print_f = False
-
-        # if diff_cols == ['DB', 'DB_i']:
-        #     return
 
         # if 'ID' in diff_cols:
         #     print_f = True

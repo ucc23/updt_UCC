@@ -1,10 +1,8 @@
 
-import csv
 import numpy as np
-import pandas as pd
-from modules import DBs_combine
 from modules import logger
 from modules import read_ini_file
+from modules import DBs_combine
 from modules import UCC_new_match
 
 
@@ -15,23 +13,25 @@ def main():
     logging.info("\nRunning 'check_new_DB' script\n")
 
     pars_dict = read_ini_file.main()
-    new_DB, new_OCs_fpath = pars_dict['new_DB'], pars_dict['new_OCs_fpath']
+    new_DB = pars_dict['new_DB']
     logging.info(f"Checking new DB: {new_DB}")
 
-    df_UCC, df_new, json_pars, new_DB_fnames, db_matches = UCC_new_match.main()
+    df_UCC, df_new, json_pars, new_DB_fnames, db_matches = UCC_new_match.main(
+        logging)
 
-    new_db_info = prep_newDB(
-        logging, df_new, json_pars, new_DB_fnames, db_matches)
+    new_db_info = prep_newDB(df_new, json_pars, new_DB_fnames, db_matches)
 
     # Store information on the OCs being added
     logging.info("\nOCs flagged for attention:\n")
     logging.info("name, cent_flag, [arcmin], [%], [%], [%]")
-    new_OCs_info(logging, df_UCC, new_db_info, new_OCs_fpath)
+    for i, fnames in enumerate(new_db_info['fnames']):
+        j = new_db_info['UCC_idx'][i]
+        # If the OC is already present in the UCC
+        if j is not None:
+            flag_log(logging, df_UCC, new_db_info, fnames, i, j)
 
 
-def prep_newDB(
-    logging, df_new, json_pars, new_DB_fnames, db_matches
-):
+def prep_newDB(df_new, json_pars, new_DB_fnames, db_matches):
     """
     Prepare the info from the new Db matched with the UCC
     """
@@ -91,31 +91,6 @@ def prep_newDB(
     new_db_info['GLAT'] = lat_n
 
     return new_db_info
-
-
-def new_OCs_info(logging, df_UCC, new_db_info, new_OCs_fpath):
-    """
-    Generate the 'new_OCs_info' file with the required info on
-    each to know how to process it later on
-    """
-    new_OCs_info = {'fnames': [], 'process_f': []}
-
-    for i, fnames in enumerate(new_db_info['fnames']):
-        new_OCs_info['fnames'].append(fnames)
-
-        j = new_db_info['UCC_idx'][i]
-
-        # Is the OC already present in the UCC? --> YES
-        if j is not None:
-            new_OCs_info['process_f'].append(False)
-            flag_log(logging, df_UCC, new_db_info, fnames, i, j)
-        else:
-            # Is the OC already present in the UCC? --> NO
-            new_OCs_info['process_f'].append(True)
-
-    # Store info on the OCs for later processing
-    df_info = pd.DataFrame(new_OCs_info)
-    df_info.to_csv(new_OCs_fpath, index=False, quoting=csv.QUOTE_NONNUMERIC)
 
 
 def flag_log(logging, df_UCC, new_db_info, fnames, i, j):

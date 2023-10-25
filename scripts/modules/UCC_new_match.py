@@ -2,16 +2,13 @@
 import os
 import json
 import pandas as pd
-from . import logger
 from . import read_ini_file
 from . import DBs_combine
 
 
-def main():
+def main(logging):
     """
     """
-    logging = logger.main()
-
     pars_dict = read_ini_file.main()
     new_DB, sep, dbs_folder, all_DBs_json, UCC_folder = pars_dict['new_DB'], \
         pars_dict['sep'], pars_dict['dbs_folder'], pars_dict['all_DBs_json'], \

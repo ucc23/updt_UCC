@@ -107,7 +107,7 @@ data_foot = """\n
 """
 
 
-def make_entry(
+def main(
     entries_path, cl_names, Qfold, fname, ucc_id, C1, C2, abcd_c,
     r_50, N_50, ra, dec, plx, pmra, pmde, rv, fpars_table,
     posit_table, close_table
@@ -143,7 +143,7 @@ def make_entry(
         txt += close_table + '\n'
 
     txt += cds_simbad_url.replace(
-        "RADEC_CDS", "{}%20{}".format(ra, dec)).replace(
+        "RADEC_CDS", "{},{}".format(ra, dec)).replace(
         "RADEC_SMB", "{}%20{}".format(ra, dec)).replace(
         "XCLUSTX", fname)
 
@@ -156,7 +156,6 @@ def make_entry(
         txt += fpars_table
 
     txt += data_foot.format(datetime.today().strftime('%Y-%m-%d'))
+    contents = "".join(txt)
 
-    with open(entries_path + fname + ".md", "w") as f:
-        contents = "".join(txt)
-        f.write(contents)
+    return contents
