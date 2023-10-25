@@ -24,19 +24,23 @@ def main():
     # Read file with parameters for the new OCs obtained from their members
     params_updt = pd.read_csv(new_OCs_data)
 
-    updt_UCC(df_UCC, UCC_cat, params_updt, logging)
-    logging.info(f"\n{UCC_cat} updated")
+    df_UCC = updt_UCC(logging, df_UCC, params_updt)
 
-    members_duplicates(df_UCC, UCC_cat, logging)
-    logging.info(f"Duplicates added to {UCC_cat}\n")
+    df_UCC = members_duplicates(logging, df_UCC)
+
+    df_UCC.to_csv(
+        UCC_cat, na_rep='nan', index=False, quoting=csv.QUOTE_NONNUMERIC)
 
 
-def updt_UCC(df_UCC, UCC_cat, params_updt, logging):
+def updt_UCC(logging, df_UCC, params_updt):
     """
     Update these values for all the processed clusters
     """
 
     index_updt = list(params_updt['index_updt'])
+    if len(index_updt) == 0:
+        logging.info("\nNo update required")
+        return df_UCC
 
     for i, idx in enumerate(index_updt):
 
@@ -66,21 +70,26 @@ def updt_UCC(df_UCC, UCC_cat, params_updt, logging):
         df_UCC.at[idx, 'N_50'] = params_updt['N_50'][i]
         df_UCC.at[idx, 'r_50'] = params_updt['r_50'][i]
 
-    df_UCC.to_csv(UCC_cat, na_rep='nan', index=False,
-                  quoting=csv.QUOTE_NONNUMERIC)
+    # Order by (lon, lat) first
+    df_UCC = df_UCC.sort_values(['GLON', 'GLAT'])
+    df_UCC = df_UCC.reset_index(drop=True)
+
+    logging.info("\nUCC updated")
+
+    return df_UCC
 
 
-def members_duplicates(df_UCC, UCC_cat, logging, prob_cut=0.25, Nmax=3):
+def members_duplicates(logging, df_UCC, prob_cut=0.25, Nmax=3):
     """
-    Assign a 'duplicate probability' for each cluster in the UCC
+    Assign a 'duplicate probability' for each cluster in the UCC, based on its
+    estimated members
     """
     x, y = df_UCC['GLON_m'], df_UCC['GLAT_m']
-    pmRA, pmDE, plx = df_UCC['pmRA_m'], df_UCC['pmDE_m'], df_UCC['plx_m']
-
     coords = np.array([x, y]).T
     # Find the distances to all clusters, for all clusters
     dist = cdist(coords, coords)
-    pmRA, pmDE, plx = df_UCC['pmRA'], df_UCC['pmDE'], df_UCC['plx']
+    # Use members data
+    pmRA, pmDE, plx = df_UCC['pmRA_m'], df_UCC['pmDE_m'], df_UCC['plx_m']
 
     logging.info("Finding final duplicates and their probabilities...")
     dups_fnames_m, dups_probs_m = [], []
@@ -115,10 +124,14 @@ def members_duplicates(df_UCC, UCC_cat, logging, prob_cut=0.25, Nmax=3):
         dups_fnames_m.append(dups_fname_i)
         dups_probs_m.append(dups_prob_i)
 
-    df_UCC['dups_fnames_m'] = dups_fnames_m
-    df_UCC['dups_probs_m'] = dups_probs_m
-    df_UCC.to_csv(
-        UCC_cat, na_rep='nan', index=False, quoting=csv.QUOTE_NONNUMERIC)
+    if dups_fnames_m:
+        df_UCC['dups_fnames_m'] = dups_fnames_m
+        df_UCC['dups_probs_m'] = dups_probs_m
+        logging.info("Duplicates added to UCC\n")
+    else:
+        logging.info("No duplicates added to UCC\n")
+
+    return df_UCC
 
 
 if __name__ == '__main__':
