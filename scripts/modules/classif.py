@@ -1,4 +1,3 @@
-
 import numpy as np
 from scipy.stats import gaussian_kde
 from scipy.special import loggamma
@@ -8,8 +7,7 @@ import warnings
 
 
 def get_classif(df_membs, df_field):
-    """
-    """
+    """ """
     C1 = lkl_phot(df_membs, df_field)
     C2 = dens_ratio(df_membs, df_field)
 
@@ -30,9 +28,8 @@ def get_classif(df_membs, df_field):
 
 
 def lkl_phot(df_membs, df_field, max_mag_perc=90):
-    """
-    """
-    x_cl, y_cl = df_membs['Gmag'].values, df_membs['BP-RP'].values
+    """ """
+    x_cl, y_cl = df_membs["Gmag"].values, df_membs["BP-RP"].values
     msk_nan = np.isnan(x_cl) | np.isnan(y_cl)
     x_cl, y_cl = x_cl[~msk_nan], y_cl[~msk_nan]
 
@@ -41,7 +38,7 @@ def lkl_phot(df_membs, df_field, max_mag_perc=90):
     msk_mag = x_cl <= max_mag
     x_cl, y_cl = x_cl[msk_mag], y_cl[msk_mag]
 
-    x_fl, y_fl = df_field['Gmag'].values, df_field['BP-RP'].values
+    x_fl, y_fl = df_field["Gmag"].values, df_field["BP-RP"].values
     msk_mag = x_fl <= max_mag
     x_fl, y_fl = x_fl[msk_mag], y_fl[msk_mag]
     msk_nan = np.isnan(x_fl) | np.isnan(y_fl)
@@ -66,8 +63,7 @@ def lkl_phot(df_membs, df_field, max_mag_perc=90):
     lkl_cl_max = tremmel([x_cl, y_cl], prep_clust_cl)
 
     pv_cl, pv_fr = [], []
-    for run_num in range(runs):
-
+    for _ in range(runs):
         # Sample two field regions
         msk1 = np.random.choice(idx, N_membs, replace=False)
         field1 = [x_fl[msk1], y_fl[msk1]]
@@ -91,8 +87,8 @@ def KDEoverlap(p_vals_cl, p_vals_fr):
     """
     Calculate overlap between the two KDEs
     """
-    if (np.median(p_vals_cl)-np.median(p_vals_fr)) > 2*np.std(p_vals_cl):
-        return 0.
+    if (np.median(p_vals_cl) - np.median(p_vals_fr)) > 2 * np.std(p_vals_cl):
+        return 0.0
 
     def y_pts(pt):
         y_pt = min(kcl(pt), kfr(pt))
@@ -107,14 +103,13 @@ def KDEoverlap(p_vals_cl, p_vals_fr):
         overlap = quad(y_pts, pmin, pmax)[0]
 
     # Probability value for the cluster.
-    prob_cl = 1. - overlap
+    prob_cl = 1.0 - overlap
 
     return prob_cl
 
 
 def prep_data(mag, col):
-    """
-    """
+    """ """
 
     # Obtain bin edges for each dimension, defining a grid.
     bin_edges = bin_edges_f(mag, col)
@@ -126,7 +121,7 @@ def prep_data(mag, col):
     cl_histo_f = np.array(cl_histo).ravel()
 
     # Index of bins where stars were observed
-    cl_z_idx = (cl_histo_f != 0)
+    cl_z_idx = cl_histo_f != 0
 
     # Remove all bins where n_i=0 (no observed stars)
     cl_histo_f_z = cl_histo_f[cl_z_idx]
@@ -141,9 +136,9 @@ def bin_edges_f(mag, col, min_bins=2, max_bins=50):
     all colors (in the same order in which they are read).
     """
     bin_edges = []
-    b_num = int(round(max(2, (max(mag) - min(mag)) / 1.)))
+    b_num = int(round(max(2, (max(mag) - min(mag)) / 1.0)))
     bin_edges.append(np.histogram(mag, bins=b_num)[1])
-    b_num = int(round(max(2, (max(col) - min(col)) / .5)))
+    b_num = int(round(max(2, (max(col) - min(col)) / 0.5)))
     bin_edges.append(np.histogram(col, bins=b_num)[1])
 
     # Impose a minimum of 'min_bins' cells per dimension. The number of bins
@@ -181,8 +176,8 @@ def tremmel(field, prep_clust):
     syn_histo_f_z = syn_histo_f[cl_z_idx]
 
     SumLogGamma = np.sum(
-        loggamma(cl_histo_f_z + syn_histo_f_z + .5)
-        - loggamma(syn_histo_f_z + .5))
+        loggamma(cl_histo_f_z + syn_histo_f_z + 0.5) - loggamma(syn_histo_f_z + 0.5)
+    )
 
     # M = field.shape[0]
     # ln(2) ~ 0.693
@@ -192,23 +187,22 @@ def tremmel(field, prep_clust):
 
 
 def dens_ratio(df_membs, df_field, perc=95, N_neigh=10, N_max=1000, norm_v=5):
-    """
-    """
+    """ """
     # Obtain the median distance to the 'N_neigh' closest neighbours in 5D
     # for each member
-    arr = df_membs[['GLON', 'GLAT', 'pmRA', 'pmDE', 'Plx']].values
+    arr = df_membs[["GLON", "GLAT", "pmRA", "pmDE", "Plx"]].values
     tree = spatial.KDTree(arr)
     dists = tree.query(arr, min(arr.shape[0], N_neigh))[0]
     med_d_membs = np.median(dists[:, 1:])
 
     # Radius that contains 'perc' of the members for the coordinates
-    xy = np.array([df_membs['GLON'].values, df_membs['GLAT'].values]).T
+    xy = np.array([df_membs["GLON"].values, df_membs["GLAT"].values]).T
     xy_c = np.nanmedian(xy, 0)
     xy_dists = spatial.distance.cdist(xy, np.array([xy_c])).T[0]
     rad = np.percentile(xy_dists, perc)
 
     # Select field stars within the above radius from the member's center
-    xy = np.array([df_field['GLON'].values, df_field['GLAT'].values]).T
+    xy = np.array([df_field["GLON"].values, df_field["GLAT"].values]).T
     xy_dists = spatial.distance.cdist(xy, np.array([xy_c])).T[0]
     msk = np.arange(0, len(xy_dists))[xy_dists < rad]
     if len(msk) > N_max:
@@ -216,13 +210,13 @@ def dens_ratio(df_membs, df_field, perc=95, N_neigh=10, N_max=1000, norm_v=5):
         msk = msk[::step]
 
     # Median distance to the 'N_neigh' closest neighbours in 5D for field stars
-    arr = df_field[['GLON', 'GLAT', 'pmRA', 'pmDE', 'Plx']].values
+    arr = df_field[["GLON", "GLAT", "pmRA", "pmDE", "Plx"]].values
     if len(df_field) > 10:
         arr = arr[msk, :]
     tree = spatial.KDTree(arr)
     dists = tree.query(arr, min(arr.shape[0], N_neigh))[0]
     med_d_field = np.median(dists[:, 1:])
 
-    d_ratio = min(med_d_field/med_d_membs, norm_v) / norm_v
+    d_ratio = min(med_d_field / med_d_membs, norm_v) / norm_v
 
     return d_ratio

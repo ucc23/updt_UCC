@@ -1,4 +1,3 @@
-
 from datetime import datetime
 
 
@@ -108,54 +107,76 @@ data_foot = """\n
 
 
 def main(
-    entries_path, cl_names, Qfold, fname, ucc_id, C1, C2, abcd_c,
-    r_50, N_50, ra, dec, plx, pmra, pmde, rv, fpars_table,
-    posit_table, close_table
+    entries_path,
+    cl_names,
+    Qfold,
+    fname,
+    ucc_id,
+    C1,
+    C2,
+    abcd_c,
+    r_50,
+    N_50,
+    ra,
+    dec,
+    plx,
+    pmra,
+    pmde,
+    fpars_table,
+    posit_table,
+    close_table,
 ):
-    """
-    """
+    """ """
     txt = ""
     txt += header.format(cl_names[0])
     if len(cl_names) > 1:
-        txt += more_names.replace("cl_names_str", '; '.join(cl_names[1:]))
+        txt += more_names.replace("cl_names_str", "; ".join(cl_names[1:]))
 
-    rad_deg = round(2 * (r_50 / 60.), 3)
-    txt += aladin_snippet.replace('RAD_DEG', str(rad_deg)).replace(
-        'RA_ICRS', str(ra)).replace('DE_ICRS', str(dec))
+    rad_deg = round(2 * (r_50 / 60.0), 3)
+    txt += (
+        aladin_snippet.replace("RAD_DEG", str(rad_deg))
+        .replace("RA_ICRS", str(ra))
+        .replace("DE_ICRS", str(dec))
+    )
 
-    txt += table_right_col.replace('UCC_ID', ucc_id).replace(
-      'Class1', str(C1)).replace('Class2', str(C2)).replace(
-      'Class3', abcd_c).replace('r_50_val', str(r_50)).replace(
-      'N_50_val', str(int(N_50)))
+    txt += (
+        table_right_col.replace("UCC_ID", ucc_id)
+        .replace("Class1", str(C1))
+        .replace("Class2", str(C2))
+        .replace("Class3", abcd_c)
+        .replace("r_50_val", str(r_50))
+        .replace("N_50_val", str(int(N_50)))
+    )
 
     if N_50 == 0:
         txt += no_membs_50_warning
 
-    txt += nasa_simbad_url.replace(
-        'XXNASAXX', cl_names[0].replace(' ', '%20')).replace(
-        'XXSIMBADXX', fname)
+    txt += nasa_simbad_url.replace("XXNASAXX", cl_names[0].replace(" ", "%20")).replace(
+        "XXSIMBADXX", fname
+    )
 
     txt += posit_table_top
     txt += posit_table
 
-    if close_table != '':
+    if close_table != "":
         txt += close_table_top
-        txt += close_table + '\n'
+        txt += close_table + "\n"
 
-    txt += cds_simbad_url.replace(
-        "RADEC_CDS", "{},{}".format(ra, dec)).replace(
-        "RADEC_SMB", "{}%20{}".format(ra, dec)).replace(
-        "XCLUSTX", fname)
+    txt += (
+        cds_simbad_url.replace("RADEC_CDS", "{},{}".format(ra, dec))
+        .replace("RADEC_SMB", "{}%20{}".format(ra, dec))
+        .replace("XCLUSTX", fname)
+    )
 
     txt += cl_plot.format(Qfold, fname)
 
     txt += notebook_url.format(Qfold, fname)
 
-    if fpars_table != '':
+    if fpars_table != "":
         txt += fpars_table_top
         txt += fpars_table
 
-    txt += data_foot.format(datetime.today().strftime('%Y-%m-%d'))
+    txt += data_foot.format(datetime.today().strftime("%Y-%m-%d"))
     contents = "".join(txt)
 
     return contents

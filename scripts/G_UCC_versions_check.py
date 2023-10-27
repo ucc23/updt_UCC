@@ -1,4 +1,3 @@
-
 import pandas as pd
 from modules import logger
 from modules import read_ini_file
@@ -6,13 +5,11 @@ from modules import UCC_new_match
 
 
 def main():
-    """
-    """
+    """ """
     logging = logger.main()
 
     pars_dict = read_ini_file.main()
-    UCC_folder, old_UCC_name = pars_dict['UCC_folder'], \
-        pars_dict['old_UCC_name']
+    UCC_folder, old_UCC_name = pars_dict["UCC_folder"], pars_dict["old_UCC_name"]
 
     # Read latest version of the UCC
     UCC_new, _ = UCC_new_match.latest_cat_detect(logging, UCC_folder)
@@ -20,11 +17,10 @@ def main():
     UCC_old = pd.read_csv(UCC_folder + old_UCC_name)
 
     print("")
-    fnames_old_all = list(UCC_old['fnames'])
-    fnames_new_all = list(UCC_new['fnames'])
+    fnames_old_all = list(UCC_old["fnames"])
+    fnames_new_all = list(UCC_new["fnames"])
 
     for i_new, fnames_new in enumerate(fnames_new_all):
-
         i_old = None
         try:
             i_old = fnames_old_all.index(fnames_new)
@@ -52,24 +48,24 @@ def main():
 
 
 def check_rows(UCC_new, UCC_old, i_new, i_old):
-    """
-    """
+    """ """
     row_new = UCC_new.iloc[i_new]
     row_old = UCC_old.iloc[i_old]
 
     df = row_new.compare(row_old)
     # If rows are not equal
     if df.empty is False:
-
         # If the only diffs are in these columns, don't show anything
         df_dict = df.to_dict()
-        diff_cols = list(df_dict['self'].keys())
-        if diff_cols == ['DB', 'DB_i']:
+        diff_cols = list(df_dict["self"].keys())
+        if diff_cols == ["DB", "DB_i"]:
             return
 
-        fname_old = UCC_old['fnames'][i_old]
-        fname_new = UCC_new['fnames'][i_new]
-        print(f"Diff old vs new {fname_old}: {UCC_old['dups_probs_m'][i_old]}, {UCC_new['dups_probs_m'][i_new]}")
+        fname_old = UCC_old["fnames"][i_old]
+        fname_new = UCC_new["fnames"][i_new]
+        print(
+            f"Diff old vs new {fname_old}: {UCC_old['dups_probs_m'][i_old]}, {UCC_new['dups_probs_m'][i_new]}"
+        )
         # print(df, '\n')
 
         # print_f = False
@@ -91,5 +87,5 @@ def check_rows(UCC_new, UCC_old, i_new, i_old):
         #         print(row_old['DE_ICRS'], row_new['DE_ICRS'])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
