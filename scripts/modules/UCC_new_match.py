@@ -1,4 +1,3 @@
-
 import os
 import json
 import pandas as pd
@@ -7,12 +6,15 @@ from . import DBs_combine
 
 
 def main(logging):
-    """
-    """
+    """ """
     pars_dict = read_ini_file.main()
-    new_DB, sep, dbs_folder, all_DBs_json, UCC_folder = pars_dict['new_DB'], \
-        pars_dict['sep'], pars_dict['dbs_folder'], pars_dict['all_DBs_json'], \
-        pars_dict['UCC_folder']
+    new_DB, sep, dbs_folder, all_DBs_json, UCC_folder = (
+        pars_dict["new_DB"],
+        pars_dict["sep"],
+        pars_dict["dbs_folder"],
+        pars_dict["all_DBs_json"],
+        pars_dict["UCC_folder"],
+    )
 
     # Load column data for the new catalogue
     with open(dbs_folder + all_DBs_json) as f:
@@ -23,7 +25,7 @@ def main(logging):
     df_UCC = latest_cat_detect(logging, UCC_folder)[0]
 
     # Load the new DB
-    df_new = pd.read_csv(dbs_folder + new_DB + '.csv')
+    df_new = pd.read_csv(dbs_folder + new_DB + ".csv")
     logging.info(f"N={len(df_new)} clusters in {new_DB}")
 
     logging.info(f"Standardize names in {new_DB}")
@@ -43,7 +45,7 @@ def latest_cat_detect(logging, UCC_folder):
     all_versions = os.listdir(UCC_folder)
     vers_init = 0
     for file in all_versions:
-        version = file.split('.')[0].split('_')[-1]
+        version = file.split(".")[0].split("_")[-1]
         last_version = max(int(vers_init), int(version))
         vers_init = last_version
 
@@ -56,5 +58,5 @@ def latest_cat_detect(logging, UCC_folder):
     return df_UCC, UCC_cat
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -1,4 +1,3 @@
-
 # import gzip
 import pandas as pd
 import astropy.units as u
@@ -25,15 +24,18 @@ def verbose_p(txt, v, verbose, logging):
         logging.info(txt)
 
 
-def run(
-    frames_path, fdata, c_ra, c_dec, box_s_eq, plx_min, max_mag, verbose,
-    logging
-):
+def run(frames_path, fdata, c_ra, c_dec, box_s_eq, plx_min, max_mag, verbose, logging):
     """
     box_s_eq: Size of box to query (in degrees)
     """
-    verbose_p("  ({:.3f}, {:.3f}); Box size: {:.2f}, Plx min: {:.2f}".format(
-          c_ra, c_dec, box_s_eq, plx_min), 1, verbose, logging)
+    verbose_p(
+        "  ({:.3f}, {:.3f}); Box size: {:.2f}, Plx min: {:.2f}".format(
+            c_ra, c_dec, box_s_eq, plx_min
+        ),
+        1,
+        verbose,
+        logging,
+    )
 
     c_ra_l = [c_ra]
     if c_ra - box_s_eq < 0:
@@ -46,44 +48,56 @@ def run(
     dicts = []
     for c_ra in c_ra_l:
         data_in_files, xmin_cl, xmax_cl, ymin_cl, ymax_cl = findFrames(
-            c_ra, c_dec, box_s_eq, fdata, verbose, logging)
+            c_ra, c_dec, box_s_eq, fdata, verbose, logging
+        )
 
         if len(data_in_files) == 0:
             continue
 
         all_frames = query(
-            c_ra, c_dec, box_s_eq, frames_path, max_mag, data_in_files,
-            xmin_cl, xmax_cl, ymin_cl, ymax_cl, plx_min, verbose, logging)
+            c_ra,
+            c_dec,
+            box_s_eq,
+            frames_path,
+            max_mag,
+            data_in_files,
+            xmin_cl,
+            xmax_cl,
+            ymin_cl,
+            ymax_cl,
+            plx_min,
+            verbose,
+            logging,
+        )
 
         dicts.append(all_frames)
 
     if len(dicts) > 1:
         # Combine
-        all_frames = pd.concat([
-            dicts[0], dicts[1]]).drop_duplicates().reset_index(drop=True)
+        all_frames = (
+            pd.concat([dicts[0], dicts[1]]).drop_duplicates().reset_index(drop=True)
+        )
     else:
         all_frames = dicts[0]
 
     all_frames = uncertMags(all_frames)
-    all_frames = all_frames.drop(columns=[
-        'FG', 'e_FG', 'FBP', 'e_FBP', 'FRP', 'e_FRP'])
+    all_frames = all_frames.drop(columns=["FG", "e_FG", "FBP", "e_FBP", "FRP", "e_FRP"])
 
     return all_frames
 
 
 def findFrames(c_ra, c_dec, box_s_eq, fdata, verbose, logging):
-    """
-    """
+    """ """
     # These are the points that determine the range of *all* the frames
-    ra_min, ra_max = fdata['ra_min'].values, fdata['ra_max'].values
-    dec_min, dec_max = fdata['dec_min'].values, fdata['dec_max'].values
+    ra_min, ra_max = fdata["ra_min"].values, fdata["ra_max"].values
+    dec_min, dec_max = fdata["dec_min"].values, fdata["dec_max"].values
 
     # frame == 'galactic':
     box_s_eq = np.sqrt(2) * box_s_eq
     # Correct size in RA
     box_s_x = box_s_eq / np.cos(np.deg2rad(c_dec))
 
-    xl, yl = box_s_x * .5, box_s_eq * .5
+    xl, yl = box_s_x * 0.5, box_s_eq * 0.5
 
     # Limits of the cluster's region in Equatorial
     xmin_cl, xmax_cl = c_ra - xl, c_ra + xl
@@ -98,10 +112,10 @@ def findFrames(c_ra, c_dec, box_s_eq, fdata, verbose, logging):
         r1 = (ra_max[i], dec_min[i])  # Bottom right
         frame_intersec[i] = doOverlap(l1, r1, l2, r2)
 
-    data_in_files = list(fdata[frame_intersec]['filename'])
+    data_in_files = list(fdata[frame_intersec]["filename"])
     verbose_p(
-        f"  Cluster is present in {len(data_in_files)} frames", 1, verbose,
-        logging)
+        f"  Cluster is present in {len(data_in_files)} frames", 1, verbose, logging
+    )
 
     return data_in_files, xmin_cl, xmax_cl, ymin_cl, ymax_cl
 
@@ -123,39 +137,49 @@ def doOverlap(l1, r1, l2, r2):
     min_x2, max_y2 = l2
     max_x2, min_y2 = r2
     # If one rectangle is on left side of other
-    if (min_x1 > max_x2 or min_x2 > max_x1):
+    if min_x1 > max_x2 or min_x2 > max_x1:
         return False
     # If one rectangle is above other
-    if (min_y1 > max_y2 or min_y2 > max_y1):
+    if min_y1 > max_y2 or min_y2 > max_y1:
         return False
     return True
 
 
 def query(
-    c_ra, c_dec, box_s_eq, frames_path, max_mag, data_in_files, xmin_cl,
-    xmax_cl, ymin_cl, ymax_cl, plx_min, verbose, logging
+    c_ra,
+    c_dec,
+    box_s_eq,
+    frames_path,
+    max_mag,
+    data_in_files,
+    xmin_cl,
+    xmax_cl,
+    ymin_cl,
+    ymax_cl,
+    plx_min,
+    verbose,
+    logging,
 ):
-    """
-    """
+    """ """
     # Mag (flux) filter
-    min_G_flux = 10**((max_mag - Zp_G) / (-2.5))
+    min_G_flux = 10 ** ((max_mag - Zp_G) / (-2.5))
 
     all_frames = []
     for i, file in enumerate(data_in_files):
-        if '.csv' in file:
+        if ".csv" in file:
             data = pd.read_csv(frames_path + file)
-        elif '.parquet' in file:
+        elif ".parquet" in file:
             data = pd.read_parquet(frames_path + file)
 
-        mx = (data['ra'] >= xmin_cl) & (data['ra'] <= xmax_cl)
-        my = (data['dec'] >= ymin_cl) & (data['dec'] <= ymax_cl)
-        m_plx = data['parallax'] > plx_min
-        m_gmag = data['phot_g_mean_flux'] > min_G_flux
-        msk = (mx & my & m_plx & m_gmag)
+        mx = (data["ra"] >= xmin_cl) & (data["ra"] <= xmax_cl)
+        my = (data["dec"] >= ymin_cl) & (data["dec"] <= ymax_cl)
+        m_plx = data["parallax"] > plx_min
+        m_gmag = data["phot_g_mean_flux"] > min_G_flux
+        msk = mx & my & m_plx & m_gmag
 
         verbose_p(
-            f"{i+1}, {file} contains {msk.sum()} cluster stars", 2, verbose,
-            logging)
+            f"{i+1}, {file} contains {msk.sum()} cluster stars", 2, verbose, logging
+        )
         if msk.sum() == 0:
             continue
 
@@ -165,38 +189,50 @@ def query(
     verbose_p(f"  {len(all_frames)} stars retrieved", 2, verbose, logging)
 
     c_ra, c_dec = c_ra, c_dec
-    box_s_h = box_s_eq * .5
+    box_s_h = box_s_eq * 0.5
     gal_cent = radec2lonlat(c_ra, c_dec)
 
-    if all_frames['l'].max() - all_frames['l'].min() > 180:
-        verbose_p("Frame wraps around 360 in longitude. Fixing..", 1, verbose,
-                  logging)
+    if all_frames["l"].max() - all_frames["l"].min() > 180:
+        verbose_p("Frame wraps around 360 in longitude. Fixing..", 1, verbose, logging)
 
-        lon = all_frames['l'].values
+        lon = all_frames["l"].values
         if gal_cent[0] > 180:
             msk = lon < 180
             lon[msk] += 360
         else:
             msk = lon > 180
             lon[msk] -= 360
-        all_frames['l'] = lon
+        all_frames["l"] = lon
 
     xmin_cl, xmax_cl = gal_cent[0] - box_s_h, gal_cent[0] + box_s_h
     ymin_cl, ymax_cl = gal_cent[1] - box_s_h, gal_cent[1] + box_s_h
-    mx = (all_frames['l'] >= xmin_cl) & (all_frames['l'] <= xmax_cl)
-    my = (all_frames['b'] >= ymin_cl) & (all_frames['b'] <= ymax_cl)
-    msk = (mx & my)
+    mx = (all_frames["l"] >= xmin_cl) & (all_frames["l"] <= xmax_cl)
+    my = (all_frames["b"] >= ymin_cl) & (all_frames["b"] <= ymax_cl)
+    msk = mx & my
     all_frames = all_frames[msk]
 
-    all_frames = all_frames.rename(columns={
-        'source_id': 'Source', 'ra': 'RA_ICRS', 'dec': 'DE_ICRS',
-        'parallax': 'Plx', 'parallax_error': 'e_Plx',
-        'pmra': 'pmRA', 'pmra_error': 'e_pmRA', 'b': 'GLAT',
-        'pmdec': 'pmDE', 'pmdec_error': 'e_pmDE', 'l': 'GLON',
-        'phot_g_mean_flux': 'FG', 'phot_g_mean_flux_error': 'e_FG',
-        'phot_bp_mean_flux': 'FBP', 'phot_bp_mean_flux_error': 'e_FBP',
-        'phot_rp_mean_flux': 'FRP', 'phot_rp_mean_flux_error': 'e_FRP',
-        'radial_velocity': 'RV', 'radial_velocity_error': 'e_RV'}
+    all_frames = all_frames.rename(
+        columns={
+            "source_id": "Source",
+            "ra": "RA_ICRS",
+            "dec": "DE_ICRS",
+            "parallax": "Plx",
+            "parallax_error": "e_Plx",
+            "pmra": "pmRA",
+            "pmra_error": "e_pmRA",
+            "b": "GLAT",
+            "pmdec": "pmDE",
+            "pmdec_error": "e_pmDE",
+            "l": "GLON",
+            "phot_g_mean_flux": "FG",
+            "phot_g_mean_flux_error": "e_FG",
+            "phot_bp_mean_flux": "FBP",
+            "phot_bp_mean_flux_error": "e_FBP",
+            "phot_rp_mean_flux": "FRP",
+            "phot_rp_mean_flux_error": "e_FRP",
+            "radial_velocity": "RV",
+            "radial_velocity_error": "e_RV",
+        }
     )
 
     verbose_p(f"  {len(all_frames)} stars final", 1, verbose, logging)
@@ -212,26 +248,26 @@ def uncertMags(data):
     applicable to both Gaia Early Data Release 3 as well as to the full Gaia
     Data Release 3"
     """
-    I_G, e_IG = data['FG'].values, data['e_FG'].values
-    I_BP, e_IBP = data['FBP'].values, data['e_FBP'].values
-    I_RP, e_IRP = data['FRP'].values, data['e_FRP'].values
+    I_G, e_IG = data["FG"].values, data["e_FG"].values
+    I_BP, e_IBP = data["FBP"].values, data["e_FBP"].values
+    I_RP, e_IRP = data["FRP"].values, data["e_FRP"].values
 
-    data['Gmag'] = Zp_G + -2.5 * np.log10(I_G)
+    data["Gmag"] = Zp_G + -2.5 * np.log10(I_G)
     BPmag = Zp_BP + -2.5 * np.log10(I_BP)
     RPmag = Zp_RP + -2.5 * np.log10(I_RP)
-    data['BP-RP'] = BPmag - RPmag
+    data["BP-RP"] = BPmag - RPmag
 
-    e_G = np.sqrt(sigma_ZG_2 + 1.179 * (e_IG / I_G)**2)
-    data['e_Gmag'] = e_G
-    e_BP = np.sqrt(sigma_ZBP_2 + 1.179 * (e_IBP / I_BP)**2)
-    e_RP = np.sqrt(sigma_ZRP_2 + 1.179 * (e_IRP / I_RP)**2)
-    data['e_BP-RP'] = np.sqrt(e_BP**2 + e_RP**2)
+    e_G = np.sqrt(sigma_ZG_2 + 1.179 * (e_IG / I_G) ** 2)
+    data["e_Gmag"] = e_G
+    e_BP = np.sqrt(sigma_ZBP_2 + 1.179 * (e_IBP / I_BP) ** 2)
+    e_RP = np.sqrt(sigma_ZRP_2 + 1.179 * (e_IRP / I_RP) ** 2)
+    data["e_BP-RP"] = np.sqrt(e_BP**2 + e_RP**2)
 
     return data
 
 
 def radec2lonlat(ra, dec):
     gc = SkyCoord(ra=ra * u.degree, dec=dec * u.degree)
-    lb = gc.transform_to('galactic')
+    lb = gc.transform_to("galactic")
     lon, lat = lb.l.value, lb.b.value
     return lon, lat

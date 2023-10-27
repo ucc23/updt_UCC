@@ -1,11 +1,52 @@
-
 import numpy as np
+from scipy.spatial.distance import cdist
 
 
-def run(x, y, pmRA, pmDE, plx, i, j, Nmax=2):
+def main(fnames, x, y, plx, pmRA, pmDE, prob_cut, Nmax):
     """
     Identify a cluster as a duplicate following an arbitrary definition
     that depends on the parallax
+    """
+    # Find the (x, y) distances to all clusters, for all clusters
+    coords = np.array([x, y]).T
+    dist = cdist(coords, coords)
+
+    dups_fnames, dups_probs = [], []
+    for i, dists_i in enumerate(dist):
+        # Only process relatively close clusters
+        rad_max = Nmax * max_coords_rad(plx[i])
+        msk_rad = dists_i <= rad_max
+        idx_j = np.arange(0, len(dists_i))
+        j_msk = idx_j[msk_rad]
+
+        dups_fname_i, dups_prob_i = [], []
+        for j in j_msk:
+            # Skip itself
+            if j == i:
+                continue
+
+            # Fetch duplicate probability for the i,j clusters
+            dup_prob = dprob(x, y, pmRA, pmDE, plx, i, j)
+            if dup_prob >= prob_cut:
+                # Store just the first fname
+                dups_fname_i.append(fnames[j].split(";")[0])
+                dups_prob_i.append(str(dup_prob))
+
+        if dups_fname_i:
+            dups_fname_i = ";".join(dups_fname_i)
+            dups_prob_i = ";".join(dups_prob_i)
+        else:
+            dups_fname_i, dups_prob_i = "nan", "nan"
+
+        dups_fnames.append(dups_fname_i)
+        dups_probs.append(dups_prob_i)
+
+    return dups_fnames, dups_probs
+
+
+def dprob(x, y, pmRA, pmDE, plx, i, j, Nmax=2):
+    """
+    Calculate the probability of being duplicates for the i,j clusters
 
     Nmax: maximum number of times allowed for the two objects to be apart
     in any of the dimensions. If this happens for any of the dimensions,
@@ -20,7 +61,7 @@ def run(x, y, pmRA, pmDE, plx, i, j, Nmax=2):
     elif np.isnan(plx[j]):
         plx_ref = plx[i]
     else:
-        plx_ref = (plx[i] + plx[j]) * .5
+        plx_ref = (plx[i] + plx[j]) * 0.5
 
     # Arbitrary 'duplicate regions' for different parallax brackets
     if np.isnan(plx_ref):
@@ -35,17 +76,17 @@ def run(x, y, pmRA, pmDE, plx, i, j, Nmax=2):
         rad, plx_r, pm_r = 7.5, 0.15, 0.35
     elif 1 <= plx_ref < 1.5:
         rad, plx_r, pm_r = 5, 0.1, 0.25
-    elif .5 <= plx_ref < 1:
+    elif 0.5 <= plx_ref < 1:
         rad, plx_r, pm_r = 2.5, 0.075, 0.2
-    elif plx_ref < .5:
+    elif plx_ref < 0.5:
         rad, plx_r, pm_r = 2, 0.05, 0.15
-    elif plx_ref < .25:
+    elif plx_ref < 0.25:
         rad, plx_r, pm_r = 1.5, 0.025, 0.1
 
     # Angular distance in arcmin
-    d = np.sqrt((x[i]-x[j])**2 + (y[i]-y[j])**2) * 60
+    d = np.sqrt((x[i] - x[j]) ** 2 + (y[i] - y[j]) ** 2) * 60
     # PMs distance
-    pm_d = np.sqrt((pmRA[i]-pmRA[j])**2 + (pmDE[i]-pmDE[j])**2)
+    pm_d = np.sqrt((pmRA[i] - pmRA[j]) ** 2 + (pmDE[i] - pmDE[j]) ** 2)
     # Parallax distance
     plx_d = abs(plx[i] - plx[j])
 
@@ -57,7 +98,8 @@ def run(x, y, pmRA, pmDE, plx, i, j, Nmax=2):
     d_prob = lin_relation(d, rad)
     pms_prob = lin_relation(pm_d, pm_r)
     plx_prob = lin_relation(plx_d, plx_r)
-    # prob = round((d_prob+pms_prob+plx_prob)/3., 2)
+
+    # Combined probability
     prob = np.nanmean((d_prob, pms_prob, plx_prob))
 
     return round(prob, 2)
@@ -93,9 +135,9 @@ def max_coords_rad(plx_i):
         rad = 7.5
     elif 1 <= plx_i < 1.5:
         rad = 5
-    elif .5 <= plx_i < 1:
+    elif 0.5 <= plx_i < 1:
         rad = 2.5
-    elif plx_i < .5:
+    elif plx_i < 0.5:
         rad = 1.5
     rad = rad / 60  # To degrees
     return rad
