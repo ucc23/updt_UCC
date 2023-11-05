@@ -22,6 +22,7 @@ def main():
 
     pars = in_params["New DB check"]
     pars_dict["search_rad"] = pars.getfloat("search_rad")
+    pars_dict["leven_rad"] = pars.getfloat("leven_rad")
     pars_dict["cID"] = pars.get("cID")
     pars_dict["clon"] = pars.get("clon")
     pars_dict["clat"] = pars.get("clat")

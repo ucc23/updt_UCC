@@ -108,23 +108,6 @@ Once finished, correct any issues that are shown.
  },
 ```
 
-SANTOS21
-HE21
-CASTRO22
-TARRICQ22
-LI22
-HE22
-HE22_1
-HAO22
-PERREN22
-HE23
-HUNT23
-QIN23
-LI23
-CHI23_2
-CHI23
-CHI23_3
-
 ### Summary
 
 - Scripts used: `B_new_DB_check.py`
@@ -211,8 +194,8 @@ Delete `new_OCs_data.csv` once this script is finished.
 3. Run the `G_UCC_versions_check.py` script
 
 This script checks the old UCC DB versus the new one to flag possible issues
-for attention. It needs to be manually updated for whatever issues are trying
-to be found.
+for attention. It needs to be manually updated for whatever issues we are
+trying to find.
 
 ### Summary
 
@@ -227,9 +210,9 @@ to be found.
 
 1.  Run the `H_make_entries.py` script
 
-This script will process the **entire** UCC and generate an md file, ipynb
+This script will process the **entire** UCC and generate an `md` file, `ipynb`
 notebook, and plot, for every OC for which either file does not exist.
-In the case of the md entries, it will also check if the entry changed
+In the case of the `md` entries, it will also check if the entry changed
 compared to the old one, and it will update it if it did.
 
 For each processed OC that is missing either file:
@@ -241,8 +224,8 @@ For each processed OC that is missing either file:
 ### Summary
 
 - Scripts used: `H_make_entries.py`
-- Files edited: md entries (if there are changes in the new UCC)
-- Files generated: md + notebooks + plots (if files are missing)
+- Files edited: `md` entries (if there are changes in the new UCC)
+- Files generated: `md` + notebooks + plots (if files are missing)
 
 
 
@@ -251,7 +234,7 @@ For each processed OC that is missing either file:
 
 1. Run the script `I_final_updt.py`
 
-This script will
+This script will:
 
 - update the `../ucc/_clusters/clusters.json` file used by the `ucc.ar` site
   for searching
@@ -260,9 +243,10 @@ This script will
 
 Once finished:
 
-1. Update the `CHANGELOG.md` file
-2. Push changes in `ucc` & `QXY` repositories to Github
-3. Update the Zenodo repository with the new files creating a new release
+0. Run `vulture` + `black` on the code
+1. Push changes in `ucc` & `QXY` repositories to Github
+2. Update the Zenodo repository with the new files creating a new release
+3. Update the `CHANGELOG.md` file and push
 
 ### Summary
 

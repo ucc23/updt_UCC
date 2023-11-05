@@ -162,8 +162,9 @@ def main(
         txt += close_table_top
         txt += close_table + "\n"
 
+    signed_dec = "+" + str(dec) if dec >= 0 else str(dec)
     txt += (
-        cds_simbad_url.replace("RADEC_CDS", "{},{}".format(ra, dec))
+        cds_simbad_url.replace("RADEC_CDS", "{},{}".format(ra, signed_dec))
         .replace("RADEC_SMB", "{}%20{}".format(ra, dec))
         .replace("XCLUSTX", fname)
     )

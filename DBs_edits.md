@@ -145,8 +145,12 @@ The table contains 53 UBC clusters.
 A Catalog of Newly Identified Star Clusters in Gaia DR2,
 [Liu & Pang 2019](https://ui.adsabs.harvard.edu/abs/2019ApJS..245...32L/abstract), [Vizier](https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=J/ApJS/245/32)
 
+Initial DB used:
 The table contains 76 clusters with no acronym given. I added 'FoF_' to match
 HUNT23. Added `logt` column.
+
+Updated DB used:
+The Vizier table contains 2443 entries, including the 76 new OCs.
 
 ### FERREIRA19
 Three new Galactic star clusters discovered in the field of
@@ -320,10 +324,15 @@ Lynga_7 (BH 184). HSC_2890 and HSC_134 were removed as their position and
 astrometry match those of the GCs Gran 3 and 4. HSC 2605 has very similar
 coordinates and proper motions to globular NGC 5139 but its parallax is
 different, so it was not removed.
-Also removed moving groups and Theia entries.
 
-Many HSC clusters have center values that do not align with the medians of
-their members.
+In the initial UCC version all the Theia entries were removed along with the moving
+groups. In the updated version the Theia entries labeled as OCs were re-incorporated.
+
+Some ~160 HSC clusters have center values that do not align with the medians of
+their members. Changed these centers to the member' medians.
+
+Added standard deviation columns for 'AV50,MOD50,logAge50', obtained from the 84th
+and 16th percentiles.
 
 BH        --> VDBH per CDS recommendation (added 'vdBergh-Hagen' so that the
 naming isn't lost)
@@ -339,8 +348,10 @@ Teutsch_J0718.0+1642 --> Teutsch_J0718.0-1642
 Teutsch_J0924.3+5313 --> Teutsch_J0924.3-5313
 Teutsch_J1037.3+6034 --> Teutsch_J1037.3-6034
 Teutsch_J1209.3+6120 --> Teutsch_J1209.3-6120
-Collinder_302 --> fixed position to (246.525, -26.233), it was centered at GC
-NGC 6121
+
+Removed Teutsch 182 because it is listed along with UBC 6 and these are the same OC
+according to the UCC. Also Teutsch 182 has wrong center coordinates
+
 
 ### QIN23
 Hunting for Neighboring Open Clusters with Gaia DR3: 101 New Open

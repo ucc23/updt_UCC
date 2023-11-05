@@ -1,6 +1,7 @@
 import numpy as np
 from .DBs_combine import radec2lonlat
 from .DBs_combine import rm_name_dups
+from .DBs_combine import rename_standard
 
 
 def main(logging, new_DB_ID, df_UCC, df_new, json_pars, new_DB_fnames, db_matches, sep):
@@ -18,8 +19,11 @@ def main(logging, new_DB_ID, df_UCC, df_new, json_pars, new_DB_fnames, db_matche
     for i, new_cl in enumerate(new_DB_fnames):
         row_n = df_new.iloc[i]
         new_names = row_n[json_pars["names"]].split(sep)
-        new_names = [_.strip() for _ in new_names]
-        new_names = ";".join(new_names)
+        new_names_rename = []
+        for _ in new_names:
+            name = rename_standard(_.strip())
+            new_names_rename.append(name)
+        new_names = ";".join(new_names_rename)
 
         # Index of the match for this new cluster in the UCC (if any)
         if db_matches[i] is None:  # The cluster is not present in the UCC
@@ -53,7 +57,8 @@ def main(logging, new_DB_ID, df_UCC, df_new, json_pars, new_DB_fnames, db_matche
 
 
 def OC_in_UCC(new_DB_ID, new_db_dict, i, new_cl, new_names, row):
-    """ """
+    """Add an OC that is already present in the UCC"""
+
     # Check if this new DB is already in the UCC list
     if new_DB_ID in row["DB"]:
         # Remove new DB and its OC index from the UCC
