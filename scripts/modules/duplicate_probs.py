@@ -143,12 +143,14 @@ def max_coords_rad(plx_i):
     return rad
 
 
-# if __name__ == '__main__':
-#     arr = np.array([
-#         [112.7202,   0.5,   0.1,   -3.998, -3.058],
-#         [112.6979,   0.4,  0.75,   -3.998, -3.058],
-#     ])
-#     x, y, plx, pmRA, pmDE = arr.T
-#     i, j = 0, 1
-#     print(run(x, y, pmRA, pmDE, plx, i, j))
-#     breakpoint()
+if __name__ == "__main__":
+    arr = np.array(
+        [
+            [112.696, 5.654, 1.175, -2.673, -1.564],
+            [112.518, 5.63, 1.163, -2.666, -1.35],
+        ]
+    )
+    x, y, plx, pmRA, pmDE = arr.T
+    i, j = 0, 1
+    print(dprob(x, y, pmRA, pmDE, plx, i, j, 3))
+    breakpoint()

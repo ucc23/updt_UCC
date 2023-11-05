@@ -37,7 +37,7 @@ def main():
         # Only process new OCs
         if UCC_ID != "nan":
             continue
-        logging.info(f"New UCC_ID and quad for: {new_db_dict['fnames'][i]}")
+        # logging.info(f"New UCC_ID and quad for: {new_db_dict['fnames'][i]}")
         new_db_dict["UCC_ID"][i] = DBs_combine.assign_UCC_ids(
             new_db_dict["GLON"][i], new_db_dict["GLAT"][i], ucc_ids_old
         )
@@ -60,6 +60,11 @@ def main():
     df_all = df_all.sort_values(["GLON", "GLAT"])
     df_all = df_all.reset_index(drop=True)
 
+    # Final duplicate check
+    dup_flag = duplicates_check(logging, df_all)
+    if dup_flag:
+        return
+
     # Save new version of the UCC catalogue to file before processing with
     # fastMP
     date = datetime.datetime.now().strftime("%Y%m%d")[2:]
@@ -72,6 +77,36 @@ def main():
     logging.info(f"UCC updated to version {date} (N={len(df_all)})")
 
     logging.info("\nThe UCC catalogue was updated\n")
+
+
+def duplicates_check(logging, df_all):
+    """ """
+
+    def list_duplicates(seq):
+        seen = set()
+        seen_add = seen.add
+        # adds all elements it doesn't know yet to seen and all other to seen_twice
+        seen_twice = set(x for x in seq if x in seen or seen_add(x))
+        # turn the set into a list (as requested)
+        return list(seen_twice)
+
+    def dup_check(df_all, col):
+        dups = list_duplicates(list(df_all[col]))
+        if len(dups) > 0:
+            logging.info(f"\nWARNING! N={len(dups)} duplicates found in '{col}':")
+            for dup in dups:
+                print(dup)
+            logging.info("UCC was not updated")
+            return True
+        else:
+            return False
+
+    for col in ("ID", "UCC_ID", "fnames"):
+        dup_flag = dup_check(df_all, col)
+        if dup_flag:
+            return True
+
+    return False
 
 
 if __name__ == "__main__":

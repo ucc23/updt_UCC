@@ -26,7 +26,7 @@ def main(logging):
 
     # Load the new DB
     df_new = pd.read_csv(dbs_folder + new_DB + ".csv")
-    logging.info(f"N={len(df_new)} clusters in {new_DB}")
+    logging.info(f"New DB {new_DB} loaded (N={len(df_new)})")
 
     logging.info(f"Standardize names in {new_DB}")
     new_DB_fnames = DBs_combine.get_fnames_new_DB(df_new, json_pars, sep)
@@ -34,6 +34,7 @@ def main(logging):
     db_matches = DBs_combine.get_matches_new_DB(df_UCC, new_DB_fnames)
     N_matches = sum(_ is not None for _ in db_matches)
     logging.info(f"Found {N_matches} matches in {new_DB}")
+    logging.info(f"Found {len(df_new)-N_matches} new OCs in {new_DB}")
 
     return df_UCC, df_new, json_pars, new_DB_fnames, db_matches
 

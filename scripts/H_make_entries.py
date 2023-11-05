@@ -57,11 +57,12 @@ def main():
         fname0 = UCC_cl["fnames"].split(";")[0]
         Qfold = UCC_cl["quad"]
 
+        txt0 = f"{Qfold}/{fname0}: "
         txt = f"{Qfold}/{fname0}: "
 
         # Make catalogue entry
         txt1 = make_entry(
-            logging, df_UCC, UCC_cl, DBs_used, DBs_data, entries_path, Qfold, fname0
+            df_UCC, UCC_cl, DBs_used, DBs_data, entries_path, Qfold, fname0
         )
         if txt1 != "":
             txt += f" md ({txt1})"
@@ -88,12 +89,11 @@ def main():
                 ucc_plots.make_plot(plot_fpath, df_cl)
             txt += " plot"
 
-        logging.info(txt)
+        if txt != txt0:
+            logging.info(txt)
 
 
-def make_entry(
-    logging, df_UCC, UCC_cl, DBs_used, DBs_data, entries_path, Qfold, fname0
-):
+def make_entry(df_UCC, UCC_cl, DBs_used, DBs_data, entries_path, Qfold, fname0):
     """ """
     DBs, DBs_i = UCC_cl["DB"].split(";"), UCC_cl["DB_i"].split(";")
     fpars_table = fpars_in_lit(DBs_used, DBs_data, DBs, DBs_i)
