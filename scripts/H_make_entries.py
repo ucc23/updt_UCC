@@ -75,7 +75,7 @@ def main():
             make_notebook(fname0, Qfold, ntbk_fpath, ntbk_str)
             txt += " ntbk"
 
-        # Make plot
+        # Make data plot
         plot_fpath = Path(
             root_UCC_path + Qfold + f"/{plots_folder}/" + fname0 + ".webp"
         )
@@ -88,6 +88,22 @@ def main():
                 warnings.simplefilter("ignore")
                 ucc_plots.make_plot(plot_fpath, df_cl)
             txt += " plot"
+
+        # Make Aladin plot
+        plot_aladin_fpath = Path(
+            root_UCC_path + Qfold + f"/{plots_folder}/" + fname0 + "_aladin.webp"
+        )
+        if plot_aladin_fpath.is_file() is False:
+            ucc_plots.make_aladin_plot(
+                UCC_cl["RA_ICRS_m"],
+                UCC_cl["DE_ICRS_m"],
+                UCC_cl["r_50"],
+                plot_aladin_fpath,
+            )
+            if plot_aladin_fpath.is_file() is True:
+                txt += " plot_aladin"
+            else:
+                txt += " plot_aladin could not be generated"
 
         if txt != txt0:
             logging.info(txt)
