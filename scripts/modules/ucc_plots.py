@@ -1,15 +1,19 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-
-# Load local style file taken from https://github.com/garrettj403/SciencePlots
-# but with a line commented out to avoid an issue with LaTeX and the
-# logging module: https://github.com/garrettj403/SciencePlots/issues/103
-plt.style.use("./modules/science.mplstyle")
+import pandas as pd
+from urllib.parse import urlencode
+from astropy.io import fits
+from scipy import ndimage
 
 
 def make_plot(plot_fpath, df_membs, cmap="plasma", dpi=200):
     """ """
+    # Load local style file taken from https://github.com/garrettj403/SciencePlots
+    # but with a line commented out to avoid an issue with LaTeX and the
+    # logging module: https://github.com/garrettj403/SciencePlots/issues/103
+    plt.style.use("./modules/science.mplstyle")
+
     pr = df_membs["probs"]
     vmin = min(pr)
 
@@ -171,6 +175,59 @@ def diag_limits(phot_x, phot_y):
     y_max_cmd = np.nanmin(phot_y) - 0.5
 
     return x_max_cmd, x_min_cmd, y_min_cmd, y_max_cmd
+
+
+def make_aladin_plot(ra, dec, r_50, plot_aladin_fpath, dpi=100):
+    """ """
+    plt.style.use("default")
+
+    rad_deg = round(2 * (r_50 / 60.0), 3)
+    query_params = {
+        "hips": "P/DSS2/color",
+        "ra": ra,
+        "dec": dec,
+        "fov": rad_deg,
+        "width": 350,
+        "height": 245,
+    }
+
+    try:
+        url = f"http://alasky.u-strasbg.fr/hips-image-services/hips2fits?{urlencode(query_params)}"
+        hdul = fits.open(url)
+    except Exception as e:
+        return
+
+    rotated_img = ndimage.rotate(hdul[0].data.T, 90)
+    fig, ax = plt.subplots()
+    plt.imshow(rotated_img)
+    plt.axis("off")
+
+    if rad_deg >= 1:
+        fov = str(round(rad_deg, 1)) + "º"
+    else:
+        fov = str(round(rad_deg * 60, 1)) + "'"
+
+    t = plt.text(
+        0.015, 0.02, f"FoV: {fov}", fontsize=14, color="blue", transform=ax.transAxes
+    )
+    t.set_bbox(dict(facecolor="grey", alpha=0.75, linewidth=0))
+
+    t = plt.text(
+        0.56,
+        0.02,
+        "Click to load Aladin",
+        fontsize=14,
+        color="red",
+        weight="bold",
+        transform=ax.transAxes,
+    )
+    t.set_bbox(dict(facecolor="white", alpha=0.75, linewidth=0))
+
+    plt.scatter(0.5, 0.5, marker="+", s=400, color="#B232B2", transform=ax.transAxes)
+
+    plt.savefig(plot_aladin_fpath, dpi=dpi, bbox_inches="tight", pad_inches=0.0)
+    fig.clear()
+    plt.close(fig)
 
 
 if __name__ == "__main__":
