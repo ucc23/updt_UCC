@@ -244,9 +244,11 @@ This script will:
 Once finished:
 
 0. Run `vulture` + `black` on the code
-1. Push changes in `ucc` & `QXY` repositories to Github
-2. Update the Zenodo repository with the new files creating a new release
-3. Update the `CHANGELOG.md` file and push
+1. Push changes in `updt_UCC` repository
+2. Push changes in `QXY` repositories
+3. Update the Zenodo repository with the new files, creating a new release
+4. Update the `CHANGELOG.md` file
+5. Push changes in `ucc` repository
 
 ### Summary
 
