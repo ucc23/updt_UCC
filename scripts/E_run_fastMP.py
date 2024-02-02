@@ -13,7 +13,6 @@ from modules import UCC_new_match
 import sys
 
 sys.path.insert(1, "/home/gabriel/Github/Gabriel_p/fastmp/")  # Path to fastMP
-# sys.path.insert(1, '/home/gperren/UCC/updt_ucc/fastmp/')  # Path to fastMP
 from fastmp import fastMP
 
 
