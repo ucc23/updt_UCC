@@ -106,7 +106,7 @@ def main():
         #     box_s = min(box_s, 25)
 
         #
-        fix_N_clust = False
+        fix_N_clust = None
         for _, row_manual_p in manual_pars.iterrows():
             if fname0 == row_manual_p["fname"]:
                 if row_manual_p["Nmembs"] != "nan":
