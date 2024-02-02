@@ -39,6 +39,7 @@ def main():
     zenodo_UCC(df_UCC, UCC_folder)
     logging.info("\nCompressed 'UCC_cat.csv.gz' file generated\n")
 
+    print("Compressing members...")
     zenodo_membs(logging, UCC_folder, root_UCC_path, members_folder)
     logging.info("\nCompressed 'UCC_members.parquet.gz' file generated")
 
