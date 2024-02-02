@@ -189,7 +189,9 @@ def fpars_in_lit(DBs_used, DBs_data, DBs, DBs_i):
         if pars_f:
             DBs_w_pars.append(db)
             DBs_i_w_pars.append(DBs_i[i])
-    # Extract years
+    # Extract DB year
+    # This splits the DB name in a '_' and keeps the first part. It is meant to handle
+    # DBs with names such as: 'SMITH23_3'.
     DBs_years = [int(_.split("_")[0][-2:]) for _ in DBs_w_pars]
     # Sort
     sort_idxs = np.argsort(DBs_years)
