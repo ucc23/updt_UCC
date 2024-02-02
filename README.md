@@ -260,7 +260,7 @@ Once finished:
 
 
 To check folders recursively for changes use:
-`$ find . -name '.git' | while read -r repo ; do repo=${repo%".git"}; (git -C "$repo" status -s | grep -q -v "^\$" && echo -e "\n\033[1m${repo}\033[m" && git -C "$repo" status -s) || true; done`
+`$ clear & find . -name '.git' | while read -r repo ; do repo=${repo%".git"}; (git -C "$repo" status -s | grep -q -v "^\$" && echo -e "\n\033[1m${repo}\033[m" && git -C "$repo" status -s) || true; done`
 
 ### Summary
 
