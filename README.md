@@ -81,20 +81,15 @@ these following steps must be followed.
 <!-- TOC --><a name="adding-a-new-db"></a>
 ## Adding a new DB
 
-1. Save the new DB in proper `csv` format to the `databases`/ folder
+1. Add the name of the new DB to the `[General]` section of the `params.ini` file,
+   and the column names for the `cID,clon,clat` parameters in the
+   `[New DB check]` section.
 
-2. Run the `B_new_DB_check.py`  script
+   The format of the name for the DB is `SMITH24` or if required `SMITH24_1`.
+   The name of the DB **must not** contain any non letter characters except for the
+   `_` required to differentiate DBs with the same names published in the same year.
 
-This script checks the new DB for proper formatting:
-
-- Make sure that no GCs are very close to listed OCs
-- Check for possible duplicates in the new DB
-- Possible instances of 'vdBergh-Hagen'/'vdBergh' that must be changed to
-  'VDBH' & 'VDB', per CDS recommendation
-- OCs with multiple names must **not** use ';' as a separating character
-- Possible empty entries in columns are replaced by 'nan's
-
-Once finished, correct any issues that are shown.
+2. Save the new DB in proper `csv` format to the `databases`/ folder
 
 3. Add the new DB to the `databases/all_dbs.json` file following the convention:
 
@@ -107,6 +102,19 @@ Once finished, correct any issues that are shown.
     "pos": "ra,dec,plx,pm_ra,pm_dec,Rv"
  },
 ```
+
+4. Run the `B_new_DB_check.py`  script
+
+This script checks the new DB for proper formatting:
+
+- Make sure that no GCs are very close to listed OCs
+- Check for possible duplicates in the new DB
+- Possible instances of 'vdBergh-Hagen'/'vdBergh' that must be changed to
+  'VDBH' & 'VDB', per CDS recommendation
+- OCs with multiple names must **not** use ';' as a separating character
+- Possible empty entries in columns are replaced by 'nan's
+
+Once finished, correct any issues that are shown.
 
 ### Summary
 
@@ -175,12 +183,13 @@ The new UCC version will have the same name format, with an updated date.
 
 1. Run the `E_run_fastMP.py` script
 
-This will process **only** the new clusters in the  new DB, and generate new
-datafiles with members using `fastMP`. The 'C3' column is used to identify
-the new OCs, as those with a 'nan' value. The member files are automatically
-stored in the proper `../UCC/QXY/datafiles/` repositories.
+This script generates new datafiles with members using `fastMP`, **only** for the
+new OCs in the  new DB. These are identified as those with a
+'nan' value in the 'C3' column of the new generated `zenodo/UCC_cat_XXYYZZ.csv`.
+The `.parquet` member files are automatically stored in the proper
+`../UCC/QXY/datafiles/` repositories.
 
-This script generates a `new_OCs_data.csv` file with parameters for the new
+This script also generates a `new_OCs_data.csv` file with parameters for the new
 OCs, obtained from their members and surrounding field stars.
 
 2. Run the `F_updt_UCC.py` script
@@ -201,7 +210,7 @@ trying to find.
 
 - Scripts used: `E_run_fastMP.py, F_updt_UCC.py, G_UCC_versions_check.py`
 - Files edited: `zenodo/UCC_cat_XXYYZZ.csv`
-- Files generated: `new_OCs_data.csv` + members datafiles
+- Files generated: `new_OCs_data.csv` (deleted after 2.) + members datafiles
 
 
 
@@ -211,11 +220,11 @@ trying to find.
 1.  Run the `H_make_entries.py` script
 
 This script will process the **entire** UCC and generate an `md` file, `ipynb`
-notebook, and plot, for every OC for which either file does not exist.
+notebook, and plot, for every OC for which either of those files do not exist.
 In the case of the `md` entries, it will also check if the entry changed
 compared to the old one, and it will update it if it did.
 
-For each processed OC that is missing either file:
+For each processed OC that is missing either of those files:
 
 1. Generate or update an `.md` entry, stored in `../ucc/_clusters/`
 2. Generate a `.ipynb` notebook, stored in `../UCC/QXY/notebooks/`
@@ -236,8 +245,7 @@ For each processed OC that is missing either file:
 
 This script will:
 
-- update the `../ucc/_clusters/clusters.json` file used by the `ucc.ar` site
-  for searching
+- update the `../ucc/_clusters/clusters.json` file used for searching in `ucc.ar`
 - update the tables files used by the `ucc.ar` site
 - generate the files that contain all the UCC information, used in Zenodo
 
