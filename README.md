@@ -258,6 +258,10 @@ Once finished:
 4. Update the `CHANGELOG.md` file
 5. Push changes in `ucc` repository
 
+
+To check folders recursively for changes use:
+`$ find . -name '.git' | while read -r repo ; do repo=${repo%".git"}; (git -C "$repo" status -s | grep -q -v "^\$" && echo -e "\n\033[1m${repo}\033[m" && git -C "$repo" status -s) || true; done`
+
 ### Summary
 
 - Scripts used: `I_final_updt`
