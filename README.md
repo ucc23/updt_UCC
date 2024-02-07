@@ -25,7 +25,7 @@ database and its associated web site.
 <!-- TOC --><a name="fixing-bad-entries"></a>
 # Fixing bad entries
 
-To fix bad entries the following steps need to be followed.
+To fix bad entries, follow these steps.
 
 1. Edit the latest UCC version
 
@@ -82,10 +82,9 @@ these following steps must be followed.
 ## Adding a new DB
 
 1. Add the name of the new DB to the `[General]` section of the `params.ini` file,
-   and the column names for the `cID,clon,clat` parameters in the
-   `[New DB check]` section.
+   and the column names for the `ID,RA,DEC` parameters in the `[New DB check]` section.
 
-   The format of the name for the DB is `SMITH24` or if required `SMITH24_1`.
+   The format of the name for the DB is `SMITH24` or, if required, `SMITH24_1`.
    The name of the DB **must not** contain any non letter characters except for the
    `_` required to differentiate DBs with the same names published in the same year.
 
@@ -117,10 +116,9 @@ This script checks the new DB for proper formatting:
 Once finished, correct any issues that are shown.
 
 ### Summary
-
 - Scripts used: `B_new_DB_check.py`
-- Files edited: `databases/all_dbs.json`
-- Files generated: properly formatted database for the new DB
+- Files edited: `databases/all_dbs.json` (manually)
+- Files generated: properly formatted database for the new DB (manually)
 
 
 
@@ -152,7 +150,6 @@ Fix any possible issues that were flagged for attention **before** running the
 `D_add_new_DB.py` script.
 
 ### Summary
-
 - Scripts used: `C_check_new_DB.py`
 - Files edited: None
 - Files generated: None
@@ -171,7 +168,6 @@ OC(s) are present in the UCC.
 The new UCC version will have the same name format, with an updated date.
 
 ### Summary
-
 - Scripts used: `D_add_new_DB.py`
 - Files edited: None
 - Files generated: `zenodo/UCC_cat_XXYYZZ.csv`
@@ -194,6 +190,8 @@ OCs, obtained from their members and surrounding field stars.
 
 2. Run the `F_updt_UCC.py` script
 
+If no new OCs were processed by the previous script, this one can be skipped.
+
 This script uses the data in the `new_OCs_data.csv` file to update the new UCC
 version `zenodo/UCC_cat_XXYYZZ.csv`. It also estimates probable duplicates
 using data on positions obtained from the members stars.
@@ -202,12 +200,14 @@ Delete `new_OCs_data.csv` once this script is finished.
 
 3. Run the `G_UCC_versions_check.py` script
 
+Write the name of the previous UCC version in the section `[Check versions]` of
+the `params.ini` file, under the `old_UCC_name` variable.
+
 This script checks the old UCC DB versus the new one to flag possible issues
 for attention. It needs to be manually updated for whatever issues we are
 trying to find.
 
 ### Summary
-
 - Scripts used: `E_run_fastMP.py, F_updt_UCC.py, G_UCC_versions_check.py`
 - Files edited: `zenodo/UCC_cat_XXYYZZ.csv`
 - Files generated: `new_OCs_data.csv` (deleted after 2.) + members datafiles
@@ -231,7 +231,6 @@ For each processed OC that is missing either of those files:
 3. Generate a plot, stored in `../UCC/QXY/plots/`
 
 ### Summary
-
 - Scripts used: `H_make_entries.py`
 - Files edited: `md` entries (if there are changes in the new UCC)
 - Files generated: `md` + notebooks + plots (if files are missing)
@@ -251,7 +250,7 @@ This script will:
 
 Once finished:
 
-0. Run `vulture` + `black` on the code
+0. Run `$ vulture .` + `$ black. ` on the repository
 1. Push changes in `updt_UCC` repository
 2. Push changes in `QXY` repositories
 3. Update the Zenodo repository with the new files, creating a new release
@@ -263,7 +262,6 @@ To check folders recursively for changes use:
 `$ clear & find . -name '.git' | while read -r repo ; do repo=${repo%".git"}; (git -C "$repo" status -s | grep -q -v "^\$" && echo -e "\n\033[1m${repo}\033[m" && git -C "$repo" status -s) || true; done`
 
 ### Summary
-
 - Scripts used: `I_final_updt`
 - Files edited: `ucc/clusters.json, ucc/_pages/QXY_table.md`
 - Files generated: `zenodo/UCC_cat.csv.gz, zenodo/UCC_members.parquet.gz`
