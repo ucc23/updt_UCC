@@ -174,6 +174,13 @@
     "e_pars": "None,None,e_age,None,None,None,None",
     "pos": "RA_ICRS,DE_ICRS,plx,pmRA,pmDE,RV"
  },
+  "PERREN22": {
+    "ref": "[Perren et al. (2022)](https://ui.adsabs.harvard.edu/abs/2022A%26A...663A.131P/abstract)",
+    "names": "Cluster",
+    "pars": "E(B-V),dm,logt,FeH,None,Mass,bfr",
+    "e_pars": "None,None,None,None,None,None,None",
+    "pos": "RA_ICRS,DE_ICRS,None,None,None,None"
+ },
    "CASADOHENDY23": {
     "ref": "[Casado & Hendy (2023)](https://ui.adsabs.harvard.edu/abs/2023MNRAS.521.1399C/abstract)",
     "names": "name",
