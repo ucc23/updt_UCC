@@ -254,7 +254,7 @@ Once finished:
 1. Push changes in `updt_UCC` repository
 2. Push changes in `QXY` repositories
 3. Update the Zenodo repository with the new files, creating a new release
-4. Update the `CHANGELOG.md` file
+4. Update the `CHANGELOG.md` file with the Zenodo URL for the release
 5. Push changes in `ucc` repository
 
 
