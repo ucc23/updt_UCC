@@ -2,6 +2,7 @@ import pandas as pd
 from modules import logger
 from modules import read_ini_file
 from modules import UCC_new_match
+from HARDCODED import UCC_folder
 
 
 def main():
@@ -9,12 +10,14 @@ def main():
     logging = logger.main()
 
     pars_dict = read_ini_file.main()
-    UCC_folder, old_UCC_name = pars_dict["UCC_folder"], pars_dict["old_UCC_name"]
+    old_UCC_name = pars_dict["old_UCC_name"]
 
     # Read latest version of the UCC
     UCC_new, _ = UCC_new_match.latest_cat_detect(logging, UCC_folder)
 
     UCC_old = pd.read_csv(UCC_folder + old_UCC_name)
+    old_date = old_UCC_name.split("_")[-1].split(".")[0]
+    logging.info(f"UCC version {old_date} loaded (N={len(UCC_old)})")
 
     print("")
     fnames_old_all = list(UCC_old["fnames"])

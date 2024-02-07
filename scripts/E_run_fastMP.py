@@ -7,6 +7,7 @@ from modules import run_fastMP_funcs as fMPf
 from modules import classif
 from modules import main_process_GDR3_query as G3Q
 from modules import UCC_new_match
+from HARDCODED import dbs_folder, UCC_folder, GCs_cat, new_OCs_fpath, root_UCC_path
 
 # Load local version of fastMP
 # insert at 1, 0 is the script path (or '' in REPL)
@@ -23,28 +24,18 @@ def main():
     pars_dict = read_ini_file.main()
     (
         new_DB,
-        dbs_folder,
-        GCs_cat,
-        UCC_folder,
         frames_path,
         frames_ranges,
         max_mag,
         manual_pars_f,
         verbose,
-        new_OCs_data,
-        root_UCC_path,
     ) = (
         pars_dict["new_DB"],
-        pars_dict["dbs_folder"],
-        pars_dict["GCs_cat"],
-        pars_dict["UCC_folder"],
         pars_dict["frames_path"],
         pars_dict["frames_ranges"],
         pars_dict["max_mag"],
         pars_dict["manual_pars_f"],
         pars_dict["verbose"],
-        pars_dict["new_OCs_data"],
-        pars_dict["root_UCC_path"],
     )
 
     # Read latest version of the UCC
@@ -54,13 +45,8 @@ def main():
     frames_data = pd.read_csv(frames_ranges)
     df_gcs = pd.read_csv(dbs_folder + GCs_cat)
 
-    # # Read info on what OCs to process
-    # new_OCs_info = pd.read_csv(new_OCs_fpath)
     # Read OCs manual parameters
     manual_pars = pd.read_csv(manual_pars_f)
-
-    # N_process = new_OCs_info['process_f'].sum()
-    # logging.info(f"Processing {N_process} OCs with fastMP...\n")
     logging.info(f"Processing {new_DB} with fastMP...\n")
 
     # Parameters used to search for close-by clusters
@@ -68,7 +54,7 @@ def main():
     tree = spatial.cKDTree(xys)
 
     # Write header for ouput CSV file. Order matters!
-    with open(new_OCs_data, "w") as myfile:
+    with open(new_OCs_fpath, "w") as myfile:
         myfile.write(
             "fname,index_updt,N_fixed,N_survived,fixed_centers,cent_flags,"
             + "C1,C2,C3,GLON_m,GLAT_m,RA_ICRS_m,DE_ICRS_m,plx_m,pmRA_m,"
@@ -76,12 +62,14 @@ def main():
         )
 
     # For each new OC
+    N_total = 0
     for index, new_cl in df_UCC.iterrows():
         params_updt = []
 
         # Check if this is a new OC that should be processed
         if str(new_cl["C3"]) != "nan":
             continue
+        N_total += 1
 
         # Identify position in the UCC
         fname0 = new_cl["fnames"].split(";")[0]
@@ -233,8 +221,11 @@ def main():
         for p in params_updt:
             pars_str += str(p) + ","
         pars_str = pars_str[:-1] + "\n"
-        with open(new_OCs_data, "a") as myfile:
+        with open(new_OCs_fpath, "a") as myfile:
             myfile.write(pars_str)
+
+    if N_total == 0:
+        print("No new OCs processed")
 
 
 if __name__ == "__main__":
