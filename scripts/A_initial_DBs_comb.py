@@ -5,6 +5,7 @@ import pandas as pd
 from modules import read_ini_file
 from modules import DBs_combine
 from modules import UCC_new_match
+from HARDCODED import dbs_folder, UCC_folder, all_DBs_json, new_OCs_fpath
 
 
 def main():
@@ -12,14 +13,7 @@ def main():
     Script used to re-match selected OCs using all the available databases.
     """
     pars_dict = read_ini_file.main()
-    OCs_names, sep, dbs_folder, all_DBs_json, UCC_folder, new_OCs_fpath = (
-        pars_dict["OCs_names"],
-        pars_dict["sep"],
-        pars_dict["dbs_folder"],
-        pars_dict["all_DBs_json"],
-        pars_dict["UCC_folder"],
-        pars_dict["new_OCs_fpath"],
-    )
+    OCs_names, sep = (pars_dict["OCs_names"], pars_dict["sep"])
 
     OCs_to_keep = []
     # To 'fnames'
@@ -158,10 +152,9 @@ def main():
 def get_data_and_names(dbs_folder, dbs_used, sep):
     """
     1. For each DB extract and store all its data --> DB_data
-    2. For each cluster in each DB extract and standardize its
-       name(s) --> DB_fnames
-    3. For each cluster in each DB extract its original unedited
-       name(s) --> DB_names_orig
+    2. For each cluster in each DB extract and standardize its name(s) --> DB_fnames
+    3. For each cluster in each DB extract its original unedited name(s) -->
+       DB_names_orig
     """
     DB_data, DB_fnames, DB_names_orig, N_all = {}, {}, {}, 0
     for DB, _ in dbs_used.items():
@@ -314,7 +307,7 @@ def get_matches(dbs_used, DB_data, DB_fnames, unique_fnames, unique_names_orig):
 
                         bad_DB = False
                         if DB_ID in ("KHARCHENKO12", "LOKTIN17"):
-                            # These DBs has bad data for these parameters
+                            # These DBs have bad data for these parameters
                             bad_DB = True
                         if plx is None or bad_DB is True:
                             cl_dict[cl_str]["plx"].append(np.nan)

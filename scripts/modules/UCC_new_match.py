@@ -5,15 +5,12 @@ from . import read_ini_file
 from . import DBs_combine
 
 
-def main(logging):
+def main(logging, dbs_folder, all_DBs_json, UCC_folder):
     """ """
     pars_dict = read_ini_file.main()
-    new_DB, sep, dbs_folder, all_DBs_json, UCC_folder = (
+    new_DB, sep = (
         pars_dict["new_DB"],
         pars_dict["sep"],
-        pars_dict["dbs_folder"],
-        pars_dict["all_DBs_json"],
-        pars_dict["UCC_folder"],
     )
 
     # Load column data for the new catalogue

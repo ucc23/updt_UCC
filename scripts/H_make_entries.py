@@ -4,36 +4,24 @@ import numpy as np
 import json
 import pandas as pd
 from modules import logger
-from modules import read_ini_file
 from modules import UCC_new_match
 from modules import ucc_plots, ucc_entry
+from HARDCODED import (
+    dbs_folder,
+    all_DBs_json,
+    UCC_folder,
+    root_UCC_path,
+    md_folder,
+    ntbks_folder,
+    members_folder,
+    plots_folder,
+)
 
 
 def main():
     """ """
     logging = logger.main()
     logging.info("Running 'make_entries' script\n")
-
-    pars_dict = read_ini_file.main()
-    (
-        UCC_folder,
-        dbs_folder,
-        all_DBs_json,
-        root_UCC_path,
-        md_folder,
-        members_folder,
-        ntbks_folder,
-        plots_folder,
-    ) = (
-        pars_dict["UCC_folder"],
-        pars_dict["dbs_folder"],
-        pars_dict["all_DBs_json"],
-        pars_dict["root_UCC_path"],
-        pars_dict["md_folder"],
-        pars_dict["members_folder"],
-        pars_dict["ntbks_folder"],
-        pars_dict["plots_folder"],
-    )
 
     # Folder name where the datafile is stored
     entries_path = root_UCC_path + f"{md_folder}/"
@@ -53,6 +41,7 @@ def main():
         ntbk_str = f.readlines()
 
     logging.info("\nProcessing UCC")
+    N_total = 0
     for index, UCC_cl in df_UCC.iterrows():
         fname0 = UCC_cl["fnames"].split(";")[0]
         Qfold = UCC_cl["quad"]
@@ -107,6 +96,9 @@ def main():
 
         if txt != txt0:
             logging.info(txt)
+            N_total += 1
+
+    logging.info(f"\nN={N_total} OCs processed")
 
 
 def make_entry(df_UCC, UCC_cl, DBs_used, DBs_data, entries_path, Qfold, fname0):

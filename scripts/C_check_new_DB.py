@@ -3,6 +3,7 @@ from modules import logger
 from modules import read_ini_file
 from modules import DBs_combine
 from modules import UCC_new_match
+from HARDCODED import dbs_folder, all_DBs_json, UCC_folder
 
 
 def main():
@@ -14,7 +15,9 @@ def main():
     new_DB = pars_dict["new_DB"]
     logging.info(f"Checking new DB: {new_DB}")
 
-    df_UCC, df_new, json_pars, new_DB_fnames, db_matches = UCC_new_match.main(logging)
+    df_UCC, df_new, json_pars, new_DB_fnames, db_matches = UCC_new_match.main(
+        logging, dbs_folder, all_DBs_json, UCC_folder
+    )
 
     new_db_info = prep_newDB(df_new, json_pars, new_DB_fnames, db_matches)
 

@@ -10,16 +10,19 @@ from difflib import SequenceMatcher
 from modules import logger
 from modules import read_ini_file
 from modules import UCC_new_match
+from HARDCODED import dbs_folder, all_DBs_json, UCC_folder, GCs_cat
 
 
 def main():
     """ """
     logging = logger.main()
     pars_dict = read_ini_file.main()
-    new_DB, dbs_folder = pars_dict["new_DB"], pars_dict["dbs_folder"]
+    new_DB = pars_dict["new_DB"]
 
     logging.info(f"Running 'new_DB_check' script on {new_DB}")
-    df_UCC, df_new, _, new_DB_fnames, db_matches = UCC_new_match.main(logging)
+    df_UCC, df_new, _, new_DB_fnames, db_matches = UCC_new_match.main(
+        logging, dbs_folder, all_DBs_json, UCC_folder
+    )
 
     # Duplicate check between entries in the new DB and the UCC
     logging.info(f"Checking for entries in {new_DB} that must be combined")
@@ -27,9 +30,16 @@ def main():
     if dup_flag:
         return
 
+    # Equatorial to galactic
+    RA, DEC = pars_dict["RA"], pars_dict["DEC"]
+    ra, dec = df_new[RA].values, df_new[DEC].values
+    gc = SkyCoord(ra=ra * u.degree, dec=dec * u.degree)
+    lb = gc.transform_to("galactic")
+    glon, glat = lb.l.value, lb.b.value
+
     # Check for GCs
     logging.info("\n*Close CG check")
-    GCs_check(logging, pars_dict, df_new)
+    GCs_check(logging, pars_dict, df_new, glon, glat)
 
     # Check for OCs very close to each other (possible duplicates)
     logging.info("\n*Possible inner duplicates check")
@@ -37,7 +47,9 @@ def main():
 
     # Check for OCs very close to each other (possible duplicates)
     logging.info("\n*Possible UCC duplicates check")
-    close_OC_UCC_check(logging, df_UCC, df_new, new_DB_fnames, db_matches, pars_dict)
+    close_OC_UCC_check(
+        logging, df_UCC, df_new, new_DB_fnames, db_matches, pars_dict, glon, glat
+    )
 
     # Check for 'vdBergh-Hagen', 'vdBergh' OCs
     logging.info("\n*Possible vdBergh-Hagen/vdBergh check")
@@ -80,27 +92,11 @@ def dups_check_newDB_UCC(logging, new_DB, df_UCC, new_DB_fnames, db_matches):
     return False
 
 
-def GCs_check(logging, pars_dict, df_new):
+def GCs_check(logging, pars_dict, df_new, glon, glat):
     """
     Check for nearby GCs for a new database
     """
-    dbs_folder, GCs_cat, search_rad, cID, clon, clat, coords = (
-        pars_dict["dbs_folder"],
-        pars_dict["GCs_cat"],
-        pars_dict["search_rad"],
-        pars_dict["cID"],
-        pars_dict["clon"],
-        pars_dict["clat"],
-        pars_dict["coords"],
-    )
-
-    if coords == "equatorial":
-        ra, dec = df_new[clon].values, df_new[clat].values
-        gc = SkyCoord(ra=ra * u.degree, dec=dec * u.degree)
-        lb = gc.transform_to("galactic")
-        glon, glat = lb.l.value, lb.b.value
-    else:
-        glon, glat = df_new[clon].values, df_new[clat].values
+    search_rad, ID = (pars_dict["search_rad"], pars_dict["ID"])
 
     # Read GCs DB
     df_gcs = pd.read_csv(dbs_folder + GCs_cat)
@@ -124,7 +120,7 @@ def GCs_check(logging, pars_dict, df_new):
         if d_arcmin[j1] < search_rad:
             GCs_found += 1
             logging.info(
-                f"{idx} {row[cID]} --> "
+                f"{idx} {row[ID]} --> "
                 + f"{df_gcs['Name'][j1].strip()}, d={round(d_arcmin[j1], 2)}"
             )
 
@@ -137,14 +133,14 @@ def close_OC_check(logging, df_new, pars_dict):
     Looks for OCs in the new DB that are close to other OCs in the new DB (GLON, GLAT)
     whose names are somewhat similar (Levenshtein distance).
     """
-    cID, clon, clat, rad_dup, leven_rad = (
-        pars_dict["cID"],
-        pars_dict["clon"],
-        pars_dict["clat"],
+    ID, RA, DEC, rad_dup, leven_rad = (
+        pars_dict["ID"],
+        pars_dict["RA"],
+        pars_dict["DEC"],
         pars_dict["rad_dup"],
         pars_dict["leven_rad"],
     )
-    x, y = df_new[clon].values, df_new[clat].values
+    x, y = df_new[RA].values, df_new[DEC].values
     coords = np.array([x, y]).T
     # Find the distances to all clusters, for all clusters
     dist = cdist(coords, coords)
@@ -187,20 +183,15 @@ def close_OC_check(logging, df_new, pars_dict):
         logging.info("No probable duplicates found")
 
 
-def close_OC_UCC_check(logging, df_UCC, df_new, new_DB_fnames, db_matches, pars_dict):
+def close_OC_UCC_check(
+    logging, df_UCC, df_new, new_DB_fnames, db_matches, pars_dict, glon, glat
+):
     """
     Looks for OCs in the new DB that are close to OCs in the UCC (GLON, GLAT) but
     with different names.
     """
-    clon, clat, rad_dup = pars_dict["clon"], pars_dict["clat"], pars_dict["rad_dup"]
-
-    if pars_dict["coords"] == "equatorial":
-        ra, dec = df_new[clon].values, df_new[clat].values
-        gc = SkyCoord(ra=ra * u.degree, dec=dec * u.degree)
-        lb = gc.transform_to("galactic")
-        glon, glat = lb.l.value, lb.b.value
-    else:
-        glon, glat = df_new[clon].values, df_new[clat].values
+    # RA, DEC = pars_dict["RA"], pars_dict["DEC"],
+    rad_dup = pars_dict["rad_dup"]
 
     coords_new = np.array([glon, glat]).T
     coords_UCC = np.array([df_UCC["GLON"], df_UCC["GLAT"]]).T
@@ -241,9 +232,9 @@ def close_OC_UCC_check(logging, df_UCC, df_new, new_DB_fnames, db_matches, pars_
 
 def name_chars_check(logging, df_new, pars_dict):
     """ """
-    cID = pars_dict["cID"]
+    ID = pars_dict["ID"]
     badchars_found = 0
-    for new_cl in df_new[cID]:
+    for new_cl in df_new[ID]:
         if ";" in new_cl or "_" in new_cl:
             badchars_found += 1
             logging.info(f"{new_cl}: bad char found")
@@ -258,7 +249,7 @@ def vdberg_check(logging, df_new, pars_dict):
     names_lst = ["vdBergh-Hagen", "vdBergh", "van den Bergh–Hagen", "van den Bergh"]
     names_lst = [_.lower().replace("-", "").replace(" ", "") for _ in names_lst]
 
-    cID = pars_dict["cID"]
+    cID = pars_dict["ID"]
     vds_found = 0
     for i, new_cl in enumerate(df_new[cID]):
         new_cl = (

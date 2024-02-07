@@ -3,24 +3,21 @@ import pandas as pd
 import numpy as np
 import csv
 from modules import logger
-from modules import read_ini_file
 from modules import UCC_new_match
 from H_make_entries import UCC_color
+from HARDCODED import (
+    UCC_folder,
+    root_UCC_path,
+    clusters_json,
+    pages_folder,
+    members_folder,
+)
 
 
 def main():
     """ """
     logging = logger.main()
     logging.info("\nRunning 'final_updt' script\n")
-
-    pars_dict = read_ini_file.main()
-    UCC_folder, root_UCC_path, clusters_json, pages_folder, members_folder = (
-        pars_dict["UCC_folder"],
-        pars_dict["root_UCC_path"],
-        pars_dict["clusters_json"],
-        pars_dict["pages_folder"],
-        pars_dict["members_folder"],
-    )
 
     # Read latest version of the UCC
     df_UCC, _ = UCC_new_match.latest_cat_detect(logging, UCC_folder)

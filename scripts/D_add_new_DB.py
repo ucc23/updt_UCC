@@ -6,6 +6,7 @@ from modules import read_ini_file
 from modules import combine_UCC_new_DB
 from modules import DBs_combine
 from modules import UCC_new_match
+from HARDCODED import dbs_folder, all_DBs_json, UCC_folder
 
 
 def main():
@@ -14,14 +15,12 @@ def main():
     logging.info("\nRunning 'add_new_DB' script\n")
 
     pars_dict = read_ini_file.main()
-    new_DB_ID, sep, UCC_folder = (
-        pars_dict["new_DB"],
-        pars_dict["sep"],
-        pars_dict["UCC_folder"],
-    )
+    new_DB_ID, sep = (pars_dict["new_DB"], pars_dict["sep"])
     logging.info(f"Adding new DB: {new_DB_ID}")
 
-    df_UCC, df_new, json_pars, new_DB_fnames, db_matches = UCC_new_match.main(logging)
+    df_UCC, df_new, json_pars, new_DB_fnames, db_matches = UCC_new_match.main(
+        logging, dbs_folder, all_DBs_json, UCC_folder
+    )
 
     logging.info("")
     new_db_dict = combine_UCC_new_DB.main(
