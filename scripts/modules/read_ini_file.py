@@ -15,7 +15,6 @@ def main():
 
     pars = in_params["General"]
     pars_dict["new_DB"] = pars.get("new_DB")
-    pars_dict["sep"] = pars.get("sep")
     pars_dict["ID"] = pars.get("ID")
     pars_dict["RA"] = pars.get("RA")
     pars_dict["DEC"] = pars.get("DEC")
