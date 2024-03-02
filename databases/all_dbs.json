@@ -1,4 +1,11 @@
 {
+  "KOPOSOV08": {
+    "ref": "[Koposov et al. (2008)](https://ui.adsabs.harvard.edu/abs/2008A%26A...486..771K/abstract)",
+    "names": "Names",
+    "pars": "E(B-V),Distance,Age,None,None,None,None",
+    "e_pars": "e_E(B-V),e_Distance,e_Age,None,None,None,None",
+    "pos": "RA_deg,Dec_deg,None,None,None,None"
+ },
   "KHARCHENKO12": {
     "ref": "[Kharchenko et al. (2012)](https://ui.adsabs.harvard.edu/abs/2012A%26A...543A.156K)",
     "names": "name",
