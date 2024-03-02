@@ -17,7 +17,7 @@ def main():
 
     UCC_old = pd.read_csv(UCC_folder + old_UCC_name)
     old_date = old_UCC_name.split("_")[-1].split(".")[0]
-    logging.info(f"UCC version {old_date} loaded (N={len(UCC_old)})")
+    logging.info(f"UCC version {old_date} loaded (N={len(UCC_old)}) ; OLD")
 
     print("")
     fnames_old_all = list(UCC_old["fnames"])
