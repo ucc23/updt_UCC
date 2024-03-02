@@ -81,6 +81,11 @@ these following steps must be followed.
 <!-- TOC --><a name="adding-a-new-db"></a>
 ## Adding a new DB
 
+0. The new database must contain an `ID` column with all the names assigned to a given
+   OC, a column with `RA`, and a column wit `DEC` values (no galactic coordinates
+   allowed). OCs with multiple names must **not** use ';' as a separating character,
+   only ',' is allowed (surrounding the names with "")
+
 1. Add the name of the new DB to the `[General]` section of the `params.ini` file,
    and the column names for the `ID,RA,DEC` parameters in the `[New DB check]` section.
 
@@ -110,7 +115,6 @@ This script checks the new DB for proper formatting:
 - Check for possible duplicates in the new DB
 - Possible instances of 'vdBergh-Hagen'/'vdBergh' that must be changed to
   'VDBH' & 'VDB', per CDS recommendation
-- OCs with multiple names must **not** use ';' as a separating character
 - Possible empty entries in columns are replaced by 'nan's
 
 Once finished, correct any issues that are shown.
@@ -190,7 +194,7 @@ OCs, obtained from their members and surrounding field stars.
 
 2. Run the `F_updt_UCC.py` script
 
-If no new OCs were processed by the previous script, this one can be skipped.
+**If no new OCs were processed by the previous script, this one can be skipped.**
 
 This script uses the data in the `new_OCs_data.csv` file to update the new UCC
 version `zenodo/UCC_cat_XXYYZZ.csv`. It also estimates probable duplicates
@@ -200,8 +204,8 @@ Delete `new_OCs_data.csv` once this script is finished.
 
 3. Run the `G_UCC_versions_check.py` script
 
-Write the name of the previous UCC version in the section `[Check versions]` of
-the `params.ini` file, under the `old_UCC_name` variable.
+**Before running this script**: write the name of the previous UCC version in the
+section `[Check versions]` of the `params.ini` file, under the `old_UCC_name` variable.
 
 This script checks the old UCC DB versus the new one to flag possible issues
 for attention. It needs to be manually updated for whatever issues we are
