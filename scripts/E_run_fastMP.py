@@ -40,6 +40,9 @@ def main():
 
     # Read latest version of the UCC
     df_UCC, UCC_cat = UCC_new_match.latest_cat_detect(logging, UCC_folder)
+    if (df_UCC['C3'] == 'nan').sum() == 0:
+        print("No new OCs to process")
+        return
 
     # Read extra input data
     frames_data = pd.read_csv(frames_ranges)
@@ -62,14 +65,12 @@ def main():
         )
 
     # For each new OC
-    N_total = 0
     for index, new_cl in df_UCC.iterrows():
         params_updt = []
 
         # Check if this is a new OC that should be processed
         if str(new_cl["C3"]) != "nan":
             continue
-        N_total += 1
 
         # Identify position in the UCC
         fname0 = new_cl["fnames"].split(";")[0]
@@ -223,9 +224,6 @@ def main():
         pars_str = pars_str[:-1] + "\n"
         with open(new_OCs_fpath, "a") as myfile:
             myfile.write(pars_str)
-
-    if N_total == 0:
-        print("No new OCs processed")
 
 
 if __name__ == "__main__":
