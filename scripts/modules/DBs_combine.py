@@ -11,7 +11,7 @@ combined DB when a new DB is added.
 """
 
 
-def get_fnames_new_DB(df_new, json_pars, sep) -> list:
+def get_fnames_new_DB(df_new, json_pars, sep=",") -> list:
     """
     Extract and standardize all names in the new catalogue
     """

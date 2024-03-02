@@ -8,10 +8,7 @@ from . import DBs_combine
 def main(logging, dbs_folder, all_DBs_json, UCC_folder):
     """ """
     pars_dict = read_ini_file.main()
-    new_DB, sep = (
-        pars_dict["new_DB"],
-        pars_dict["sep"],
-    )
+    new_DB = pars_dict["new_DB"]
 
     # Load column data for the new catalogue
     with open(dbs_folder + all_DBs_json) as f:
@@ -26,7 +23,7 @@ def main(logging, dbs_folder, all_DBs_json, UCC_folder):
     logging.info(f"New DB {new_DB} loaded (N={len(df_new)})")
 
     logging.info(f"Standardize names in {new_DB}")
-    new_DB_fnames = DBs_combine.get_fnames_new_DB(df_new, json_pars, sep)
+    new_DB_fnames = DBs_combine.get_fnames_new_DB(df_new, json_pars)
 
     db_matches = DBs_combine.get_matches_new_DB(df_UCC, new_DB_fnames)
     N_matches = sum(_ is not None for _ in db_matches)
