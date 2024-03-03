@@ -28,7 +28,12 @@ def main(logging, dbs_folder, all_DBs_json, UCC_folder):
     db_matches = DBs_combine.get_matches_new_DB(df_UCC, new_DB_fnames)
     N_matches = sum(_ is not None for _ in db_matches)
     logging.info(f"Found {N_matches} matches in {new_DB}")
-    logging.info(f"Found {len(df_new)-N_matches} new OCs in {new_DB}")
+    N_new = len(df_new)-N_matches
+    logging.info(f"Found {N_new} new OCs in {new_DB}")
+    if N_new < 100:
+        for i, oc_new_db in enumerate(df_new[pars_dict['ID']].values):
+            if db_matches[i] is None:
+                print(f"  {i}: {oc_new_db.strip()}")
 
     return df_UCC, df_new, json_pars, new_DB_fnames, db_matches
 
