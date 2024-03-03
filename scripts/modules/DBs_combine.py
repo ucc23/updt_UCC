@@ -69,15 +69,18 @@ def rename_standard(name):
 
     if name.startswith("ESO"):
         if name[:4] not in ("ESO_", "ESO "):
-            # This is a LOKTIN17 ESO cluster
+            # E.g.: LOKTIN17, BOSSINI19
             name = "ESO_" + name[3:]
 
         if " " in name[4:]:
             n1, n2 = name[4:].split(" ")
         elif "_" in name[4:]:
             n1, n2 = name[4:].split("_")
-        elif "" in name[4:]:
+        elif "-" in name[4:]:
             n1, n2 = name[4:].split("-")
+        else:
+            # This assumes that all ESo clusters are names as: 'ESO XXX YY'
+            n1, n2 = name[4:4+3], name[4+3:]
 
         n1 = int(n1)
         if n1 < 10:
