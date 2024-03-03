@@ -28,6 +28,7 @@ def main():
     logging.info(f"Checking for entries in {new_DB} that must be combined")
     dup_flag = dups_check_newDB_UCC(logging, new_DB, df_UCC, new_DB_fnames, db_matches)
     if dup_flag:
+        print("Resolve the above issues before moving on.")
         return
 
     # Equatorial to galactic
@@ -70,9 +71,10 @@ def dups_check_newDB_UCC(logging, new_DB, df_UCC, new_DB_fnames, db_matches):
     """ """
 
     def list_duplicates(seq):
+        """ """
         seen = set()
         seen_add = seen.add
-        # adds all elements it doesn't know yet to seen and all other to seen_twice
+        # adds all elements it doesn't know yet to 'seen' and all other to 'seen_twice'
         seen_twice = set(x for x in seq if x in seen or seen_add(x))
         # turn the set into a list (as requested)
         return list(seen_twice)
@@ -80,13 +82,15 @@ def dups_check_newDB_UCC(logging, new_DB, df_UCC, new_DB_fnames, db_matches):
     idxs_match = [_ for _ in db_matches if _ is not None]
     dup_idxs = list_duplicates(idxs_match)
     if len(dup_idxs) > 0:
-        logging.info(f"WARNNG! Entries in {new_DB} that must be combined")
+        logging.info(f"WARNING! Entries in {new_DB} that must be combined")
+        print("")
         for didx in dup_idxs:
             for i, db_idx in enumerate(db_matches):
                 if db_idx == didx:
                     logging.info(
-                        f"  UCC {didx} {df_UCC['fnames'][didx]}: {i} {new_DB_fnames[i]}"
+                        f"  UCC {didx}: {df_UCC['fnames'][didx]}: {i} {new_DB_fnames[i]}"
                     )
+            print("")
         return True
 
     return False
