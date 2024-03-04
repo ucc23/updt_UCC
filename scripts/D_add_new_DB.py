@@ -24,7 +24,8 @@ def main():
 
     logging.info("")
     new_db_dict = combine_UCC_new_DB.main(
-        logging, new_DB_ID, df_UCC, df_new, json_pars, new_DB_fnames, db_matches)
+        logging, new_DB_ID, df_UCC, df_new, json_pars, new_DB_fnames, db_matches
+    )
     N_new = len(df_new) - sum(_ is not None for _ in db_matches)
     logging.info(f"\nN={N_new} new clusters in {new_DB_ID}")
     logging.info("")

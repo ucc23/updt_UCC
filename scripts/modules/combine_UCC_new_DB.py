@@ -4,7 +4,9 @@ from .DBs_combine import rm_name_dups
 from .DBs_combine import rename_standard
 
 
-def main(logging, new_DB_ID, df_UCC, df_new, json_pars, new_DB_fnames, db_matches, sep=","):
+def main(
+    logging, new_DB_ID, df_UCC, df_new, json_pars, new_DB_fnames, db_matches, sep=","
+):
     """ """
     # Extract names of (ra, dec, plx, pmRA, pmDE) columns
     cols = []

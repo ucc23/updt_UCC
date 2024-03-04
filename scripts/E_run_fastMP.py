@@ -40,7 +40,7 @@ def main():
 
     # Read latest version of the UCC
     df_UCC, UCC_cat = UCC_new_match.latest_cat_detect(logging, UCC_folder)
-    if (df_UCC['C3'] == 'nan').sum() == 0:
+    if (df_UCC["C3"] == "nan").sum() == 0:
         print("No new OCs to process")
         return
 
