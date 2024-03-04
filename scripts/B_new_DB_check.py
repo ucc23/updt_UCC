@@ -137,7 +137,7 @@ def close_OC_check(logging, df_new, pars_dict):
     Looks for OCs in the new DB that are close to other OCs in the new DB (GLON, GLAT)
     whose names are somewhat similar (Levenshtein distance).
     """
-    ID, RA, DEC, rad_dup, leven_rad = (
+    cID, RA, DEC, rad_dup, leven_rad = (
         pars_dict["ID"],
         pars_dict["RA"],
         pars_dict["DEC"],
