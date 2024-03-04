@@ -80,7 +80,7 @@ def rename_standard(name):
             n1, n2 = name[4:].split("-")
         else:
             # This assumes that all ESo clusters are names as: 'ESO XXX YY'
-            n1, n2 = name[4:4+3], name[4+3:]
+            n1, n2 = name[4 : 4 + 3], name[4 + 3 :]
 
         n1 = int(n1)
         if n1 < 10:
