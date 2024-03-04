@@ -34,6 +34,13 @@
     "e_pars": "None,None,None,None,None,None,None",
     "pos": "RA_ICRS,DE_ICRS,None,None,None,None"
  },
+  "BOSSINI19": {
+    "ref": "[Bossini et al. (2019)](https://ui.adsabs.harvard.edu/abs/2019A%26A...623A.108B/abstract)",
+    "names": "Cluster",
+    "pars": "AV,Dist,logA,Fe/H,None,None,None",
+    "e_pars": "eAV,eDist,elogA,None,None,None,None",
+    "pos": "RA_ICRS,DE_ICRS,None,None,None,None"
+ },
   "CASTRO19": {
     "ref": "[Castro-Ginard et al. (2019)](https://ui.adsabs.harvard.edu/abs/2019A%26A...627A..35C/abstract)",
     "names": "Cluster",
