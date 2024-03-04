@@ -167,7 +167,7 @@ Fix any possible issues that were flagged for attention **before** running the
 
 This script will update the current `UCC_cat_XXYYZZ.csv` catalogue with the
 OCs in the new DB. The 5D coordinates are **not** updated here if the
-OC(s) are present in the UCC.
+OC(s) are already present in the UCC.
 
 The new UCC version will have the same name format, with an updated date.
 
@@ -254,7 +254,7 @@ This script will:
 
 Once finished:
 
-0. Run `$ vulture .` + `$ black. ` on the repository
+0. Run `$ vulture .` + `$ black .` on the repository
 1. Push changes in `updt_UCC` repository
 2. Push changes in `QXY` repositories
 3. Update the Zenodo repository with the new files, creating a new release

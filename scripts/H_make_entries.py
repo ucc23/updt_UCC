@@ -217,7 +217,7 @@ def fpars_in_lit(DBs_used, DBs_data, DBs, DBs_i):
                         par_v = np.nan
                     if not np.isnan(par_v):
                         txt_pars += par + "=" + str(round(par_v, 2)) + ", "
-                except:
+                except Exception as _:
                     # DBs like SANTOS21 list more than 1 value per parameter
                     txt_pars += par + "=" + par_v + ", "
 

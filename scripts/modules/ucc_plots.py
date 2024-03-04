@@ -194,7 +194,7 @@ def make_aladin_plot(ra, dec, r_50, plot_aladin_fpath, dpi=100):
     try:
         url = f"http://alasky.u-strasbg.fr/hips-image-services/hips2fits?{urlencode(query_params)}"
         hdul = fits.open(url)
-    except Exception as e:
+    except Exception as _:
         return
 
     rotated_img = ndimage.rotate(hdul[0].data.T, 90)
