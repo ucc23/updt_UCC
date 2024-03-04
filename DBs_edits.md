@@ -128,6 +128,22 @@ For the Ryu clusters:
 More specifically, 902 (98%) clusters are smaller than 3′, and
 823 (89%) clusters are even smaller than 2′.* [Ryu & Lee (2018)](https://ui.adsabs.harvard.edu/abs/2018ApJ...856..152R/abstract)
 
+### BOSSINI19
+
+Added columns for the standard deviation of the fundamental parameters, combining the
+16th and 84th percentiles.
+
+The following OCs are duplicates and were combined using their average values:
+ASCC124, Alessi37
+ASCC22, Ferrero11
+ASCC112, AlessiTeutsch11
+Harvard5, Collinder258
+
+The following OCs were renamed:
+ngc0188, ngc0752, ngc0381, ngc0225, ngc0581
+to:
+ngc188, ngc752, ngc381, ngc225, ngc581
+
 ### SIM19
 207 New Open Star Clusters within 1 kpc from Gaia Data Release,
 [Sim et al. 2019](https://ui.adsabs.harvard.edu/abs/2019JKAS...52..145S/abstract), Data taken from Table 2 in online article
