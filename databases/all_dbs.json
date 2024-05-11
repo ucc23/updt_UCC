@@ -97,6 +97,13 @@
     "e_pars": "None,e_d_pc,e_logt,None,None,None,None",
     "pos": "ra,dec,plx,pmra,pmde,None"
  },
+  "DONOR20": {
+    "ref": "[Donor et al. (2020)](https://ui.adsabs.harvard.edu/abs/2020AJ....159..199D/abstract)",
+    "names": "Name",
+    "pars": "None,None,None,Fe/H,None,None,None",
+    "e_pars": "None,None,None,e_Fe/H,None,None,None",
+    "pos": "RA,DEC,None,pmRA,pmDE,HRV"
+ },
   "DIAS21": {
     "ref": "[Dias et al. (2021)](https://ui.adsabs.harvard.edu/abs/2021MNRAS.504..356D)",
     "names": "Cluster",
