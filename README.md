@@ -81,7 +81,7 @@ these following steps must be followed.
 <!-- TOC --><a name="adding-a-new-db"></a>
 ## Adding a new DB
 
-0. The new database must contain an `ID` column with all the names assigned to a given
+0. The new database must contain a column with all the names assigned to a given
    OC, a column with `RA`, and a column wit `DEC` values (no galactic coordinates
    allowed). OCs with multiple names must **not** use ';' as a separating character,
    only ',' is allowed (surrounding the names with "")
@@ -254,7 +254,7 @@ This script will:
 
 Once finished:
 
-0. Run `$ vulture .` + `$ black .` on the repository
+0. Run `vulture .` + `ruff check .` + `ruff format .` on the repository
 1. Push changes in `updt_UCC` repository
 2. Push changes in `QXY` repositories
 3. Update the Zenodo repository with the new files, creating a new release

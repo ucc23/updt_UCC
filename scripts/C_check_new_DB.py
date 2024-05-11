@@ -23,7 +23,8 @@ def main():
 
     # Store information on the OCs being added
     logging.info("\nOCs flagged for attention:\n")
-    logging.info("name, cent_flag, [arcmin], [%], [%], [%]")
+    logging.info("{:<15} {:<5} {}".format(
+        "name", "cent_flag", "[arcmin] [pmRA %] [pmDE %] [plx %]"))
     for i, fnames in enumerate(new_db_info["fnames"]):
         j = new_db_info["UCC_idx"][i]
         # If the OC is already present in the UCC
@@ -124,9 +125,9 @@ def flag_log(logging, df_UCC, new_db_info, fnames, i, j):
             )
             * 60
         )
-        txt += "{:.1f}, ".format(d_arcmin)
+        txt += "{:.1f} ".format(d_arcmin)
     else:
-        txt += "nan, "
+        txt += "nan "
     if bad_center[1] == "1":
         pmra_p = 100 * abs(
             (df_UCC["pmRA_m"][j] - new_db_info["pmRA"][i])
@@ -136,9 +137,9 @@ def flag_log(logging, df_UCC, new_db_info, fnames, i, j):
             (df_UCC["pmDE_m"][j] - new_db_info["pmDE"][i])
             / (df_UCC["pmDE_m"][j] + 0.001)
         )
-        txt += "{:.1f}, {:.1f}, ".format(pmra_p, pmde_p)
+        txt += "{:.1f} {:.1f} ".format(pmra_p, pmde_p)
     else:
-        txt += "nan, nan, "
+        txt += "nan nan "
     if bad_center[2] == "1":
         plx_p = (
             100
@@ -148,7 +149,9 @@ def flag_log(logging, df_UCC, new_db_info, fnames, i, j):
         txt += "{:.1f}".format(plx_p)
     else:
         txt += "nan"
-    logging.info(f"{fnames}, {bad_center}, {txt}")
+    txt = txt.split()
+    logging.info("{:<15} {:<5} {:>12} {:>8} {:>8} {:>7}".format(
+        fnames, bad_center, *txt))
 
 
 if __name__ == "__main__":
