@@ -1,23 +1,20 @@
 import csv
 import pandas as pd
 from modules import logger
-from modules import read_ini_file
 from modules import duplicate_probs
 from modules import UCC_new_match
+from HARDCODED import UCC_folder, new_OCs_fpath
 
 
 def main():
     """ """
     logging = logger.main()
 
-    pars_dict = read_ini_file.main()
-    UCC_folder, new_OCs_data = pars_dict["UCC_folder"], pars_dict["new_OCs_data"]
-
     # Read latest version of the UCC
     df_UCC, UCC_cat = UCC_new_match.latest_cat_detect(logging, UCC_folder)
 
     # Read file with parameters for the new OCs obtained from their members
-    params_updt = pd.read_csv(new_OCs_data)
+    params_updt = pd.read_csv(new_OCs_fpath)
 
     df_UCC = updt_UCC(logging, df_UCC, params_updt)
 
