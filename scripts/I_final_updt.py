@@ -124,7 +124,7 @@ def updt_DBs(df_UCC, root_UCC_path, pages_folder):
     new_file = replaceTextBetween(lines, md_table, delimeterA, delimeterB)
 
     # Now update table of quadrants
-    quad_table = "| Region  | lon range  | lat range  |   N |\n"
+    quad_table = "\n| Region  | lon range  | lat range  |   N |\n"
     quad_table += "|---------|------------|------------| :-: |\n"
     quad_lines = (
         "| [Q1P: 1st quadrant, positive latitude](https://ucc.ar/Q1P_table/) | [0, 90)    | [0, 90]    |",
