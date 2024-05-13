@@ -206,6 +206,12 @@ DR2, [Hao et al. 2020](https://ui.adsabs.harvard.edu/abs/2020PASP..132c4502H/abs
 
 This table lists 16 clusters with no acronym. Used 'HXWHB_' to match HUNT23
 
+
+### DONOR20
+
+Did not use the ages listed as they are from the MWSC database.
+
+
 ### FERREIRA21
 New star clusters discovered towards the Galactic bulge
 direction using Gaia DR2, [Ferreira et al. (2021)](https://ui.adsabs.harvard.edu/abs/2021MNRAS.502L..90F/abstract), [Vizier](https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=J/MNRAS/502/L90)
