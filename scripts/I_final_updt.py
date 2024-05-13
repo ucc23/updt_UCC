@@ -1,12 +1,16 @@
 import os
 import pandas as pd
 import numpy as np
+from itertools import islice
 import csv
+import json
 from modules import logger
 from modules import UCC_new_match
 from H_make_entries import UCC_color
 from HARDCODED import (
     UCC_folder,
+    all_DBs_json,
+    dbs_folder,
     root_UCC_path,
     clusters_json,
     pages_folder,
@@ -21,6 +25,9 @@ def main():
 
     # Read latest version of the UCC
     df_UCC, _ = UCC_new_match.latest_cat_detect(logging, UCC_folder)
+
+    updt_DBs(df_UCC, root_UCC_path, pages_folder)
+    logging.info("\nDBs updated")
 
     _ra = np.round(df_UCC["RA_ICRS"].values, 2)
     _dec = np.round(df_UCC["DE_ICRS"].values, 2)
@@ -71,6 +78,78 @@ def updt_cls_JSON(df_UCC, root_UCC_path, clusters_json, _ra, _dec, _lon, _lat):
     )
 
     df.to_json(root_UCC_path + clusters_json, orient="records", indent=1)
+
+
+def updt_DBs(df_UCC, root_UCC_path, pages_folder):
+    """ """
+    def chunks(data, SIZE=2):
+        """Split dictionary into chunks"""
+        it = iter(data)
+        for i in range(0, len(data), SIZE):
+            yield {k: data[k] for k in islice(it, SIZE)}
+
+    def replaceTextBetween(originalText, replacementText, delimeterA, delimeterB=None):
+        """Replace text between text"""
+        leadingText = originalText.split(delimeterA)[0]
+        if delimeterB is not None:
+            trailingText = originalText.split(delimeterB)[1]
+            return leadingText + delimeterA + replacementText + delimeterB + trailingText
+        return leadingText + delimeterA + replacementText
+
+    # Load column data for the new catalogue
+    with open(dbs_folder + all_DBs_json) as f:
+        dbs_used = json.load(f)
+
+    # Count DB occurrences in UCC
+    all_DBs = list(dbs_used.keys())
+    all_DB_occ = {_: 0 for _ in all_DBs}
+    for _ in df_UCC['DB'].values:
+        for DB in _.split(';'):
+            all_DB_occ[DB] += 1
+
+    md_table = "\n| Name | N | Name | N |\n"
+    md_table += "| ---- | :-: | ---- | :-: |\n"
+    for dict_3 in chunks(dbs_used):
+        row = ""
+        for DB, DB_data in dict_3.items():
+            row += f"| {DB_data['ref']} | {all_DB_occ[DB]} "
+        md_table += row + '|\n'
+    md_table += '\n'
+
+    with open(root_UCC_path + pages_folder + "/" + "DATABASE.md") as file:
+        lines = file.read()
+
+    delimeterA = "### Databases used in the UCC\n"
+    delimeterB = "### Quadrants\n"
+    new_file = replaceTextBetween(lines, md_table, delimeterA, delimeterB)
+
+    # Now update table of quadrants
+    quad_table = "| Region  | lon range  | lat range  |   N |\n"
+    quad_table += "|---------|------------|------------| :-: |\n"
+    quad_lines = (
+        "| [Q1P: 1st quadrant, positive latitude](https://ucc.ar/Q1P_table/) | [0, 90)    | [0, 90]    |",
+        "| [Q1N: 1st quadrant, negative latitude](https://ucc.ar/Q1N_table/) | [0, 90)    | (0, -90]   |",
+        "| [Q2P: 2nd quadrant, positive latitude](https://ucc.ar/Q2P_table/) | [90, 180)  | [0, 90]    |",
+        "| [Q2N: 2nd quadrant, negative latitude](https://ucc.ar/Q2N_table/) | [90, 180)  | (0, -90]   |",
+        "| [Q3P: 3rd quadrant, positive latitude](https://ucc.ar/Q3P_table/) | [180, 270) | [0, 90]    |",
+        "| [Q3N: 3rd quadrant, negative latitude](https://ucc.ar/Q3N_table/) | [180, 270) | (0, -90]   |",
+        "| [Q4P: 4th quadrant, positive latitude](https://ucc.ar/Q4P_table/) | [270, 360) | [0, 90]    |",
+        "| [Q4N: 4th quadrant, negative latitude](https://ucc.ar/Q4N_table/) | [270, 360) | (0, -90]   |"
+    )
+
+    df = df_UCC["quad"].values
+    i = 0
+    for quad_N in range(1, 5):
+        for quad_s in ("P", "N"):
+            i += 1
+            quad = "Q" + str(quad_N) + quad_s
+            msk = df == quad
+            quad_table += quad_lines[i - 1] + f" {msk.sum()} |\n"
+
+    new_file = replaceTextBetween(lines, quad_table, delimeterB)
+
+    with open(root_UCC_path + pages_folder + "/" + "DATABASE.md", "w") as file:
+        file.write(new_file)
 
 
 def updt_tables(df_UCC, root_UCC_path, pages_folder, _ra, _dec, _lon, _lat):
