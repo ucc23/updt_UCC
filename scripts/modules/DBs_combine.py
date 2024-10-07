@@ -1,9 +1,10 @@
+from string import ascii_lowercase
+
+import astropy.units as u
 import numpy as np
 from astropy.coordinates import SkyCoord
-import astropy.units as u
-from string import ascii_lowercase
-from . import duplicate_probs
 
+from . import duplicate_probs
 
 """
 This module contains helper functions to generate the extended
@@ -279,13 +280,13 @@ def dups_identify(df, prob_cut=0.5, Nmax=3):
     return dups_fnames, dups_probs
 
 
-def check_cents_diff(xy_c_o, vpd_c_o, plx_c_o, xy_c_n, vpd_c_n, plx_c_n):
+def check_cents_diff(xy_c_o, vpd_c_o, plx_c_o, xy_c_n, vpd_c_n, plx_c_n, d_max=10):
     """ """
     bad_center_xy, bad_center_pm, bad_center_plx = "0", "0", "0"
 
-    # 5 arcmin maximum
+    # Max distance in arcmin
     d_arcmin = np.sqrt((xy_c_o[0] - xy_c_n[0]) ** 2 + (xy_c_o[1] - xy_c_n[1]) ** 2) * 60
-    if d_arcmin > 5:
+    if d_arcmin > d_max:
         bad_center_xy = "1"
 
     # Relative difference
