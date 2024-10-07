@@ -1,19 +1,17 @@
 import csv
+from difflib import SequenceMatcher
+
 import Levenshtein
 import numpy as np
-from scipy.spatial.distance import cdist
 import pandas as pd
 from astropy import units as u
-from astropy.coordinates import SkyCoord
-from astropy.coordinates import angular_separation
-from difflib import SequenceMatcher
-from modules import logger
-from modules import read_ini_file
-from modules import UCC_new_match
-from HARDCODED import dbs_folder, all_DBs_json, UCC_folder, GCs_cat
+from astropy.coordinates import SkyCoord, angular_separation
+from HARDCODED import GCs_cat, UCC_folder, all_DBs_json, dbs_folder
+from modules import UCC_new_match, logger, read_ini_file
+from scipy.spatial.distance import cdist
 
 
-def main():
+def main(show_new_OCs=True):
     """ """
     logging = logger.main()
     pars_dict = read_ini_file.main()
@@ -21,15 +19,17 @@ def main():
 
     logging.info(f"Running 'new_DB_check' script on {new_DB}")
     df_UCC, df_new, _, new_DB_fnames, db_matches = UCC_new_match.main(
-        logging, dbs_folder, all_DBs_json, UCC_folder
+        logging, dbs_folder, all_DBs_json, UCC_folder, show_new_OCs
     )
 
     # Duplicate check between entries in the new DB and the UCC
-    logging.info(f"Checking for entries in {new_DB} that must be combined")
+    logging.info(f"\nChecking for entries in {new_DB} that must be combined")
     dup_flag = dups_check_newDB_UCC(logging, new_DB, df_UCC, new_DB_fnames, db_matches)
     if dup_flag:
         print("Resolve the above issues before moving on.")
         return
+    else:
+        print("No issues found")
 
     # Equatorial to galactic
     RA, DEC = pars_dict["RA"], pars_dict["DEC"]
@@ -39,32 +39,32 @@ def main():
     glon, glat = lb.l.value, lb.b.value
 
     # Check for GCs
-    logging.info("\n*Close CG check")
+    logging.info("\nClose CG check")
     GCs_check(logging, pars_dict, df_new, glon, glat)
 
     # Check for OCs very close to each other (possible duplicates)
-    logging.info("\n*Possible inner duplicates check")
+    logging.info("\nPossible inner duplicates check")
     close_OC_check(logging, df_new, pars_dict)
 
     # Check for OCs very close to each other (possible duplicates)
-    logging.info("\n*Possible UCC duplicates check")
+    logging.info("\nPossible UCC duplicates check")
     close_OC_UCC_check(
         logging, df_UCC, df_new, new_DB_fnames, db_matches, pars_dict, glon, glat
     )
 
     # Check for 'vdBergh-Hagen', 'vdBergh' OCs
-    logging.info("\n*Possible vdBergh-Hagen/vdBergh check")
+    logging.info("\nPossible vdBergh-Hagen/vdBergh check")
     vdberg_check(logging, df_new, pars_dict)
 
     # Check for semi-colon present in name column
-    logging.info("\n*Possible bad characters in names")
+    logging.info("\nPossible bad characters in names (';', '_')")
     name_chars_check(logging, df_new, pars_dict)
 
     # Replace empty positions with 'nans'
-    logging.info("\n*Empty entries replace finished")
+    logging.info("\nEmpty entries replace finished")
     empty_nan_replace(logging, dbs_folder, new_DB, df_new)
 
-    logging.info("\nFinished\n")
+    logging.info("\nFinished")
 
 
 def dups_check_newDB_UCC(logging, new_DB, df_UCC, new_DB_fnames, db_matches):
@@ -82,13 +82,13 @@ def dups_check_newDB_UCC(logging, new_DB, df_UCC, new_DB_fnames, db_matches):
     idxs_match = [_ for _ in db_matches if _ is not None]
     dup_idxs = list_duplicates(idxs_match)
     if len(dup_idxs) > 0:
-        logging.info(f"WARNING! Entries in {new_DB} that must be combined")
+        logging.info(f"WARNING! Found entries in {new_DB} that must be combined")
         print("")
         for didx in dup_idxs:
             for i, db_idx in enumerate(db_matches):
                 if db_idx == didx:
                     logging.info(
-                        f"  UCC {didx}: {df_UCC['fnames'][didx]}: {i} {new_DB_fnames[i]}"
+                        f"  UCC {didx}: {df_UCC['fnames'][didx]} --> {i} {new_DB_fnames[i]}"
                     )
             print("")
         return True
@@ -106,10 +106,7 @@ def GCs_check(logging, pars_dict, df_new, glon, glat):
     df_gcs = pd.read_csv(dbs_folder + GCs_cat)
     l_gc, b_gc = df_gcs["GLON"].values, df_gcs["GLAT"].values
 
-    logging.info("Dist [arcmin], OC, GC")
-    logging.info("---------------------")
-
-    GCs_found = 0
+    gc_all, GCs_found = [], 0
     for idx, row in df_new.iterrows():
         l_new, b_new = glon[idx], glat[idx]
 
@@ -123,12 +120,20 @@ def GCs_check(logging, pars_dict, df_new, glon, glat):
 
         if d_arcmin[j1] < search_rad:
             GCs_found += 1
-            logging.info(
-                f"{idx} {row[ID]} --> "
-                + f"{df_gcs['Name'][j1].strip()}, d={round(d_arcmin[j1], 2)}"
-            )
+            gc_all.append([idx, row[ID], df_gcs["Name"][j1], d_arcmin[j1]])
+    gc_all = np.array(gc_all).T
+    i_sort = np.argsort(np.array(gc_all[-1], dtype=float))
+    gc_all = gc_all[:, i_sort].T
 
-    if GCs_found == 0:
+    if GCs_found > 0:
+        logging.info(f"Found {GCs_found} probable GCs")
+        logging.info("i  OC   -->    GC,     Dist [arcmin]")
+        for gc in gc_all:
+            idx, row_id, df_gcs_name, d_arcmin = gc
+            logging.info(
+                f"{idx} {row_id} --> {df_gcs_name.strip()}, d={round(float(d_arcmin), 2)}"
+            )
+    else:
         logging.info("No probable GCs found")
 
 
@@ -153,7 +158,7 @@ def close_OC_check(logging, df_new, pars_dict):
     dist[msk] = np.inf
 
     idxs = np.arange(0, len(df_new))
-    dups_list, dups_found = [], 0
+    all_dups, dups_list = [], []
     for i, cl_d in enumerate(dist):
         msk = cl_d < rad_dup
         if msk.sum() == 0:
@@ -164,8 +169,6 @@ def close_OC_check(logging, df_new, pars_dict):
             # print(cl_name, "continue")
             continue
 
-        dups_found += 1
-
         N_inner_dups, dups, dist, L_ratios = 0, [], [], []
         for j in idxs[msk]:
             dup_name = df_new[cID][j].strip()
@@ -175,16 +178,27 @@ def close_OC_check(logging, df_new, pars_dict):
                 N_inner_dups += 1
                 dups_list.append(dup_name)
                 dups.append(dup_name)
-                dist.append(str(round(cl_d[j], 1)))
+                dist.append(str(round(cl_d[j], 2)))
                 L_ratios.append(str(round(L_ratio, 2)))
         if dups:
+            all_dups.append([i, cl_name, N_inner_dups, dups, dist, L_ratios])
+
+    dups_found = len(all_dups)
+    if dups_found > 0:
+        all_dists = []
+        for dup in all_dups:
+            all_dists.append(min([float(_) for _ in dup[-2]]))
+        i_sort = np.argsort(all_dists)
+
+        logging.info(f"Found {dups_found} probable inner duplicates")
+        for idx in i_sort:
+            i, cl_name, N_inner_dups, dups, dist, L_ratios = all_dups[idx]
             logging.info(
                 f"{i} {cl_name} (N={N_inner_dups}) --> "
                 + f"{';'.join(dups)}, d={';'.join(dist)}, L={';'.join(L_ratios)}"
             )
-
-    if dups_found == 0:
-        logging.info("No probable duplicates found")
+    else:
+        logging.info("No probable inner duplicates found")
 
 
 def close_OC_UCC_check(
