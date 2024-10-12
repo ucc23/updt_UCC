@@ -9,7 +9,9 @@
    * [Generating a new version of the UCC](#generating-a-new-version-of-the-ucc)
    * [Generate datafiles with members and update the new UCC](#generate-datafiles-with-members-and-update-the-new-ucc)
    * [Generate new cluster entries](#generate-new-cluster-entries)
-   * [Update the UCC](#update-the-ucc)
+   * [Update the database](#update-the-database)
+   * [Update Zenodo files](#update-zenodo-files)
+   * [Update UCC](#update-ucc)
 
 <!-- TOC end -->
 
@@ -81,17 +83,17 @@ these following steps must be followed.
 <!-- TOC --><a name="adding-a-new-db"></a>
 ## Adding a new DB
 
-0. The new database must contain a column with all the names assigned to a given
+0. The format of the name for the DB is `SMITH24` or, if required, `SMITH24_1`.
+   The name of the DB **must not** contain any non letter characters except for the
+   `_` required to differentiate DBs with the same names published in the same year.
+
+   The new database must contain a column with all the names assigned to a given
    OC, a column with `RA`, and a column wit `DEC` values (no galactic coordinates
    allowed). OCs with multiple names must **not** use ';' as a separating character,
    only ',' is allowed (surrounding the names with "")
 
-1. Add the name of the new DB to the `[General]` section of the `params.ini` file,
-   and the column names for the `ID,RA,DEC` parameters in the `[New DB check]` section.
-
-   The format of the name for the DB is `SMITH24` or, if required, `SMITH24_1`.
-   The name of the DB **must not** contain any non letter characters except for the
-   `_` required to differentiate DBs with the same names published in the same year.
+1. Add the name of the new DB and the column names for the `ID,RA,DEC` parameters in
+   to the `[General]` section of the `params.ini` file.
 
 2. Save the new DB in proper `csv` format to the `databases`/ folder
 
@@ -111,6 +113,7 @@ these following steps must be followed.
 
 This script checks the new DB for proper formatting:
 
+- Check for "bad characters" in cluster's names: ';' or '_'
 - Make sure that no GCs are very close to listed OCs
 - Check for possible duplicates in the new DB
 - Possible instances of 'vdBergh-Hagen'/'vdBergh' that must be changed to
@@ -242,17 +245,35 @@ For each processed OC that is missing either of those files:
 
 
 <!-- TOC --><a name="update-the-ucc"></a>
-## Update the UCC
+## Update the database
 
-1. Run the script `I_final_updt.py`
+Run the script `I_database_updt.py`. This script will:
 
-This script will:
-
-- update the `../ucc/_clusters/clusters.json` file used for searching in `ucc.ar`
 - update the tables files used by the `ucc.ar` site
-- generate the files that contain all the UCC information, used in Zenodo
+- update the `../ucc/_clusters/clusters.json` file used for searching in `ucc.ar`
 
-Once finished:
+### Summary
+- Scripts used: `I_database_updt`
+- Files edited: `ucc/clusters.json, ucc/_pages/QXY_table.md`
+
+
+
+<!-- TOC --><a name="update-zenodo-files"></a>
+## Update Zenodo files
+
+Run the script `J_zenodo_updt.py`.
+
+This script will generate the files uploaded to Zenodo, that contain all the UCC
+information.
+
+### Summary
+- Scripts used: `J_zenodo_updt`
+- Files generated: `zenodo/UCC_cat.csv.gz, zenodo/UCC_members.parquet.gz`
+
+
+
+<!-- TOC --><a name="update-UCC"></a>
+## Update UCC
 
 0. Run `vulture .` + `ruff check .` + `ruff format .` on the repository
 1. Push changes in `updt_UCC` repository
@@ -261,11 +282,5 @@ Once finished:
 4. Update the `CHANGELOG.md` file with the Zenodo URL for the release
 5. Push changes in `ucc` repository
 
-
 To check folders recursively for changes use:
 `$ clear & find . -name '.git' | while read -r repo ; do repo=${repo%".git"}; (git -C "$repo" status -s | grep -q -v "^\$" && echo -e "\n\033[1m${repo}\033[m" && git -C "$repo" status -s) || true; done`
-
-### Summary
-- Scripts used: `I_final_updt`
-- Files edited: `ucc/clusters.json, ucc/_pages/QXY_table.md`
-- Files generated: `zenodo/UCC_cat.csv.gz, zenodo/UCC_members.parquet.gz`
