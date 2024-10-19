@@ -249,12 +249,13 @@ For each processed OC that is missing either of those files:
 
 Run the script `I_database_updt.py`. This script will:
 
-- update the tables files used by the `ucc.ar` site
+- update the `DATABASE.md` file used by the `ucc.ar` site
+- update the tables files linked to the above file
 - update the `../ucc/_clusters/clusters.json` file used for searching in `ucc.ar`
 
 ### Summary
 - Scripts used: `I_database_updt`
-- Files edited: `ucc/clusters.json, ucc/_pages/QXY_table.md`
+- Files edited: `ucc/_pages/DATABASE.md, ucc/_pages/QXY_table.md, ucc/clusters.json`
 
 
 
