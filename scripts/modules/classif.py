@@ -1,9 +1,10 @@
-import numpy as np
-from scipy.stats import gaussian_kde
-from scipy.special import loggamma
-from scipy.integrate import quad
-from scipy import spatial
 import warnings
+
+import numpy as np
+from scipy import spatial
+from scipy.integrate import quad
+from scipy.special import loggamma
+from scipy.stats import gaussian_kde
 
 
 def get_classif(df_membs, df_field):
@@ -48,6 +49,9 @@ def lkl_phot(df_membs, df_field, max_mag_perc=90):
 
     if N_field <= N_membs:
         # Not enough field stars
+        warnings.warn(
+            "Not enough field stars to obtain C1 class, will result in 'D' class"
+        )
         return np.nan
     elif N_field < 1.5 * N_membs:
         runs = 10
