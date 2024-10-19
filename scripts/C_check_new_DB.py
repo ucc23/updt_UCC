@@ -1,9 +1,6 @@
 import numpy as np
-from modules import logger
-from modules import read_ini_file
-from modules import DBs_combine
-from modules import UCC_new_match
-from HARDCODED import dbs_folder, all_DBs_json, UCC_folder
+from HARDCODED import UCC_folder, all_DBs_json, dbs_folder
+from modules import DBs_combine, UCC_new_match, logger, read_ini_file
 
 
 def main():
@@ -23,8 +20,11 @@ def main():
 
     # Store information on the OCs being added
     logging.info("\nOCs flagged for attention:\n")
-    logging.info("{:<15} {:<5} {}".format(
-        "name", "cent_flag", "[arcmin] [pmRA %] [pmDE %] [plx %]"))
+    logging.info(
+        "{:<15} {:<5} {}".format(
+            "name", "cent_flag", "[arcmin] [pmRA %] [pmDE %] [plx %]"
+        )
+    )
     for i, fnames in enumerate(new_db_info["fnames"]):
         j = new_db_info["UCC_idx"][i]
         # If the OC is already present in the UCC
@@ -150,8 +150,9 @@ def flag_log(logging, df_UCC, new_db_info, fnames, i, j):
     else:
         txt += "nan"
     txt = txt.split()
-    logging.info("{:<15} {:<5} {:>12} {:>8} {:>8} {:>7}".format(
-        fnames, bad_center, *txt))
+    logging.info(
+        "{:<15} {:<5} {:>12} {:>8} {:>8} {:>7}".format(fnames, bad_center, *txt)
+    )
 
 
 if __name__ == "__main__":
