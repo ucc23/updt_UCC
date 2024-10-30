@@ -5,18 +5,15 @@ This repository contains all the necessary scripts to update/edit the UCC
 database and its associated web site.
 
 
-```
 Adds a new DB?
-  Yes --> Follow `add_new_DB.md` instructions
-  No  --> Modify one or more existing entries?
-          Yes  --> Follow `XXX.md` instructions
-          No   --> Add one or more entries?
-                  Yes --> Follow `YYY.md` instructions
-                  No  --> Remove one or more entries?
-                          Yes --> Follow `ZZZ.md` instructions
-                          No  --> ???
-```
-
+Yes --> Follow [add_new_DB.md](add_new_DB.md) instructions
+No  --> Modify one or more existing entries?
+        Yes  --> Follow `XXX.md` instructions
+        No   --> Add one or more entries?
+                 Yes --> Follow `YYY.md` instructions
+                 No  --> Remove one or more entries?
+                         Yes --> Follow `ZZZ.md` instructions
+                         No  --> ???
 
 
 
