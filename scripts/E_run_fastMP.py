@@ -1,20 +1,12 @@
 import numpy as np
 import pandas as pd
-from scipy import spatial
-from modules import logger
-from modules import read_ini_file
-from modules import run_fastMP_funcs as fMPf
-from modules import classif
+from HARDCODED import GCs_cat, UCC_folder, dbs_folder, new_OCs_fpath, root_UCC_path
+from modules import UCC_new_match, classif, logger, read_ini_file
 from modules import main_process_GDR3_query as G3Q
-from modules import UCC_new_match
-from HARDCODED import dbs_folder, UCC_folder, GCs_cat, new_OCs_fpath, root_UCC_path
+from modules import run_fastMP_funcs as fMPf
+from scipy import spatial
 
-# Load local version of fastMP
-# insert at 1, 0 is the script path (or '' in REPL)
-import sys
-
-sys.path.insert(1, "/home/gabriel/Github/Gabriel_p/fastmp/")  # Path to fastMP
-from fastmp import fastMP
+# TODO: import fastMP from asteca and modify this scrip to work with this new version
 
 
 def main():
@@ -40,7 +32,7 @@ def main():
 
     # Read latest version of the UCC
     df_UCC, UCC_cat = UCC_new_match.latest_cat_detect(logging, UCC_folder)
-    if (np.array(df_UCC["C3"], dtype=str) == 'nan').sum() == 0:
+    if (np.array(df_UCC["C3"], dtype=str) == "nan").sum() == 0:
         print("No new OCs to process")
         return
 
