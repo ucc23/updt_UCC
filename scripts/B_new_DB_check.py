@@ -10,16 +10,42 @@ from HARDCODED import GCs_cat, UCC_folder, all_DBs_json, dbs_folder
 from modules import UCC_new_match, logger, read_ini_file
 from scipy.spatial.distance import cdist
 
+# Print entries to screen
+show_entries = True
 
-def main(show_new_OCs=True):
+# Force script to move forward at certain stages
+# Close GC check
+gc_check = False  # True
+# Inner duplicates check
+inner_dup_check = False  # True
+# UCC duplicates check
+ucc_dup_check = True
+# VDB names check
+vdb_check = False #True
+
+
+def main():
     """ """
     logging = logger.main()
     pars_dict = read_ini_file.main()
     new_DB = pars_dict["new_DB"]
-
     logging.info(f"Running 'new_DB_check' script on {new_DB}")
-    df_UCC, df_new, _, new_DB_fnames, db_matches = UCC_new_match.main(
-        logging, dbs_folder, all_DBs_json, UCC_folder, show_new_OCs
+
+    # Load the current UCC, the new DB, and its JSON values
+    df_UCC, df_new, json_pars = UCC_new_match.load_data(
+        logging, dbs_folder, all_DBs_json, UCC_folder
+    )
+
+    # Check for semi-colon and underscore present in name column
+    logging.info("\nPossible bad characters in names (';', '_')")
+    bad_name_flag = name_chars_check(logging, df_new, pars_dict, show_entries)
+    if bad_name_flag:
+        print("Resolve the above issues before moving on.")
+        return
+
+    # Standardize and match the new DB with the UCC
+    new_DB_fnames, db_matches = UCC_new_match.standardize_and_match(
+        logging, df_UCC, df_new, json_pars, pars_dict, new_DB, show_entries
     )
 
     # Duplicate check between entries in the new DB and the UCC
@@ -38,27 +64,39 @@ def main(show_new_OCs=True):
     lb = gc.transform_to("galactic")
     glon, glat = lb.l.value, lb.b.value
 
-    # Check for GCs
-    logging.info("\nClose CG check")
-    GCs_check(logging, pars_dict, df_new, glon, glat)
+    if gc_check:
+        # Check for GCs
+        logging.info("\nClose CG check")
+        gc_flag = GCs_check(logging, pars_dict, df_new, glon, glat)
+        if gc_flag:
+            print("Resolve the above issues before moving on.")
+            return
 
-    # Check for OCs very close to each other (possible duplicates)
-    logging.info("\nPossible inner duplicates check")
-    close_OC_check(logging, df_new, pars_dict)
+    if inner_dup_check:
+        # Check for OCs very close to each other (possible duplicates)
+        logging.info("\nPossible inner duplicates check")
+        inner_flag = close_OC_check(logging, df_new, pars_dict)
+        if inner_flag:
+            print("Resolve the above issues before moving on.")
+            return
 
-    # Check for OCs very close to each other (possible duplicates)
-    logging.info("\nPossible UCC duplicates check")
-    close_OC_UCC_check(
-        logging, df_UCC, df_new, new_DB_fnames, db_matches, pars_dict, glon, glat
-    )
+    if ucc_dup_check:
+        # Check for OCs very close to each other (possible duplicates)
+        logging.info("\nPossible UCC duplicates check")
+        dups_flag = close_OC_UCC_check(
+            logging, df_UCC, df_new, new_DB_fnames, db_matches, pars_dict, glon, glat
+        )
+        if dups_flag:
+            print("Resolve the above issues before moving on.")
+            return
 
-    # Check for 'vdBergh-Hagen', 'vdBergh' OCs
-    logging.info("\nPossible vdBergh-Hagen/vdBergh check")
-    vdberg_check(logging, df_new, pars_dict)
-
-    # Check for semi-colon present in name column
-    logging.info("\nPossible bad characters in names (';', '_')")
-    name_chars_check(logging, df_new, pars_dict)
+    if vdb_check:
+        # Check for 'vdBergh-Hagen', 'vdBergh' OCs
+        logging.info("\nPossible vdBergh-Hagen/vdBergh check")
+        vdb_flag = vdberg_check(logging, df_new, pars_dict)
+        if vdb_flag:
+            print("Resolve the above issues before moving on.")
+            return
 
     # Replace empty positions with 'nans'
     logging.info("\nEmpty entries replace finished")
@@ -125,21 +163,27 @@ def GCs_check(logging, pars_dict, df_new, glon, glat):
     i_sort = np.argsort(np.array(gc_all[-1], dtype=float))
     gc_all = gc_all[:, i_sort].T
 
+    gc_flag = False
     if GCs_found > 0:
+        gc_flag = True
         logging.info(f"Found {GCs_found} probable GCs")
-        logging.info("i  OC   -->    GC,     Dist [arcmin]")
+        logging.info("i          OC              --> GC              Dist [arcmin]")
+        logging.info("------------------------------------------------------------")
         for gc in gc_all:
             idx, row_id, df_gcs_name, d_arcmin = gc
             logging.info(
-                f"{idx} {row_id} --> {df_gcs_name.strip()}, d={round(float(d_arcmin), 2)}"
+                f"{idx:<10} {row_id:<15} --> {df_gcs_name.strip():<15}"
+                + f"d={round(float(d_arcmin), 2)}"
             )
     else:
         logging.info("No probable GCs found")
 
+    return gc_flag
+
 
 def close_OC_check(logging, df_new, pars_dict):
     """
-    Looks for OCs in the new DB that are close to other OCs in the new DB (GLON, GLAT)
+    Looks for OCs in the new DB that are close to other OCs in the new DB (RA, DEC)
     whose names are somewhat similar (Levenshtein distance).
     """
     cID, RA, DEC, rad_dup, leven_rad = (
@@ -151,8 +195,8 @@ def close_OC_check(logging, df_new, pars_dict):
     )
     x, y = df_new[RA].values, df_new[DEC].values
     coords = np.array([x, y]).T
-    # Find the distances to all clusters, for all clusters
-    dist = cdist(coords, coords)
+    # Find the distances to all clusters, for all clusters (in arcmin)
+    dist = cdist(coords, coords) * 60
     # Change distance to itself from 0 to inf
     msk = dist == 0.0
     dist[msk] = np.inf
@@ -178,27 +222,33 @@ def close_OC_check(logging, df_new, pars_dict):
                 N_inner_dups += 1
                 dups_list.append(dup_name)
                 dups.append(dup_name)
-                dist.append(str(round(cl_d[j], 2)))
+                dist.append(str(round(cl_d[j], 1)))
                 L_ratios.append(str(round(L_ratio, 2)))
         if dups:
             all_dups.append([i, cl_name, N_inner_dups, dups, dist, L_ratios])
 
+    inner_flag = False
     dups_found = len(all_dups)
     if dups_found > 0:
+        inner_flag = True
         all_dists = []
         for dup in all_dups:
             all_dists.append(min([float(_) for _ in dup[-2]]))
         i_sort = np.argsort(all_dists)
 
         logging.info(f"Found {dups_found} probable inner duplicates")
+        logging.info("i          OC                     --> OC              d [arcmin]")
+        logging.info("----------------------------------------------------------------")
         for idx in i_sort:
             i, cl_name, N_inner_dups, dups, dist, L_ratios = all_dups[idx]
             logging.info(
-                f"{i} {cl_name} (N={N_inner_dups}) --> "
-                + f"{';'.join(dups)}, d={';'.join(dist)}, L={';'.join(L_ratios)}"
+                f"{i:<10} {cl_name:<15} (N={N_inner_dups}) --> "
+                + f"{';'.join(dups):<15} d={';'.join(dist)}, L={';'.join(L_ratios)}"
             )
     else:
         logging.info("No probable inner duplicates found")
+
+    return inner_flag
 
 
 def close_OC_UCC_check(
@@ -244,20 +294,38 @@ def close_OC_UCC_check(
             + f"{'|'.join(dups)}, d={'|'.join(dist)}"
         )
 
+    dups_flag = True
     if dups_found == 0:
+        dups_flag = False
         logging.info("No probable duplicates found")
 
+    return dups_flag
 
-def name_chars_check(logging, df_new, pars_dict):
+
+def name_chars_check(logging, df_new, pars_dict, show_entries):
     """ """
     ID = pars_dict["ID"]
-    badchars_found = 0
+    all_bad_names = []
     for new_cl in df_new[ID]:
         if ";" in new_cl or "_" in new_cl:
-            badchars_found += 1
-            logging.info(f"{new_cl}: bad char found")
-    if badchars_found == 0:
+            # badchars_found += 1
+            # logging.info(f"{new_cl}: bad char found")
+            all_bad_names.append(new_cl)
+
+    if len(all_bad_names) == 0:
+        bad_name_flag = False
         logging.info("No bad-chars found in name(s) column")
+    else:
+        bad_name_flag = True
+        logging.info(
+            f"{len(all_bad_names)} entries with bad-chars found in name(s) column"
+        )
+
+    if show_entries:
+        for new_cl in all_bad_names:
+            logging.info(f"{new_cl}: bad char found")
+
+    return bad_name_flag
 
 
 def vdberg_check(logging, df_new, pars_dict):
@@ -279,8 +347,13 @@ def vdberg_check(logging, df_new, pars_dict):
                 vds_found += 1
                 logging.info(f"Possible VDB(H): {i} {new_cl}, {round(sm_ratio, 2)}")
                 break
+
+    vdb_flag = True
     if vds_found == 0:
+        vdb_flag = False
         logging.info("No probable vdBergh-Hagen/vdBergh OCs found")
+
+    return vdb_flag
 
 
 def empty_nan_replace(logging, dbs_folder, new_DB, df_new):
