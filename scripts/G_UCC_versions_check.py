@@ -1,8 +1,6 @@
 import pandas as pd
-from modules import logger
-from modules import read_ini_file
-from modules import UCC_new_match
 from HARDCODED import UCC_folder
+from modules import UCC_new_match, logger, read_ini_file
 
 
 def main():
@@ -17,7 +15,7 @@ def main():
 
     UCC_old = pd.read_csv(UCC_folder + old_UCC_name)
     old_date = old_UCC_name.split("_")[-1].split(".")[0]
-    logging.info(f"UCC version {old_date} loaded (N={len(UCC_old)}) ; OLD")
+    logging.info(f"UCC version {old_date} loaded (N={len(UCC_old)}) <-- OLD")
 
     print("")
     fnames_old_all = list(UCC_old["fnames"])

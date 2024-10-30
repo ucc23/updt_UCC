@@ -1,12 +1,18 @@
-import datetime
 import csv
+import datetime
+
 import pandas as pd
-from modules import logger
-from modules import read_ini_file
-from modules import combine_UCC_new_DB
-from modules import DBs_combine
-from modules import UCC_new_match
-from HARDCODED import dbs_folder, all_DBs_json, UCC_folder
+from HARDCODED import UCC_folder, all_DBs_json, dbs_folder
+from modules import (
+    DBs_combine,
+    UCC_new_match,
+    combine_UCC_new_DB,
+    logger,
+    read_ini_file,
+)
+
+# Print entries to screen
+show_entries = True
 
 
 def main():
@@ -15,19 +21,25 @@ def main():
     logging.info("\nRunning 'add_new_DB' script\n")
 
     pars_dict = read_ini_file.main()
-    new_DB_ID = pars_dict["new_DB"]
-    logging.info(f"Adding new DB: {new_DB_ID}")
+    new_DB = pars_dict["new_DB"]
+    logging.info(f"Adding new DB: {new_DB}")
 
-    df_UCC, df_new, json_pars, new_DB_fnames, db_matches = UCC_new_match.main(
+    # Load the current UCC, the new DB, and its JSON values
+    df_UCC, df_new, json_pars = UCC_new_match.load_data(
         logging, dbs_folder, all_DBs_json, UCC_folder
+    )
+
+    # Standardize and match the new DB with the UCC
+    new_DB_fnames, db_matches = UCC_new_match.standardize_and_match(
+        logging, df_UCC, df_new, json_pars, pars_dict, new_DB, show_entries
     )
 
     logging.info("")
     new_db_dict = combine_UCC_new_DB.main(
-        logging, new_DB_ID, df_UCC, df_new, json_pars, new_DB_fnames, db_matches
+        logging, new_DB, df_UCC, df_new, json_pars, new_DB_fnames, db_matches
     )
     N_new = len(df_new) - sum(_ is not None for _ in db_matches)
-    logging.info(f"\nN={N_new} new clusters in {new_DB_ID}")
+    logging.info(f"\nN={N_new} new clusters in {new_DB}")
     logging.info("")
 
     # Add UCC_IDs and quadrants for new clusters
