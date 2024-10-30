@@ -280,13 +280,13 @@ def dups_identify(df, prob_cut=0.5, Nmax=3):
     return dups_fnames, dups_probs
 
 
-def check_cents_diff(xy_c_o, vpd_c_o, plx_c_o, xy_c_n, vpd_c_n, plx_c_n, d_max=10):
+def check_cents_diff(xy_c_o, vpd_c_o, plx_c_o, xy_c_n, vpd_c_n, plx_c_n, rad_dup):
     """ """
     bad_center_xy, bad_center_pm, bad_center_plx = "0", "0", "0"
 
     # Max distance in arcmin
     d_arcmin = np.sqrt((xy_c_o[0] - xy_c_n[0]) ** 2 + (xy_c_o[1] - xy_c_n[1]) ** 2) * 60
-    if d_arcmin > d_max:
+    if d_arcmin > rad_dup:
         bad_center_xy = "1"
 
     # Relative difference
