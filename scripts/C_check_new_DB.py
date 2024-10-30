@@ -2,6 +2,9 @@ import numpy as np
 from HARDCODED import UCC_folder, all_DBs_json, dbs_folder
 from modules import DBs_combine, UCC_new_match, logger, read_ini_file
 
+# Print entries to screen
+show_entries = True
+
 
 def main():
     """ """
@@ -12,8 +15,14 @@ def main():
     new_DB = pars_dict["new_DB"]
     logging.info(f"Checking new DB: {new_DB}")
 
-    df_UCC, df_new, json_pars, new_DB_fnames, db_matches = UCC_new_match.main(
+    # Load the current UCC, the new DB, and its JSON values
+    df_UCC, df_new, json_pars = UCC_new_match.load_data(
         logging, dbs_folder, all_DBs_json, UCC_folder
+    )
+
+    # Standardize and match the new DB with the UCC
+    new_DB_fnames, db_matches = UCC_new_match.standardize_and_match(
+        logging, df_UCC, df_new, json_pars, pars_dict, new_DB, show_entries
     )
 
     new_db_info = prep_newDB(df_new, json_pars, new_DB_fnames, db_matches)
@@ -25,11 +34,12 @@ def main():
             "name", "cent_flag", "[arcmin] [pmRA %] [pmDE %] [plx %]"
         )
     )
+    rad_dup = pars_dict["rad_dup"]
     for i, fnames in enumerate(new_db_info["fnames"]):
         j = new_db_info["UCC_idx"][i]
         # If the OC is already present in the UCC
         if j is not None:
-            flag_log(logging, df_UCC, new_db_info, fnames, i, j)
+            flag_log(logging, df_UCC, new_db_info, rad_dup, fnames, i, j, )
 
 
 def prep_newDB(df_new, json_pars, new_DB_fnames, db_matches):
@@ -101,15 +111,16 @@ def prep_newDB(df_new, json_pars, new_DB_fnames, db_matches):
     return new_db_info
 
 
-def flag_log(logging, df_UCC, new_db_info, fnames, i, j):
+def flag_log(logging, df_UCC, new_db_info, rad_dup, fnames, i, j):
     """ """
     bad_center = DBs_combine.check_cents_diff(
         (df_UCC["GLON_m"][j], df_UCC["GLAT_m"][j]),
         (df_UCC["pmRA_m"][j], df_UCC["pmDE_m"][j]),
-        df_UCC["plx"][j],
+        df_UCC["plx_m"][j],
         (new_db_info["GLON"][i], new_db_info["GLAT"][i]),
         (new_db_info["pmRA"][i], new_db_info["pmDE"][i]),
         new_db_info["plx"][i],
+        rad_dup
     )
 
     # Is the difference between the old vs new center values large?
@@ -127,7 +138,8 @@ def flag_log(logging, df_UCC, new_db_info, fnames, i, j):
         )
         txt += "{:.1f} ".format(d_arcmin)
     else:
-        txt += "nan "
+        txt += "-- "
+
     if bad_center[1] == "1":
         pmra_p = 100 * abs(
             (df_UCC["pmRA_m"][j] - new_db_info["pmRA"][i])
@@ -139,7 +151,8 @@ def flag_log(logging, df_UCC, new_db_info, fnames, i, j):
         )
         txt += "{:.1f} {:.1f} ".format(pmra_p, pmde_p)
     else:
-        txt += "nan nan "
+        txt += "-- -- "
+
     if bad_center[2] == "1":
         plx_p = (
             100
@@ -148,7 +161,8 @@ def flag_log(logging, df_UCC, new_db_info, fnames, i, j):
         )
         txt += "{:.1f}".format(plx_p)
     else:
-        txt += "nan"
+        txt += "--"
+
     txt = txt.split()
     logging.info(
         "{:<15} {:<5} {:>12} {:>8} {:>8} {:>7}".format(fnames, bad_center, *txt)
