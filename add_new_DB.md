@@ -11,7 +11,11 @@ follow these steps:
 5. Generate members' datafiles
 6. Update the new UCC
 7. General check of new UCC
-8. Generate new clusters entries
+8. Generate new Zenodo files
+
+The above steps prepare the files for the updated version of the UCC. The following
+steps **apply** the required changes to the site.
+
 9. Update database files
 10. Update Zenodo files
 
@@ -173,10 +177,24 @@ trying to find.
 
 
 
+## 8. Generate new Zenodo files
 
-## 8. Generate new clusters entries
+Run the script `H_zenodo_updt.py`
 
-Run the `H_make_entries.py` script
+This script will generate the two files that are to be uploaded to Zenodo. These files
+contain all the UCC information.
+
+### Summary
+- Files generated: `zenodo/UCC_cat.csv.gz, zenodo/UCC_members.parquet.gz`
+- Files generated: None
+
+
+
+
+
+## 9. Generate new clusters entries
+
+Run the `I_make_entries.py` script
 
 This script will process the **entire** UCC and generate an `md` file, `ipynb`
 notebook, and plot, for every OC for which either of those files do not exist.
@@ -190,15 +208,16 @@ For each processed OC that is missing either of those files:
 3. Generate a plot, stored in `../UCC/QXY/plots/`
 
 ### Summary
-- Files edited: `md` entries (if there are changes in the new UCC)
-- Files generated: `md` + notebooks + plots (if files are missing)
+- Files edited: `../ucc/_clusters/*.md` entries (if there are changes in the new UCC)
+- Files generated: `../ucc/_clusters/*.md` + `../UCC/QXY/notebooks/*.ipynb` +
+  `../UCC/QXY/plots/*.webp` (if files are missing)
 
 
 
 
-## 9. Update database files
+## 10. Update database files
 
-Run the script `I_database_updt.py`. This script will:
+Run the script `J_database_updt.py`. This script will:
 
 - update the `DATABASE.md` file used by the `ucc.ar` site
 - update the tables files linked to the above file
@@ -206,17 +225,4 @@ Run the script `I_database_updt.py`. This script will:
 
 ### Summary
 - Files edited: `ucc/_pages/DATABASE.md, ucc/_pages/QXY_table.md, ucc/clusters.json`
-- Files generated: None
-
-
-
-## 10. Update Zenodo files
-
-Run the script `J_zenodo_updt.py`
-
-This script will generate the two files that are to be uploaded to Zenodo. These files
-contain all the UCC information.
-
-### Summary
-- Files generated: `zenodo/UCC_cat.csv.gz, zenodo/UCC_members.parquet.gz`
 - Files generated: None
