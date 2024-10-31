@@ -7,19 +7,26 @@ follow these steps:
 1. Prepare DB
 2. Check format
 3. Check issues
-4. Generate a new UCC version
-5. Generate members' datafiles
+4. Generate a new UCC version (stored at `zenodo/UCC_cat_XXYYZZ.csv`)
+5. Generate members' datafiles (files stored at `../QXY/datafiles/`)
 6. Update the new UCC
 7. General check of new UCC
-8. Generate new Zenodo files
+8. Generate new Zenodo files (stored at `zenodo/`)
 
 The above steps prepare the files for the updated version of the UCC. The following
-steps **apply** the required changes to the site.
+steps **apply** the required changes to the site's files.
 
-9. Update database files
-10. Update Zenodo files
+9. Generate new clusters entries
+10. Update site's files
+
+Once all scripts have been applied, follow the final steps in the
+`UCC public site build` section of the `UCC management` file to update the public
+ucc.ar site.
 
 
+
+
+---------------------------------
 
 ## 1. Prepare DB
 
@@ -104,7 +111,6 @@ Fix any possible issues that were flagged for attention **before** running the
 
 
 
-
 ## 4. Generate a new UCC version
 
 Run the `D_add_new_DB.py` script
@@ -113,7 +119,8 @@ This script will update the current `UCC_cat_XXYYZZ.csv` catalogue with the
 OCs in the new DB. The 5D coordinates are **not** updated here if the
 OC(s) are already present in the UCC.
 
-The new UCC version will have the same name format, with an updated date.
+The new UCC version will have the same name format with an updated date stored
+at `zenodo/UCC_cat_XXYYZZ.csv`.
 
 ### Summary
 - Files edited: None
@@ -130,14 +137,14 @@ new OCs in the  new DB. These are identified as those with a
 'nan' value in the 'C3' column of the new `zenodo/UCC_cat_XXYYZZ.csv` file.
 
 The `.parquet` member files are automatically stored in the proper
-`../UCC/QXY/datafiles/` repositories.
+`../QXY/datafiles/` repositories.
 
 This script also generates a `new_OCs_data.csv` file with parameters for the new
 OCs, obtained from their members and surrounding field stars.
 
 ### Summary
 - Files edited: None
-- Files generated: `new_OCs_data.csv` + members' datafiles
+- Files generated: `new_OCs_data.csv` + `../QXY/datafiles/*.parquet`
 
 
 
@@ -148,15 +155,16 @@ Run the `F_updt_UCC.py` script
 **If no new OCs were processed by the previous script, this one can be skipped.**
 
 This script uses the data in the `new_OCs_data.csv` file to update the new UCC
-version `zenodo/UCC_cat_XXYYZZ.csv`. It also estimates probable duplicates
-using data on positions obtained from the members stars.
+version `zenodo/UCC_cat_XXYYZZ.csv`.
+
+It also estimates probable duplicates using data on positions obtained from the members
+stars.
 
 Delete `new_OCs_data.csv` once this script is finished.
 
 ### Summary
 - Files edited: `zenodo/UCC_cat_XXYYZZ.csv`, `new_OCs_data.csv` deleted
 - Files generated: None
-
 
 
 
@@ -168,8 +176,7 @@ Run the `G_UCC_versions_check.py` script
 section `[Check versions]` of the `params.ini` file, under the `old_UCC_name` variable.
 
 This script checks the old UCC DB versus the new one to flag possible issues
-for attention. It needs to be manually updated for whatever issues we are
-trying to find.
+for attention.
 
 ### Summary
 - Files edited: None
@@ -185,10 +192,8 @@ This script will generate the two files that are to be uploaded to Zenodo. These
 contain all the UCC information.
 
 ### Summary
+- Files edited: None
 - Files generated: `zenodo/UCC_cat.csv.gz, zenodo/UCC_members.parquet.gz`
-- Files generated: None
-
-
 
 
 
@@ -204,18 +209,18 @@ compared to the old one, and it will update it if it did.
 For each processed OC that is missing either of those files:
 
 1. Generate or update an `.md` entry, stored in `../ucc/_clusters/`
-2. Generate a `.ipynb` notebook, stored in `../UCC/QXY/notebooks/`
-3. Generate a plot, stored in `../UCC/QXY/plots/`
+2. Generate a `.ipynb` notebook, stored in `../QXY/notebooks/`
+3. Generate a plot, stored in `../QXY/plots/`
 
 ### Summary
 - Files edited: `../ucc/_clusters/*.md` entries (if there are changes in the new UCC)
-- Files generated: `../ucc/_clusters/*.md` + `../UCC/QXY/notebooks/*.ipynb` +
-  `../UCC/QXY/plots/*.webp` (if files are missing)
+- Files generated: `../ucc/_clusters/*.md` + `../QXY/notebooks/*.ipynb` +
+  `../QXY/plots/*.webp` (if files are missing)
 
 
 
 
-## 10. Update database files
+## 10. Update site's files
 
 Run the script `J_database_updt.py`. This script will:
 
