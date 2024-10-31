@@ -1,40 +1,44 @@
+import json
 import warnings
 from pathlib import Path
+
 import numpy as np
-import json
 import pandas as pd
-from modules import logger
-from modules import UCC_new_match
-from modules import ucc_plots, ucc_entry
 from HARDCODED import (
-    dbs_folder,
-    all_DBs_json,
     UCC_folder,
-    root_UCC_path,
+    all_DBs_json,
+    dbs_folder,
     md_folder,
-    ntbks_folder,
     members_folder,
+    ntbks_folder,
     plots_folder,
+    root_UCC_path,
 )
+from modules import UCC_new_match, logger, ucc_entry, ucc_plots
+
+# Use to process files without writing changes to files
+DRY_RUN = True
 
 
 def main():
     """ """
     logging = logger.main()
     logging.info("Running 'make_entries' script\n")
+    logging.info(f"DRY RUN IS {DRY_RUN}\n")
 
     # Folder name where the datafile is stored
     entries_path = root_UCC_path + f"{md_folder}/"
 
     print("Reading databases...")
     with open(dbs_folder + all_DBs_json) as f:
-        DBs_used = json.load(f)
-    DBs_data = {}
-    for k, v in DBs_used.items():
-        DBs_data[k] = pd.read_csv(dbs_folder + k + ".csv")
+        DBs_json = json.load(f)
+    # Read the data for every DB in the UCC as a pandas DataFrame
+    DBs_full_data = {}
+    for k, v in DBs_json.items():
+        DBs_full_data[k] = pd.read_csv(dbs_folder + k + ".csv")
 
     # Read latest version of the UCC
-    df_UCC, UCC_cat = UCC_new_match.latest_cat_detect(logging, UCC_folder)
+    df_UCC, _ = UCC_new_match.latest_cat_detect(logging, UCC_folder)
 
     # Load notebook template
     with open("notebook.txt", "r") as f:
@@ -42,8 +46,10 @@ def main():
 
     logging.info("\nProcessing UCC")
     N_total = 0
-    for index, UCC_cl in df_UCC.iterrows():
-        fname0 = UCC_cl["fnames"].split(";")[0]
+    # Iterate trough each entry in the UCC database
+    for _, UCC_cl in df_UCC.iterrows():
+        fname0 = str(UCC_cl["fnames"]).split(";")[0]
+
         Qfold = UCC_cl["quad"]
 
         txt0 = f"{Qfold}/{fname0}: "
@@ -51,7 +57,7 @@ def main():
 
         # Make catalogue entry
         txt1 = make_entry(
-            df_UCC, UCC_cl, DBs_used, DBs_data, entries_path, Qfold, fname0
+            df_UCC, UCC_cl, DBs_json, DBs_full_data, entries_path, Qfold, fname0
         )
         if txt1 != "":
             txt += f" md ({txt1})"
@@ -75,7 +81,7 @@ def main():
 
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                ucc_plots.make_plot(plot_fpath, df_cl)
+                ucc_plots.make_plot(plot_fpath, df_cl, DRY_RUN)
             txt += " plot"
 
         # Make Aladin plot
@@ -88,6 +94,7 @@ def main():
                 UCC_cl["DE_ICRS_m"],
                 UCC_cl["r_50"],
                 plot_aladin_fpath,
+                DRY_RUN,
             )
             if plot_aladin_fpath.is_file() is True:
                 txt += " plot_aladin"
@@ -101,12 +108,18 @@ def main():
     logging.info(f"\nN={N_total} OCs processed")
 
 
-def make_entry(df_UCC, UCC_cl, DBs_used, DBs_data, entries_path, Qfold, fname0):
+def make_entry(df_UCC, UCC_cl, DBs_json, DBs_full_data, entries_path, Qfold, fname0):
     """ """
-    DBs, DBs_i = UCC_cl["DB"].split(";"), UCC_cl["DB_i"].split(";")
-    fpars_table = fpars_in_lit(DBs_used, DBs_data, DBs, DBs_i)
-    posit_table = positions_in_lit(DBs_used, DBs_data, DBs, DBs_i, UCC_cl)
+    # DBs where this cluster is present
+    DBs = UCC_cl["DB"].split(";")
+
+    # Indexes where this cluster is present in each DB
+    DBs_i = UCC_cl["DB_i"].split(";")
+
+    fpars_table = fpars_in_lit(DBs_json, DBs_full_data, DBs, DBs_i)
+    posit_table = positions_in_lit(DBs_json, DBs_full_data, DBs, DBs_i, UCC_cl)
     close_table = close_cat_cluster(df_UCC, UCC_cl)
+
     # Color used by the 'C1' classification
     abcd_c = UCC_color(UCC_cl["C3"])
 
@@ -152,11 +165,16 @@ def make_entry(df_UCC, UCC_cl, DBs_used, DBs_data, entries_path, Qfold, fname0):
         # Check if entry needs updating
         if new_md_entry_no_date != old_md_entry_no_date:
             file_flag = "updated"
+            # with open("OLD.md", "w") as f:
+            #     f.write(old_md_entry_no_date)
+            # with open("NEW.md", "w") as f:
+            #     f.write(new_md_entry_no_date)
 
     if file_flag != "":
-        # Generate/update entry
-        with open(entries_path + fname0 + ".md", "w") as f:
-            f.write(new_md_entry)
+        if DRY_RUN is False:
+            # Generate/update entry
+            with open(entries_path + fname0 + ".md", "w") as f:
+                f.write(new_md_entry)
 
     return file_flag
 
@@ -171,55 +189,63 @@ def UCC_color(abcd):
     return abcd_c
 
 
-def fpars_in_lit(DBs_used, DBs_data, DBs, DBs_i):
-    """ """
-    # Select DBs with parameters and re-arrange them by year
+def fpars_in_lit(
+    DBs_json: dict, DBs_full_data: dict, DBs: list, DBs_i: list, max_chars=7
+):
+    """
+    DBs_json: JSON that contains the data for all DBs
+    DBs_full_data: dictionary of pandas.DataFrame for all DBs
+    DBs: DBs where this cluster is present
+    DBs_i: Indexes where this cluster is present in each DB
+    """
+    # Select DBs with parameters
     DBs_w_pars, DBs_i_w_pars = [], []
     for i, db in enumerate(DBs):
         # If this database contains any estimated fundamental parameters
-        pars_f = (np.array(DBs_used[db]["pars"].split(",")) != "None").any()
-        if pars_f:
+        if DBs_json[db]["pars"] != "":
             DBs_w_pars.append(db)
             DBs_i_w_pars.append(DBs_i[i])
-    # Extract DB year
-    # This splits the DB name in a '_' and keeps the first part. It is meant to handle
-    # DBs with names such as: 'SMITH23_3'.
-    DBs_years = [int(_.split("_")[0][-2:]) for _ in DBs_w_pars]
-    # Sort
-    sort_idxs = np.argsort(DBs_years)
-    # Re-arrange
-    DBs_w_pars = np.array(DBs_w_pars)[sort_idxs]
-    DBs_i_w_pars = np.array(DBs_i_w_pars)[sort_idxs]
 
     if len(DBs_w_pars) == 0:
         table = ""
         return table
+    else:
+        # Re-arrange DBs by year
+        # Extract DB year
+        # This splits the DB name in a '_' and keeps the first part. It is meant to handle
+        # DBs with names such as: 'SMITH23_3'.
+        DBs_years = [int(_.split("_")[0][-2:]) for _ in DBs_w_pars]
+        # Sort
+        sort_idxs = np.argsort(DBs_years)
+        # Re-arrange
+        DBs_w_pars = np.array(DBs_w_pars)[sort_idxs]
+        DBs_i_w_pars = np.array(DBs_i_w_pars)[sort_idxs]
 
     txt = ""
     for i, db in enumerate(DBs_w_pars):
         # Full 'db' database
-        df = DBs_data[db]
+        df = DBs_full_data[db]
         # Add reference
-        txt_db = "| " + DBs_used[db]["ref"] + " | "
+        txt_db = "| " + DBs_json[db]["ref"] + " | "
 
         txt_pars = ""
         # Add non-nan parameters
-        for par in DBs_used[db]["pars"].split(","):
+        for par in DBs_json[db]["pars"].split(","):
             # Read parameter value from DB as string
-            if par != "None":
-                par_v = str(df[par][int(DBs_i_w_pars[i])])
-                # Remove empty spaces from param value (if any)
-                par_v = par_v.replace(" ", "")
-                try:
-                    if par_v != "" and par_v != "nan":
-                        par_v = float(df[par][int(DBs_i_w_pars[i])])
-                    else:
-                        par_v = np.nan
-                    if not np.isnan(par_v):
-                        txt_pars += par + "=" + str(round(par_v, 2)) + ", "
-                except Exception as _:
-                    # DBs like SANTOS21 list more than 1 value per parameter
-                    txt_pars += par + "=" + par_v + ", "
+            par_v = str(df[par][int(DBs_i_w_pars[i])])
+
+            # Trim parameter value
+            if ";" in par_v:
+                # DBs like SANTOS21 list more than 1 value per parameter
+                par_v = par_v[: int(max_chars * 2)]
+            else:
+                par_v = par_v[:max_chars]
+
+            # Remove empty spaces from param value (if any)
+            par_v = par_v.replace(" ", "")
+
+            if par_v != "" and par_v != "nan":
+                txt_pars += par + "=" + par_v + ", "
 
         if txt_pars != "":
             # Remove final ', '
@@ -229,16 +255,15 @@ def fpars_in_lit(DBs_used, DBs_data, DBs, DBs_i):
             # Combine and close row
             txt += txt_db + txt_pars + " |\n"
 
+    table = ""
     if txt != "":
         # Remove final new line
         table = txt[:-1]
-    else:
-        table = ""
 
     return table
 
 
-def positions_in_lit(DBs_used, DBs_data, DBs, DBs_i, row_UCC):
+def positions_in_lit(DBs_json, DBs_full_data, DBs, DBs_i, row_UCC):
     """ """
     # Re-arrange DBs by year
     DBs_years = [int(_.split("_")[0][-2:]) for _ in DBs]
@@ -251,11 +276,11 @@ def positions_in_lit(DBs_used, DBs_data, DBs, DBs_i, row_UCC):
     table = ""
     for i, db in enumerate(DBs_sort):
         # Full 'db' database
-        df = DBs_data[db]
+        df = DBs_full_data[db]
 
         # Add positions
         row_in = ""
-        for c in DBs_used[db]["pos"].split(","):
+        for c in DBs_json[db]["pos"].split(","):
             if c != "None":
                 # Read position as string
                 pos_v = str(df[c][int(DBs_i_sort[i])])
@@ -271,7 +296,7 @@ def positions_in_lit(DBs_used, DBs_data, DBs, DBs_i, row_UCC):
         # See if the row contains any values
         if row_in.replace("--", "").replace("|", "").strip() != "":
             # Add reference
-            table += "|" + DBs_used[db]["ref"] + " | "
+            table += "|" + DBs_json[db]["ref"] + " | "
             # Close and add row
             table += row_in[:-1] + "\n"
 
@@ -343,9 +368,10 @@ def make_notebook(fname0, Qfold, ntbk_fpath, ntbk_str):
         )
         + "\n"
     )
-    with open(ntbk_fpath, "w") as f:
-        contents = "".join(ntbk_str)
-        f.write(contents)
+    if DRY_RUN is False:
+        with open(ntbk_fpath, "w") as f:
+            contents = "".join(ntbk_str)
+            f.write(contents)
 
 
 if __name__ == "__main__":

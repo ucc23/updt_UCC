@@ -11,7 +11,7 @@ follow these steps:
 5. Generate members' datafiles (files stored at `../QXY/datafiles/`)
 6. Update the new UCC
 7. General check of new UCC
-8. Generate new Zenodo files (stored at `zenodo/`)
+8. Generate new Zenodo files (stored at parent folder)
 
 The above steps prepare the files for the updated version of the UCC. The following
 steps **apply** the required changes to the site's files.
@@ -50,9 +50,9 @@ ucc.ar site.
   "NAME_OF_NEW_DB": {
     "ref": "[Author et al. (2012)](url_to_DB))",
     "names": "name",
+    "pos": "ra,dec,plx,pm_ra,pm_dec,Rv",
     "pars": "E_bv,dist,logt,FeH,Mass,binar_frac,blue_stragglers",
-    "e_pars": "None,None,e_logt,None,None,None,None",
-    "pos": "ra,dec,plx,pm_ra,pm_dec,Rv"
+    "e_pars": "None,None,e_logt,None,None,None,None"
  },
 ```
 
@@ -193,7 +193,7 @@ contain all the UCC information.
 
 ### Summary
 - Files edited: None
-- Files generated: `zenodo/UCC_cat.csv.gz, zenodo/UCC_members.parquet.gz`
+- Files generated: `UCC_cat.csv.gz, UCC_members.parquet.gz`
 
 
 
@@ -203,12 +203,13 @@ Run the `I_make_entries.py` script
 
 This script will process the **entire** UCC and generate an `md` file, `ipynb`
 notebook, and plot, for every OC for which either of those files do not exist.
-In the case of the `md` entries, it will also check if the entry changed
-compared to the old one, and it will update it if it did.
+
+In the case of the `md` entries, it will also check if the new entry changed
+compared to the old one, and it will update it **only** if it did.
 
 For each processed OC that is missing either of those files:
 
-1. Generate or update an `.md` entry, stored in `../ucc/_clusters/`
+1. Generate a `.md` entry, stored in `../ucc/_clusters/`
 2. Generate a `.ipynb` notebook, stored in `../QXY/notebooks/`
 3. Generate a plot, stored in `../QXY/plots/`
 
