@@ -18,22 +18,21 @@ def main():
     # Read latest version of the UCC
     df_UCC, _ = UCC_new_match.latest_cat_detect(logging, UCC_folder)
 
-    zenodo_UCC(df_UCC, UCC_folder)
+    zenodo_UCC(df_UCC)
     logging.info("\nCompressed 'UCC_cat.csv.gz' file generated\n")
 
     print("Compressing members...")
-    zenodo_membs(logging, UCC_folder, root_UCC_path, members_folder)
+    zenodo_membs(logging, root_UCC_path, members_folder)
     logging.info("\nCompressed 'UCC_members.parquet.gz' file generated")
 
 
-def zenodo_UCC(df_UCC: pd.DataFrame, UCC_folder: str) -> None:
+def zenodo_UCC(df_UCC: pd.DataFrame) -> None:
     """
     Generates a compressed CSV file containing a reduced Unified Cluster Catalog
     (UCC) dataset, which can be stored in the Zenodo repository.
 
     Parameters:
     df_UCC (pd.DataFrame): DataFrame containing the UCC data with a wide set of columns.
-    UCC_folder (str): Path to the folder where the compressed file will be saved.
 
     The function performs the following steps:
     1. Drops unnecessary columns from the input DataFrame.
@@ -91,7 +90,7 @@ def zenodo_UCC(df_UCC: pd.DataFrame, UCC_folder: str) -> None:
 
     # Store to compressed file
     df.to_csv(
-        UCC_folder + "UCC_cat.csv.gz",
+        "UCC_cat.csv.gz",
         na_rep="nan",
         index=False,
         quoting=csv.QUOTE_NONNUMERIC,
@@ -99,9 +98,7 @@ def zenodo_UCC(df_UCC: pd.DataFrame, UCC_folder: str) -> None:
     )
 
 
-def zenodo_membs(
-    logging, UCC_folder: str, root_UCC_path: str, members_folder: str
-) -> None:
+def zenodo_membs(logging, root_UCC_path: str, members_folder: str) -> None:
     """
     Generates a compressed parquet file containing estimated members from the
     Unified Cluster Catalog (UCC) dataset, formatted for storage in the Zenodo
@@ -109,8 +106,6 @@ def zenodo_membs(
 
     Parameters:
     logging: A logging object to record information and progress.
-    UCC_folder (str): Path to the directory where the compressed members file will be
-    saved.
     root_UCC_path (str): Root directory of the UCC dataset.
     members_folder (str): Subdirectory containing the members files within each
     quadrant and latitude folder.
@@ -143,9 +138,7 @@ def zenodo_membs(
 
     # Concatenate all temporary DataFrames into one
     df_comb = pd.concat(tmp, ignore_index=True)
-    df_comb.to_parquet(
-        UCC_folder + "UCC_members.parquet.gz", index=False, compression="gzip"
-    )
+    df_comb.to_parquet("UCC_members.parquet.gz", index=False, compression="gzip")
 
 
 if __name__ == "__main__":

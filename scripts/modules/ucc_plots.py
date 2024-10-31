@@ -1,13 +1,13 @@
-import numpy as np
-import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-import pandas as pd
 from urllib.parse import urlencode
+
+import matplotlib.pyplot as plt
+import numpy as np
 from astropy.io import fits
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from scipy import ndimage
 
 
-def make_plot(plot_fpath, df_membs, cmap="plasma", dpi=200):
+def make_plot(plot_fpath, df_membs, DRY_RUN, cmap="plasma", dpi=200):
     """ """
     # Load local style file taken from https://github.com/garrettj403/SciencePlots
     # but with a line commented out to avoid an issue with LaTeX and the
@@ -144,7 +144,8 @@ def make_plot(plot_fpath, df_membs, cmap="plasma", dpi=200):
     ax4.tick_params(axis="both", which="major", labelsize=fs)
 
     fig.tight_layout()
-    plt.savefig(plot_fpath, dpi=dpi)
+    if DRY_RUN is False:
+        plt.savefig(plot_fpath, dpi=dpi)
 
     # https://stackoverflow.com/a/65910539/1391441
     fig.clear()
@@ -177,7 +178,7 @@ def diag_limits(phot_x, phot_y):
     return x_max_cmd, x_min_cmd, y_min_cmd, y_max_cmd
 
 
-def make_aladin_plot(ra, dec, r_50, plot_aladin_fpath, dpi=100):
+def make_aladin_plot(ra, dec, r_50, plot_aladin_fpath, DRY_RUN, dpi=100):
     """ """
     plt.style.use("default")
 
@@ -225,17 +226,18 @@ def make_aladin_plot(ra, dec, r_50, plot_aladin_fpath, dpi=100):
 
     plt.scatter(0.5, 0.5, marker="+", s=400, color="#B232B2", transform=ax.transAxes)
 
-    plt.savefig(plot_aladin_fpath, dpi=dpi, bbox_inches="tight", pad_inches=0.0)
+    if DRY_RUN is False:
+        plt.savefig(plot_aladin_fpath, dpi=dpi, bbox_inches="tight", pad_inches=0.0)
     fig.clear()
     plt.close(fig)
 
 
-if __name__ == "__main__":
-    import pandas as pd
+# if __name__ == "__main__":
+#     import pandas as pd
 
-    fname0 = "melotte111"
-    # Load datafile with members for this cluster
-    membs_file = f"/home/gabriel/Github/UCC/Q3P/datafiles/{fname0}.parquet"
-    df_cl = pd.read_parquet(membs_file)
-    plots_path = "/home/gabriel/Descargas/"
-    make_plot(plots_path, fname0, df_cl)
+#     fname0 = "melotte111"
+#     # Load datafile with members for this cluster
+#     membs_file = f"/home/gabriel/Github/UCC/Q3P/datafiles/{fname0}.parquet"
+#     df_cl = pd.read_parquet(membs_file)
+#     plots_path = "/home/gabriel/Descargas/"
+#     make_plot(plots_path, fname0, df_cl)
