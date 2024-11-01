@@ -22,6 +22,20 @@ steps **apply** the required changes to the site's files.
 Once all scripts have been applied, follow the final steps in the
 [UCC public site build](https://github.com/ucc23/updt_UCC#ucc-public-site-build) section to update the public site.
 
+<!-- MarkdownTOC -->
+
+- [1. Prepare DB](#1-prepare-db)
+- [2. Check format](#2-check-format)
+- [3. Check issues](#3-check-issues)
+- [4. Generate a new UCC version](#4-generate-a-new-ucc-version)
+- [5. Generate members' datafiles](#5-generate-members-datafiles)
+- [6. Update the new UCC](#6-update-the-new-ucc)
+- [7. General check of new UCC](#7-general-check-of-new-ucc)
+- [8. Generate new Zenodo files](#8-generate-new-zenodo-files)
+- [9. Generate new clusters entries](#9-generate-new-clusters-entries)
+- [10. Update site's files](#10-update-sites-files)
+
+<!-- /MarkdownTOC -->
 
 
 
@@ -29,21 +43,32 @@ Once all scripts have been applied, follow the final steps in the
 
 ## 1. Prepare DB
 
-0. The format of the name for the DB is `SMITH24` or, if required, `SMITH24_1`.
-   The name of the DB **must not** contain any non letter characters except for the
-   `_` required to differentiate DBs with the same names published in the same year.
+**DB name format**
+ 
+The format of the name for the DB is `SMITH24` or, if required, `SMITH24_1`.
+The name of the DB **must not** contain any non letter characters except for the
+`_` required to differentiate DBs with the same names published in the same year.
 
-   The new database must contain a column with all the names assigned to a given
-   OC, a column with `RA`, and a column wit `DEC` values (no galactic coordinates
-   allowed). OCs with multiple names must **not** use ';' as a separating character,
-   only ',' is allowed (surrounding the names with "")
+**Required columns**
 
-1. Add the name of the new DB and the column names for the `ID,RA,DEC` parameters in
+The new database must contain a column with all the names assigned to a given
+OC, a column with `RA`, and a column wit `DEC` values (no galactic coordinates
+allowed).
+
+**Naming convention**
+
+OCs with multiple names must **not** use `;` as a separating character,
+only `,` is allowed (surrounding the names with "")
+
+**Preparing the files**
+
+1. Save the new DB in proper `csv` format to the `/databases` folder
+2. Add the name of the new DB and the column names for the `ID,RA,DEC` parameters
    to the `[General]` section of the `params.ini` file.
 
-2. Save the new DB in proper `csv` format to the `databases`/ folder
+**Adding the DB to the JSON file**
 
-3. Add the new DB to the `databases/all_dbs.json` file following the convention:
+Add the new DB to the `databases/all_dbs.json` file following the convention:
 
 ```
   "NAME_OF_NEW_DB": {
@@ -55,6 +80,13 @@ Once all scripts have been applied, follow the final steps in the
  },
 ```
 
+The `pos` line must contain all six parameters. If either is not present, use `None`.
+
+The `pars` line should only contain the available parameters in the suggested order. No
+`None` are required here.
+
+The `e_pars` line should follow the same order and length as the `pars` line, using
+`None` wherever there are missing values.
 
 
 ## 2. Check format
@@ -72,7 +104,8 @@ This script checks the new DB for proper formatting:
 
 Once finished, correct any issues that are shown.
 
-### Summary
+**Summary**
+
 - Files edited: `databases/all_dbs.json` (manually)
 - Files generated: properly formatted database for the new DB (manually)
 
@@ -104,7 +137,8 @@ Request attention
 Fix any possible issues that were flagged for attention **before** running the
 `D_add_new_DB.py` script.
 
-### Summary
+**Summary**
+
 - Files edited: None
 - Files generated: None
 
@@ -121,7 +155,8 @@ OC(s) are already present in the UCC.
 The new UCC version will have the same name format with an updated date stored
 at `zenodo/UCC_cat_XXYYZZ.csv`.
 
-### Summary
+**Summary**
+
 - Files edited: None
 - Files generated: `zenodo/UCC_cat_XXYYZZ.csv`
 
@@ -141,7 +176,8 @@ The `.parquet` member files are automatically stored in the proper
 This script also generates a `new_OCs_data.csv` file with parameters for the new
 OCs, obtained from their members and surrounding field stars.
 
-### Summary
+**Summary**
+
 - Files edited: None
 - Files generated: `new_OCs_data.csv` + `../QXY/datafiles/*.parquet`
 
@@ -161,7 +197,8 @@ stars.
 
 Delete `new_OCs_data.csv` once this script is finished.
 
-### Summary
+**Summary**
+
 - Files edited: `zenodo/UCC_cat_XXYYZZ.csv`, `new_OCs_data.csv` deleted
 - Files generated: None
 
@@ -177,7 +214,8 @@ section `[Check versions]` of the `params.ini` file, under the `old_UCC_name` va
 This script checks the old UCC DB versus the new one to flag possible issues
 for attention.
 
-### Summary
+**Summary**
+
 - Files edited: None
 - Files generated: None
 
@@ -190,7 +228,8 @@ Run the script `H_zenodo_updt.py`
 This script will generate the two files that are to be uploaded to Zenodo. These files
 contain all the UCC information.
 
-### Summary
+**Summary**
+
 - Files edited: None
 - Files generated: `UCC_cat.csv.gz, UCC_members.parquet.gz`
 
@@ -212,7 +251,8 @@ For each processed OC that is missing either of those files:
 2. Generate a `.ipynb` notebook, stored in `../QXY/notebooks/`
 3. Generate a plot, stored in `../QXY/plots/`
 
-### Summary
+**Summary**
+
 - Files edited: `../ucc/_clusters/*.md` entries (if there are changes in the new UCC)
 - Files generated: `../ucc/_clusters/*.md` + `../QXY/notebooks/*.ipynb` +
   `../QXY/plots/*.webp` (if files are missing)
@@ -228,6 +268,7 @@ Run the script `J_database_updt.py`. This script will:
 - update the tables files linked to the above file
 - update the `../ucc/_clusters/clusters.json` file used for searching in `ucc.ar`
 
-### Summary
+**Summary**
+
 - Files edited: `ucc/_pages/DATABASE.md, ucc/_pages/QXY_table.md, ucc/clusters.json`
 - Files generated: None
