@@ -15,9 +15,9 @@ The UCC files live in several repositories within the [UCC23](https://github.com
 
 <!-- MarkdownTOC -->
 
-- UCC public site build
-- UCC local site build
-- Fixing bad entries
+- [UCC public site build](#ucc-public-site-build)
+- [UCC local site build](#ucc-local-site-build)
+- [Fixing bad entries](#fixing-bad-entries)
 
 <!-- /MarkdownTOC -->
 
