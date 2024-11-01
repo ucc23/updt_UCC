@@ -20,8 +20,7 @@ steps **apply** the required changes to the site's files.
 10. Update site's files
 
 Once all scripts have been applied, follow the final steps in the
-`UCC public site build` section of the `UCC management` file to update the public
-ucc.ar site.
+[UCC public site build](https://github.com/ucc23/updt_UCC#ucc-public-site-build) section to update the public site.
 
 
 
