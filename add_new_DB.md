@@ -4,38 +4,26 @@
 To add a new database to the UCC catalogue and generate the required files,
 follow these steps:
 
-1. Prepare DB
-2. Check format
-3. Check issues
-4. Generate a new UCC version (stored at `zenodo/UCC_cat_XXYYZZ.csv`)
-5. Generate members' datafiles (files stored at `../QXY/datafiles/`)
-6. Update the new UCC
-7. General check of new UCC
-8. Generate new Zenodo files (stored at parent folder)
+[1. Prepare DB](#1-prepare-db)
+[2. Check format](#2-check-format)
+[3. Check issues](#3-check-issues)
+[4. Generate a new UCC version](#4-generate-a-new-ucc-version) (stored at `zenodo/UCC_cat_XXYYZZ.csv`)
+[5. Generate members' datafiles](#5-generate-members-datafiles) (files stored at `../QXY/datafiles/`)
+[6. Update the new UCC](#6-update-the-new-ucc)
+[7. General check of new UCC](#7-general-check-of-new-ucc)
+[8. Generate new Zenodo files](#8-generate-new-zenodo-files) (stored at parent folder)
 
 The above steps prepare the files for the updated version of the UCC. The following
 steps **apply** the required changes to the site's files.
 
-9. Generate new clusters entries
-10. Update site's files
+[9. Generate new clusters entries](#9-generate-new-clusters-entries)
+[10. Update site's files](#10-update-sites-files)
+
+**Important**
 
 Once all scripts have been applied, follow the final steps in the
 [UCC public site build](https://github.com/ucc23/updt_UCC#ucc-public-site-build) section to update the public site.
 
-<!-- MarkdownTOC -->
-
-- [1. Prepare DB](#1-prepare-db)
-- [2. Check format](#2-check-format)
-- [3. Check issues](#3-check-issues)
-- [4. Generate a new UCC version](#4-generate-a-new-ucc-version)
-- [5. Generate members' datafiles](#5-generate-members-datafiles)
-- [6. Update the new UCC](#6-update-the-new-ucc)
-- [7. General check of new UCC](#7-general-check-of-new-ucc)
-- [8. Generate new Zenodo files](#8-generate-new-zenodo-files)
-- [9. Generate new clusters entries](#9-generate-new-clusters-entries)
-- [10. Update site's files](#10-update-sites-files)
-
-<!-- /MarkdownTOC -->
 
 
 
