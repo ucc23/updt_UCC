@@ -29,27 +29,9 @@ The UCC files live in several repositories within the [UCC23](https://github.com
 
 ## UCC public site build
 
-Before updating the site, generate a full [UCC local site build](#ucc-local-site-build)
-and check the results **carefully**.
-
-Every change pushed to the [ucc](https://github.com/ucc23/ucc) repository triggers an
-automatic build + deployment. **Commit carefully.**
-
-1. Push changes in the `QXY` repositories
-2. Update the [Zenodo repository](https://zenodo.org/doi/10.5281/zenodo.8250523) with the new files, creating a new release.
-   Remember to set the version number in Zenodo as YYMMDD
-3. Update the `CHANGELOG.md` file, use the Zenodo URL for **this** release
-4. **IMPORTANT:** comment the `_clusters` folder in the `exclude:` section
-   of the `_config.yml` file, if left un-commented so far
-5. Finally, push the changes to `ucc` repository
-
-
-
-
-## UCC local site build
-
-To build a local copy of the site we use Jekyll, see [Jekyll docs](https://jekyllrb.com/docs/). Position a
-terminal in the `/ucc` folder (**not** the `/updt_ucc` folder) and run:
+Before updating the live site, generate a local site build and check the results
+**carefully**. To build a local copy of the site we use Jekyll, see [Jekyll docs](https://jekyllrb.com/docs/).
+Position a terminal in the `/ucc` folder (**not** the `/updt_ucc` folder) and run:
 
 ```
 $ bundle exec jekyll serve --incremental
@@ -69,4 +51,18 @@ exclude:
   - CNAME
   - _clusters # Un-comment to exclude for faster processing in a local build
 ```
+
+**IMPORTANT:** comment the `_clusters` folder in the `exclude:` section of the
+`_config.yml` file before moving on.
+
+
+1. Push changes in the `QXY` repositories
+2. Update the [Zenodo repository](https://zenodo.org/doi/10.5281/zenodo.8250523) with the new files, creating a new release.
+   Remember to set the version number in Zenodo as YYMMDD
+3. Update the `CHANGELOG.md` file, use the Zenodo URL for **this** release
+
+Every change pushed to the [ucc](https://github.com/ucc23/ucc) repository triggers an
+automatic build + deployment. **Check carefully before pushing.**
+
+4. Finally, push the changes to `ucc` repository
 
