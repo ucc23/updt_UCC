@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import scienceplots  # noqa: F401
-from H_make_entries import UCC_color
 from HARDCODED import (
     UCC_folder,
     all_DBs_json,
@@ -14,6 +13,7 @@ from HARDCODED import (
     pages_folder,
     root_UCC_path,
 )
+from I_make_entries import UCC_color
 from modules import UCC_new_match, logger
 
 # Order used for the C3 classes
@@ -36,11 +36,15 @@ class_order = [
     "DD",
 ]
 
+# Use to process files without writing changes to files
+DRY_RUN = False #True
+
 
 def main():
     """ """
     logging = logger.main()
-    logging.info("\nRunning 'I_database_updt' script\n")
+    logging.info("\nRunning 'J_database_updt' script\n")
+    logging.info(f"DRY RUN IS {DRY_RUN}\n")
 
     # Read latest version of the UCC
     df_UCC, _ = UCC_new_match.latest_cat_detect(logging, UCC_folder)
@@ -67,20 +71,20 @@ def main():
     with open(dbs_folder + all_DBs_json) as f:
         dbs_used = json.load(f)
 
+    # Prepare DATABASE.md for updating
     database_md_updt = updt_cats_used(df_UCC, dbs_used, database_md)
     logging.info("Table: catalogues used in the UCC updated")
-
     database_md_updt = updt_C3_classification(OCs_per_class, database_md_updt)
     logging.info("Table: C3 classification updated")
-
     database_md_updt = updt_OCs_per_quad(df_UCC, database_md_updt)
     logging.info("Table: OCs per quadrant updated")
-
     # Update DATABASE.md file
-    with open(root_UCC_path + pages_folder + "/" + "DATABASE.md", "w") as file:
-        file.write(database_md_updt)
+    if DRY_RUN is False:
+        with open(root_UCC_path + pages_folder + "/" + "DATABASE.md", "w") as file:
+            file.write(database_md_updt)
     logging.info("DATABASE.md updated")
 
+    # Prepare df_UCC to be used in the updating of the tables below
     df_updt = updt_UCC(df_UCC)
 
     updt_DBs_tables(dbs_used, df_updt, root_UCC_path, pages_folder)
@@ -181,7 +185,8 @@ def make_N_vs_year_plot(df_UCC):
     plt.ylim(20, 250000)
     plt.yscale("log")
     fig.tight_layout()
-    plt.savefig("../../ucc/images/catalogued_ocs.webp", dpi=300)
+    if DRY_RUN is False:
+        plt.savefig("../../ucc/images/catalogued_ocs.webp", dpi=300)
 
 
 def make_classif_plot(height):
@@ -200,7 +205,8 @@ def make_classif_plot(height):
     ax.tick_params(axis="x", which="both", length=0)
     plt.minorticks_off()
     fig.tight_layout()
-    plt.savefig("../../ucc/images/classif_bar.webp", dpi=300)
+    if DRY_RUN is False:
+        plt.savefig("../../ucc/images/classif_bar.webp", dpi=300)
 
 
 def chunks(data, SIZE=2):
@@ -371,10 +377,11 @@ def updt_DBs_tables(dbs_used, df_updt, root_UCC_path, pages_folder):
         msk = np.array(msk)
 
         md_table = generate_table(df_updt, md_table, msk)
-        with open(
-            root_UCC_path + pages_folder + "/tables/" + DB_id + "_table.md", "w"
-        ) as file:
-            file.write(md_table)
+        if DRY_RUN is False:
+            with open(
+                root_UCC_path + pages_folder + "/tables/" + DB_id + "_table.md", "w"
+            ) as file:
+                file.write(md_table)
 
 
 def updt_C3_tables(df_updt, root_UCC_path, pages_folder):
@@ -392,11 +399,16 @@ def updt_C3_tables(df_updt, root_UCC_path, pages_folder):
         msk = df_updt["C3"] == class_order[C3_N]
         md_table = generate_table(df_updt, md_table, msk)
 
-        with open(
-            root_UCC_path + pages_folder + "/tables/" + class_order[C3_N] + "_table.md",
-            "w",
-        ) as file:
-            file.write(md_table)
+        if DRY_RUN is False:
+            with open(
+                root_UCC_path
+                + pages_folder
+                + "/tables/"
+                + class_order[C3_N]
+                + "_table.md",
+                "w",
+            ) as file:
+                file.write(md_table)
 
 
 def updt_quad_tables(df_updt, root_UCC_path, pages_folder):
@@ -424,10 +436,11 @@ def updt_quad_tables(df_updt, root_UCC_path, pages_folder):
             msk = df_updt["quad"] == quad
             md_table = generate_table(df_updt, md_table, msk)
 
-            with open(
-                root_UCC_path + pages_folder + "/tables/" + quad + "_table.md", "w"
-            ) as file:
-                file.write(md_table)
+            if DRY_RUN is False:
+                with open(
+                    root_UCC_path + pages_folder + "/tables/" + quad + "_table.md", "w"
+                ) as file:
+                    file.write(md_table)
 
 
 def generate_table(df_updt, md_table, msk):
@@ -478,7 +491,8 @@ def updt_cls_JSON(df_updt, root_UCC_path, clusters_json):
         inplace=True,
     )
 
-    df.to_json(root_UCC_path + clusters_json, orient="records", indent=1)
+    if DRY_RUN is False:
+        df.to_json(root_UCC_path + clusters_json, orient="records", indent=1)
 
 
 if __name__ == "__main__":
