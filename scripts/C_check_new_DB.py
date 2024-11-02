@@ -27,19 +27,39 @@ def main():
 
     new_db_info = prep_newDB(df_new, json_pars, new_DB_fnames, db_matches)
 
-    # Store information on the OCs being added
-    logging.info("\nOCs flagged for attention:\n")
-    logging.info(
-        "{:<15} {:<5} {}".format(
-            "name", "cent_flag", "[arcmin] [pmRA %] [pmDE %] [plx %]"
-        )
-    )
+    ocs_attention = []
     rad_dup = pars_dict["rad_dup"]
     for i, fnames in enumerate(new_db_info["fnames"]):
         j = new_db_info["UCC_idx"][i]
         # If the OC is already present in the UCC
         if j is not None:
-            flag_log(logging, df_UCC, new_db_info, rad_dup, fnames, i, j, )
+            bad_center = DBs_combine.check_cents_diff(
+                (df_UCC["GLON_m"][j], df_UCC["GLAT_m"][j]),
+                (df_UCC["pmRA_m"][j], df_UCC["pmDE_m"][j]),
+                df_UCC["plx_m"][j],
+                (new_db_info["GLON"][i], new_db_info["GLAT"][i]),
+                (new_db_info["pmRA"][i], new_db_info["pmDE"][i]),
+                new_db_info["plx"][i],
+                rad_dup,
+            )
+            # Is the difference between the old vs new center values large?
+            if bad_center == "000":
+                continue
+            # Store information on the OCs that require attention
+            ocs_attention.append([fnames, i, j, bad_center])
+
+    if len(ocs_attention) > 0:
+        logging.info("\nOCs flagged for attention:\n")
+        logging.info(
+            "{:<15} {:<5} {}".format(
+                "name", "cent_flag", "[arcmin] [pmRA %] [pmDE %] [plx %]"
+            )
+        )
+        for oc in ocs_attention:
+            fnames, i, j, bad_center = oc
+            flag_log(logging, df_UCC, new_db_info, bad_center, fnames, i, j)
+    else:
+        logging.info("\nNo OCs flagged for attention")
 
 
 def prep_newDB(df_new, json_pars, new_DB_fnames, db_matches):
@@ -111,22 +131,8 @@ def prep_newDB(df_new, json_pars, new_DB_fnames, db_matches):
     return new_db_info
 
 
-def flag_log(logging, df_UCC, new_db_info, rad_dup, fnames, i, j):
+def flag_log(logging, df_UCC, new_db_info, bad_center, fnames, i, j):
     """ """
-    bad_center = DBs_combine.check_cents_diff(
-        (df_UCC["GLON_m"][j], df_UCC["GLAT_m"][j]),
-        (df_UCC["pmRA_m"][j], df_UCC["pmDE_m"][j]),
-        df_UCC["plx_m"][j],
-        (new_db_info["GLON"][i], new_db_info["GLAT"][i]),
-        (new_db_info["pmRA"][i], new_db_info["pmDE"][i]),
-        new_db_info["plx"][i],
-        rad_dup
-    )
-
-    # Is the difference between the old vs new center values large?
-    if bad_center == "000":
-        return
-
     txt = ""
     if bad_center[0] == "1":
         d_arcmin = (
