@@ -1,9 +1,8 @@
 import csv
+
 import pandas as pd
-from modules import logger
-from modules import duplicate_probs
-from modules import UCC_new_match
 from HARDCODED import UCC_folder, new_OCs_fpath
+from modules import UCC_new_match, duplicate_probs, logger
 
 
 def main():
@@ -69,7 +68,7 @@ def updt_UCC(logging, df_UCC, params_updt):
     return df_UCC
 
 
-def members_duplicates(logging, df_UCC, prob_cut=0.25, Nmax=3):
+def members_duplicates(logging, df_UCC, prob_cut=0.25):
     """
     Assign a 'duplicate probability' for each cluster in the UCC, based on its
     estimated members
