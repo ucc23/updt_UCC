@@ -37,7 +37,7 @@ class_order = [
 ]
 
 # Use to process files without writing changes to files
-DRY_RUN = False #True
+DRY_RUN = True
 
 
 def main():
