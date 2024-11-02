@@ -1,7 +1,6 @@
 import numpy as np
-from .DBs_combine import radec2lonlat
-from .DBs_combine import rm_name_dups
-from .DBs_combine import rename_standard
+
+from .DBs_combine import radec2lonlat, rename_standard, rm_name_dups
 
 
 def main(
@@ -80,7 +79,8 @@ def OC_in_UCC(new_DB_ID, new_db_dict, i, new_cl, new_names, row):
     else:
         DB_ID = row["DB"] + ";" + new_DB_ID
         DB_i = row["DB_i"] + ";" + str(i)
-    #
+    # Order by years before storing
+    DB_ID, DB_i = date_order_DBs(DB_ID, DB_i)
     new_db_dict["DB"].append(DB_ID)
     new_db_dict["DB_i"].append(DB_i)
 
@@ -133,6 +133,23 @@ def OC_in_UCC(new_DB_ID, new_db_dict, i, new_cl, new_names, row):
     new_db_dict["dups_probs_m"].append(row["dups_probs_m"])
 
     return new_db_dict
+
+
+def date_order_DBs(DB, DB_i):
+    """Order DBs by year"""
+    # Extract years from DBs
+    all_dbs = DB.split(";")
+    all_dbs_i = DB_i.split(";")
+
+    # Extract years from DBs
+    all_years = []
+    for db in all_dbs:
+        year = db.split("_")[0][-2:]
+        all_years.append(year)
+    idx = np.argsort(all_years)
+    DB = ";".join(np.array(all_dbs)[idx].tolist())
+    DB_i = ";".join(np.array(all_dbs_i)[idx].tolist())
+    return DB, DB_i
 
 
 def new_OC_not_in_UCC(
