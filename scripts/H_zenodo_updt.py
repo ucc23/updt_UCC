@@ -90,7 +90,7 @@ def zenodo_UCC(df_UCC: pd.DataFrame) -> None:
 
     # Store to compressed file
     df.to_csv(
-        "UCC_cat.csv.gz",
+        "../UCC_cat.csv.gz",
         na_rep="nan",
         index=False,
         quoting=csv.QUOTE_NONNUMERIC,
@@ -138,7 +138,7 @@ def zenodo_membs(logging, root_UCC_path: str, members_folder: str) -> None:
 
     # Concatenate all temporary DataFrames into one
     df_comb = pd.concat(tmp, ignore_index=True)
-    df_comb.to_parquet("UCC_members.parquet.gz", index=False, compression="gzip")
+    df_comb.to_parquet("../UCC_members.parquet.gz", index=False, compression="gzip")
 
 
 if __name__ == "__main__":
