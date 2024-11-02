@@ -4,7 +4,6 @@ import astropy.units as u
 import numpy as np
 from astropy.coordinates import SkyCoord
 
-from . import duplicate_probs
 
 """
 This module contains helper functions to generate the extended
@@ -263,21 +262,6 @@ def QXY_fold(UCC_ID):
         Qfold += "N"
 
     return Qfold
-
-
-def dups_identify(df, prob_cut=0.5, Nmax=3):
-    """
-    Assign a 'duplicate probability' for each cluster in the UCC, based on the
-    literature data
-    """
-    x, y = df["GLON"], df["GLAT"]
-    pmRA, pmDE, plx = df["pmRA"], df["pmDE"], df["plx"]
-
-    dups_fnames, dups_probs = duplicate_probs.main(
-        df["fnames"], x, y, plx, pmRA, pmDE, prob_cut, Nmax
-    )
-
-    return dups_fnames, dups_probs
 
 
 def check_cents_diff(xy_c_o, vpd_c_o, plx_c_o, xy_c_n, vpd_c_n, plx_c_n, rad_dup):

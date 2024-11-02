@@ -7,6 +7,7 @@ from modules import (
     DBs_combine,
     UCC_new_match,
     combine_UCC_new_DB,
+    duplicate_probs,
     logger,
     read_ini_file,
 )
@@ -62,10 +63,18 @@ def main():
     df_UCC_no_new.reset_index(drop=True, inplace=True)
     df_all = pd.concat([df_UCC_no_new, pd.DataFrame(new_db_dict)], ignore_index=True)
 
-    # Used to remove close clusters from the field so that fastMP won't get
-    # confused
+    # Assign a 'duplicate probability' for each cluster in the UCC, based on the
+    # literature data
     logging.info("\nFinding possible duplicates...")
-    df_all["dups_fnames"], df_all["dups_probs"] = DBs_combine.dups_identify(df_all)
+    df_all["dups_fnames"], df_all["dups_probs"] = duplicate_probs.main(
+        df_all["fnames"],
+        df_all["GLON"],
+        df_all["GLAT"],
+        df_all["plx"],
+        df_all["pmRA"],
+        df_all["pmDE"],
+        prob_cut=0.5,
+    )
 
     # Order by (lon, lat) first
     df_all = df_all.sort_values(["GLON", "GLAT"])

@@ -1,11 +1,10 @@
-import numpy as np
-import json
 import csv
+import json
+
+import numpy as np
 import pandas as pd
-from modules import read_ini_file
-from modules import DBs_combine
-from modules import UCC_new_match
-from HARDCODED import dbs_folder, UCC_folder, all_DBs_json, new_OCs_fpath
+from HARDCODED import UCC_folder, all_DBs_json, dbs_folder, new_OCs_fpath
+from modules import DBs_combine, UCC_new_match, read_ini_file
 
 
 def main():
@@ -47,7 +46,8 @@ def main():
     dup_check(comb_dbs["fnames"])
 
     print("Finding duplicates...")
-    dups_fnames, dups_probs = DBs_combine.dups_identify(comb_dbs)
+    dups_fnames, dups_probs = DBs_combine.dups_identify(comb_dbs)  ## TODO
+    # This was removed, call duplicate_probs.main() with prob_cut=0.5 directly
     comb_dbs["dups_fnames"] = dups_fnames
     comb_dbs["dups_probs"] = dups_probs
 
