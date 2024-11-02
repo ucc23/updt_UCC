@@ -2,7 +2,7 @@ import numpy as np
 from scipy.spatial.distance import cdist
 
 
-def main(fnames, x, y, plx, pmRA, pmDE, prob_cut, Nmax):
+def main(fnames, x, y, plx, pmRA, pmDE, prob_cut, Nmax=3):
     """
     Identify a cluster as a duplicate following an arbitrary definition
     that depends on the parallax
@@ -30,9 +30,12 @@ def main(fnames, x, y, plx, pmRA, pmDE, prob_cut, Nmax):
             if dup_prob >= prob_cut:
                 # Store just the first fname
                 dups_fname_i.append(fnames[j].split(";")[0])
-                dups_prob_i.append(str(dup_prob))
+                dups_prob_i.append(dup_prob)
 
         if dups_fname_i:
+            i_sort = np.argsort(dups_prob_i)[::-1]
+            dups_fname_i = list(np.array(dups_fname_i)[i_sort])
+            dups_prob_i = [str(_) for _ in np.array(dups_prob_i)[i_sort]]
             dups_fname_i = ";".join(dups_fname_i)
             dups_prob_i = ";".join(dups_prob_i)
         else:
@@ -143,14 +146,14 @@ def max_coords_rad(plx_i):
     return rad
 
 
-if __name__ == "__main__":
-    arr = np.array(
-        [
-            [112.696, 5.654, 1.175, -2.673, -1.564],
-            [112.518, 5.63, 1.163, -2.666, -1.35],
-        ]
-    )
-    x, y, plx, pmRA, pmDE = arr.T
-    i, j = 0, 1
-    print(dprob(x, y, pmRA, pmDE, plx, i, j, 3))
-    breakpoint()
+# if __name__ == "__main__":
+#     arr = np.array(
+#         [
+#             [112.696, 5.654, 1.175, -2.673, -1.564],
+#             [112.518, 5.63, 1.163, -2.666, -1.35],
+#         ]
+#     )
+#     x, y, plx, pmRA, pmDE = arr.T
+#     i, j = 0, 1
+#     print(dprob(x, y, pmRA, pmDE, plx, i, j, 3))
+#     breakpoint()
