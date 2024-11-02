@@ -16,6 +16,6 @@ The UCC files live in several repositories within the [UCC23](https://github.com
 **What do you want to do?**
 
 - Add a new DB? -> [add_new_DB.md](add_new_DB.md)
-- Modify one or more existing entries? -> [modify_entry.md](modify_entry.md)
-- Add one or more entries? -> 
-- Remove one or more entries?
+- Modify one or more existing entries? -> [modify_entries.md](modify_entries.md)
+- Add one or more entries? -> [add_entries.md](add_entries.md)
+- Remove one or more entries? -> 

@@ -22,7 +22,7 @@ steps **apply** the required changes to the site's files.
 **Important**
 
 Once all scripts have been applied, follow the final steps in the
-[UCC public site build](ucc-site-build.md) file to update the public site.
+[UCC public site build](ucc_site_build.md) file to update the public site.
 
 
 
