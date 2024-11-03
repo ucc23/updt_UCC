@@ -67,12 +67,15 @@ def main():
     with open(root_UCC_path + pages_folder + "/" + "DATABASE.md") as file:
         database_md = file.read()
 
+    # Update the total number of entries in the UCC
+    database_md_updt = ucc_n_total_updt(len(df_UCC), database_md)
+
     # Load column data for the new catalogue
     with open(dbs_folder + all_DBs_json) as f:
         dbs_used = json.load(f)
 
     # Prepare DATABASE.md for updating
-    database_md_updt = updt_cats_used(df_UCC, dbs_used, database_md)
+    database_md_updt = updt_cats_used(df_UCC, dbs_used, database_md_updt)
     logging.info("Table: catalogues used in the UCC updated")
     database_md_updt = updt_C3_classification(OCs_per_class, database_md_updt)
     logging.info("Table: C3 classification updated")
@@ -245,6 +248,17 @@ def replace_text_between(
             leading_text + delimiter_a + replacement_text + delimiter_b + trailing_text
         )
     return leading_text + delimiter_a + replacement_text
+
+
+def ucc_n_total_updt(N_UCC, database_md):
+    """ """
+    delimiter_a = "<!-- NT1 -->"
+    delimiter_b = "<!-- NT2 -->"
+    replacement_text = str(N_UCC)
+    database_md = replace_text_between(
+        database_md, replacement_text, delimiter_a, delimiter_b
+    )
+    return database_md
 
 
 def updt_cats_used(df_UCC, dbs_used, database_md):
