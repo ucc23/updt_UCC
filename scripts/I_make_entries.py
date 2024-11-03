@@ -125,7 +125,6 @@ def make_entry(df_UCC, UCC_cl, DBs_json, DBs_full_data, entries_path, Qfold, fna
 
     cl_names = UCC_cl["ID"].split(";")
     new_md_entry = ucc_entry.main(
-        entries_path,
         cl_names,
         Qfold,
         fname0,
@@ -137,9 +136,6 @@ def make_entry(df_UCC, UCC_cl, DBs_json, DBs_full_data, entries_path, Qfold, fna
         UCC_cl["N_50"],
         UCC_cl["RA_ICRS_m"],
         UCC_cl["DE_ICRS_m"],
-        UCC_cl["plx_m"],
-        UCC_cl["pmRA_m"],
-        UCC_cl["pmDE_m"],
         fpars_table,
         posit_table,
         close_table,

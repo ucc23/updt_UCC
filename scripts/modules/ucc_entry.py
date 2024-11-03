@@ -1,6 +1,5 @@
 from datetime import datetime
 
-
 header = """---
 layout: post
 title:  {}
@@ -128,7 +127,6 @@ data_foot = """\n
 
 
 def main(
-    entries_path,
     cl_names,
     Qfold,
     fname,
@@ -140,9 +138,6 @@ def main(
     N_50,
     ra,
     dec,
-    plx,
-    pmra,
-    pmde,
     fpars_table,
     posit_table,
     close_table,
