@@ -1,5 +1,6 @@
 import csv
 import datetime
+import os
 
 import pandas as pd
 from HARDCODED import UCC_folder, all_DBs_json, dbs_folder
@@ -20,6 +21,12 @@ def main():
     """ """
     logging = logger.main()
     logging.info("\nRunning 'add_new_DB' script\n")
+
+    date = datetime.datetime.now().strftime("%Y%m%d")[2:]
+    new_ucc_path = UCC_folder + "UCC_cat_" + date + ".csv"
+    # Check if file exists
+    if os.path.exists(new_ucc_path):
+        raise FileExistsError(f"File {new_ucc_path} already exists")
 
     pars_dict = read_ini_file.main()
     new_DB = pars_dict["new_DB"]
@@ -87,9 +94,8 @@ def main():
 
     # Save new version of the UCC catalogue to file before processing with
     # fastMP
-    date = datetime.datetime.now().strftime("%Y%m%d")[2:]
     df_all.to_csv(
-        UCC_folder + "UCC_cat_" + date + ".csv",
+        new_ucc_path,
         na_rep="nan",
         index=False,
         quoting=csv.QUOTE_NONNUMERIC,
