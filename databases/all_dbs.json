@@ -51,7 +51,7 @@
   "SIM19": {
     "ref": "[Sim et al. (2019)](https://ui.adsabs.harvard.edu/abs/2019JKAS...52..145S/abstract)",
     "names": "ID",
-    "pos": "RA_ICRS,DE_ICRS,plx,pmRA*,pmDE,None",
+    "pos": "RA_ICRS,DE_ICRS,None,pmRA*,pmDE,None",
     "pars": "d_pc,log(age)",
     "e_pars": "e_dist,None"
  },
