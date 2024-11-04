@@ -81,6 +81,8 @@ def main():
     logging.info("Table: C3 classification updated")
     database_md_updt = updt_OCs_per_quad(df_UCC, database_md_updt)
     logging.info("Table: OCs per quadrant updated")
+    database_md_updt, dups_msk = updt_dups_table(df_UCC, database_md_updt)
+    logging.info("Table: duplicated OCs updated")
     # Update DATABASE.md file
     if DRY_RUN is False:
         with open(root_UCC_path + pages_folder + "/" + "DATABASE.md", "w") as file:
@@ -99,8 +101,11 @@ def main():
     updt_quad_tables(df_updt, root_UCC_path, pages_folder)
     logging.info("\nQuadrant tables updated")
 
+    updt_dups_tables(df_updt, root_UCC_path, pages_folder, dups_msk)
+    logging.info("\nDuplicates tables updated")
+
     updt_cls_JSON(df_updt, root_UCC_path, clusters_json)
-    logging.info("\nFile 'clusters.json' updated")
+    logging.info("\nFile 'clusters.json.gz' updated")
 
 
 def make_N_vs_year_plot(df_UCC):
@@ -255,13 +260,13 @@ def ucc_n_total_updt(N_UCC, database_md):
     delimiter_a = "<!-- NT1 -->"
     delimiter_b = "<!-- NT2 -->"
     replacement_text = str(N_UCC)
-    database_md = replace_text_between(
+    database_md_updt = replace_text_between(
         database_md, replacement_text, delimiter_a, delimiter_b
     )
-    return database_md
+    return database_md_updt
 
 
-def updt_cats_used(df_UCC, dbs_used, database_md):
+def updt_cats_used(df_UCC, dbs_used, database_md_updt):
     """ """
     # Count DB occurrences in UCC
     all_DBs = list(dbs_used.keys())
@@ -281,12 +286,14 @@ def updt_cats_used(df_UCC, dbs_used, database_md):
 
     delimeterA = "<!-- Begin table 1 -->\n"
     delimeterB = "<!-- End table 1 -->\n"
-    new_file = replace_text_between(database_md, md_table, delimeterA, delimeterB)
+    database_md_updt = replace_text_between(
+        database_md_updt, md_table, delimeterA, delimeterB
+    )
 
-    return new_file
+    return database_md_updt
 
 
-def updt_C3_classification(OCs_per_class, database_md):
+def updt_C3_classification(OCs_per_class, database_md_updt):
     """ """
     C3_table = "\n| C3 |  N  | C3 |  N  | C3 |  N  | C3 |  N  |\n"
     C3_table += "|----| :-: |----| :-: |----| :-: |----| :-: |\n"
@@ -308,12 +315,14 @@ def updt_C3_classification(OCs_per_class, database_md):
 
     delimeterA = "<!-- Begin table 2 -->\n"
     delimeterB = "<!-- End table 2 -->\n"
-    new_file = replace_text_between(database_md, C3_table, delimeterA, delimeterB)
+    database_md_updt = replace_text_between(
+        database_md_updt, C3_table, delimeterA, delimeterB
+    )
 
-    return new_file
+    return database_md_updt
 
 
-def updt_OCs_per_quad(df_UCC, database_md):
+def updt_OCs_per_quad(df_UCC, database_md_updt):
     """Update table of OCs per quadrants"""
     quad_table = "\n| Region  | lon range  | lat range  |   N |\n"
     quad_table += "|---------|------------|------------| :-: |\n"
@@ -342,9 +351,50 @@ def updt_OCs_per_quad(df_UCC, database_md):
 
     delimeterA = "<!-- Begin table 3 -->\n"
     delimeterB = "<!-- End table 3 -->\n"
-    new_file = replace_text_between(database_md, quad_table, delimeterA, delimeterB)
+    database_md_updt = replace_text_between(
+        database_md_updt, quad_table, delimeterA, delimeterB
+    )
 
-    return new_file
+    return database_md_updt
+
+
+def updt_dups_table(df_UCC, database_md_updt):
+    """ """
+    dups_table = "\n| Probable duplicates |   N  |\n"
+    dups_table += "|---------------------| :--: |\n"
+
+    dups_msk = [np.full(len(df_UCC), False) for _ in range(5)]
+    for i, dups_fnames_m in enumerate(df_UCC["dups_fnames_m"]):
+        if str(dups_fnames_m) == "nan":
+            continue
+        N_dup = len(dups_fnames_m.split(";"))
+        if N_dup == 1:
+            dups_msk[0][i] = True
+        elif N_dup == 2:
+            dups_msk[1][i] = True
+        elif N_dup == 3:
+            dups_msk[2][i] = True
+        elif N_dup == 4:
+            dups_msk[3][i] = True
+        elif N_dup >= 5:
+            dups_msk[4][i] = True
+
+    for i, msk in enumerate(dups_msk):
+        Nde = " N_dup ="
+        if i == 4:
+            Nde = "N_dup >="
+        dups_table += (
+            f"|     {Nde} {i + 1}      | [{msk.sum()}](/tables/Nd{i+1}_table.md) |\n"
+        )
+    dups_table += "\n"
+
+    delimeterA = "<!-- Begin table 4 -->\n"
+    delimeterB = "<!-- End table 4 -->\n"
+    database_md_updt = replace_text_between(
+        database_md_updt, dups_table, delimeterA, delimeterB
+    )
+
+    return database_md_updt, dups_msk
 
 
 def updt_UCC(df_UCC):
@@ -457,6 +507,27 @@ def updt_quad_tables(df_updt, root_UCC_path, pages_folder):
                     file.write(md_table)
 
 
+def updt_dups_tables(df_updt, root_UCC_path, pages_folder, dups_msk):
+    """Update the duplicates table files"""
+    header = (
+        """---\nlayout: page\ntitle: dups_title\n"""
+        + """permalink: /dups_link_table/\n---\n\n"""
+    )
+
+    for i, dups_N in enumerate(("Nd1", "Nd2", "Nd3", "Nd4", "Nd5")):
+        title = f"{dups_N} duplicates"
+        md_table = header.replace("dups_title", title).replace("dups_link", dups_N)
+        msk = dups_msk[i]
+        md_table = generate_table(df_updt, md_table, msk)
+
+        if DRY_RUN is False:
+            with open(
+                root_UCC_path + pages_folder + "/tables/" + dups_N + "_table.md",
+                "w",
+            ) as file:
+                file.write(md_table)
+
+
 def generate_table(df_updt, md_table, msk):
     """ """
     md_table += "| Name | l | b | ra | dec | Plx | C1 | C2 | C3 |\n"
@@ -506,7 +577,12 @@ def updt_cls_JSON(df_updt, root_UCC_path, clusters_json):
     )
 
     if DRY_RUN is False:
-        df.to_json(root_UCC_path + clusters_json, orient="records", indent=1)
+        df.to_json(
+            root_UCC_path + clusters_json,
+            orient="records",
+            indent=1,
+            compression="gzip",
+        )
 
 
 if __name__ == "__main__":
