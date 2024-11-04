@@ -16,7 +16,7 @@ root_UCC_path = "../../"
 # Folder where the pages are stored
 pages_folder = "ucc/_pages"
 # Path to the OCs JSON file
-clusters_json = "ucc/clusters.json"
+clusters_json = "ucc/clusters.json.gz"
 
 # Folder where the md entries are stored
 md_folder = "ucc/_clusters"
