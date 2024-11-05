@@ -73,19 +73,22 @@ def members_duplicates(logging, df_UCC, prob_cut=0.25):
     Assign a 'duplicate probability' for each cluster in the UCC, based on its
     estimated members
     """
-    # Use members data
-    x, y = df_UCC["GLON_m"], df_UCC["GLAT_m"]
-    pmRA, pmDE, plx = df_UCC["pmRA_m"], df_UCC["pmDE_m"], df_UCC["plx_m"]
-
     logging.info("Finding final duplicates and their probabilities...")
+    # Use members data
     dups_fnames_m, dups_probs_m = duplicate_probs.main(
-        df_UCC["fnames"], x, y, plx, pmRA, pmDE, prob_cut, Nmax
+        df_UCC["fnames"],
+        df_UCC["GLON_m"],
+        df_UCC["GLAT_m"],
+        df_UCC["plx_m"],
+        df_UCC["pmRA_m"],
+        df_UCC["pmDE_m"],
+        prob_cut,
     )
 
     if dups_fnames_m:
         df_UCC["dups_fnames_m"] = dups_fnames_m
         df_UCC["dups_probs_m"] = dups_probs_m
-        logging.info("Duplicates added to UCC\n")
+        logging.info("Duplicates (using members data) added to UCC\n")
     else:
         logging.info("No duplicates added to UCC\n")
 

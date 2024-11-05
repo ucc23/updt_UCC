@@ -33,9 +33,10 @@ def main(fnames, x, y, plx, pmRA, pmDE, prob_cut, Nmax=3):
                 dups_prob_i.append(dup_prob)
 
         if dups_fname_i:
-            i_sort = np.argsort(dups_prob_i)[::-1]
-            dups_fname_i = list(np.array(dups_fname_i)[i_sort])
-            dups_prob_i = [str(_) for _ in np.array(dups_prob_i)[i_sort]]
+            # Store list of probable duplicates respecting a given order
+            dups_fname_i, dups_prob_i = sort_by_float_desc_then_alpha(
+                dups_fname_i, dups_prob_i
+            )
             dups_fname_i = ";".join(dups_fname_i)
             dups_prob_i = ";".join(dups_prob_i)
         else:
@@ -144,6 +145,35 @@ def max_coords_rad(plx_i):
         rad = 1.5
     rad = rad / 60  # To degrees
     return rad
+
+
+def sort_by_float_desc_then_alpha(strings: list, floats: list) -> tuple:
+    """
+    Sorts two parallel lists: one of strings and one of floats. The lists are sorted
+    by the float values in descending order, and by the strings in ascending
+    alphabetical order if float values are the same. Returns two lists:
+    one with the sorted strings and another with the sorted floats as strings.
+
+    Args:
+        strings (list): A list of strings to be sorted alphabetically when float
+        values are equal.
+        floats (list): A list of float values to be sorted in descending order.
+
+    Returns:
+        tuple: A tuple containing two lists:
+            - A list of strings sorted by the criteria.
+            - A list of floats as strings, sorted by the criteria.
+    """
+    # Combine strings and floats into a list of tuples
+    data = list(zip(strings, floats))
+
+    # Sort by float in descending order and string alphabetically in ascending order
+    sorted_data = sorted(data, key=lambda x: (-x[1], x[0].lower()))
+
+    # Unzip the sorted data back into two separate lists
+    sorted_strings, sorted_floats = zip(*sorted_data)
+
+    return list(sorted_strings), [str(f) for f in sorted_floats]
 
 
 # if __name__ == "__main__":
