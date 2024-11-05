@@ -1,4 +1,5 @@
 import csv
+import sys
 from difflib import SequenceMatcher
 
 import Levenshtein
@@ -12,16 +13,6 @@ from scipy.spatial.distance import cdist
 
 # Print entries to screen
 show_entries = True
-
-# Force script to move forward at certain stages
-# Close GC check
-gc_check = False  # True
-# Inner duplicates check
-inner_dup_check = False  # True
-# UCC duplicates check
-ucc_dup_check = True
-# VDB names check
-vdb_check = False #True
 
 
 def main():
@@ -64,43 +55,39 @@ def main():
     lb = gc.transform_to("galactic")
     glon, glat = lb.l.value, lb.b.value
 
-    if gc_check:
-        # Check for GCs
-        logging.info("\nClose CG check")
-        gc_flag = GCs_check(logging, pars_dict, df_new, glon, glat)
-        if gc_flag:
-            print("Resolve the above issues before moving on.")
-            return
+    # Check for GCs
+    logging.info("\nClose GC check")
+    gc_flag = GCs_check(logging, pars_dict, df_new, glon, glat)
+    if gc_flag:
+        if input("Move on? (y/n): ").lower() != "y":
+            sys.exit()
 
-    if inner_dup_check:
-        # Check for OCs very close to each other (possible duplicates)
-        logging.info("\nPossible inner duplicates check")
-        inner_flag = close_OC_check(logging, df_new, pars_dict)
-        if inner_flag:
-            print("Resolve the above issues before moving on.")
-            return
+    # Check for OCs very close to each other (possible duplicates)
+    logging.info("\nPossible inner duplicates check")
+    inner_flag = close_OC_check(logging, df_new, pars_dict)
+    if inner_flag:
+        if input("Move on? (y/n): ").lower() != "y":
+            sys.exit()
 
-    if ucc_dup_check:
-        # Check for OCs very close to each other (possible duplicates)
-        logging.info("\nPossible UCC duplicates check")
-        dups_flag = close_OC_UCC_check(
-            logging, df_UCC, df_new, new_DB_fnames, db_matches, pars_dict, glon, glat
-        )
-        if dups_flag:
-            print("Resolve the above issues before moving on.")
-            return
+    # Check for OCs very close to each other (possible duplicates)
+    logging.info("\nPossible UCC duplicates check")
+    dups_flag = close_OC_UCC_check(
+        logging, df_UCC, new_DB_fnames, db_matches, pars_dict, glon, glat
+    )
+    if dups_flag:
+        if input("Move on? (y/n): ").lower() != "y":
+            sys.exit()
 
-    if vdb_check:
-        # Check for 'vdBergh-Hagen', 'vdBergh' OCs
-        logging.info("\nPossible vdBergh-Hagen/vdBergh check")
-        vdb_flag = vdberg_check(logging, df_new, pars_dict)
-        if vdb_flag:
-            print("Resolve the above issues before moving on.")
-            return
+    # Check for 'vdBergh-Hagen', 'vdBergh' OCs
+    logging.info("\nPossible vdBergh-Hagen/vdBergh check")
+    vdb_flag = vdberg_check(logging, df_new, pars_dict)
+    if vdb_flag:
+        if input("Move on? (y/n): ").lower() != "y":
+            sys.exit()
 
     # Replace empty positions with 'nans'
     logging.info("\nEmpty entries replace finished")
-    empty_nan_replace(logging, dbs_folder, new_DB, df_new)
+    empty_nan_replace(dbs_folder, new_DB, df_new)
 
     logging.info("\nFinished")
 
@@ -159,12 +146,13 @@ def GCs_check(logging, pars_dict, df_new, glon, glat):
         if d_arcmin[j1] < search_rad:
             GCs_found += 1
             gc_all.append([idx, row[ID], df_gcs["Name"][j1], d_arcmin[j1]])
-    gc_all = np.array(gc_all).T
-    i_sort = np.argsort(np.array(gc_all[-1], dtype=float))
-    gc_all = gc_all[:, i_sort].T
 
     gc_flag = False
     if GCs_found > 0:
+        gc_all = np.array(gc_all).T
+        i_sort = np.argsort(np.array(gc_all[-1], dtype=float))
+        gc_all = gc_all[:, i_sort].T
+
         gc_flag = True
         logging.info(f"Found {GCs_found} probable GCs")
         logging.info("i          OC              --> GC              Dist [arcmin]")
@@ -252,7 +240,7 @@ def close_OC_check(logging, df_new, pars_dict):
 
 
 def close_OC_UCC_check(
-    logging, df_UCC, df_new, new_DB_fnames, db_matches, pars_dict, glon, glat
+    logging, df_UCC, new_DB_fnames, db_matches, pars_dict, glon, glat
 ):
     """
     Looks for OCs in the new DB that are close to OCs in the UCC (GLON, GLAT) but
@@ -263,8 +251,8 @@ def close_OC_UCC_check(
 
     coords_new = np.array([glon, glat]).T
     coords_UCC = np.array([df_UCC["GLON"], df_UCC["GLAT"]]).T
-    # Find the distances to all clusters, for all clusters
-    dist = cdist(coords_new, coords_UCC)
+    # Find the distances to all clusters, for all clusters (in arcmin)
+    dist = cdist(coords_new, coords_UCC) * 60
 
     idxs = np.arange(0, len(df_UCC))
     dups_list, dups_found = [], 0
@@ -345,7 +333,7 @@ def vdberg_check(logging, df_new, pars_dict):
             sm_ratio = SequenceMatcher(None, new_cl, name_check).ratio()
             if sm_ratio > 0.5:
                 vds_found += 1
-                logging.info(f"Possible VDB(H): {i} {new_cl}, {round(sm_ratio, 2)}")
+                logging.info(f"{i}, {new_cl} --> {name_check} (P={round(sm_ratio, 2)})")
                 break
 
     vdb_flag = True
@@ -356,7 +344,7 @@ def vdberg_check(logging, df_new, pars_dict):
     return vdb_flag
 
 
-def empty_nan_replace(logging, dbs_folder, new_DB, df_new):
+def empty_nan_replace(dbs_folder, new_DB, df_new):
     """
     Replace possible empty entries in columns
     """
