@@ -137,7 +137,7 @@ def OC_in_UCC(new_DB_ID, new_db_dict, i, new_cl, new_names, row):
 
 def date_order_DBs(DB, DB_i):
     """Order DBs by year"""
-    # Extract years from DBs
+    # Split lists
     all_dbs = DB.split(";")
     all_dbs_i = DB_i.split(";")
 
@@ -146,10 +146,35 @@ def date_order_DBs(DB, DB_i):
     for db in all_dbs:
         year = db.split("_")[0][-2:]
         all_years.append(year)
-    idx = np.argsort(all_years)
+    # WILL BREAK IN 2090. If you are reading this, good luck to you :)
+    idx = sort_year_digits(all_years)
     DB = ";".join(np.array(all_dbs)[idx].tolist())
     DB_i = ";".join(np.array(all_dbs_i)[idx].tolist())
     return DB, DB_i
+
+
+def sort_year_digits(year_digits: list[str]) -> np.ndarray:
+    """
+    Sorts a list of two-digit year representations by converting them into
+    full four-digit years based on a threshold. Years represented as 90-99 are
+    treated as 1990-1999, while years represented as 00-89 are treated as 2000-2089.
+
+    Args:
+        year_digits: A list of two-digit strings representing years.
+
+    Returns:
+        A numpy array of indices representing the sorted order of the input list,
+        based on the adjusted four-digit year values.
+
+    Example:
+        >>> sort_year_digits([1, 23, 1, 8, 0, 6, 99, 24])
+        array([6, 4, 0, 2, 5, 3, 1, 7])
+    """
+    year_list = np.array(year_digits, dtype=int)
+    msk = year_list >= 90
+    year_list[msk] += 1900  # Treat 90-99 as 1990-1999
+    year_list[~msk] += 2000  # Treat 00-89 as 2000-2089
+    return np.argsort(year_list)
 
 
 def new_OC_not_in_UCC(
