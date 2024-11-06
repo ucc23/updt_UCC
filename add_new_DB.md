@@ -37,6 +37,13 @@ The format of the name for the DB is `SMITH24` or, if required, `SMITH24_1`.
 The name of the DB **must not** contain any non letter characters except for the
 `_` required to differentiate DBs with the same names published in the same year.
 
+**IMPORTANT**: the smaller DB year accepted by the scripts is 1990. This means that
+any new DBs with associated years below 90 will be interpreted as belonging to this
+century. E.g.: `SMITH89` will be interpreted as 2089 but `SMITH90` will be interpreted
+as 1990 (same for `91, 92, 93, 94, 95, 96, 97, 98, 99`)`. This also means that a
+_major_ upgrade of the UCC is due for 2090 :D
+
+
 **Required columns**
 
 The new database must contain a column with all the names assigned to a given
@@ -94,7 +101,7 @@ Once finished, correct any issues that are shown.
 
 **Summary**
 
-- Files edited: `databases/all_dbs.json` (manually)
+- Files edited: `databases/all_dbs.json` (replace empty entries with 'nan')
 - Files generated: properly formatted database for the new DB (manually)
 
 
@@ -153,6 +160,8 @@ at `zenodo/UCC_cat_XXYYZZ.csv`.
 ## 5. Generate members' datafiles
 
 Run the `E_run_fastMP.py` script
+
+**If no new OCs were added by the previous script, this one can be skipped.**
 
 This script generates new datafiles with members using `fastMP`, **only** for the
 new OCs in the  new DB. These are identified as those with a
@@ -259,4 +268,4 @@ Run the script `J_database_updt.py`. This script will:
 **Summary**
 
 - Files edited: `ucc/_pages/DATABASE.md, ucc/_pages/QXY_table.md, ucc/clusters.json`
-- Files generated: None
+- Files generated: `UCC_diff.csv`
