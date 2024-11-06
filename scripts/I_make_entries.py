@@ -14,7 +14,7 @@ from HARDCODED import (
     plots_folder,
     root_UCC_path,
 )
-from modules import UCC_new_match, logger, ucc_entry, ucc_plots
+from modules import UCC_new_match, combine_UCC_new_DB, logger, ucc_entry, ucc_plots
 
 # Use to process files without writing changes to files
 DRY_RUN = True
@@ -165,6 +165,7 @@ def make_entry(df_UCC, UCC_cl, DBs_json, DBs_full_data, entries_path, Qfold, fna
             #     f.write(old_md_entry_no_date)
             # with open("NEW.md", "w") as f:
             #     f.write(new_md_entry_no_date)
+            # breakpoint()
 
     if file_flag != "":
         if DRY_RUN is False:
@@ -210,9 +211,9 @@ def fpars_in_lit(
         # Extract DB year
         # This splits the DB name in a '_' and keeps the first part. It is meant to handle
         # DBs with names such as: 'SMITH23_3'.
-        DBs_years = [int(_.split("_")[0][-2:]) for _ in DBs_w_pars]
+        DBs_years = [_.split("_")[0][-2:] for _ in DBs_w_pars]
         # Sort
-        sort_idxs = np.argsort(DBs_years)
+        sort_idxs = combine_UCC_new_DB.sort_year_digits(DBs_years)
         # Re-arrange
         DBs_w_pars = np.array(DBs_w_pars)[sort_idxs]
         DBs_i_w_pars = np.array(DBs_i_w_pars)[sort_idxs]
@@ -262,9 +263,9 @@ def fpars_in_lit(
 def positions_in_lit(DBs_json, DBs_full_data, DBs, DBs_i, row_UCC):
     """ """
     # Re-arrange DBs by year
-    DBs_years = [int(_.split("_")[0][-2:]) for _ in DBs]
+    DBs_years = [_.split("_")[0][-2:] for _ in DBs]
     # Sort
-    sort_idxs = np.argsort(DBs_years)
+    sort_idxs = combine_UCC_new_DB.sort_year_digits(DBs_years)
     # Re-arrange
     DBs_sort = np.array(DBs)[sort_idxs]
     DBs_i_sort = np.array(DBs_i)[sort_idxs]
