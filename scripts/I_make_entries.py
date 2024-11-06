@@ -340,7 +340,7 @@ def close_cat_cluster(df_UCC, row):
 
         ra, dec, plx, pmRA, pmDE, Rv, prob = vals
 
-        close_table += f"|[{name}](https://ucc.ar/_clusters/{fname}/)| "
+        close_table += f"|[{name}](/_clusters/{fname}/)| "
         close_table += f"{int(100 * prob)} | "
         close_table += f"{ra} | "
         close_table += f"{dec} | "
