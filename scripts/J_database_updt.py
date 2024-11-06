@@ -407,7 +407,7 @@ def updt_UCC(df_UCC):
     names_url = []
     for i, cl in df.iterrows():
         name = str(cl["ID"]).split(";")[0]
-        url = "https://ucc.ar/_clusters/" + str(cl["fnames"]).split(";")[0] + "/"
+        url = "/_clusters/" + str(cl["fnames"]).split(";")[0] + "/"
         names_url.append(f"[{name}]({url})")
     df["ID_url"] = names_url
 
