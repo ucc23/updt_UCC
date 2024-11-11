@@ -87,31 +87,6 @@ def lkl_phot(df_membs, df_field, max_mag_perc=90):
     return C_lkl
 
 
-def KDEoverlap(p_vals_cl, p_vals_fr):
-    """
-    Calculate overlap between the two KDEs
-    """
-    if (np.median(p_vals_cl) - np.median(p_vals_fr)) > 2 * np.std(p_vals_cl):
-        return 0.0
-
-    def y_pts(pt):
-        y_pt = min(kcl(pt), kfr(pt))
-        return y_pt
-
-    kcl, kfr = gaussian_kde(p_vals_cl), gaussian_kde(p_vals_fr)
-
-    all_pvals = np.concatenate([p_vals_cl, p_vals_fr])
-    pmin, pmax = all_pvals.min(), all_pvals.max()
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        overlap = quad(y_pts, pmin, pmax)[0]
-
-    # Probability value for the cluster.
-    prob_cl = 1.0 - overlap
-
-    return prob_cl
-
-
 def prep_data(mag, col):
     """ """
 
@@ -190,9 +165,34 @@ def tremmel(field, prep_clust):
     return tremmel_lkl
 
 
+def KDEoverlap(p_vals_cl, p_vals_fr):
+    """
+    Calculate overlap between the two KDEs
+    """
+    if (np.median(p_vals_cl) - np.median(p_vals_fr)) > 2 * np.std(p_vals_cl):
+        return 0.0
+
+    def y_pts(pt):
+        y_pt = min(kcl(pt), kfr(pt))
+        return y_pt
+
+    kcl, kfr = gaussian_kde(p_vals_cl), gaussian_kde(p_vals_fr)
+
+    all_pvals = np.concatenate([p_vals_cl, p_vals_fr])
+    pmin, pmax = all_pvals.min(), all_pvals.max()
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        overlap = quad(y_pts, pmin, pmax)[0]
+
+    # Probability value for the cluster.
+    prob_cl = 1.0 - overlap
+
+    return prob_cl
+
+
 def dens_ratio(df_membs, df_field, perc=95, N_neigh=10, N_max=1000, norm_v=5):
     """ """
-    # Obtain the median distance to the 'N_neigh' closest neighbours in 5D
+    # Obtain the median distance to the 'N_neigh' closest neighbors in 5D
     # for each member
     arr = df_membs[["GLON", "GLAT", "pmRA", "pmDE", "Plx"]].values
     tree = spatial.KDTree(arr)
