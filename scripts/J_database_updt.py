@@ -53,12 +53,12 @@ def main():
     logging.info("\nPlot generated: number of OCs vs years")
 
     # Count number of OCs in each class
-    classif, count = np.unique(df_UCC["C3"], return_counts=True)
-    classif = list(classif)
+    C3_classif, C3_count = np.unique(df_UCC["C3"], return_counts=True)
+    C3_classif = list(C3_classif)
     OCs_per_class = []
     for c in class_order:
-        i = classif.index(c)
-        OCs_per_class.append(count[i])
+        i = C3_classif.index(c)
+        OCs_per_class.append(C3_count[i])
 
     make_classif_plot(OCs_per_class)
     logging.info("Plot generated: classification histogram")
@@ -416,6 +416,11 @@ def updt_UCC(df_UCC):
     df["GLON"] = np.round(df_UCC["GLON"].values, 2)
     df["GLAT"] = np.round(df_UCC["GLAT"].values, 2)
 
+    # Add parallax based distances
+    dist_pc = 1000 / np.clip(df["plx_m"].values, a_min=0.0000001, a_max=np.inf)
+    dist_pc = np.clip(dist_pc, a_min=10, a_max=50000)
+    df["dist_pc"] = np.round(dist_pc, 0)
+
     return df
 
 
@@ -559,7 +564,19 @@ def updt_cls_JSON(df_updt, root_UCC_path, clusters_json):
     Update cluster.json file used by 'ucc.ar' search
     """
     df = pd.DataFrame(
-        df_updt[["ID", "fnames", "UCC_ID", "RA_ICRS", "DE_ICRS", "GLON", "GLAT"]]
+        df_updt[
+            [
+                "ID",
+                "fnames",
+                "UCC_ID",
+                "RA_ICRS",
+                "DE_ICRS",
+                "GLON",
+                "GLAT",
+                "dist_pc",
+                "N_50",
+            ]
+        ]
     )
     df = df.sort_values("GLON")
 
@@ -572,6 +589,8 @@ def updt_cls_JSON(df_updt, root_UCC_path, clusters_json):
             "DE_ICRS": "D",
             "GLON": "L",
             "GLAT": "B",
+            "dist_pc": "P",
+            "N_50": "M",
         },
         inplace=True,
     )
