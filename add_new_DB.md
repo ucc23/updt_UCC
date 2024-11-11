@@ -19,9 +19,8 @@ steps **apply** the required changes to the site's files.
 - [9. Generate new clusters entries](#9-generate-new-clusters-entries)
 - [10. Update site's files](#10-update-sites-files)
 
-**Important**
 
-Once all scripts have been applied, follow the final steps in the
+**Important**: Once all scripts have been applied, follow the final steps in the
 [UCC public site build](ucc_site_build.md) file to update the public site.
 
 
