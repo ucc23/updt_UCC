@@ -49,8 +49,13 @@ def main():
     # Read latest version of the UCC
     df_UCC, _ = UCC_new_match.latest_cat_detect(logging, UCC_folder)
 
-    make_N_vs_year_plot(df_UCC)
-    logging.info("\nPlot generated: number of OCs vs years")
+    # Load DATABASE.md file
+    with open(root_UCC_path + pages_folder + "/" + "DATABASE.md") as file:
+        database_md = file.read()
+
+    # Load clusters data in JSON file
+    with open(dbs_folder + all_DBs_json) as f:
+        dbs_used = json.load(f)
 
     # Count number of OCs in each class
     C3_classif, C3_count = np.unique(df_UCC["C3"], return_counts=True)
@@ -60,30 +65,28 @@ def main():
         i = C3_classif.index(c)
         OCs_per_class.append(C3_count[i])
 
+    # Update the total number of entries and databases in the UCC
+    database_md_updt = ucc_n_total_updt(len(df_UCC), len(dbs_used), database_md)
+
+    # Mask with duplicates
+    dups_msk = count_dups(df_UCC)
+
+    # Update plots
+    make_N_vs_year_plot(df_UCC)
+    logging.info("\nPlot generated: number of OCs vs years")
     make_classif_plot(OCs_per_class)
     logging.info("Plot generated: classification histogram")
 
-    # Load DATABASE.md file
-    with open(root_UCC_path + pages_folder + "/" + "DATABASE.md") as file:
-        database_md = file.read()
-
-    # Update the total number of entries in the UCC
-    database_md_updt = ucc_n_total_updt(len(df_UCC), database_md)
-
-    # Load column data for the new catalogue
-    with open(dbs_folder + all_DBs_json) as f:
-        dbs_used = json.load(f)
-
-    # Prepare DATABASE.md for updating
+    # Update DATABASE.md file
     database_md_updt = updt_cats_used(df_UCC, dbs_used, database_md_updt)
     logging.info("Table: catalogues used in the UCC updated")
     database_md_updt = updt_C3_classification(OCs_per_class, database_md_updt)
     logging.info("Table: C3 classification updated")
     database_md_updt = updt_OCs_per_quad(df_UCC, database_md_updt)
     logging.info("Table: OCs per quadrant updated")
-    database_md_updt, dups_msk = updt_dups_table(df_UCC, database_md_updt)
+    database_md_updt = updt_dups_table(df_UCC, database_md_updt, dups_msk)
     logging.info("Table: duplicated OCs updated")
-    # Update DATABASE.md file
+    # Save updated page
     if DRY_RUN is False:
         with open(root_UCC_path + pages_folder + "/" + "DATABASE.md", "w") as file:
             file.write(database_md_updt)
@@ -92,19 +95,17 @@ def main():
     # Prepare df_UCC to be used in the updating of the tables below
     df_updt = updt_UCC(df_UCC)
 
+    # Update groups of tables
     updt_DBs_tables(dbs_used, df_updt, root_UCC_path, pages_folder)
     logging.info("\nDBs tables updated")
-
     updt_C3_tables(df_updt, root_UCC_path, pages_folder)
     logging.info("\nC3 tables updated")
-
     updt_quad_tables(df_updt, root_UCC_path, pages_folder)
     logging.info("\nQuadrant tables updated")
-
     updt_dups_tables(df_updt, root_UCC_path, pages_folder, dups_msk)
     logging.info("\nDuplicates tables updated")
 
-    updt_cls_JSON(df_updt, root_UCC_path, clusters_json)
+    updt_cls_JSON(df_updt, root_UCC_path)
     logging.info("\nFile 'clusters.json.gz' updated")
 
 
@@ -255,13 +256,20 @@ def replace_text_between(
     return leading_text + delimiter_a + replacement_text
 
 
-def ucc_n_total_updt(N_UCC, database_md):
+def ucc_n_total_updt(N_cl_UCC, N_db_UCC, database_md):
     """ """
     delimiter_a = "<!-- NT1 -->"
     delimiter_b = "<!-- NT2 -->"
-    replacement_text = str(N_UCC)
+    replacement_text = str(N_cl_UCC)
     database_md_updt = replace_text_between(
         database_md, replacement_text, delimiter_a, delimiter_b
+    )
+
+    delimiter_a = "<!-- ND1 -->"
+    delimiter_b = "<!-- ND2 -->"
+    replacement_text = str(N_db_UCC)
+    database_md_updt = replace_text_between(
+        database_md_updt, replacement_text, delimiter_a, delimiter_b
     )
     return database_md_updt
 
@@ -280,7 +288,7 @@ def updt_cats_used(df_UCC, dbs_used, database_md_updt):
     for dict_chunk in chunks(dbs_used):
         row = ""
         for DB, DB_data in dict_chunk.items():
-            row += f"| {DB_data['ref']} | [{N_in_DB[DB]}](/tables/{DB}_table.md) "
+            row += f"| {DB_data['ref']} | [{N_in_DB[DB]}](/{DB}_table) "
         md_table += row + "|\n"
     md_table += "\n"
 
@@ -307,7 +315,7 @@ def updt_C3_classification(OCs_per_class, database_md_updt):
         row = ""
         for c in range(4):
             idx += 1
-            row += "| {} | [{}](/tables/{}_table.md) ".format(
+            row += "| {} | [{}](/{}_table) ".format(
                 classes_colors[idx], OCs_per_class[idx], class_order[idx]
             )
         C3_table += row + "|\n"
@@ -344,9 +352,7 @@ def updt_OCs_per_quad(df_UCC, database_md_updt):
             i += 1
             quad = "Q" + str(quad_N) + quad_s
             msk = df == quad
-            quad_table += (
-                quad_lines[i - 1] + f" [{msk.sum()}](/tables/{quad}_table.md) |\n"
-            )
+            quad_table += quad_lines[i - 1] + f" [{msk.sum()}](/{quad}_table) |\n"
     quad_table += "\n"
 
     delimeterA = "<!-- Begin table 3 -->\n"
@@ -358,11 +364,25 @@ def updt_OCs_per_quad(df_UCC, database_md_updt):
     return database_md_updt
 
 
-def updt_dups_table(df_UCC, database_md_updt):
-    """ """
-    dups_table = "\n| Probable duplicates |   N  |\n"
-    dups_table += "|---------------------| :--: |\n"
+def count_dups(df_UCC: pd.DataFrame) -> list:
+    """
+    Categorizes duplicate file names in the input DataFrame into five groups
+    based on the number of duplicates. Each group is represented by a mask array.
 
+    Args:
+        df_UCC (pandas.DataFrame): A DataFrame containing a column named
+        "dups_fnames_m", where each entry is a string of file names separated by ";"
+        or NaN.
+
+    Returns:
+        list: A list of five numpy boolean arrays. Each array corresponds to a mask
+              identifying rows with a specific range of duplicates:
+              - Index 0: Rows with exactly 1 duplicate.
+              - Index 1: Rows with exactly 2 duplicates.
+              - Index 2: Rows with exactly 3 duplicates.
+              - Index 3: Rows with exactly 4 duplicates.
+              - Index 4: Rows with 5 or more duplicates.
+    """
     dups_msk = [np.full(len(df_UCC), False) for _ in range(5)]
     for i, dups_fnames_m in enumerate(df_UCC["dups_fnames_m"]):
         if str(dups_fnames_m) == "nan":
@@ -379,13 +399,32 @@ def updt_dups_table(df_UCC, database_md_updt):
         elif N_dup >= 5:
             dups_msk[4][i] = True
 
+    return dups_msk
+
+
+def updt_dups_table(df_UCC: pd.DataFrame, database_md_updt: str, dups_msk: list) -> str:
+    """
+    Updates a Markdown string with a summary table of duplicate counts, categorized
+    by the number of duplicates.
+
+    Args:
+        df_UCC (pandas.DataFrame): The DataFrame containing data on duplicates.
+        database_md_updt (str): The Markdown string to be updated with the duplicates
+        table.
+        dups_msk (list): A list of numpy boolean arrays, where each array masks rows
+                         in `df_UCC` based on the number of duplicates.
+
+    Returns:
+        str: The updated Markdown string with the duplicates table inserted.
+    """
+    dups_table = "\n| Probable duplicates |   N  |\n"
+    dups_table += "|---------------------| :--: |\n"
+
     for i, msk in enumerate(dups_msk):
         Nde = " N_dup ="
         if i == 4:
             Nde = "N_dup >="
-        dups_table += (
-            f"|     {Nde} {i + 1}      | [{msk.sum()}](/tables/Nd{i+1}_table.md) |\n"
-        )
+        dups_table += f"|     {Nde} {i + 1}      | [{msk.sum()}](/Nd{i+1}_table) |\n"
     dups_table += "\n"
 
     delimeterA = "<!-- Begin table 4 -->\n"
@@ -394,30 +433,51 @@ def updt_dups_table(df_UCC, database_md_updt):
         database_md_updt, dups_table, delimeterA, delimeterB
     )
 
-    return database_md_updt, dups_msk
+    return database_md_updt
 
 
-def updt_UCC(df_UCC):
-    """ """
+def updt_UCC(df_UCC: pd.DataFrame) -> pd.DataFrame:
+    """
+    Updates a DataFrame of astronomical cluster data by processing identifiers,
+    coordinates, URLs, and derived quantities such as distances.
+
+    Args:
+        df_UCC (pd.DataFrame): The input DataFrame containing cluster data with columns:
+                               - "ID": A semicolon-separated string of identifiers.
+                               - "fnames": A semicolon-separated string of file names.
+                               - "RA_ICRS", "DE_ICRS", "GLON", "GLAT": Coordinates.
+                               - "plx_m": Parallax measurements in milliarcseconds.
+
+    Returns:
+        pd.DataFrame: The updated DataFrame with the following changes:
+                      - "ID": Extracts the first identifier from the "ID" column.
+                      - "ID_url": Adds URLs linking to cluster details.
+                      - "RA_ICRS", "DE_ICRS", "GLON", "GLAT": Rounded coordinates.
+                      - "dist_pc": Adds parallax-based distances in parsecs, clipped
+                                   to the range [10, 50000].
+    """
     df = pd.DataFrame(df_UCC)
 
+    # Extract the first identifier from the "ID" column
     df["ID"] = [_.split(";")[0] for _ in df_UCC["ID"]]
 
-    # Add urls to names
+    # Generate URLs for names
     names_url = []
     for i, cl in df.iterrows():
         name = str(cl["ID"]).split(";")[0]
-        url = "/_clusters/" + str(cl["fnames"]).split(";")[0] + "/"
+        fname = str(cl["fnames"]).split(";")[0]
+        url = "/_clusters/" + fname + "/"
         names_url.append(f"[{name}]({url})")
     df["ID_url"] = names_url
 
+    # Round coordinate columns
     df["RA_ICRS"] = np.round(df_UCC["RA_ICRS"].values, 2)
     df["DE_ICRS"] = np.round(df_UCC["DE_ICRS"].values, 2)
     df["GLON"] = np.round(df_UCC["GLON"].values, 2)
     df["GLAT"] = np.round(df_UCC["GLAT"].values, 2)
 
-    # Add parallax based distances
-    dist_pc = 1000 / np.clip(df["plx_m"].values, a_min=0.0000001, a_max=np.inf)
+    # Compute parallax-based distances in parsecs
+    dist_pc = 1000 / np.clip(np.array(df["plx_m"]), a_min=0.0000001, a_max=np.inf)
     dist_pc = np.clip(dist_pc, a_min=10, a_max=50000)
     df["dist_pc"] = np.round(dist_pc, 0)
 
@@ -559,7 +619,7 @@ def generate_table(df_updt, md_table, msk):
     return md_table
 
 
-def updt_cls_JSON(df_updt, root_UCC_path, clusters_json):
+def updt_cls_JSON(df_updt, root_UCC_path):
     """
     Update cluster.json file used by 'ucc.ar' search
     """
