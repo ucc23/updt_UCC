@@ -21,7 +21,7 @@ steps **apply** the required changes to the site's files.
 
 
 **Important**: Once all scripts have been applied, follow the final steps in
-[UCC public site build](readme-ov-file#ucc-public-site-build) to update the public site.
+[UCC public site build](readme#ucc-public-site-build) to update the public site.
 
 
 
