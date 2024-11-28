@@ -4,18 +4,24 @@ import matplotlib.pyplot as plt
 import numpy as np
 from astropy.io import fits
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from scipy import ndimage
 
 
-def make_plot(plot_fpath, df_membs, DRY_RUN, cmap="plasma", dpi=200):
+def make_plot(plot_fpath, df_membs, DRY_RUN, title="UCC", cmap="plasma", dpi=200):
     """ """
-    # Load local style file taken from https://github.com/garrettj403/SciencePlots
-    # but with a line commented out to avoid an issue with LaTeX and the
-    # logging module: https://github.com/garrettj403/SciencePlots/issues/103
-    plt.style.use("./modules/science.mplstyle")
+    # This is a modified style that removes the Latex dependence from the
+    # 'scienceplots' package
+    plt.style.use("../modules/science2.mplstyle")
 
     pr = df_membs["probs"]
-    vmin = min(pr)
+    vmin, vmax = min(pr), max(pr)
+    if vmin > 0.01:
+        if (vmax - vmin) < 0.001:
+            vmin -= 0.01
+    elif 0 < vmin <= 0.01:
+        if (vmax - vmin) < 0.001:
+            vmin = 0.0
+    else:
+        vmax += 0.01
 
     ec = "grey"
     fs = 7
@@ -32,8 +38,9 @@ def make_plot(plot_fpath, df_membs, DRY_RUN, cmap="plasma", dpi=200):
     # num=1, clear=True are there to release memory as per.
     # https://stackoverflow.com/a/65910539/1391441
     fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(
-        2, 2, figsize=(5.5, 5), num=1, clear=True
+        2, 2, figsize=(5.5, 5.5), num=1, clear=True
     )
+    fig.suptitle(f"{title} (N={len(df_membs)})", fontsize=fs + 1)
 
     ax1.scatter(
         df_membs["GLON"],
@@ -43,18 +50,12 @@ def make_plot(plot_fpath, df_membs, DRY_RUN, cmap="plasma", dpi=200):
         ec=ec,
         lw=0.2,
         s=size,
+        vmin=vmin,
+        vmax=vmax,
         cmap=cmap,
     )
     ax1.set_xlabel("GLON", fontsize=fs)
     ax1.set_ylabel("GLAT", fontsize=fs)
-
-    # xmin, xmax = np.nanmin(df_membs['GLON']), np.nanmax(df_membs['GLON'])
-    # ymin, ymax = np.nanmin(df_membs['GLAT']), np.nanmax(df_membs['GLAT'])
-    # xr, yr = xmax - xmin, ymax - ymin
-    # rad = max(xr, yr) * .6
-    # xc, yc = np.nanmedian(df_membs['GLON']), np.nanmedian(df_membs['GLAT'])
-    # ax1.set_xlim(xc - rad, xc + rad)
-    # ax1.set_ylim(yc - rad, yc + rad)
 
     xmin, xmax = np.nanmin(df_membs["GLON"]), np.nanmax(df_membs["GLON"])
     ymin, ymax = np.nanmin(df_membs["GLAT"]), np.nanmax(df_membs["GLAT"])
@@ -76,11 +77,11 @@ def make_plot(plot_fpath, df_membs, DRY_RUN, cmap="plasma", dpi=200):
         lw=0.2,
         s=size,
         vmin=vmin,
+        vmax=vmax,
         cmap=cmap,
     )
 
-    # x_pos, y_pos, w, h = .98, 0.59, .02, .38
-    x_pos, y_pos, w, h = 0.985, 0.103, 0.02, 0.866
+    x_pos, y_pos, w, h = 0.985, 0.08, 0.02, 0.84
     cb_ax = fig.add_axes([x_pos, y_pos, w, h])
     cbar = fig.colorbar(im2, orientation="vertical", cax=cb_ax)
     # cbar.set_label('Probs')
@@ -111,6 +112,8 @@ def make_plot(plot_fpath, df_membs, DRY_RUN, cmap="plasma", dpi=200):
         s=size,
         ec=ec,
         lw=0.2,
+        vmin=vmin,
+        vmax=vmax,
         cmap=cmap,
     )
     ax3.axvline(np.median(df_membs["Plx"]), ls=":", c="k", lw=2)
@@ -133,6 +136,8 @@ def make_plot(plot_fpath, df_membs, DRY_RUN, cmap="plasma", dpi=200):
         ec=ec,
         lw=0.2,
         s=size,
+        vmin=vmin,
+        vmax=vmax,
         cmap=cmap,
     )
     ax4.invert_yaxis()
