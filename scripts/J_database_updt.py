@@ -4,7 +4,6 @@ from itertools import islice
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import scienceplots  # noqa: F401
 from HARDCODED import (
     UCC_folder,
     all_DBs_json,
@@ -13,8 +12,7 @@ from HARDCODED import (
     pages_folder,
     root_UCC_path,
 )
-from I_make_entries import UCC_color
-from modules import UCC_new_match, logger
+from modules import UCC_new_match, logger, ucc_entry
 
 # Order used for the C3 classes
 class_order = [
@@ -65,17 +63,17 @@ def main():
         i = C3_classif.index(c)
         OCs_per_class.append(C3_count[i])
 
-    # Update the total number of entries and databases in the UCC
-    database_md_updt = ucc_n_total_updt(len(df_UCC), len(dbs_used), database_md)
-
-    # Mask with duplicates
-    dups_msk = count_dups(df_UCC)
-
     # Update plots
     make_N_vs_year_plot(df_UCC)
     logging.info("\nPlot generated: number of OCs vs years")
     make_classif_plot(OCs_per_class)
     logging.info("Plot generated: classification histogram")
+
+    # Update the total number of entries and databases in the UCC
+    database_md_updt = ucc_n_total_updt(len(df_UCC), len(dbs_used), database_md)
+
+    # Mask with duplicates
+    dups_msk = count_dups(df_UCC)
 
     # Update DATABASE.md file
     database_md_updt = updt_cats_used(df_UCC, dbs_used, database_md_updt)
@@ -111,7 +109,7 @@ def main():
 
 def make_N_vs_year_plot(df_UCC):
     """ """
-    plt.style.use("science")
+    plt.style.use("modules/science2.mplstyle")
 
     # Extract minimum year of publication for each catalogued OC
     years = []
@@ -200,6 +198,7 @@ def make_N_vs_year_plot(df_UCC):
 
 def make_classif_plot(height):
     """ """
+    plt.style.use("modules/science2.mplstyle")
 
     def rescale(x):
         return (x - np.min(x)) / (np.max(x) - np.min(x))
@@ -307,7 +306,7 @@ def updt_C3_classification(OCs_per_class, database_md_updt):
     C3_table += "|----| :-: |----| :-: |----| :-: |----| :-: |\n"
     classes_colors = []
     for C3 in class_order:
-        col_row = UCC_color(C3)
+        col_row = ucc_entry.UCC_color(C3)
         classes_colors.append(col_row)
 
     idx = -1
