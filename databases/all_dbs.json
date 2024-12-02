@@ -227,8 +227,8 @@
     "ref": "[Hunt & Reffert (2023)](https://ui.adsabs.harvard.edu/abs/2023A%26A...673A.114H)",
     "names": "Name",
     "pos": "RA_ICRS,DE_ICRS,Plx,pmRA,pmDE,RV",
-    "pars": "AV50,MOD50,logAge50",
-    "e_pars": "e_AV,e_MOD50,e_logAge50"
+    "pars": "AV50,diffAV50,MOD50,logAge50",
+    "e_pars": "AV16,AV84,diffAV16,diffAV84,MOD16,MOD84,logAge16,logAge84"
  },
   "QIN23": {
     "ref": "[Qin et al. (2023)](https://ui.adsabs.harvard.edu/abs/2023ApJS..265...12Q)",
