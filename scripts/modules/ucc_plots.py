@@ -12,6 +12,9 @@ def make_plot(plot_fpath, df_membs, DRY_RUN, title="UCC", cmap="plasma", dpi=200
     # 'scienceplots' package
     plt.style.use("../modules/science2.mplstyle")
 
+    # Sort by probabilities
+    df_membs.sort_values("probs", inplace=True)
+
     pr = df_membs["probs"]
     vmin, vmax = min(pr), max(pr)
     if vmin > 0.01:
