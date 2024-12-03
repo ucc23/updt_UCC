@@ -2,11 +2,7 @@ import csv
 import os
 
 import pandas as pd
-from HARDCODED import (
-    UCC_folder,
-    members_folder,
-    root_UCC_path,
-)
+from HARDCODED import UCC_folder, members_folder, root_UCC_path, zenodo_folder
 from modules import UCC_new_match, logger
 
 
@@ -16,19 +12,22 @@ def main():
     logging.info("\nRunning 'J_zenodo_updt' script\n")
 
     # Read latest version of the UCC
-    df_UCC, _ = UCC_new_match.latest_cat_detect(logging, UCC_folder)
+    df_UCC, UCC_cat = UCC_new_match.latest_cat_detect(logging, UCC_folder)
 
     zenodo_UCC(df_UCC)
-    logging.info("\nCompressed 'UCC_cat.csv.gz' file generated\n")
+    logging.info("\n'UCC_cat.csv' file generated\n")
 
-    print("Compressing members...")
+    print("Reading member files...")
     zenodo_membs(logging, root_UCC_path, members_folder)
-    logging.info("\nCompressed 'UCC_members.parquet.gz' file generated")
+    logging.info("\n'UCC_members.parquet' file generated")
+
+    zenodo_readme(UCC_cat)
+    logging.info("\nREADME file updated")
 
 
 def zenodo_UCC(df_UCC: pd.DataFrame) -> None:
     """
-    Generates a compressed CSV file containing a reduced Unified Cluster Catalog
+    Generates a CSV file containing a reduced Unified Cluster Catalog
     (UCC) dataset, which can be stored in the Zenodo repository.
 
     Parameters:
@@ -37,7 +36,7 @@ def zenodo_UCC(df_UCC: pd.DataFrame) -> None:
     The function performs the following steps:
     1. Drops unnecessary columns from the input DataFrame.
     2. Re-orders the remaining columns in a specified order.
-    3. Saves the resulting DataFrame to a compressed CSV file, with specified formatting.
+    3. Saves the resulting DataFrame to a CSV file, with specified formatting.
 
     Returns:
     None
@@ -69,7 +68,7 @@ def zenodo_UCC(df_UCC: pd.DataFrame) -> None:
             "ID",
             "RA_ICRS",
             "DE_ICRS",
-            "plx",
+            "Plx",
             "pmRA",
             "pmDE",
             "UCC_ID",
@@ -77,7 +76,7 @@ def zenodo_UCC(df_UCC: pd.DataFrame) -> None:
             "r_50",
             "RA_ICRS_m",
             "DE_ICRS_m",
-            "plx_m",
+            "Plx_m",
             "pmRA_m",
             "pmDE_m",
             "Rv_m",
@@ -88,19 +87,18 @@ def zenodo_UCC(df_UCC: pd.DataFrame) -> None:
         ]
     ]
 
-    # Store to compressed file
+    # Store to csv file
     df.to_csv(
-        "../UCC_cat.csv.gz",
+        zenodo_folder + "UCC_cat.csv",
         na_rep="nan",
         index=False,
         quoting=csv.QUOTE_NONNUMERIC,
-        compression="gzip",
     )
 
 
 def zenodo_membs(logging, root_UCC_path: str, members_folder: str) -> None:
     """
-    Generates a compressed parquet file containing estimated members from the
+    Generates a parquet file containing estimated members from the
     Unified Cluster Catalog (UCC) dataset, formatted for storage in the Zenodo
     repository.
 
@@ -117,8 +115,7 @@ def zenodo_membs(logging, root_UCC_path: str, members_folder: str) -> None:
         - Reads the data, adds a 'name' column based on the filename, and appends it
           to a temporary list.
     3. Concatenates all DataFrames in the list.
-    4. Saves the combined DataFrame to a compressed parquet file in the specified
-       folder.
+    4. Saves the combined DataFrame to a parquet file in the specified folder.
 
     Returns:
     None
@@ -130,15 +127,69 @@ def zenodo_membs(logging, root_UCC_path: str, members_folder: str) -> None:
             logging.info(f"Processing Q{quad}{lat}")
             path = root_UCC_path + "Q" + quad + lat + f"/{members_folder}/"
             for file in os.listdir(path):
+                # Ignore these dbs
+                if "HUNT23" in file or "CANTAT20" in file:
+                    continue
                 df = pd.read_parquet(path + file)
+
+                # Round before storing
+                df[["RA_ICRS", "DE_ICRS", "GLON", "GLAT"]] = df[
+                    ["RA_ICRS", "DE_ICRS", "GLON", "GLAT"]
+                ].round(6)
+                df[
+                    [
+                        "Plx",
+                        "e_Plx",
+                        "pmRA",
+                        "e_pmRA",
+                        "pmDE",
+                        "e_pmDE",
+                        "RV",
+                        "e_RV",
+                        "Gmag",
+                        "BP-RP",
+                        "e_Gmag",
+                        "e_BP-RP",
+                        "probs",
+                    ]
+                ] = df[
+                    [
+                        "Plx",
+                        "e_Plx",
+                        "pmRA",
+                        "e_pmRA",
+                        "pmDE",
+                        "e_pmDE",
+                        "RV",
+                        "e_RV",
+                        "Gmag",
+                        "BP-RP",
+                        "e_Gmag",
+                        "e_BP-RP",
+                        "probs",
+                    ]
+                ].round(4)
+
                 fname = file.replace(".parquet", "")
-                name_col = [fname for _ in range(len(df))]
-                df.insert(loc=0, column="name", value=name_col)
+                df.insert(loc=0, column="name", value=fname)
                 tmp.append(df)
 
     # Concatenate all temporary DataFrames into one
     df_comb = pd.concat(tmp, ignore_index=True)
-    df_comb.to_parquet("../UCC_members.parquet.gz", index=False, compression="gzip")
+    df_comb.to_parquet(zenodo_folder + "UCC_members.parquet", index=False)
+
+
+def zenodo_readme(UCC_cat) -> None:
+    """Update version number in README file uploaded to Zenodo"""
+    # Load the main file
+    with open(UCC_folder + "README.txt", "r") as f:
+        dataf = f.read()
+        # Update the version number
+        version = UCC_cat.split("/")[-1].split(".")[0].split("_cat_")[1]
+        dataf = dataf.replace("XXXXXX", version)
+    # Store updated file in the appropriate folder
+    with open(zenodo_folder + "README.txt", "w") as f:
+        f.write(dataf)
 
 
 if __name__ == "__main__":
