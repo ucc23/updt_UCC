@@ -26,3 +26,6 @@ ntbks_folder = "notebooks"
 members_folder = "datafiles"
 # Folder where the plots are stored
 plots_folder = "plots"
+
+# Folder where files to be uploaded to Zenodo are stored
+zenodo_folder = "../zenodo_upload/"
