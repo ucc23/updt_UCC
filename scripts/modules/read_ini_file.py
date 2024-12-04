@@ -1,4 +1,5 @@
 import configparser
+import os
 
 
 def main():
@@ -7,7 +8,15 @@ def main():
     """
 
     in_params = configparser.ConfigParser()
-    in_params.read("../params.ini")
+
+    # Read non-tracked 'default' file first if it exists
+    for fpath in (".default", ""):
+        full_path = f"../params.ini{fpath}"
+        if os.path.exists(full_path):
+            print(f"Loaded {full_path.split('/')[1]}")
+            in_params.read(full_path)
+            break
+
     pars_dict = {}
 
     pars = in_params["General"]
