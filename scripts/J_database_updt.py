@@ -47,6 +47,9 @@ def main():
     # Read latest version of the UCC
     df_UCC, _ = UCC_new_match.latest_cat_detect(logging, UCC_folder)
 
+    # # TODO: radius in parsec, unused yet (24/12/04)
+    # pc_rad = pc_radius(df_UCC["r_50"].values, df_UCC["Plx_m"].values)
+
     # Load DATABASE.md file
     with open(root_UCC_path + pages_folder + "/" + "DATABASE.md") as file:
         database_md = file.read()
@@ -74,6 +77,8 @@ def main():
 
     # Mask with duplicates
     dups_msk = count_dups(df_UCC)
+    # Mask with N50 members
+    membs_msk = count_N50membs(df_UCC)
 
     # Update DATABASE.md file
     database_md_updt = updt_cats_used(df_UCC, dbs_used, database_md_updt)
@@ -82,13 +87,15 @@ def main():
     logging.info("Table: C3 classification updated")
     database_md_updt = updt_OCs_per_quad(df_UCC, database_md_updt)
     logging.info("Table: OCs per quadrant updated")
-    database_md_updt = updt_dups_table(df_UCC, database_md_updt, dups_msk)
+    database_md_updt = updt_dups_table(database_md_updt, dups_msk)
     logging.info("Table: duplicated OCs updated")
+    database_md_updt = memb_number_table(database_md_updt, membs_msk)
+    logging.info("Table: number of members updated")
     # Save updated page
     if DRY_RUN is False:
         with open(root_UCC_path + pages_folder + "/" + "DATABASE.md", "w") as file:
             file.write(database_md_updt)
-    logging.info("DATABASE.md updated")
+        logging.info("DATABASE.md updated")
 
     # Prepare df_UCC to be used in the updating of the tables below
     df_updt = updt_UCC(df_UCC)
@@ -96,12 +103,14 @@ def main():
     # Update groups of tables
     updt_DBs_tables(dbs_used, df_updt, root_UCC_path, pages_folder)
     logging.info("\nDBs tables updated")
+    updt_n50members_tables(df_updt, root_UCC_path, pages_folder, membs_msk)
+    logging.info("\nMembers tables updated")
     updt_C3_tables(df_updt, root_UCC_path, pages_folder)
     logging.info("\nC3 tables updated")
-    updt_quad_tables(df_updt, root_UCC_path, pages_folder)
-    logging.info("\nQuadrant tables updated")
     updt_dups_tables(df_updt, root_UCC_path, pages_folder, dups_msk)
     logging.info("\nDuplicates tables updated")
+    updt_quad_tables(df_updt, root_UCC_path, pages_folder)
+    logging.info("\nQuadrant tables updated")
 
     updt_cls_JSON(df_updt, root_UCC_path)
     logging.info("\nFile 'clusters.json.gz' updated")
@@ -273,6 +282,90 @@ def ucc_n_total_updt(N_cl_UCC, N_db_UCC, database_md):
     return database_md_updt
 
 
+def count_dups(df_UCC: pd.DataFrame) -> list:
+    """
+    Categorizes duplicate file names in the input DataFrame into five groups
+    based on the number of duplicates. Each group is represented by a mask array.
+
+    Args:
+        df_UCC (pandas.DataFrame): A DataFrame containing a column named
+        "dups_fnames_m", where each entry is a string of file names separated by ";"
+        or NaN.
+
+    Returns:
+        list: A list of five numpy boolean arrays. Each array corresponds to a mask
+              identifying rows with a specific range of duplicates:
+              - Index 0: Rows with exactly 1 duplicate.
+              - Index 1: Rows with exactly 2 duplicates.
+              - Index 2: Rows with exactly 3 duplicates.
+              - Index 3: Rows with exactly 4 duplicates.
+              - Index 4: Rows with 5 or more duplicates.
+    """
+    dups_msk = [np.full(len(df_UCC), False) for _ in range(5)]
+    for i, dups_fnames_m in enumerate(df_UCC["dups_fnames_m"]):
+        if str(dups_fnames_m) == "nan":
+            continue
+        N_dup = len(dups_fnames_m.split(";"))
+        if N_dup == 1:
+            dups_msk[0][i] = True
+        elif N_dup == 2:
+            dups_msk[1][i] = True
+        elif N_dup == 3:
+            dups_msk[2][i] = True
+        elif N_dup == 4:
+            dups_msk[3][i] = True
+        elif N_dup >= 5:
+            dups_msk[4][i] = True
+
+    return dups_msk
+
+
+def count_N50membs(df_UCC: pd.DataFrame) -> list:
+    """ """
+
+    membs_msk = [df_UCC["N_50"] == 0]
+
+    N_limi = 0
+    for i, N_limf in enumerate((25, 50, 75, 100, 250, 500, 1000, 2000)):
+        N50_r = (df_UCC["N_50"] > N_limi) & (df_UCC["N_50"] <= N_limf)
+        membs_msk.append(N50_r)
+        N_limi = N_limf
+
+    Ninf = df_UCC["N_50"] > 2000
+    membs_msk.append(Ninf)
+
+    return membs_msk
+
+
+def pc_radius(
+    angular_radius_arcmin: np.ndarray, parallax_mas: np.ndarray
+) -> np.ndarray:
+    """
+    NOT USED YET (24/12/04)
+
+    Calculate the radius of an object in parsecs given its angular radius (arcmin)
+    and parallax (mas).
+
+    Parameters:
+    angular_radius_arcmin (np.ndarray): Angular radius in arcminutes.
+    parallax_mas (np.ndarray): Parallax in milliarcseconds.
+
+    Returns:
+    np.ndarray: Radius in parsecs.
+    """
+    msk = parallax_mas <= 0
+    angular_radius_arcmin[msk] = np.nan
+    parallax_mas[msk] = np.nan
+
+    # Convert parallax from mas to arcsec and calculate distance
+    distance_pc = 1 / (parallax_mas / 1000)
+    # Convert arcmin to radians
+    angular_radius_rad = (angular_radius_arcmin / 60) * (np.pi / 180)
+    radius_pc = distance_pc * angular_radius_rad  # Radius in parsecs
+
+    return radius_pc
+
+
 def updt_cats_used(df_UCC, dbs_used, database_md_updt):
     """ """
     # Count DB occurrences in UCC
@@ -363,51 +456,12 @@ def updt_OCs_per_quad(df_UCC, database_md_updt):
     return database_md_updt
 
 
-def count_dups(df_UCC: pd.DataFrame) -> list:
-    """
-    Categorizes duplicate file names in the input DataFrame into five groups
-    based on the number of duplicates. Each group is represented by a mask array.
-
-    Args:
-        df_UCC (pandas.DataFrame): A DataFrame containing a column named
-        "dups_fnames_m", where each entry is a string of file names separated by ";"
-        or NaN.
-
-    Returns:
-        list: A list of five numpy boolean arrays. Each array corresponds to a mask
-              identifying rows with a specific range of duplicates:
-              - Index 0: Rows with exactly 1 duplicate.
-              - Index 1: Rows with exactly 2 duplicates.
-              - Index 2: Rows with exactly 3 duplicates.
-              - Index 3: Rows with exactly 4 duplicates.
-              - Index 4: Rows with 5 or more duplicates.
-    """
-    dups_msk = [np.full(len(df_UCC), False) for _ in range(5)]
-    for i, dups_fnames_m in enumerate(df_UCC["dups_fnames_m"]):
-        if str(dups_fnames_m) == "nan":
-            continue
-        N_dup = len(dups_fnames_m.split(";"))
-        if N_dup == 1:
-            dups_msk[0][i] = True
-        elif N_dup == 2:
-            dups_msk[1][i] = True
-        elif N_dup == 3:
-            dups_msk[2][i] = True
-        elif N_dup == 4:
-            dups_msk[3][i] = True
-        elif N_dup >= 5:
-            dups_msk[4][i] = True
-
-    return dups_msk
-
-
-def updt_dups_table(df_UCC: pd.DataFrame, database_md_updt: str, dups_msk: list) -> str:
+def updt_dups_table(database_md_updt: str, dups_msk: list) -> str:
     """
     Updates a Markdown string with a summary table of duplicate counts, categorized
     by the number of duplicates.
 
     Args:
-        df_UCC (pandas.DataFrame): The DataFrame containing data on duplicates.
         database_md_updt (str): The Markdown string to be updated with the duplicates
         table.
         dups_msk (list): A list of numpy boolean arrays, where each array masks rows
@@ -435,6 +489,47 @@ def updt_dups_table(df_UCC: pd.DataFrame, database_md_updt: str, dups_msk: list)
     return database_md_updt
 
 
+def memb_number_table(database_md_updt, membs_msk):
+    """
+    Updates a Markdown string with a summary table categorized by the number of
+    N_50 members.
+
+    Args:
+        database_md_updt (str): The Markdown string to be updated with the duplicates
+        table.
+
+    Returns:
+        str: The updated Markdown string with the table inserted.
+    """
+
+    dups_table = "\n| N_50 |   N  | N_50 |   N  |\n"
+    dups_table += "| :--: | :--: | :--: | :--: |\n"
+
+    dups_table += f"| == 0 | [{membs_msk[0].sum()}](/N50_0_table) "
+
+    N_limi = 0
+    for i, N_limf in enumerate((25, 50, 75, 100, 250, 500, 1000, 2000)):
+        dups_table += (
+            f"| ({N_limi}, {N_limf}] | [{membs_msk[i + 1].sum()}](/N50_{N_limf}_table)"
+        )
+        if i % 2 == 0:
+            dups_table += " |\n"
+        else:
+            dups_table += " "
+        N_limi = N_limf
+
+    dups_table += f"| > 2000 | [{membs_msk[-1].sum()}](/N50_inf_table) |\n"
+    dups_table += "\n"
+
+    delimeterA = "<!-- Begin table 5 -->\n"
+    delimeterB = "<!-- End table 5 -->\n"
+    database_md_updt = replace_text_between(
+        database_md_updt, dups_table, delimeterA, delimeterB
+    )
+
+    return database_md_updt
+
+
 def updt_UCC(df_UCC: pd.DataFrame) -> pd.DataFrame:
     """
     Updates a DataFrame of astronomical cluster data by processing identifiers,
@@ -445,7 +540,7 @@ def updt_UCC(df_UCC: pd.DataFrame) -> pd.DataFrame:
                                - "ID": A semicolon-separated string of identifiers.
                                - "fnames": A semicolon-separated string of file names.
                                - "RA_ICRS", "DE_ICRS", "GLON", "GLAT": Coordinates.
-                               - "plx_m": Parallax measurements in milliarcseconds.
+                               - "Plx_m": Parallax measurements in milliarcseconds.
 
     Returns:
         pd.DataFrame: The updated DataFrame with the following changes:
@@ -476,7 +571,7 @@ def updt_UCC(df_UCC: pd.DataFrame) -> pd.DataFrame:
     df["GLAT"] = np.round(df_UCC["GLAT"].values, 2)
 
     # Compute parallax-based distances in parsecs
-    dist_pc = 1000 / np.clip(np.array(df["plx_m"]), a_min=0.0000001, a_max=np.inf)
+    dist_pc = 1000 / np.clip(np.array(df["Plx_m"]), a_min=0.0000001, a_max=np.inf)
     dist_pc = np.clip(dist_pc, a_min=10, a_max=50000)
     df["dist_pc"] = np.round(dist_pc, 0)
 
@@ -510,6 +605,53 @@ def updt_DBs_tables(dbs_used, df_updt, root_UCC_path, pages_folder):
                 root_UCC_path + pages_folder + "/tables/" + DB_id + "_table.md", "w"
             ) as file:
                 file.write(md_table)
+
+
+def updt_n50members_tables(df_updt, root_UCC_path, pages_folder, membs_msk):
+    """Update the duplicates table files"""
+    header = (
+        """---\nlayout: page\ntitle: nmembs_title\n"""
+        + """permalink: /nmembs_link_table/\n---\n\n"""
+    )
+
+    # N==0 table
+    md_table = header.replace("nmembs_title", "N50 members (==0)").replace(
+        "nmembs_link", "N50_0"
+    )
+    md_table = generate_table(df_updt, md_table, membs_msk[0])
+    if DRY_RUN is False:
+        with open(
+            root_UCC_path + pages_folder + "/tables/N50_0_table.md",
+            "w",
+        ) as file:
+            file.write(md_table)
+
+    Ni = 0
+    for i, Nf in enumerate((25, 50, 75, 100, 250, 500, 1000, 2000)):
+        title = f"N50 members ({Ni}, {Nf}]"
+        Nmembs = f"N50_{Nf}"
+        md_table = header.replace("nmembs_title", title).replace("nmembs_link", Nmembs)
+        md_table = generate_table(df_updt, md_table, membs_msk[i + 1])
+        Ni = Nf
+
+        if DRY_RUN is False:
+            with open(
+                root_UCC_path + pages_folder + "/tables/" + Nmembs + "_table.md",
+                "w",
+            ) as file:
+                file.write(md_table)
+
+    # N>2000 table
+    md_table = header.replace("nmembs_title", "N50 members (>2000)").replace(
+        "nmembs_link", "N50_inf"
+    )
+    md_table = generate_table(df_updt, md_table, membs_msk[-1])
+    if DRY_RUN is False:
+        with open(
+            root_UCC_path + pages_folder + "/tables/N50_inf_table.md",
+            "w",
+        ) as file:
+            file.write(md_table)
 
 
 def updt_C3_tables(df_updt, root_UCC_path, pages_folder):
@@ -594,11 +736,12 @@ def updt_dups_tables(df_updt, root_UCC_path, pages_folder, dups_msk):
 
 def generate_table(df_updt, md_table, msk):
     """ """
-    md_table += "| Name | l | b | ra | dec | Plx | C1 | C2 | C3 |\n"
-    md_table += "| ---- | - | - | -- | --- | --- | -- | -- | -- |\n"
+    md_table += "| Name | l | b | ra | dec | Plx | N50 | r50 | C3 |\n"
+    md_table += "| ---- | - | - | -- | --- | --- | --  | --  |-- |\n"
 
     df_m = df_updt[msk]
     df_m = df_m.sort_values("ID_url")
+    df_m["N_50"] = df_m["N_50"].astype(int)
 
     for i, row in df_m.iterrows():
         for col in (
@@ -607,12 +750,12 @@ def generate_table(df_updt, md_table, msk):
             "GLAT",
             "RA_ICRS",
             "DE_ICRS",
-            "plx_m",
-            "C1",
-            "C2",
+            "Plx_m",
+            "N_50",
+            "r_50",
         ):
             md_table += "| " + str(row[col]) + " "
-        abcd = UCC_color(row["C3"])
+        abcd = ucc_entry.UCC_color(row["C3"])
         md_table += "| " + abcd + " |\n"
 
     return md_table
