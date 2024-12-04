@@ -4,15 +4,16 @@ import json
 import numpy as np
 import pandas as pd
 from HARDCODED import UCC_folder, all_DBs_json, dbs_folder, new_OCs_fpath
-from modules import DBs_combine, UCC_new_match, read_ini_file
+from modules import DBs_combine, UCC_new_match
 
 
 def main():
     """
     Script used to re-match selected OCs using all the available databases.
     """
-    pars_dict = read_ini_file.main()
-    OCs_names, sep = (pars_dict["OCs_names"], pars_dict["sep"])
+    # OCs_names: Names of the OCs that should be kept after the re-processing. It does
+    # not matter if names are repeated
+    OCs_names, sep = "XXXXX", ","
 
     OCs_to_keep = []
     # To 'fnames'
