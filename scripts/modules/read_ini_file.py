@@ -10,9 +10,6 @@ def main():
     in_params.read("../params.ini")
     pars_dict = {}
 
-    pars = in_params["Re-process OCs"]
-    pars_dict["OCs_names"] = pars.get("OCs_names")
-
     pars = in_params["General"]
     pars_dict["new_DB"] = pars.get("new_DB")
     pars_dict["ID"] = pars.get("ID")
