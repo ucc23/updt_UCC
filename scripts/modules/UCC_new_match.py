@@ -86,6 +86,8 @@ def latest_cat_detect(logging, UCC_folder):
     all_versions = os.listdir(UCC_folder)
     last_version, vers_init = "", 0
     for file in all_versions:
+        if file == "README.txt":
+            continue
         version = file.split(".")[0].split("_")[-1]
         last_version = max(int(vers_init), int(version))
         vers_init = last_version
