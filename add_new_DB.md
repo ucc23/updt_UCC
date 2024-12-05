@@ -11,7 +11,7 @@ follow these steps:
 - [5. Generate members' datafiles](#5-generate-members-datafiles) (files stored at `../QXY/datafiles/`)
 - [6. Update the new UCC](#6-update-the-new-ucc)
 - [7. General check of new UCC](#7-general-check-of-new-ucc)
-- [8. Generate new Zenodo files](#8-generate-new-zenodo-files) (stored at parent folder)
+- [8. Generate new Zenodo files](#8-generate-new-zenodo-files) (stored at `zenodo_upload/` folder)
 
 The above steps prepare the files for the updated version of the UCC. The following
 steps **apply** the required changes to the site's files.
