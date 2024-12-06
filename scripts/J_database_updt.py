@@ -41,7 +41,7 @@ class_order = [
 ]
 
 # Use to process files without writing changes to files
-DRY_RUN = False  # True
+DRY_RUN = True
 
 
 def main():
@@ -271,7 +271,7 @@ def update_image(path_old, path_new, description):
         delete_file(path_new, logging)
 
 
-def make_N_vs_year_plot(df_UCC):
+def make_N_vs_year_plot(df_UCC, fontsize=7):
     """ """
     plt.style.use("modules/science2.mplstyle")
 
@@ -318,13 +318,14 @@ def make_N_vs_year_plot(df_UCC):
     years = [1771, 1888, 1987] + list(unique)
     values = [33, 640, 1151] + [int(1200 + c_sum[0])] + list(c_sum[1:])
 
-    fig = plt.figure(figsize=(4, 3))
+    fig = plt.figure(figsize=(4, 2.5))
     plt.plot(years, values, alpha=0.5, lw=3, marker="o", ms=7, color="maroon", zorder=5)
 
     plt.annotate(
         "Messier",
         xy=(1775, 30),
         xytext=(1820, 30),
+        fontsize=fontsize,
         verticalalignment="center",
         # Custom arrow
         arrowprops=dict(arrowstyle="->", lw=0.7),
@@ -339,21 +340,38 @@ def make_N_vs_year_plot(df_UCC):
     # )
     plt.annotate(
         "Gaia data release",
-        xy=(2015, 3600),
-        xytext=(1850, 3600),  # fontsize=8,
+        xy=(2010, 3600),
+        xytext=(1870, 3600),
+        fontsize=fontsize,
         verticalalignment="center",
         # Custom arrow
         arrowprops=dict(arrowstyle="->", lw=0.7),
     )
-    plt.text(x=1860, y=120000, s="Approx total number of OCs in the Galaxy", fontsize=7)
 
+    plt.text(
+        x=1880,
+        y=len(df_UCC) + 3000,
+        s=r"N$_{UCC}$=" + f"{len(df_UCC)}",
+        fontsize=fontsize,
+    )
+    plt.axhline(len(df_UCC), ls=":", lw=2, alpha=0.5, c="grey")
+
+    plt.text(
+        x=1820,
+        y=120000,
+        s="Approximate number of OCs in the Galaxy",
+        fontsize=fontsize,
+    )
     plt.axhline(100000, ls=":", lw=2, alpha=0.5, c="k")
+
     plt.xlim(1759, max(years) + 25)
-    plt.title(r"Catalogued OCs in the literature", fontsize=7)
+    # plt.title(r"Catalogued OCs in the literature", fontsize=fontsize)
     # plt.xlabel("Year")  # )
     # plt.ylabel("N")  # , fontsize=15)
     # _, ymax = plt.gca().get_ylim()
     plt.ylim(20, 250000)
+    plt.xticks(fontsize=fontsize)
+    plt.yticks(fontsize=fontsize)
     plt.yscale("log")
     fig.tight_layout()
 
