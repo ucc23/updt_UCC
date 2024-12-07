@@ -1,16 +1,22 @@
+import warnings
 from urllib.parse import urlencode
 
 import matplotlib.pyplot as plt
 import numpy as np
 from astropy.io import fits
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+from scipy import ndimage
+
+from .files_handler import update_image
 
 
-def make_plot(plot_fpath, df_membs, DRY_RUN, title="UCC", cmap="plasma", dpi=200):
+def make_plot(
+    DRY_RUN, logging, plot_fpath, df_membs, title="UCC", cmap="plasma", dpi=200
+):
     """ """
     # This is a modified style that removes the Latex dependence from the
     # 'scienceplots' package
-    plt.style.use("../modules/science2.mplstyle")
+    plt.style.use("modules/science2.mplstyle")
 
     # Sort by probabilities
     df_membs.sort_values("probs", inplace=True)
@@ -57,8 +63,8 @@ def make_plot(plot_fpath, df_membs, DRY_RUN, title="UCC", cmap="plasma", dpi=200
         vmax=vmax,
         cmap=cmap,
     )
-    ax1.set_xlabel("GLON", fontsize=fs)
-    ax1.set_ylabel("GLAT", fontsize=fs)
+    ax1.set_xlabel("GLON [deg]", fontsize=fs)
+    ax1.set_ylabel("GLAT [deg]", fontsize=fs)
 
     xmin, xmax = np.nanmin(df_membs["GLON"]), np.nanmax(df_membs["GLON"])
     ymin, ymax = np.nanmin(df_membs["GLAT"]), np.nanmax(df_membs["GLAT"])
@@ -84,7 +90,7 @@ def make_plot(plot_fpath, df_membs, DRY_RUN, title="UCC", cmap="plasma", dpi=200
         cmap=cmap,
     )
 
-    x_pos, y_pos, w, h = 0.985, 0.08, 0.02, 0.84
+    x_pos, y_pos, w, h = 0.985, 0.08, 0.02, 0.847
     cb_ax = fig.add_axes([x_pos, y_pos, w, h])
     cbar = fig.colorbar(im2, orientation="vertical", cax=cb_ax)
     # cbar.set_label('Probs')
@@ -122,7 +128,7 @@ def make_plot(plot_fpath, df_membs, DRY_RUN, title="UCC", cmap="plasma", dpi=200
     ax3.axvline(np.median(df_membs["Plx"]), ls=":", c="k", lw=2)
     ax3.invert_yaxis()
     ax3.set_xlabel("Plx [mas]", fontsize=fs)
-    ax3.set_ylabel("G", fontsize=fs)
+    ax3.set_ylabel("G [mag]", fontsize=fs)
     # Plot limits
     xmin, xmax = np.nanmin(df_membs["Plx"]), np.nanmax(df_membs["Plx"])
     xr = (xmax - xmin) * 0.1
@@ -144,20 +150,19 @@ def make_plot(plot_fpath, df_membs, DRY_RUN, title="UCC", cmap="plasma", dpi=200
         cmap=cmap,
     )
     ax4.invert_yaxis()
-    ax4.set_xlabel("BP-RP", fontsize=fs)
-    ax4.set_ylabel("G", fontsize=fs)
+    ax4.set_xlabel("BP-RP [mag]", fontsize=fs)
+    ax4.set_ylabel("G [mag]", fontsize=fs)
     # Plot limits
     ax4.set_xlim(x_min_cmd, x_max_cmd)
     ax4.set_ylim(y_min_cmd, y_max_cmd)
     ax4.tick_params(axis="both", which="major", labelsize=fs)
 
-    fig.tight_layout()
-    if DRY_RUN is False:
-        plt.savefig(plot_fpath, dpi=dpi)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        fig.tight_layout()
 
-    # https://stackoverflow.com/a/65910539/1391441
-    fig.clear()
-    plt.close(fig)
+    txt = update_image(DRY_RUN, logging, fig, plot_fpath, dpi)
+    return txt
 
 
 def colorbar(mappable):
