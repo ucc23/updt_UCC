@@ -1,7 +1,5 @@
-import difflib
 import gzip
 import json
-import os
 from itertools import islice
 
 import matplotlib.pyplot as plt
@@ -16,6 +14,7 @@ from HARDCODED import (
     root_UCC_path,
 )
 from modules import UCC_new_match, logger
+from modules.files_handler import update_image
 from modules.ucc_entry import UCC_color
 
 logging = logger.main()
@@ -197,81 +196,7 @@ def pc_radius(
     return radius_pc
 
 
-def are_images_equal(image1_path, image2_path):
-    """
-    Compare two image files using difflib at the binary level.
-    :param image1_path: Path to the first image file
-    :param image2_path: Path to the second image file
-    :return: True if images are equal, False otherwise
-    """
-    try:
-        # Read the files in binary mode
-        with open(image1_path, "rb") as file1, open(image2_path, "rb") as file2:
-            image1_data = file1.read()
-            image2_data = file2.read()
-
-        # Use difflib to compare binary data
-        diff = difflib.SequenceMatcher(None, image1_data, image2_data)
-        return diff.ratio() == 1.0
-    except Exception as e:
-        print(f"Error: {e}")
-        return False
-
-
-def rename_file(old_name, new_name, logging):
-    """
-    Rename a file using the os library.
-    :param old_name: Current name of the file (including the path if not in the same
-                     directory)
-    :param new_name: New name for the file (including the path if moving to another
-                     directory)
-    """
-    try:
-        os.rename(old_name, new_name)
-    except FileNotFoundError:
-        logging.info(f"Error: The file '{old_name}' does not exist.")
-    except PermissionError:
-        logging.info("Error: Permission denied.")
-    except Exception as e:
-        logging.info(f"An error occurred: {e}")
-
-
-def delete_file(file_path, logging):
-    """
-    Delete a file using the os library.
-    :param file_path: Path to the file to be deleted
-    """
-    try:
-        os.remove(file_path)
-    except FileNotFoundError:
-        logging.info(f"Error: The file '{file_path}' does not exist.")
-    except PermissionError:
-        logging.info("Error: Permission denied.")
-    except Exception as e:
-        logging.info(f"An error occurred: {e}")
-
-
-def update_image(path_old, path_new, description):
-    """ """
-    # Generate new image
-    plt.savefig(path_new, dpi=300)
-    # Check if the new image and the old one are identical
-    flag = are_images_equal(path_old, path_new)
-    # If the new image is different to the old one
-    if flag is False:
-        if DRY_RUN is False:
-            # Delete old image
-            delete_file(path_old, logging)
-            # Rename new image to old name
-            rename_file(path_new, path_old, logging)
-        else:
-            delete_file(path_new, logging)
-        logging.info(f"\nPlot updated: {description}")
-    else:
-        delete_file(path_new, logging)
-
-
-def make_N_vs_year_plot(df_UCC, fontsize=7):
+def make_N_vs_year_plot(df_UCC, fontsize=7, dpi=300):
     """ """
     plt.style.use("modules/science2.mplstyle")
 
@@ -366,22 +291,19 @@ def make_N_vs_year_plot(df_UCC, fontsize=7):
 
     plt.xlim(1759, max(years) + 25)
     # plt.title(r"Catalogued OCs in the literature", fontsize=fontsize)
-    # plt.xlabel("Year")  # )
-    # plt.ylabel("N")  # , fontsize=15)
-    # _, ymax = plt.gca().get_ylim()
     plt.ylim(20, 250000)
     plt.xticks(fontsize=fontsize)
     plt.yticks(fontsize=fontsize)
     plt.yscale("log")
     fig.tight_layout()
 
-    path_old = "../../ucc/images/catalogued_ocs.webp"
-    path_new = "../../ucc/images/catalogued_ocs_new.webp"
-    description = "number of OCs vs years"
-    update_image(path_old, path_new, description)
+    path = "../../ucc/images/catalogued_ocs.webp"
+    txt = update_image(DRY_RUN, logging, fig, path, dpi)
+    if txt != "":
+        logging.info(f"Plot {txt}: number of OCs vs years")
 
 
-def make_classif_plot(height):
+def make_classif_plot(height, dpi=300):
     """ """
     plt.style.use("modules/science2.mplstyle")
 
@@ -399,10 +321,10 @@ def make_classif_plot(height):
     plt.minorticks_off()
     fig.tight_layout()
 
-    path_old = "../../ucc/images/classif_bar.webp"
-    path_new = "../../ucc/images/classif_bar_new.webp"
-    description = "classification histogram"
-    update_image(path_old, path_new, description)
+    path = "../../ucc/images/classif_bar.webp"
+    txt = update_image(DRY_RUN, logging, fig, path, dpi)
+    if txt != "":
+        logging.info(f"Plot {txt}: classification histogram")
 
 
 def chunks(data, SIZE=2):
