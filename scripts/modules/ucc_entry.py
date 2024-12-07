@@ -112,7 +112,7 @@ cl_plot = """
 """
 
 notebook_url = """
-> <p style="text-align:center; font-weight: bold; font-size:20px">Explore data in <a data-umami-event="colab" href="https://colab.research.google.com/github/UCC23/{}/blob/master/notebooks/{}.ipynb" target="_blank">Colab</a></p>
+> <p style="text-align:center; font-weight: bold; font-size:20px">Explore data in <a data-umami-event="colab" href="https://colab.research.google.com/github/ucc23/ucc/blob/main/assets/notebook.ipynb" target="_blank">Colab</a></p>
 """
 
 fpars_table_top = """\n

@@ -20,8 +20,6 @@ clusters_json = "ucc/clusters.json.gz"
 
 # Folder where the md entries are stored
 md_folder = "ucc/_clusters"
-# Folder where the notebooks are stored
-ntbks_folder = "notebooks"
 # Folder where the member files are stored
 members_folder = "datafiles"
 # Folder where the plots are stored

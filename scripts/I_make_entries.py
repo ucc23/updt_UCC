@@ -1,5 +1,4 @@
 import json
-import warnings
 from pathlib import Path
 
 import pandas as pd
@@ -9,26 +8,26 @@ from HARDCODED import (
     dbs_folder,
     md_folder,
     members_folder,
-    ntbks_folder,
     plots_folder,
     root_UCC_path,
 )
 from modules import UCC_new_match, logger, ucc_entry, ucc_plots
 
+logging = logger.main()
+
 # Use to process files without writing changes to files
-DRY_RUN = False#True
+DRY_RUN = True
 
 
 def main():
     """ """
-    logging = logger.main()
     logging.info("Running 'make_entries' script\n")
     logging.info(f"DRY RUN IS {DRY_RUN}\n")
 
     # Folder name where the datafile is stored
     entries_path = root_UCC_path + f"{md_folder}/"
 
-    print("Reading databases...")
+    logging.info("Reading databases...")
     with open(dbs_folder + all_DBs_json) as f:
         DBs_json = json.load(f)
     # Read the data for every DB in the UCC as a pandas DataFrame
@@ -38,11 +37,6 @@ def main():
 
     # Read latest version of the UCC
     df_UCC, _ = UCC_new_match.latest_cat_detect(logging, UCC_folder)
-
-    # Load notebook template
-    with open("notebook.txt", "r") as f:
-        # ntbk_str = f.readlines()
-        ntbk_str = f.read()
 
     logging.info("\nProcessing UCC")
     N_total = 0
@@ -62,44 +56,8 @@ def main():
         if txt1 != "":
             txt += f" md ({txt1})"
 
-        # Make notebook
-        ntbk_fpath = Path(
-            root_UCC_path + Qfold + f"/{ntbks_folder}/" + fname0 + ".ipynb"
-        )
-        if ntbk_fpath.is_file() is False:
-            make_notebook(fname0, Qfold, ntbk_fpath, ntbk_str)
-            txt += " ntbk"
-
-        # Make data plot
-        plot_fpath = Path(
-            root_UCC_path + Qfold + f"/{plots_folder}/" + fname0 + ".webp"
-        )
-        if plot_fpath.is_file() is False:
-            # Load datafile with members for this cluster
-            files_path = root_UCC_path + Qfold + f"/{members_folder}/"
-            df_cl = pd.read_parquet(files_path + fname0 + ".parquet")
-
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                ucc_plots.make_plot(plot_fpath, df_cl, DRY_RUN)
-            txt += " plot"
-
-        # Make Aladin plot
-        plot_aladin_fpath = Path(
-            root_UCC_path + Qfold + f"/{plots_folder}/" + fname0 + "_aladin.webp"
-        )
-        if plot_aladin_fpath.is_file() is False:
-            ucc_plots.make_aladin_plot(
-                UCC_cl["RA_ICRS_m"],
-                UCC_cl["DE_ICRS_m"],
-                UCC_cl["r_50"],
-                plot_aladin_fpath,
-                DRY_RUN,
-            )
-            if plot_aladin_fpath.is_file() is True:
-                txt += " plot_aladin"
-            else:
-                txt += " ERROR: plot_aladin could not be generated"
+        # Make plots
+        txt = make_plots(UCC_cl, Qfold, fname0, txt)
 
         if txt != txt0:
             logging.info(txt)
@@ -150,23 +108,38 @@ def make_entry(df_UCC, UCC_cl, DBs_json, DBs_full_data, entries_path, Qfold, fna
     return file_flag
 
 
-def make_notebook(fname0, Qfold, ntbk_fpath, ntbk_str):
+def make_plots(UCC_cl, Qfold, fname0, txt):
     """ """
-    # cl_str = r"""  "cluster = \"{}\"" """.format(fname0)
-    # ntbk_str[42] = "      " + cl_str + "\n"
-    # ntbk_str[90] = (
-    #     r"""        "path = \"https://github.com/ucc23/{}/raw/main/datafiles/\"\n",""".format(
-    #         Qfold
-    #     )
-    #     + "\n"
-    # )
-    ntbk_str = ntbk_str.replace("CCCCC", fname0)
-    ntbk_str = ntbk_str.replace("QQQQQ", fname0)
-    if DRY_RUN is False:
-        with open(ntbk_fpath, "w") as f:
-            # contents = "".join(ntbk_str)
-            # f.write(contents)
-            f.write(ntbk_str)
+    # Path to image (if it exists)
+    plot_fpath = root_UCC_path + Qfold + f"/{plots_folder}/" + fname0 + ".webp"
+    # Load datafile with members for this cluster
+    files_path = root_UCC_path + Qfold + f"/{members_folder}/"
+    df_cl = pd.read_parquet(files_path + fname0 + ".parquet")
+    # Generate and/or update (or not) the image
+    txt0 = ucc_plots.make_plot(DRY_RUN, logging, plot_fpath, df_cl)
+    if txt0 != "":
+        txt += f" plot {txt0}"
+
+    breakpoint()
+
+    # Make Aladin plot
+    plot_aladin_fpath = Path(
+        root_UCC_path + Qfold + f"/{plots_folder}/" + fname0 + "_aladin.webp"
+    )
+    if plot_aladin_fpath.is_file() is False:
+        ucc_plots.make_aladin_plot(
+            UCC_cl["RA_ICRS_m"],
+            UCC_cl["DE_ICRS_m"],
+            UCC_cl["r_50"],
+            plot_aladin_fpath,
+            DRY_RUN,
+        )
+        if plot_aladin_fpath.is_file() is True:
+            txt += " plot_aladin generated"
+        else:
+            txt += " ERROR: plot_aladin could not be generated"
+
+    return txt
 
 
 if __name__ == "__main__":
