@@ -1,18 +1,25 @@
 import csv
+import os
 
 import pandas as pd
 from HARDCODED import UCC_folder
 from modules import UCC_new_match, logger, read_ini_file
 
+logging = logger.main()
+
 
 def main():
     """ """
-    logging = logger.main()
     pars_dict = read_ini_file.main()
     old_UCC_name = pars_dict["old_UCC_name"]
 
     # Read latest version of the UCC
     UCC_new, _ = UCC_new_match.latest_cat_detect(logging, UCC_folder)
+
+    # Check number of files
+    file_checker(UCC_new)
+
+    fnames_checker(UCC_new)
 
     # Read old version of the UCC
     UCC_old = pd.read_csv(UCC_folder + old_UCC_name)
@@ -65,9 +72,62 @@ def main():
             ):
                 continue
 
-            name_old = UCC_old["fnames"][i_old]
-            name_new = UCC_new["fnames"][i_new]
+            name_old = str(UCC_old["fnames"][i_old])
+            name_new = str(UCC_new["fnames"][i_new])
             check_rows(name_old, name_new, diff_cols, row_old, row_new)
+
+
+def file_checker(df_UCC):
+    """ """
+    logging.info("\nChecking number of files")
+    logging.info("    parquet webp  aladin")
+
+    flag_error = False
+    NT_parquet, NT_webp, NT_webp_aladin = 0, 0, 0
+    for qnum in range(1, 5):
+        for lat in ("P", "N"):
+            N_parquet, N_webp, N_webp_aladin = 0, 0, 0
+            for ffolder in ("datafiles", "plots"):
+                qfold = "../../Q" + str(qnum) + lat + f"/{ffolder}/"
+                # Read all files in Q folder
+                for file in os.listdir(qfold):
+                    if "HUNT23" in file or "CANTAT20" in file:
+                        continue
+                    elif "aladin" in file:
+                        N_webp_aladin += 1
+                        NT_webp_aladin += 1
+                    elif "parquet" in file:
+                        N_parquet += 1
+                        NT_parquet += 1
+                    elif "webp" in file:
+                        N_webp += 1
+                        NT_webp += 1
+
+            mark = "V" if (N_parquet == N_webp == N_webp_aladin) else "X"
+            logging.info(
+                f"{str(qnum) + lat}:   {N_parquet}  {N_webp}  {N_webp_aladin} <-- {mark}"
+            )
+            if mark == "X":
+                flag_error = True
+
+    logging.info(f"Total UCC: {len(df_UCC)}")
+    logging.info(
+        f"Total parquet/webp/aladin: {NT_parquet}, {NT_webp}, {NT_webp_aladin}"
+    )
+    if not (NT_parquet == NT_webp == NT_webp_aladin):
+        flag_error = True
+
+    if flag_error:
+        raise ValueError("The file check was unsuccessful")
+
+
+def fnames_checker(df_UCC):
+    """ """
+    fname0_UCC = [_.split(";")[0] for _ in df_UCC["fnames"]]
+    NT = len(fname0_UCC)
+    N_unique = len(list(set(fname0_UCC)))
+    if NT != N_unique:
+        raise ValueError("Initial fnames are not unique")
 
 
 def diff_between_dfs(df1: pd.DataFrame, df2: pd.DataFrame):
