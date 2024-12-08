@@ -1,8 +1,8 @@
-import difflib
 import os
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+from diff_match_patch import diff_match_patch
 
 
 def rename_file(old_name, new_name, logging):
@@ -38,8 +38,24 @@ def delete_file(file_path, logging):
         logging.info(f"An error occurred: {e}")
 
 
-def update_image(DRY_RUN, logging, fig, path_old, dpi):
-    """ """
+def update_image(
+    DRY_RUN: bool, logging, fig, path_old: str, dpi: int, force_updt=False
+) -> str:
+    """
+    Updates or generates an image file based on the specified parameters.
+
+    Parameters:
+        DRY_RUN (bool): If True, no changes are made to the file system.
+        logging: Logger instance used for logging file operations.
+        fig: Matplotlib figure object to save as an image.
+        path_old (str): Path to the existing image file.
+        dpi (int): Resolution (dots per inch) for the saved image.
+        force_updt (bool): If True, skip equality check.
+
+    Returns:
+        str: Status of the operation ('generated', 'updated', or an empty string
+             if no changes were made).
+    """
     # Generate name of new (temporary) file
     ext = "." + path_old.split(".")[-1]
     path_new = path_old.replace(ext, "_new" + ext)
@@ -56,11 +72,14 @@ def update_image(DRY_RUN, logging, fig, path_old, dpi):
             delete_file(path_new, logging)
         txt = "generated"
     else:
-        # Check if the new image and the old one are identical
-        flag = are_images_equal(path_old, path_new)
+        if force_updt is True:
+            equal_flag = False
+        else:
+            # Check if the new image and the old one are identical
+            equal_flag = are_images_equal(path_old, path_new)
 
         # If the new image is different to the old one
-        if flag is False:
+        if equal_flag is False:
             if DRY_RUN is False:
                 # Delete old image
                 delete_file(path_old, logging)
@@ -94,9 +113,14 @@ def are_images_equal(image1_path, image2_path):
             image1_data = file1.read()
             image2_data = file2.read()
 
-        # Use difflib to compare binary data
-        diff = difflib.SequenceMatcher(None, image1_data, image2_data)
-        return diff.ratio() == 1.0
+        # # Use difflib to compare binary data
+        # diff = difflib.SequenceMatcher(None, image1_data, image2_data)
+        # return diff.ratio() == 1.0
+        # This library is much faster
+        dmp = diff_match_patch()
+        patches = dmp.patch_make(str(image1_data), str(image2_data))
+        return len(patches) == 0
+
     except Exception as e:
         print(f"Error: {e}")
         return False
