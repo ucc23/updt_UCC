@@ -11,7 +11,14 @@ from .files_handler import update_image
 
 
 def make_plot(
-    DRY_RUN, logging, plot_fpath, df_membs, title="UCC", cmap="plasma", dpi=200
+    DRY_RUN,
+    logging,
+    plot_fpath,
+    df_membs,
+    force_update,
+    title="UCC",
+    cmap="plasma",
+    dpi=200,
 ):
     """ """
     # This is a modified style that removes the Latex dependence from the
@@ -19,7 +26,7 @@ def make_plot(
     plt.style.use("modules/science2.mplstyle")
 
     # Sort by probabilities
-    df_membs.sort_values("probs", inplace=True)
+    df_membs.sort_values("probs", inplace=True, kind="stable")
 
     pr = df_membs["probs"]
     vmin, vmax = min(pr), max(pr)
@@ -161,7 +168,7 @@ def make_plot(
         warnings.simplefilter("ignore")
         fig.tight_layout()
 
-    txt = update_image(DRY_RUN, logging, fig, plot_fpath, dpi)
+    txt = update_image(DRY_RUN, logging, fig, plot_fpath, dpi, force_update)
     return txt
 
 
@@ -246,11 +253,20 @@ def make_aladin_plot(ra, dec, r_50, plot_aladin_fpath, DRY_RUN, dpi=100):
 
 
 # if __name__ == "__main__":
-#     import pandas as pd
+#     import matplotlib
 
-#     fname0 = "melotte111"
+#     matplotlib.use("agg")
+#     import pandas as pd
+#     from files_handler import update_image
+
+#     plt.style.use("science2.mplstyle")
+
+#     fname0, Qfold = "dutrabica58", "Q1P"
 #     # Load datafile with members for this cluster
-#     membs_file = f"/home/gabriel/Github/UCC/Q3P/datafiles/{fname0}.parquet"
+#     membs_file = f"/home/gabriel/Github/UCC/{Qfold}/datafiles/{fname0}.parquet"
 #     df_cl = pd.read_parquet(membs_file)
-#     plots_path = "/home/gabriel/Descargas/"
-#     make_plot(plots_path, fname0, df_cl)
+#     root = "/home/gabriel/Descargas/"
+#     plots_path = root + fname0 + ".webp"
+#     DRY_RUN, logging = False, None
+#     txt = make_plot(DRY_RUN, logging, plots_path, df_cl)
+#     print(txt)
