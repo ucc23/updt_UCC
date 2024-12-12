@@ -61,6 +61,8 @@ def main():
         if txt != txt0:
             logging.info(f"{N_total}, " + txt)
             N_total += 1
+        else:
+            logging.info(_)
 
     logging.info(f"\nN={N_total} OCs processed")
 
