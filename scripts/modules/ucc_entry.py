@@ -94,7 +94,7 @@ nasa_simbad_url = """
 # https://simbad.cds.unistra.fr/mobile/bib_list.html?ident=
 
 posit_table_top = """\n
-### Position in UCC and published works (not exhaustive)
+### Positions
 
 | Reference    | RA    | DEC   | Plx  | pmRA  | pmDE   |  Rv  |
 | :---         | :---: | :---: | :---: | :---: | :---: | :---: |
@@ -105,7 +105,7 @@ cds_simbad_url = """
 """
 
 cl_plot = """
-### Plots for selected probable members
+### Estimated members
 
 {}
 
@@ -116,14 +116,14 @@ notebook_url = """
 """
 
 fpars_table_top = """\n
-### Fundamental parameters in literature (not exhaustive)
+### Fundamental parameters
 
-| Reference |  Fundamental parameters |
+| Reference |  Values |
 | :---         |     :---:      |
 """
 
 close_table_top = """\n
-### Probable <a href="https://ucc.ar/faq#probable-duplicates" title="See FAQ for definition of proximity">duplicates</a> and clusters in proximity
+### Probable <a href="https://ucc.ar/faq#how-are-probable-duplicates-identified" title="See FAQ for definition of proximity">duplicates</a>
 
 | Cluster | P (%) | RA    | DEC   | Plx   | pmRA  | pmDE  | Rv    |
 | :---:   | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
@@ -187,10 +187,6 @@ def main(df_UCC, UCC_cl, DBs_json, DBs_full_data, fname0, Qfold):
     txt += posit_table_top
     txt += posit_table
 
-    if close_table != "":
-        txt += close_table_top
-        txt += close_table + "\n"
-
     signed_dec = (
         "+" + str(UCC_cl["DE_ICRS_m"])
         if UCC_cl["DE_ICRS_m"] >= 0
@@ -213,6 +209,10 @@ def main(df_UCC, UCC_cl, DBs_json, DBs_full_data, fname0, Qfold):
     if fpars_table != "":
         txt += fpars_table_top
         txt += fpars_table
+
+    if close_table != "":
+        txt += close_table_top
+        txt += close_table + "\n"
 
     txt += data_foot.format(datetime.today().strftime("%Y-%m-%d"))
     contents = "".join(txt)
