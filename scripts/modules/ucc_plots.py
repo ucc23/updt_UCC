@@ -1,21 +1,16 @@
 import warnings
-from urllib.parse import urlencode
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from astropy.io import fits
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from scipy import ndimage
 
-from .files_handler import update_image
 
-
-def make_plot(
-    DRY_RUN,
-    logging,
+def members_plot(
     plot_fpath,
-    df_membs,
-    force_update,
+    parquet_path,
     title="UCC",
     cmap="plasma",
     dpi=200,
@@ -24,6 +19,8 @@ def make_plot(
     # This is a modified style that removes the Latex dependence from the
     # 'scienceplots' package
     plt.style.use("modules/science2.mplstyle")
+
+    df_membs = pd.read_parquet(parquet_path)
 
     # Sort by probabilities
     df_membs.sort_values("probs", inplace=True, kind="stable")
@@ -168,8 +165,10 @@ def make_plot(
         warnings.simplefilter("ignore")
         fig.tight_layout()
 
-    txt = update_image(DRY_RUN, logging, fig, plot_fpath, dpi, force_update)
-    return txt
+    plt.savefig(plot_fpath, dpi=dpi)
+    # https://stackoverflow.com/a/65910539/1391441
+    fig.clear()
+    plt.close(fig)
 
 
 def colorbar(mappable):
@@ -198,7 +197,13 @@ def diag_limits(phot_x, phot_y):
     return x_max_cmd, x_min_cmd, y_min_cmd, y_max_cmd
 
 
-def make_aladin_plot(ra, dec, r_50, plot_aladin_fpath, DRY_RUN, dpi=100):
+def make_aladin_plot(
+    ra,
+    dec,
+    r_50,
+    plot_aladin_fpath,
+    dpi=100,
+):
     """ """
     plt.style.use("default")
 
@@ -216,7 +221,7 @@ def make_aladin_plot(ra, dec, r_50, plot_aladin_fpath, DRY_RUN, dpi=100):
         url = f"http://alasky.u-strasbg.fr/hips-image-services/hips2fits?{urlencode(query_params)}"
         hdul = fits.open(url)
     except Exception as _:
-        return
+        return "ERROR"
 
     rotated_img = ndimage.rotate(hdul[0].data.T, 90)
     fig, ax = plt.subplots()
@@ -246,10 +251,180 @@ def make_aladin_plot(ra, dec, r_50, plot_aladin_fpath, DRY_RUN, dpi=100):
 
     plt.scatter(0.5, 0.5, marker="+", s=400, color="#B232B2", transform=ax.transAxes)
 
-    if DRY_RUN is False:
-        plt.savefig(plot_aladin_fpath, dpi=dpi, bbox_inches="tight", pad_inches=0.0)
+    plt.savefig(plot_aladin_fpath, dpi=dpi, bbox_inches="tight", pad_inches=0.0)
+    # https://stackoverflow.com/a/65910539/1391441
     fig.clear()
     plt.close(fig)
+
+
+def make_N_vs_year_plot(path, df_UCC, fontsize=7, dpi=300):
+    """ """
+    plt.style.use("modules/science2.mplstyle")
+
+    # Extract minimum year of publication for each catalogued OC
+    years = []
+    for i, row in df_UCC.iterrows():
+        oc_years = []
+        for cat0 in row["DB"].split(";"):
+            cat = cat0.split("_")[0]
+            oc_years.append(int("20" + cat[-2:]))
+        years.append(min(oc_years))
+
+    # Count number of OCs per year
+    unique, counts = np.unique(years, return_counts=True)
+    c_sum = np.cumsum(counts)
+
+    # Combine with old years (previous to 1995)
+    #
+    # Source: http://www.messier.seds.org/open.html#Messier
+    # Messier (1771): 33
+    #
+    # Source: https://spider.seds.org/ngc/ngc.html
+    # "William Herschel first published his catalogue containing 1,000 entries in 1786
+    # ...added 1,000 entries in 1789 and a final 500 in 1802 ... total number of entries
+    # to 2,500. In 1864, Sir John Herschel the son of William then expanded the
+    # catalogue into the General Catalogue of Nebulae and Clusters and Clusters of
+    # Stars (GC), which contained 5,079 entries"
+    # Herschel (1786): ???
+    #
+    # Source:
+    # https://in-the-sky.org/data/catalogue.php?cat=NGC&const=1&type=OC&sort=0&view=1
+    # Dreyer (1888): 640?
+    #
+    # Source: https://webda.physics.muni.cz/description.html#cluster_level
+    # "The catalogue of cluster parameters prepared by Lyngå (1987, 5th edition, CDS
+    # VII/92A) has been used to build the list of known open clusters."
+    # Going to http://cdsweb.u-strasbg.fr/htbin/myqcat3?VII/92A leads
+    # to a Vizier table with 1151 entries
+    # Lyngå (1987): 1151
+    #
+    # Mermilliod 1988 (Bull. Inform. CDS 35, 77-91): 570
+    # Mermilliod 1996ASPC...90..475M (BDA, 1996): ~500
+    #
+    years = [1771, 1888, 1987] + list(unique)
+    values = [33, 640, 1151] + [int(1200 + c_sum[0])] + list(c_sum[1:])
+
+    fig = plt.figure(figsize=(4, 2.5))
+    plt.plot(years, values, alpha=0.5, lw=3, marker="o", ms=7, color="maroon", zorder=5)
+
+    plt.annotate(
+        "Messier",
+        xy=(1775, 30),
+        xytext=(1820, 30),
+        fontsize=fontsize,
+        verticalalignment="center",
+        # Custom arrow
+        arrowprops=dict(arrowstyle="->", lw=0.7),
+    )
+    # plt.annotate(
+    #     "Hipparcos + 2MASS",
+    #     xy=(2015, 1000),
+    #     xytext=(1850, 1000),  # fontsize=8,
+    #     verticalalignment="center",
+    #     # Custom arrow
+    #     arrowprops=dict(arrowstyle="->", lw=0.7),
+    # )
+    plt.annotate(
+        "Gaia data release",
+        xy=(2010, 3600),
+        xytext=(1870, 3600),
+        fontsize=fontsize,
+        verticalalignment="center",
+        # Custom arrow
+        arrowprops=dict(arrowstyle="->", lw=0.7),
+    )
+
+    plt.text(
+        x=1880,
+        y=len(df_UCC) + 3000,
+        s=r"N$_{UCC}$=" + f"{len(df_UCC)}",
+        fontsize=fontsize,
+    )
+    plt.axhline(len(df_UCC), ls=":", lw=2, alpha=0.5, c="grey")
+
+    plt.text(
+        x=1820,
+        y=120000,
+        s="Approximate number of OCs in the Galaxy",
+        fontsize=fontsize,
+    )
+    plt.axhline(100000, ls=":", lw=2, alpha=0.5, c="k")
+
+    plt.xlim(1759, max(years) + 25)
+    # plt.title(r"Catalogued OCs in the literature", fontsize=fontsize)
+    plt.ylim(20, 250000)
+    plt.xticks(fontsize=fontsize)
+    plt.yticks(fontsize=fontsize)
+    plt.yscale("log")
+    fig.tight_layout()
+
+    plt.savefig(path, dpi=dpi)
+    # https://stackoverflow.com/a/65910539/1391441
+    fig.clear()
+    plt.close(fig)
+
+
+def make_classif_plot(path, height, class_order, dpi=300):
+    """ """
+    plt.style.use("modules/science2.mplstyle")
+
+    def rescale(x):
+        return (x - np.min(x)) / (np.max(x) - np.min(x))
+
+    my_cmap = plt.get_cmap("RdYlGn_r")
+    x1 = np.arange(0, len(class_order) + 1)
+
+    fig, ax = plt.subplots(1, figsize=(6, 3))
+    plt.bar(class_order, height, color=my_cmap(rescale(x1)))
+    plt.xticks(rotation=30)
+    plt.ylabel("N")
+    ax.tick_params(axis="x", which="both", length=0)
+    plt.minorticks_off()
+    fig.tight_layout()
+
+    plt.savefig(path, dpi=dpi)
+    # https://stackoverflow.com/a/65910539/1391441
+    fig.clear()
+    plt.close(fig)
+
+
+# def make_dbs_year_plot(path, df_UCC, all_dbs_json, dpi=300):
+#     """ """
+#     plt.style.use("modules/science2.mplstyle")
+
+#     dbs = list(itertools.chain.from_iterable([_.split(';') for _ in df_UCC['DB']]))
+#     N_dbs = Counter(dbs)
+
+#     names, height = [], []
+#     for i, name in enumerate(list(all_dbs_json.keys())):
+#         names.append(all_dbs_json[name]['ref'][1:].split(']')[0])
+#         height.append(N_dbs[name])
+
+#     fig, ax = plt.subplots(1, figsize=(5, 10))
+#     plt.barh(range(len(names)), height, color='grey', alpha=.5)
+#     # plt.scatter(range(len(names)), height)
+
+#     # Add labels on top of the bars
+#     for i, value in enumerate(height):
+#         # plt.text(i, 1.2, str(names[i]), ha='center', va='center', rotation=0)
+#         plt.text(1.2, i, str(names[i]), va='center', ha='left', rotation=0)
+#     #     if height[i] > 100:
+#     #         plt.text(i, value + 0.1, str(height[i]), ha='center', va='bottom', rotation=30)
+
+#     plt.gca().set_yticks([])
+#     # plt.xlabel("Articles")
+#     plt.xscale('log')
+#     # plt.ylabel("N")
+#     # ax.tick_params(axis="x", which="both", length=0)
+#     # plt.minorticks_off()
+#     # plt.xlim(-1, len(height) + .1)
+#     # plt.ylim(1.15, max(height) + 10000)
+#     fig.tight_layout()
+
+#     plt.savefig(path, dpi=dpi, bbox_inches="tight", pad_inches=0.0)
+#     # https://stackoverflow.com/a/65910539/1391441
+#     fig.clear()
+#     plt.close(fig)
 
 
 # if __name__ == "__main__":
