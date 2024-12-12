@@ -11,7 +11,7 @@ from HARDCODED import (
     plots_folder,
     root_UCC_path,
 )
-from modules import UCC_new_match, logger, ucc_entry, ucc_plots
+from modules import UCC_new_match, files_handler, logger, ucc_entry, ucc_plots
 
 logging = logger.main()
 
@@ -43,7 +43,6 @@ def main():
     # Iterate trough each entry in the UCC database
     for _, UCC_cl in df_UCC.iterrows():
         fname0 = str(UCC_cl["fnames"]).split(";")[0]
-
         Qfold = UCC_cl["quad"]
 
         txt0 = f"{Qfold}/{fname0}: "
@@ -54,13 +53,13 @@ def main():
             df_UCC, UCC_cl, DBs_json, DBs_full_data, entries_path, Qfold, fname0
         )
         if txt1 != "":
-            txt += f" md ({txt1})"
+            txt += f" md {txt1}"
 
         # Make plots
         txt = make_plots(UCC_cl, Qfold, fname0, txt)
 
         if txt != txt0:
-            logging.info(txt)
+            logging.info(f"{N_total}, " + txt)
             N_total += 1
 
     logging.info(f"\nN={N_total} OCs processed")
@@ -111,33 +110,30 @@ def make_entry(df_UCC, UCC_cl, DBs_json, DBs_full_data, entries_path, Qfold, fna
 def make_plots(UCC_cl, Qfold, fname0, txt):
     """ """
     # Path to image (if it exists)
-    plot_fpath = root_UCC_path + Qfold + f"/{plots_folder}/" + fname0 + ".webp"
-    # Load datafile with members for this cluster
-    files_path = root_UCC_path + Qfold + f"/{members_folder}/"
-    df_cl = pd.read_parquet(files_path + fname0 + ".parquet")
-    # Generate and/or update (or not) the image
-    txt0 = ucc_plots.make_plot(DRY_RUN, logging, plot_fpath, df_cl)
+    plot_path = root_UCC_path + Qfold + f"/{plots_folder}/" + fname0 + ".webp"
+    parquet_path = root_UCC_path + Qfold + f"/{members_folder}/" + fname0 + ".parquet"
+    # Update/generate
+    txt0 = files_handler.update_image(
+        DRY_RUN, logging, plot_path, (ucc_plots.members_plot, parquet_path)
+    )
     if txt0 != "":
         txt += f" plot {txt0}"
 
-    breakpoint()
-
-    # Make Aladin plot
-    plot_aladin_fpath = Path(
+    # Make Aladin plot. Never update these images, only generate if they do not
+    # exist
+    plot_aladin_path = (
         root_UCC_path + Qfold + f"/{plots_folder}/" + fname0 + "_aladin.webp"
     )
-    if plot_aladin_fpath.is_file() is False:
-        ucc_plots.make_aladin_plot(
-            UCC_cl["RA_ICRS_m"],
-            UCC_cl["DE_ICRS_m"],
-            UCC_cl["r_50"],
-            plot_aladin_fpath,
-            DRY_RUN,
-        )
-        if plot_aladin_fpath.is_file() is True:
-            txt += " plot_aladin generated"
-        else:
-            txt += " ERROR: plot_aladin could not be generated"
+    if Path(plot_aladin_path).is_file() is False:
+        # If 'old' image files does not exist --> generate
+        if DRY_RUN is False:
+            ucc_plots.make_aladin_plot(
+                UCC_cl["RA_ICRS_m"],
+                UCC_cl["DE_ICRS_m"],
+                UCC_cl["r_50"],
+                plot_aladin_path,
+            )
+        txt += " plot_aladin generated"
 
     return txt
 

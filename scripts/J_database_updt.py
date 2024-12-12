@@ -2,7 +2,6 @@ import gzip
 import json
 from itertools import islice
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from HARDCODED import (
@@ -13,8 +12,7 @@ from HARDCODED import (
     pages_folder,
     root_UCC_path,
 )
-from modules import UCC_new_match, logger
-from modules.files_handler import update_image
+from modules import UCC_new_match, files_handler, logger, ucc_plots
 from modules.ucc_entry import UCC_color
 
 logging = logger.main()
@@ -70,8 +68,7 @@ def main():
     membs_msk = count_N50membs(df_UCC)
 
     # Update plots
-    make_N_vs_year_plot(df_UCC)
-    make_classif_plot(OCs_per_class)
+    make_plots(df_UCC, dbs_used, OCs_per_class)
 
     # Update DATABASE.md file
     database_md_updt = ucc_n_total_updt(len(df_UCC), len(dbs_used), database_md)
@@ -167,6 +164,26 @@ def count_N50membs(df_UCC: pd.DataFrame) -> list:
     return membs_msk
 
 
+def make_plots(df_UCC, dbs_used, OCs_per_class):
+    """ """
+    plot_path = "../../ucc/images/catalogued_ocs.webp"
+    txt0 = files_handler.update_image(
+        DRY_RUN, logging, plot_path, (ucc_plots.make_N_vs_year_plot, df_UCC)
+    )
+    if txt0 != "":
+        logging.info(f"Plot {txt0}: number of OCs vs years")
+
+    plot_path = "../../ucc/images/classif_bar.webp"
+    txt0 = files_handler.update_image(
+        DRY_RUN,
+        logging,
+        plot_path,
+        (ucc_plots.make_classif_plot, OCs_per_class, class_order),
+    )
+    if txt0 != "":
+        logging.info(f"Plot {txt0}: classification histogram")
+
+
 def pc_radius(
     angular_radius_arcmin: np.ndarray, parallax_mas: np.ndarray
 ) -> np.ndarray:
@@ -194,137 +211,6 @@ def pc_radius(
     radius_pc = distance_pc * angular_radius_rad  # Radius in parsecs
 
     return radius_pc
-
-
-def make_N_vs_year_plot(df_UCC, fontsize=7, dpi=300):
-    """ """
-    plt.style.use("modules/science2.mplstyle")
-
-    # Extract minimum year of publication for each catalogued OC
-    years = []
-    for i, row in df_UCC.iterrows():
-        oc_years = []
-        for cat0 in row["DB"].split(";"):
-            cat = cat0.split("_")[0]
-            oc_years.append(int("20" + cat[-2:]))
-        years.append(min(oc_years))
-
-    # Count number of OCs per year
-    unique, counts = np.unique(years, return_counts=True)
-    c_sum = np.cumsum(counts)
-
-    # Combine with old years (previous to 1995)
-    #
-    # Source: http://www.messier.seds.org/open.html#Messier
-    # Messier (1771): 33
-    #
-    # Source: https://spider.seds.org/ngc/ngc.html
-    # "William Herschel first published his catalogue containing 1,000 entries in 1786
-    # ...added 1,000 entries in 1789 and a final 500 in 1802 ... total number of entries
-    # to 2,500. In 1864, Sir John Herschel the son of William then expanded the
-    # catalogue into the General Catalogue of Nebulae and Clusters and Clusters of
-    # Stars (GC), which contained 5,079 entries"
-    # Herschel (1786): ???
-    #
-    # Source:
-    # https://in-the-sky.org/data/catalogue.php?cat=NGC&const=1&type=OC&sort=0&view=1
-    # Dreyer (1888): 640?
-    #
-    # Source: https://webda.physics.muni.cz/description.html#cluster_level
-    # "The catalogue of cluster parameters prepared by Lyngå (1987, 5th edition, CDS
-    # VII/92A) has been used to build the list of known open clusters."
-    # Going to http://cdsweb.u-strasbg.fr/htbin/myqcat3?VII/92A leads
-    # to a Vizier table with 1151 entries
-    # Lyngå (1987): 1151
-    #
-    # Mermilliod 1988 (Bull. Inform. CDS 35, 77-91): 570
-    # Mermilliod 1996ASPC...90..475M (BDA, 1996): ~500
-    #
-    years = [1771, 1888, 1987] + list(unique)
-    values = [33, 640, 1151] + [int(1200 + c_sum[0])] + list(c_sum[1:])
-
-    fig = plt.figure(figsize=(4, 2.5))
-    plt.plot(years, values, alpha=0.5, lw=3, marker="o", ms=7, color="maroon", zorder=5)
-
-    plt.annotate(
-        "Messier",
-        xy=(1775, 30),
-        xytext=(1820, 30),
-        fontsize=fontsize,
-        verticalalignment="center",
-        # Custom arrow
-        arrowprops=dict(arrowstyle="->", lw=0.7),
-    )
-    # plt.annotate(
-    #     "Hipparcos + 2MASS",
-    #     xy=(2015, 1000),
-    #     xytext=(1850, 1000),  # fontsize=8,
-    #     verticalalignment="center",
-    #     # Custom arrow
-    #     arrowprops=dict(arrowstyle="->", lw=0.7),
-    # )
-    plt.annotate(
-        "Gaia data release",
-        xy=(2010, 3600),
-        xytext=(1870, 3600),
-        fontsize=fontsize,
-        verticalalignment="center",
-        # Custom arrow
-        arrowprops=dict(arrowstyle="->", lw=0.7),
-    )
-
-    plt.text(
-        x=1880,
-        y=len(df_UCC) + 3000,
-        s=r"N$_{UCC}$=" + f"{len(df_UCC)}",
-        fontsize=fontsize,
-    )
-    plt.axhline(len(df_UCC), ls=":", lw=2, alpha=0.5, c="grey")
-
-    plt.text(
-        x=1820,
-        y=120000,
-        s="Approximate number of OCs in the Galaxy",
-        fontsize=fontsize,
-    )
-    plt.axhline(100000, ls=":", lw=2, alpha=0.5, c="k")
-
-    plt.xlim(1759, max(years) + 25)
-    # plt.title(r"Catalogued OCs in the literature", fontsize=fontsize)
-    plt.ylim(20, 250000)
-    plt.xticks(fontsize=fontsize)
-    plt.yticks(fontsize=fontsize)
-    plt.yscale("log")
-    fig.tight_layout()
-
-    path = "../../ucc/images/catalogued_ocs.webp"
-    txt = update_image(DRY_RUN, logging, fig, path, dpi)
-    if txt != "":
-        logging.info(f"Plot {txt}: number of OCs vs years")
-
-
-def make_classif_plot(height, dpi=300):
-    """ """
-    plt.style.use("modules/science2.mplstyle")
-
-    def rescale(x):
-        return (x - np.min(x)) / (np.max(x) - np.min(x))
-
-    my_cmap = plt.get_cmap("RdYlGn_r")
-    x1 = np.arange(0, len(class_order) + 1)
-
-    fig, ax = plt.subplots(1, figsize=(6, 3))
-    plt.bar(class_order, height, color=my_cmap(rescale(x1)))
-    plt.xticks(rotation=30)
-    plt.ylabel("N")
-    ax.tick_params(axis="x", which="both", length=0)
-    plt.minorticks_off()
-    fig.tight_layout()
-
-    path = "../../ucc/images/classif_bar.webp"
-    txt = update_image(DRY_RUN, logging, fig, path, dpi)
-    if txt != "":
-        logging.info(f"Plot {txt}: classification histogram")
 
 
 def chunks(data, SIZE=2):

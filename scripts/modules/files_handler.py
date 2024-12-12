@@ -1,8 +1,99 @@
 import os
 from pathlib import Path
 
-import matplotlib.pyplot as plt
-from diff_match_patch import diff_match_patch
+from fast_diff_match_patch import diff
+
+
+def update_image(
+    DRY_RUN: bool,
+    logging,
+    plot_path_old: str,
+    plot_pars: tuple,
+) -> str:
+    """
+    Updates or generates an image file based on the specified parameters.
+
+    Args:
+        DRY_RUN (bool): If True, no changes are made to the file system.
+        logging (object): Logger instance used for logging file operations.
+        plot_path_old (str): Path to the existing image file.
+        plot_pars (tuple): Parameters for generating the plot. This includes:
+            - The actual function to generate the plot as the first element
+            - Extra parameters required which depend on the plot itself
+
+    Returns:
+        str: Status of the operation, which can be one of the following:
+            - 'generated': A new image file was created.
+            - 'updated': An existing image file was replaced with an updated version.
+            - '': No changes were made (e.g., the new image matches the old one).
+    """
+    # Unpack plotting function
+    selected_plot = plot_pars[0]
+
+    if Path(plot_path_old).is_file() is False:
+        # If 'old' image files does not exist --> generate
+        if DRY_RUN is False:
+            selected_plot(plot_path_old, *plot_pars[1:])
+        txt0 = "generated"
+    else:
+        # Generate name of new (temporary) file
+        ext = "." + plot_path_old.split(".")[-1]
+        plot_path_new = plot_path_old.replace(ext, "_new" + ext)
+        selected_plot(plot_path_new, *plot_pars[1:])
+
+        # If the new image is different to the old one --> delete old + rename new
+        if not are_images_equal(plot_path_old, plot_path_new):
+            if DRY_RUN is False:
+                # Delete old image
+                delete_file(plot_path_old, logging)
+                # Rename new image to old name
+                rename_file(plot_path_new, plot_path_old, logging)
+            else:
+                delete_file(plot_path_new, logging)
+            txt0 = "updated"
+        else:
+            # New image is equal to the old one --> delete new file
+            delete_file(plot_path_new, logging)
+            txt0 = ""
+
+    return txt0
+
+
+def are_images_equal(image1_path, image2_path):
+    """
+    Compare two image files using difflib at the binary level.
+    :param image1_path: Path to the first image file
+    :param image2_path: Path to the second image file
+    :return: True if images are equal, False otherwise
+    """
+    try:
+        # Read the files in binary mode
+        with open(image1_path, "rb") as file1, open(image2_path, "rb") as file2:
+            image1_data = file1.read()
+            image2_data = file2.read()
+
+        # Fast check
+        if len(image1_data) != len(image2_data):
+            return False
+
+        # Use this library to compare binary data of equal length
+        changes = diff(image1_data, image2_data)
+        var = changes[0][0] == "=" and changes[0][1] == len(image1_data)
+        return var
+
+        # # Use difflib to compare binary data
+        # diff = difflib.SequenceMatcher(None, image1_data, image2_data)
+        # return diff.ratio() == 1.0
+
+        # # This library is much faster
+        # dmp = diff_match_patch()
+        # patches = dmp.patch_make(str(image1_data), str(image2_data))
+        # var = len(patches) == 0
+        # return var
+
+    except Exception as e:
+        print(f"Error: {e}")
+        return False
 
 
 def rename_file(old_name, new_name, logging):
@@ -36,91 +127,3 @@ def delete_file(file_path, logging):
         logging.info("Error: Permission denied.")
     except Exception as e:
         logging.info(f"An error occurred: {e}")
-
-
-def update_image(
-    DRY_RUN: bool, logging, fig, path_old: str, dpi: int, force_updt=False
-) -> str:
-    """
-    Updates or generates an image file based on the specified parameters.
-
-    Parameters:
-        DRY_RUN (bool): If True, no changes are made to the file system.
-        logging: Logger instance used for logging file operations.
-        fig: Matplotlib figure object to save as an image.
-        path_old (str): Path to the existing image file.
-        dpi (int): Resolution (dots per inch) for the saved image.
-        force_updt (bool): If True, skip equality check.
-
-    Returns:
-        str: Status of the operation ('generated', 'updated', or an empty string
-             if no changes were made).
-    """
-    # Generate name of new (temporary) file
-    ext = "." + path_old.split(".")[-1]
-    path_new = path_old.replace(ext, "_new" + ext)
-
-    # Generate new image
-    plt.savefig(path_new, dpi=dpi)
-
-    # If 'old' image files does not exist --> rename new as old (generate)
-    if Path(path_old).is_file() is False:
-        if DRY_RUN is False:
-            # Rename new image to old name
-            rename_file(path_new, path_old, logging)
-        else:
-            delete_file(path_new, logging)
-        txt = "generated"
-    else:
-        if force_updt is True:
-            equal_flag = False
-        else:
-            # Check if the new image and the old one are identical
-            equal_flag = are_images_equal(path_old, path_new)
-
-        # If the new image is different to the old one
-        if equal_flag is False:
-            if DRY_RUN is False:
-                # Delete old image
-                delete_file(path_old, logging)
-                # Rename new image to old name
-                rename_file(path_new, path_old, logging)
-            else:
-                delete_file(path_new, logging)
-            txt = "updated"
-        else:
-            # New image is equal to the old one --> delete new file
-            delete_file(path_new, logging)
-            txt = ""
-
-    # https://stackoverflow.com/a/65910539/1391441
-    fig.clear()
-    plt.close(fig)
-
-    return txt
-
-
-def are_images_equal(image1_path, image2_path):
-    """
-    Compare two image files using difflib at the binary level.
-    :param image1_path: Path to the first image file
-    :param image2_path: Path to the second image file
-    :return: True if images are equal, False otherwise
-    """
-    try:
-        # Read the files in binary mode
-        with open(image1_path, "rb") as file1, open(image2_path, "rb") as file2:
-            image1_data = file1.read()
-            image2_data = file2.read()
-
-        # # Use difflib to compare binary data
-        # diff = difflib.SequenceMatcher(None, image1_data, image2_data)
-        # return diff.ratio() == 1.0
-        # This library is much faster
-        dmp = diff_match_patch()
-        patches = dmp.patch_make(str(image1_data), str(image2_data))
-        return len(patches) == 0
-
-    except Exception as e:
-        print(f"Error: {e}")
-        return False
