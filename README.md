@@ -5,12 +5,11 @@ The UCC files live in several repositories within the [UCC23](https://github.com
 
 - The [ucc](https://github.com/ucc23/ucc) repository contains the main files required to build the
   [public site](https://ucc.ar). Every pushed commit to this repo produces an
-  **automatic build of the site**.
+  **automatic build of the site**
 - The eight `QXX` repositories ([Q1P](https://github.com/ucc23/Q1P), etc.) contain the bulk of the files used 
-  by the site,  within the folders `datafiles, notebooks, plots`.
+  by the site,  within the folders `datafiles, notebooks, plots`
 - The [updt_ucc](https://github.com/ucc23/updt_UCC), this one, contains the scripts and data files required to
-  update the UCC (mostly) automatically. This repository can be updated at any time
-  since this **does not** trigger a build of the UCC site.
+  update the UCC (mostly) automatically
 
 
 **What do you want to do?**
@@ -51,9 +50,19 @@ exclude:
 `_config.yml` file before moving on.
 
 
-1. Push changes in the `QXY` repositories
-2. Update the [Zenodo repository](https://zenodo.org/doi/10.5281/zenodo.8250523) with the new files, creating a new release.
-   Remember to set the version number in Zenodo as YYMMDD
+Live build steps:
+
+1. Push changes in each of the `QXY` repositories (if any)
+
+2. Create a 'New version' in the [Zenodo repository](https://zenodo.org/doi/10.5281/zenodo.8250523) 
+
+2.1 Upload the three files stored in the `zenodo_upload/` folder by the `H` script
+2.2 Get a DOI
+2.3 Add a 'Publication date' with the format: YYYY-MM-DD
+2.4 Add a 'Version' number with the format: YYMMDD
+
+Publish new release and copy **its own url** (no the general repository url)
+
 3. Update the `CHANGELOG.md` file, use the Zenodo URL for **this** release
 
 Every change pushed to the [ucc](https://github.com/ucc23/ucc) repository triggers an
