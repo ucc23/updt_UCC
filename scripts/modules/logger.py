@@ -1,7 +1,7 @@
-from os.path import join
-from pathlib import Path
 import datetime
 import logging
+from os.path import join
+from pathlib import Path
 
 
 def main():
@@ -12,7 +12,7 @@ def main():
 
     # Name of log file using the date
     x = datetime.date.today()
-    out_file = str(x).replace("-", "_") + ".log"
+    out_file = "logs/" + str(x).replace("-", "_") + ".log"
 
     # Set up logging module
     level = logging.INFO
