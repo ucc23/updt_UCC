@@ -77,7 +77,7 @@ def main():
         df_all["fnames"],
         df_all["GLON"],
         df_all["GLAT"],
-        df_all["plx"],
+        df_all["Plx"],
         df_all["pmRA"],
         df_all["pmDE"],
         prob_cut=0.5,

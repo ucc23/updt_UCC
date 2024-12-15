@@ -36,7 +36,7 @@ def main():
             bad_center = DBs_combine.check_cents_diff(
                 (df_UCC["GLON_m"][j], df_UCC["GLAT_m"][j]),
                 (df_UCC["pmRA_m"][j], df_UCC["pmDE_m"][j]),
-                df_UCC["plx_m"][j],
+                df_UCC["Plx_m"][j],
                 (new_db_info["GLON"][i], new_db_info["GLAT"][i]),
                 (new_db_info["pmRA"][i], new_db_info["pmDE"][i]),
                 new_db_info["plx"][i],
