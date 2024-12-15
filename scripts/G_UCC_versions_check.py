@@ -24,7 +24,7 @@ def main():
     # Read old version of the UCC
     UCC_old = pd.read_csv(UCC_folder + old_UCC_name)
     old_date = old_UCC_name.split("_")[-1].split(".")[0]
-    logging.info(f"UCC version {old_date} loaded (N={len(UCC_old)}) <-- OLD")
+    logging.info(f"\nUCC version {old_date} loaded (N={len(UCC_old)}) <-- OLD")
     print("")
 
     diff_between_dfs(UCC_old, UCC_new)
@@ -35,21 +35,22 @@ def main():
 
     # Check new entries
     for i_new, fnames_new in enumerate(fnames_new_all):
-        i_old = None
         try:
-            pass
+            i_old = fnames_old_all.index(fnames_new)
         except ValueError:
             print(f"OC not found in old UCC: {fnames_new}")
             check_new_entries(fnames_old_all, i_new, fnames_new)
 
     # Check existing entries
-    logging.info("old name   | new name   --> column name: differences")
+    logging.info("\nold name   | new name   --> column name: differences")
     for i_new, fnames_new in enumerate(fnames_new_all):
         i_old = None
         try:
             i_old = fnames_old_all.index(fnames_new)
         except ValueError:
             pass
+        if i_old is None:
+            continue
 
         # If 'fnames_new' was found in the old UCC, compare both entries
         # Extract rows
