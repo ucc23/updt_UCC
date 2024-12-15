@@ -137,18 +137,18 @@ data_foot = """\n
 
 def main(df_UCC, UCC_cl, DBs_json, DBs_full_data, fname0, Qfold):
     """ """
-    # DBs where this cluster is present
-    DBs = UCC_cl["DB"].split(";")
+    # # DBs where this cluster is present
+    # DBs = UCC_cl["DB"].split(";")
 
-    # Indexes where this cluster is present in each DB
-    DBs_i = UCC_cl["DB_i"].split(";")
+    # # Indexes where this cluster is present in each DB
+    # DBs_i = UCC_cl["DB_i"].split(";")
 
     cl_names = UCC_cl["ID"].split(";")
 
-    posit_table = positions_in_lit(DBs_json, DBs_full_data, DBs, DBs_i, UCC_cl)
+    posit_table = positions_in_lit(DBs_json, DBs_full_data, UCC_cl)
     img_cont = carousel_div(cl_names[0], Qfold, fname0)
     close_table = close_cat_cluster(df_UCC, UCC_cl)
-    fpars_table = fpars_in_lit(DBs_json, DBs_full_data, DBs, DBs_i)
+    fpars_table = fpars_in_lit(DBs_json, DBs_full_data, UCC_cl["DB"], UCC_cl["DB_i"])
 
     # Color used by the 'C1' classification
     abcd_c = UCC_color(UCC_cl["C3"])
@@ -220,15 +220,13 @@ def main(df_UCC, UCC_cl, DBs_json, DBs_full_data, fname0, Qfold):
     return contents
 
 
-def positions_in_lit(DBs_json, DBs_full_data, DBs, DBs_i, row_UCC):
+def positions_in_lit(DBs_json, DBs_full_data, row_UCC):
     """ """
     # Re-arrange DBs by year
-    DBs_years = [_.split("_")[0][-2:] for _ in DBs]
-    # Sort
-    sort_idxs = combine_UCC_new_DB.sort_year_digits(DBs_years)
-    # Re-arrange
-    DBs_sort = np.array(DBs)[sort_idxs]
-    DBs_i_sort = np.array(DBs_i)[sort_idxs]
+    DBs_sort, DBs_i_sort = combine_UCC_new_DB.date_order_DBs(
+        row_UCC["DB"], row_UCC["DB_i"]
+    )
+    DBs_sort, DBs_i_sort = DBs_sort.split(";"), DBs_i_sort.split(";")
 
     table = ""
     for i, db in enumerate(DBs_sort):
@@ -379,6 +377,8 @@ def fpars_in_lit(
     DBs: DBs where this cluster is present
     DBs_i: Indexes where this cluster is present in each DB
     """
+    DBs, DBs_i = DBs.split(";"), DBs_i.split(";")
+
     # Select DBs with parameters
     DBs_w_pars, DBs_i_w_pars = [], []
     for i, db in enumerate(DBs):
@@ -390,17 +390,12 @@ def fpars_in_lit(
     if len(DBs_w_pars) == 0:
         table = ""
         return table
-    else:
-        # Re-arrange DBs by year
-        # Extract DB year
-        # This splits the DB name in a '_' and keeps the first part. It is meant to handle
-        # DBs with names such as: 'SMITH23_3'.
-        DBs_years = [_.split("_")[0][-2:] for _ in DBs_w_pars]
-        # Sort
-        sort_idxs = combine_UCC_new_DB.sort_year_digits(DBs_years)
-        # Re-arrange
-        DBs_w_pars = np.array(DBs_w_pars)[sort_idxs]
-        DBs_i_w_pars = np.array(DBs_i_w_pars)[sort_idxs]
+
+    # Re-arrange DBs by year
+    DBs_w_pars, DBs_i_w_pars = combine_UCC_new_DB.date_order_DBs(
+        ";".join(DBs_w_pars), ";".join(DBs_i_w_pars)
+    )
+    DBs_w_pars, DBs_i_w_pars = DBs_w_pars.split(";"), DBs_i_w_pars.split(";")
 
     txt = ""
     for i, db in enumerate(DBs_w_pars):
