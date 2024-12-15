@@ -32,15 +32,9 @@ steps **apply** the required changes to the site's files.
 
 **DB name format**
  
-The format of the name for the DB is `SMITH24` or, if required, `SMITH24_1`.
+The format of the name for the DB is `SMITH2024` or, if required, `SMITH2024_1`.
 The name of the DB **must not** contain any non letter characters except for the
 `_` required to differentiate DBs with the same names published in the same year.
-
-**IMPORTANT**: the smaller DB year accepted by the scripts is 1990. This means that
-any new DBs with associated years below 90 will be interpreted as belonging to this
-century. E.g.: `SMITH89` will be interpreted as 2089 but `SMITH90` will be interpreted
-as 1990 (same for `91, 92, 93, 94, 95, 96, 97, 98, 99`)`. This also means that a
-_major_ upgrade of the UCC is due for 2090 :D
 
 
 **Required columns**
@@ -221,13 +215,13 @@ for attention.
 
 Run the script `H_zenodo_updt.py`
 
-This script will generate the two files that are to be uploaded to Zenodo. These files
+This script will generate the files that are to be uploaded to Zenodo. These files
 contain all the UCC information.
 
 **Summary**
 
 - Files edited: None
-- Files generated: `UCC_cat.csv.gz, UCC_members.parquet.gz`
+- Files generated: `UCC_cat.csv, UCC_members.parquet,README.txt`
 
 
 
@@ -235,23 +229,21 @@ contain all the UCC information.
 
 Run the `I_make_entries.py` script
 
-This script will process the **entire** UCC and generate an `md` file, `ipynb`
-notebook, and plot, for every OC for which either of those files do not exist.
+This script will process the **entire** UCC and generate an `md` file and plot(s),
+for every OC for which either of those files do not exist.
 
-In the case of the `md` entries, it will also check if the new entry changed
-compared to the old one, and it will update it **only** if it did.
+It will check if the new entry changed compared to the old one, and it will
+update it **only** if it did.
 
 For each processed OC that is missing either of those files:
 
 1. Generate a `.md` entry, stored in `../ucc/_clusters/`
-2. Generate a `.ipynb` notebook, stored in `../QXY/notebooks/`
-3. Generate a plot, stored in `../QXY/plots/`
+2. Generate a plot (two, if aladin plot is also generated), stored in `../QXY/plots/`
 
 **Summary**
 
 - Files edited: `../ucc/_clusters/*.md` entries (if there are changes in the new UCC)
-- Files generated: `../ucc/_clusters/*.md` + `../QXY/notebooks/*.ipynb` +
-  `../QXY/plots/*.webp` (if files are missing)
+- Files generated: `../ucc/_clusters/*.md` + `../QXY/plots/*.webp` (if files are missing)
 
 
 
