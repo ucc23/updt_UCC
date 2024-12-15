@@ -79,6 +79,7 @@ def OC_in_UCC(new_DB_ID, new_db_dict, i, new_cl, new_names, row):
     else:
         DB_ID = row["DB"] + ";" + new_DB_ID
         DB_i = row["DB_i"] + ";" + str(i)
+
     # Order by years before storing
     DB_ID, DB_i = date_order_DBs(DB_ID, DB_i)
     new_db_dict["DB"].append(DB_ID)
@@ -96,7 +97,7 @@ def OC_in_UCC(new_DB_ID, new_db_dict, i, new_cl, new_names, row):
     new_db_dict["DE_ICRS"].append(round(row["DE_ICRS"], 4))
     new_db_dict["GLON"].append(round(lon_n, 4))
     new_db_dict["GLAT"].append(round(lat_n, 4))
-    new_db_dict["plx"].append(round(row["plx"], 4))
+    new_db_dict["Plx"].append(round(row["Plx"], 4))
     new_db_dict["pmRA"].append(round(row["pmRA"], 4))
     new_db_dict["pmDE"].append(round(row["pmDE"], 4))
 
@@ -124,7 +125,7 @@ def OC_in_UCC(new_DB_ID, new_db_dict, i, new_cl, new_names, row):
     new_db_dict["GLAT_m"].append(row["GLAT_m"])
     new_db_dict["RA_ICRS_m"].append(row["RA_ICRS_m"])
     new_db_dict["DE_ICRS_m"].append(row["DE_ICRS_m"])
-    new_db_dict["plx_m"].append(row["plx_m"])
+    new_db_dict["Plx_m"].append(row["Plx_m"])
     new_db_dict["pmRA_m"].append(row["pmRA_m"])
     new_db_dict["pmDE_m"].append(row["pmDE_m"])
     new_db_dict["Rv_m"].append(row["Rv_m"])
@@ -135,8 +136,20 @@ def OC_in_UCC(new_DB_ID, new_db_dict, i, new_cl, new_names, row):
     return new_db_dict
 
 
-def date_order_DBs(DB, DB_i):
-    """Order DBs by year"""
+def date_order_DBs(DB: str, DB_i: str) -> tuple:
+    """
+    Orders two semicolon-separated strings of database entries by the year extracted
+    from each entry.
+
+    Args:
+        DB (str): A semicolon-separated string where each entry contains a year in
+        the format "_YYYY".
+        DB_i (str): A semicolon-separated string with integers associated to `DB`.
+
+    Returns:
+        tuple: A tuple containing two semicolon-separated strings (`DB`, `DB_i`)
+        ordered by year.
+    """
     # Split lists
     all_dbs = DB.split(";")
     all_dbs_i = DB_i.split(";")
@@ -144,37 +157,14 @@ def date_order_DBs(DB, DB_i):
     # Extract years from DBs
     all_years = []
     for db in all_dbs:
-        year = db.split("_")[0][-2:]
+        year = db.split("_")[0][-4:]
         all_years.append(year)
-    # WILL BREAK IN 2090. If you are reading this, good luck to you :)
-    idx = sort_year_digits(all_years)
+
+    # Sort and re-generate strings
+    idx = np.argsort(all_years)
     DB = ";".join(np.array(all_dbs)[idx].tolist())
     DB_i = ";".join(np.array(all_dbs_i)[idx].tolist())
     return DB, DB_i
-
-
-def sort_year_digits(year_digits: list[str]) -> np.ndarray:
-    """
-    Sorts a list of two-digit year representations by converting them into
-    full four-digit years based on a threshold. Years represented as 90-99 are
-    treated as 1990-1999, while years represented as 00-89 are treated as 2000-2089.
-
-    Args:
-        year_digits: A list of two-digit strings representing years.
-
-    Returns:
-        A numpy array of indices representing the sorted order of the input list,
-        based on the adjusted four-digit year values.
-
-    Example:
-        >>> sort_year_digits([1, 23, 1, 8, 0, 6, 99, 24])
-        array([6, 4, 0, 2, 5, 3, 1, 7])
-    """
-    year_list = np.array(year_digits, dtype=int)
-    msk = year_list >= 90
-    year_list[msk] += 1900  # Treat 90-99 as 1990-1999
-    year_list[~msk] += 2000  # Treat 00-89 as 2000-2089
-    return np.argsort(year_list)
 
 
 def new_OC_not_in_UCC(
@@ -216,7 +206,7 @@ def new_OC_not_in_UCC(
     new_db_dict["DE_ICRS"].append(round(dec_n, 4))
     new_db_dict["GLON"].append(round(lon_n, 4))
     new_db_dict["GLAT"].append(round(lat_n, 4))
-    new_db_dict["plx"].append(round(plx_n, 4))
+    new_db_dict["Plx"].append(round(plx_n, 4))
     new_db_dict["pmRA"].append(round(pmra_n, 4))
     new_db_dict["pmDE"].append(round(pmde_n, 4))
 
@@ -246,7 +236,7 @@ def new_OC_not_in_UCC(
     new_db_dict["GLAT_m"].append(np.nan)
     new_db_dict["RA_ICRS_m"].append(np.nan)
     new_db_dict["DE_ICRS_m"].append(np.nan)
-    new_db_dict["plx_m"].append(np.nan)
+    new_db_dict["Plx_m"].append(np.nan)
     new_db_dict["pmRA_m"].append(np.nan)
     new_db_dict["pmDE_m"].append(np.nan)
     new_db_dict["Rv_m"].append(np.nan)
