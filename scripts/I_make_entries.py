@@ -18,6 +18,9 @@ logging = logger.main()
 # Use to process files without writing changes to files
 DRY_RUN = True
 
+# Check plots? This is time consuming, avoid if possible
+check_plots = False
+
 
 def main():
     """ """
@@ -55,14 +58,13 @@ def main():
         if txt1 != "":
             txt += f" md {txt1}"
 
-        # Make plots
-        txt = make_plots(UCC_cl, Qfold, fname0, txt)
+        if check_plots:
+            # Make plots
+            txt = make_plots(UCC_cl, Qfold, fname0, txt)
 
         if txt != txt0:
             logging.info(f"{N_total}, " + txt)
             N_total += 1
-        else:
-            logging.info(_)
 
     logging.info(f"\nN={N_total} OCs processed")
 
