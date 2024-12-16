@@ -27,8 +27,10 @@ def main():
     logging.info(f"\nUCC version {old_date} loaded (N={len(UCC_old)}) <-- OLD")
     print("")
 
+    UCC_old.rename(columns={"plx_m": "Plx_m", "plx": "Plx"}, inplace=True)
+
     diff_between_dfs(UCC_old, UCC_new)
-    logging.info("File 'UCC_diff.csv' saved\n")
+    logging.info("Files 'UCC_diff_xxx.csv' saved\n")
 
     fnames_old_all = list(UCC_old["fnames"])
     fnames_new_all = list(UCC_new["fnames"])
@@ -131,18 +133,24 @@ def fnames_checker(df_UCC):
         raise ValueError("Initial fnames are not unique")
 
 
-def diff_between_dfs(df1: pd.DataFrame, df2: pd.DataFrame):
+def diff_between_dfs(df_old: pd.DataFrame, df_new: pd.DataFrame, cols_exclude=None):
     """
     Compare two DataFrames, find non-matching rows while preserving order, and
-    output these rows interwoven from both DataFrames, with a blank line after each pair.
+    output these rows in two files.
 
     Args:
-        df1 (pd.DataFrame): First DataFrame to compare.
-        df2 (pd.DataFrame): Second DataFrame to compare.
-
-    The function identifies rows unique to each DataFrame, writes them in an interwoven
-    pattern to the output file, and adds a blank line after each pair of rows.
+        df_old (pd.DataFrame): First DataFrame to compare.
+        df_new (pd.DataFrame): Second DataFrame to compare.
+        cols_exclude (list | None): List of columns to exclude from the diff
     """
+    if cols_exclude is not None:
+        df1 = df_old.drop(columns=cols_exclude)
+        df2 = df_new.drop(columns=cols_exclude)
+    else:
+        logging.info("No columns excluded")
+        df1 = df_old
+        df2 = df_new
+
     # Convert DataFrames to lists of tuples (rows) for comparison
     rows1 = [[str(_) for _ in row] for row in df1.values]
     rows2 = [[str(_) for _ in row] for row in df2.values]
@@ -154,22 +162,14 @@ def diff_between_dfs(df1: pd.DataFrame, df2: pd.DataFrame):
     non_matching1 = [row for row in rows1 if tuple(row) not in set2]
     non_matching2 = [row for row in rows2 if tuple(row) not in set1]
 
-    # Intertwine the rows from both non-matching lists with spacing
-    intertwined_lines = []
-    max_len = max(len(non_matching1), len(non_matching2))
-    for i in range(max_len):
-        if i < len(non_matching1):
-            intertwined_lines.append(non_matching1[i])
-        if i < len(non_matching2):
-            intertwined_lines.append(non_matching2[i])
-
-        # Insert a blank row after each pair
-        intertwined_lines.append([])
-
     # Write intertwined lines to the output file
-    with open("../UCC_diff.csv", "w", newline="") as out:
+    with open("../UCC_diff_old.csv", "w", newline="") as out:
         writer = csv.writer(out)
-        for row in intertwined_lines:
+        for row in non_matching1:
+            writer.writerow(row)
+    with open("../UCC_diff_new.csv", "w", newline="") as out:
+        writer = csv.writer(out)
+        for row in non_matching2:
             writer.writerow(row)
 
 
