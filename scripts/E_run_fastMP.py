@@ -189,7 +189,7 @@ def main():
         params_updt.append(fname0)
         params_updt.append(UCC_index)
         params_updt.append(fix_N_clust)
-        params_updt.append(int(N_survived))
+        # params_updt.append(int(N_survived))
         params_updt.append(fixed_centers)
         params_updt.append(int(cent_flags))
         params_updt.append(C1)

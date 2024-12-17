@@ -7,7 +7,7 @@ def main(
     logging, new_DB_ID, df_UCC, df_new, json_pars, new_DB_fnames, db_matches, sep=","
 ):
     """ """
-    # Extract names of (ra, dec, plx, pmRA, pmDE) columns
+    # Extract names of (ra, dec, plx, pmRA, pmDE) columns for this new DB
     cols = []
     for v in json_pars["pos"].split(","):
         if str(v) == "None":
@@ -115,7 +115,7 @@ def OC_in_UCC(new_DB_ID, new_db_dict, i, new_cl, new_names, row):
     new_db_dict["r_50"].append(row["r_50"])
     new_db_dict["N_50"].append(row["N_50"])
     new_db_dict["N_fixed"].append(row["N_fixed"])
-    new_db_dict["N_membs"].append(row["N_membs"])
+    # new_db_dict["N_membs"].append(row["N_membs"])
     new_db_dict["fixed_cent"].append(row["fixed_cent"])
     new_db_dict["cent_flags"].append(row["cent_flags"])
     new_db_dict["C1"].append(row["C1"])
@@ -226,7 +226,7 @@ def new_OC_not_in_UCC(
     new_db_dict["r_50"].append(np.nan)
     new_db_dict["N_50"].append(0)
     new_db_dict["N_fixed"].append(0)
-    new_db_dict["N_membs"].append(0)
+    # new_db_dict["N_membs"].append(0)
     new_db_dict["fixed_cent"].append("nan")
     new_db_dict["cent_flags"].append("nan")
     new_db_dict["C1"].append(np.nan)

@@ -71,7 +71,7 @@ def main():
     comb_dbs["r_50"] = [np.nan for _ in range(N_tot)]
     comb_dbs["N_50"] = [np.nan for _ in range(N_tot)]
     comb_dbs["N_fixed"] = [np.nan for _ in range(N_tot)]
-    comb_dbs["N_membs"] = [np.nan for _ in range(N_tot)]
+    # comb_dbs["N_membs"] = [np.nan for _ in range(N_tot)]
     comb_dbs["fixed_cent"] = [np.nan for _ in range(N_tot)]
     comb_dbs["cent_flags"] = [np.nan for _ in range(N_tot)]
     comb_dbs["C1"] = [np.nan for _ in range(N_tot)]
@@ -108,7 +108,7 @@ def main():
         "dups_probs",
         "r_50",
         "N_fixed",
-        "N_membs",
+        # "N_membs",
         "fixed_cent",
         "cent_flags",
         "C1",
