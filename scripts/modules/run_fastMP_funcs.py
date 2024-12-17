@@ -113,11 +113,11 @@ def get_close_cls(x, y, tree, box_s, idx, df_UCC, dups_fnames, df_gcs):
         # if np.isnan(df_UCC['pmRA'][i]) or np.isnan(df_UCC['plx'][i]):
         #     continue
 
-        ex_cl_dict = f"{df_UCC["ID"][i]}: {(df_UCC["GLON"][i], df_UCC["GLAT"][i])}"
+        ex_cl_dict = f'{df_UCC["ID"][i]}: {(df_UCC["GLON"][i], df_UCC["GLAT"][i])}'
         if not np.isnan(df_UCC["pmRA"][i]):
-            ex_cl_dict += f" {df_UCC["pmRA"][i], df_UCC["pmDE"][i]}"
+            ex_cl_dict += f' {df_UCC["pmRA"][i], df_UCC["pmDE"][i]}'
         if not np.isnan(df_UCC["Plx"][i]):
-            ex_cl_dict += f" ({df_UCC["Plx"][i]})"
+            ex_cl_dict += f' ({df_UCC["Plx"][i]})'
 
         # print(df_UCC['ID'][i], ex_cl_dict)
         centers_ex.append(ex_cl_dict)
@@ -128,9 +128,9 @@ def get_close_cls(x, y, tree, box_s, idx, df_UCC, dups_fnames, df_gcs):
     for gc_i in range(len(df_gcs)):
         if gc_d[gc_i] < rad:
             ex_cl_dict = (
-                f"{df_gcs["ID"][gc_i]}: {(df_gcs["GLON"][gc_i], df_gcs["GLAT"][gc_i])}"
-                + f" {df_gcs["pmRA"][gc_i], df_gcs["pmDE"][gc_i]}"
-                + f" ({df_gcs["Plx"][gc_i]})"
+                f'{df_gcs["ID"][gc_i]}: {(df_gcs["GLON"][gc_i], df_gcs["GLAT"][gc_i])}'
+                + f' {df_gcs["pmRA"][gc_i], df_gcs["pmDE"][gc_i]}'
+                + f' ({df_gcs["Plx"][gc_i]})'
             )
             # print(df_gcs['Name'][gc_i], ex_cl_dict)
             centers_ex.append(ex_cl_dict)
