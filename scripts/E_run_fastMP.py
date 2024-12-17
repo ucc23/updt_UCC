@@ -1,3 +1,4 @@
+import asteca
 import numpy as np
 import pandas as pd
 from HARDCODED import GCs_cat, UCC_folder, dbs_folder, new_OCs_fpath, root_UCC_path
@@ -5,8 +6,6 @@ from modules import UCC_new_match, classif, logger, read_ini_file
 from modules import main_process_GDR3_query as G3Q
 from modules import run_fastMP_funcs as fMPf
 from scipy import spatial
-
-# TODO: import fastMP from asteca and modify this scrip to work with this new version
 
 
 def main():
@@ -31,9 +30,9 @@ def main():
     )
 
     # Read latest version of the UCC
-    df_UCC, UCC_cat = UCC_new_match.latest_cat_detect(logging, UCC_folder)
+    df_UCC, _ = UCC_new_match.latest_cat_detect(logging, UCC_folder)
     if (np.array(df_UCC["C3"], dtype=str) == "nan").sum() == 0:
-        print("No new OCs to process")
+        logging.info("No new OCs to process")
         return
 
     # Read extra input data
@@ -42,6 +41,7 @@ def main():
 
     # Read OCs manual parameters
     manual_pars = pd.read_csv(manual_pars_f)
+
     logging.info(f"Processing {new_DB} with fastMP...\n")
 
     # Parameters used to search for close-by clusters
@@ -51,8 +51,8 @@ def main():
     # Write header for ouput CSV file. Order matters!
     with open(new_OCs_fpath, "w") as myfile:
         myfile.write(
-            "fname,index_updt,N_fixed,N_survived,fixed_centers,cent_flags,"
-            + "C1,C2,C3,GLON_m,GLAT_m,RA_ICRS_m,DE_ICRS_m,plx_m,pmRA_m,"
+            "fname,index_updt,N_fixed,fixed_centers,cent_flags,"
+            + "C1,C2,C3,GLON_m,GLAT_m,RA_ICRS_m,DE_ICRS_m,Plx_m,pmRA_m,"
             + "pmDE_m,Rv_m,N_Rv,N_50,r_50,N_ex_cls\n"
         )
 
@@ -65,7 +65,7 @@ def main():
             continue
 
         # Identify position in the UCC
-        fname0 = new_cl["fnames"].split(";")[0]
+        fname0 = str(new_cl["fnames"]).split(";")[0]
         UCC_index = None
         for _, UCC_fnames in enumerate(df_UCC["fnames"]):
             if new_cl["fnames"] == UCC_fnames:
@@ -109,6 +109,14 @@ def main():
             cl["dups_fnames"],
             df_gcs,
         )
+        if len(centers_ex) > 0:
+            logging.info("WARNING: there are clusters close by:")
+            logging.info(
+                f"*{cl['ID']}: {(cl['GLON'], cl['GLAT'])}"
+                + f" {cl['pmRA'], cl['pmDE']} ({cl['Plx']})"
+            )
+            for gc in centers_ex:
+                logging.info(gc)
 
         # Request data
         data = G3Q.run(
@@ -127,40 +135,31 @@ def main():
         xy_c, vpd_c, plx_c = (cl["GLON"], cl["GLAT"]), None, None
         if not np.isnan(cl["pmRA"]):
             vpd_c = (cl["pmRA"], cl["pmDE"])
-        if not np.isnan(cl["plx"]):
-            plx_c = cl["plx"]
+        if not np.isnan(cl["Plx"]):
+            plx_c = cl["Plx"]
 
         fixed_centers = False
         if vpd_c is None and plx_c is None:
             fixed_centers = True
 
-        # Generate input data array for fastMP
-        X = np.array(
-            [
+        # Process with fastMP
+        while True:
+            logging.info(f"Fixed centers?: {fixed_centers}")
+            probs_all = run_fastMP(
+                data, (cl["RA_ICRS"], cl["DE_ICRS"]), vpd_c, plx_c, fixed_centers
+            )
+
+            cent_flags = fMPf.check_centers(
                 data["GLON"].values,
                 data["GLAT"].values,
                 data["pmRA"].values,
                 data["pmDE"].values,
                 data["Plx"].values,
-                data["e_pmRA"].values,
-                data["e_pmDE"].values,
-                data["e_Plx"].values,
-            ]
-        )
-
-        # Process with fastMP
-        while True:
-            logging.info(f"Fixed centers?: {fixed_centers}")
-            probs_all, N_survived = fastMP(
-                xy_c=xy_c,
-                vpd_c=vpd_c,
-                plx_c=plx_c,
-                centers_ex=centers_ex,
-                fixed_centers=fixed_centers,
-                fix_N_clust=fix_N_clust,
-            ).fit(X)
-
-            cent_flags = fMPf.check_centers(*X[:5, :], xy_c, vpd_c, plx_c, probs_all)
+                xy_c,
+                vpd_c,
+                plx_c,
+                probs_all,
+            )
 
             if cent_flags == "000" or fixed_centers is True:
                 break
@@ -168,13 +167,19 @@ def main():
                 # Re-run with fixed centers
                 fixed_centers = True
 
-        cent_flags = fMPf.check_centers(*X[:5, :], xy_c, vpd_c, plx_c, probs_all)
-
-        logging.info(
-            "Nsurv={}, (P>0.5)={}, cents={}".format(
-                N_survived, (probs_all > 0.5).sum(), cent_flags
-            )
+        cent_flags = fMPf.check_centers(
+            data["GLON"].values,
+            data["GLAT"].values,
+            data["pmRA"].values,
+            data["pmDE"].values,
+            data["Plx"].values,
+            xy_c,
+            vpd_c,
+            plx_c,
+            probs_all,
         )
+
+        logging.info("\nP>0.5={}, cents={}".format((probs_all > 0.5).sum(), cent_flags))
 
         df_membs, df_field = fMPf.split_membs_field(data, probs_all)
         # Write member stars for cluster and some field
@@ -184,6 +189,8 @@ def main():
         lon, lat, ra, dec, plx, pmRA, pmDE, Rv, N_Rv, N_50, r_50 = fMPf.extract_cl_data(
             df_membs
         )
+
+        logging.info(f"*{cl['ID']}: {(lon, lat)} {pmRA, pmDE} ({plx})")
 
         # Order matters!
         params_updt.append(fname0)
@@ -207,8 +214,6 @@ def main():
         params_updt.append(N_50)
         params_updt.append(r_50)
 
-        logging.info(f"*** Cluster {cl['ID']} processed with fastMP\n")
-
         # Update output CSV file
         pars_str = ""
         for p in params_updt:
@@ -216,6 +221,44 @@ def main():
         pars_str = pars_str[:-1] + "\n"
         with open(new_OCs_fpath, "a") as myfile:
             myfile.write(pars_str)
+
+        logging.info(f"*** Cluster {cl['ID']} processed with fastMP\n")
+        breakpoint()
+
+
+def run_fastMP(field_df, radec_c, pms_c, plx_c, fixed_centers):
+    """ """
+    my_field = asteca.cluster(
+        obs_df=field_df,
+        ra="RA_ICRS",
+        dec="DE_ICRS",
+        pmra="pmRA",
+        pmde="pmDE",
+        plx="Plx",
+        e_pmra="e_pmRA",
+        e_pmde="e_pmDE",
+        e_plx="e_Plx",
+    )
+
+    # Estimate the cluster's center coordinates
+    my_field.get_center(radec_c=radec_c)
+    if fixed_centers:
+        my_field.radec_c = radec_c
+        if pms_c is not None:
+            my_field.pms_c = pms_c
+        if plx_c is not None:
+            my_field.plx_c = plx_c
+
+    # Estimate the number of cluster members
+    my_field.get_nmembers()
+
+    # Define a ``membership`` object
+    memb = asteca.membership(my_field)
+
+    # Run ``fastmp`` method
+    probs_fastmp = memb.fastmp()
+
+    return probs_fastmp
 
 
 if __name__ == "__main__":
