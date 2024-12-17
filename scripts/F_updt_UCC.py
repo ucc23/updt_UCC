@@ -41,7 +41,7 @@ def updt_UCC(logging, df_UCC, params_updt):
             return
 
         df_UCC.at[idx, "N_fixed"] = params_updt["N_fixed"][i]
-        df_UCC.at[idx, "N_membs"] = int(params_updt["N_survived"][i])
+        # df_UCC.at[idx, "N_membs"] = int(params_updt["N_survived"][i])
         df_UCC.at[idx, "fixed_cent"] = params_updt["fixed_centers"][i]
         df_UCC.at[idx, "cent_flags"] = params_updt["cent_flags"][i]
         df_UCC.at[idx, "C1"] = params_updt["C1"][i]

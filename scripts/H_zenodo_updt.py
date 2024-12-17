@@ -52,7 +52,7 @@ def zenodo_UCC(df_UCC: pd.DataFrame) -> None:
         "dups_fnames",
         "dups_probs",
         "N_fixed",
-        "N_membs",
+        # "N_membs",
         "fixed_cent",
         "cent_flags",
         "GLON_m",
