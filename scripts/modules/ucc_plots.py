@@ -263,11 +263,12 @@ def make_N_vs_year_plot(path, df_UCC, fontsize=7, dpi=300):
 
     # Extract minimum year of publication for each catalogued OC
     years = []
-    for i, row in df_UCC.iterrows():
+    for i, oc in enumerate(df_UCC["DB"]):
         oc_years = []
-        for cat0 in row["DB"].split(";"):
+        for cat0 in oc.split(";"):
             cat = cat0.split("_")[0]
-            oc_years.append(int("20" + cat[-2:]))
+            oc_years.append(int(cat[-4:]))
+        # Store the smallest year where this OC was catalogued
         years.append(min(oc_years))
 
     # Count number of OCs per year
@@ -301,8 +302,11 @@ def make_N_vs_year_plot(path, df_UCC, fontsize=7, dpi=300):
     # Mermilliod 1988 (Bull. Inform. CDS 35, 77-91): 570
     # Mermilliod 1996ASPC...90..475M (BDA, 1996): ~500
     #
+    if min(unique) <= 1987:
+        raise ValueError("DB year is smaller than 1987, check")
     years = [1771, 1888, 1987] + list(unique)
-    values = [33, 640, 1151] + [int(1200 + c_sum[0])] + list(c_sum[1:])
+    min_N = 1151
+    values = [33, 640, min_N] + list(np.clip(c_sum, a_min=min_N, a_max=np.inf))
 
     fig = plt.figure(figsize=(4, 2.5))
     plt.plot(years, values, alpha=0.5, lw=3, marker="o", ms=7, color="maroon", zorder=5)
