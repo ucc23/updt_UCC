@@ -725,6 +725,18 @@ def updt_cls_JSON(df_updt):
     else:
         # True if JSONs are NOT equal
         update_flag = not all(a == b for a, b in zip(json_old, json_new))
+        # Print differences to screen
+        for i, (dict1, dict2) in enumerate(zip(json_old, json_new)):
+            differing_keys = {
+                key
+                for key in dict1.keys() | dict2.keys()
+                if dict1.get(key) != dict2.get(key)
+            }
+            if differing_keys:
+                for key in differing_keys:
+                    logging.info(
+                        f"{i}, {key} --> OLD: {dict1.get(key)} | NEW: {dict2.get(key)}"
+                    )
 
     # Update JSON if required
     if update_flag is True:
