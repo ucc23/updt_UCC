@@ -45,7 +45,7 @@ def standardize_and_match(
     displays new OCs that weren't matched.
 
     Args:
-    logging: logger object
+        logging: logger object
         df_UCC (pd.DataFrame): DataFrame containing the existing UCC database entries
         df_new (pd.DataFrame): DataFrame containing the new database entries
         json_pars (dict): Parameters for database combination operations
@@ -69,7 +69,7 @@ def standardize_and_match(
     N_matches = sum(match is not None for match in db_matches)
     logging.info(f"Found {N_matches} matches in {new_DB}")
     N_new = len(df_new) - N_matches
-    logging.info(f"\nFound {N_new} new OCs in {new_DB}")
+    logging.info(f"Found {N_new} new OCs in {new_DB}")
 
     if show_entries:
         for i, oc_new_db in enumerate(df_new[pars_dict["ID"]].values):
