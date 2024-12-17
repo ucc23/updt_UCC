@@ -4,7 +4,6 @@ import astropy.units as u
 import numpy as np
 from astropy.coordinates import SkyCoord
 
-
 """
 This module contains helper functions to generate the extended
 combined DB when a new DB is added.
@@ -142,8 +141,6 @@ def rm_name_dups(names_l):
     Remove duplicates of the kind: Berkeley 102, Berkeley102,
     Berkeley_102; keeping only the name with the space
     """
-    if "NGC 1976" in names_l:
-        print(names_l)
     for i, n in enumerate(names_l):
         n2 = n.replace(" ", "")
         if n2 in names_l:
@@ -153,9 +150,6 @@ def rm_name_dups(names_l):
         if n2 in names_l:
             j = names_l.index(n2)
             names_l[j] = n
-
-    if "NGC 1976" in names_l:
-        print(";".join(list(dict.fromkeys(names_l))))
 
     return ";".join(list(dict.fromkeys(names_l)))
 
