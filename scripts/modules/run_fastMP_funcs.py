@@ -4,8 +4,8 @@ from scipy import spatial
 
 def get_frame(cl):
     """ """
-    if not np.isnan(cl["plx"]):
-        c_plx = cl["plx"]
+    if not np.isnan(cl["Plx"]):
+        c_plx = cl["Plx"]
     else:
         c_plx = None
 
@@ -99,10 +99,10 @@ def get_close_cls(x, y, tree, box_s, idx, df_UCC, dups_fnames, df_gcs):
         # expected region of the main cluster), don't store it for removal.
         #
         # This prevents clusters with no PM|Plx data from disrupting
-        # neighbouring clusters (e.g.: NGC 2516 disrupted by FSR 1479) and
+        # neighboring clusters (e.g.: NGC 2516 disrupted by FSR 1479) and
         # at the same time removes more distant clusters that disrupt the
         # number of members estimation process in fastMP
-        if np.isnan(df_UCC["pmRA"][i]) or np.isnan(df_UCC["plx"][i]):
+        if np.isnan(df_UCC["pmRA"][i]) or np.isnan(df_UCC["Plx"][i]):
             xy_dist = np.sqrt(
                 (x - df_UCC["GLON"][i]) ** 2 + (y - df_UCC["GLAT"][i]) ** 2
             )
@@ -116,8 +116,8 @@ def get_close_cls(x, y, tree, box_s, idx, df_UCC, dups_fnames, df_gcs):
         ex_cl_dict = {"xy": [df_UCC["GLON"][i], df_UCC["GLAT"][i]]}
         if not np.isnan(df_UCC["pmRA"][i]):
             ex_cl_dict["pms"] = [df_UCC["pmRA"][i], df_UCC["pmDE"][i]]
-        if not np.isnan(df_UCC["plx"][i]):
-            ex_cl_dict["plx"] = [df_UCC["plx"][i]]
+        if not np.isnan(df_UCC["Plx"][i]):
+            ex_cl_dict["Plx"] = [df_UCC["Plx"][i]]
 
         # print(df_UCC['ID'][i], ex_cl_dict)
         centers_ex.append(ex_cl_dict)
@@ -130,7 +130,7 @@ def get_close_cls(x, y, tree, box_s, idx, df_UCC, dups_fnames, df_gcs):
             ex_cl_dict = {
                 "xy": [df_gcs["GLON"][gc_i], df_gcs["GLAT"][gc_i]],
                 "pms": [df_gcs["pmRA"][gc_i], df_gcs["pmDE"][gc_i]],
-                "plx": [df_gcs["plx"][gc_i]],
+                "Plx": [df_gcs["Plx"][gc_i]],
             }
             # print(df_gcs['Name'][gc_i], ex_cl_dict)
             centers_ex.append(ex_cl_dict)
