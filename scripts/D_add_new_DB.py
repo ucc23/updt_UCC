@@ -92,6 +92,9 @@ def main():
     if dup_flag:
         return
 
+    # Order names so that the first one respects a certain priority
+    df_all["ID"], df_all["fnames"] = preferred_names(df_all["ID"], df_all["fnames"])
+
     # Save new version of the UCC catalogue to file before processing with
     # fastMP
     df_all.to_csv(
@@ -133,6 +136,96 @@ def duplicates_check(logging, df_all):
             return True
 
     return False
+
+
+def preferred_names(db_names, db_fnames):
+    """
+    Naming order according to a manually created list of preferred names
+    """
+    names_lst = (
+        "blanco",
+        "westerlund",
+        "ngc",
+        "melotte",
+        "trumpler",
+        "ruprecht",
+        "berkeley",
+        "pismis",
+        "vdbh",
+        "loden",
+        "kronberger",
+        "collinder",
+        "haffner",
+        "tombaugh",
+        "dolidze",
+        "auner",
+        "waterloo",
+        "basel",
+        "bochum",
+        "hogg",
+        "carraro",
+        "lynga",
+        "johansson",
+        "mamajek",
+        "platais",
+        "harvard",
+        "czernik",
+        "koposov",
+        "eso",
+        "ascc",
+        "teutsch",
+        "alessi",
+        "king",
+        "saurer",
+        "fsr",
+        "juchert",
+        "antalova",
+        "stephenson",
+        "sai",
+    )
+
+    names_reorder, fnames_reorder = [], []
+    for i, names in enumerate(db_names):
+        names = names.split(";")
+        fnames = db_fnames[i].split(";")
+
+        # Replace with another name according to the preference list
+        if len(names) == 1:
+            names_reorder.append(";".join(names))
+            fnames_reorder.append(";".join(fnames))
+            continue
+
+        # Always move 'MWSC to the last position'
+        if "mwsc" in fnames[0]:
+            names = names[1:] + [names[0]]
+            fnames = fnames[1:] + [fnames[0]]
+
+        # Select the first name listed
+        def find_preferred_name(fnames):
+            """Replace with another name according to the preference list"""
+            for name_prefer in names_lst:
+                for i, name in enumerate(fnames):
+                    if name_prefer in name:
+                        return i
+            return None
+
+        def reorder_names(nms_lst, i):
+            nms_reorder = list(nms_lst)
+            name0 = nms_reorder[i]
+            del nms_reorder[i]
+            nms_reorder = [name0] + nms_reorder
+            return ";".join(nms_reorder)
+
+        i = find_preferred_name(fnames)
+        if i is not None and i > 0:
+            # Reorder
+            names_reorder.append(reorder_names(names, i))
+            fnames_reorder.append(reorder_names(fnames, i))
+        else:
+            names_reorder.append(";".join(names))
+            fnames_reorder.append(";".join(fnames))
+
+    return names_reorder, fnames_reorder
 
 
 if __name__ == "__main__":
