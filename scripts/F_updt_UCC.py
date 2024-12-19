@@ -2,27 +2,31 @@ import csv
 
 import pandas as pd
 from HARDCODED import UCC_folder, new_OCs_fpath
-from modules import UCC_new_match, duplicate_probs, logger
+from modules import DBs_combine, UCC_new_match, duplicate_probs, logger
+
+logging = logger.main()
 
 
 def main():
     """ """
-    logging = logger.main()
-
     # Read latest version of the UCC
     df_UCC, UCC_cat = UCC_new_match.latest_cat_detect(logging, UCC_folder)
+    UCC_old = df_UCC.copy()
 
     # Read file with parameters for the new OCs obtained from their members
     params_updt = pd.read_csv(new_OCs_fpath)
 
-    df_UCC = updt_UCC(logging, df_UCC, params_updt)
+    df_UCC = updt_UCC(df_UCC, params_updt)
 
-    df_UCC = members_duplicates(logging, df_UCC)
+    df_UCC = members_duplicates(df_UCC)
 
     df_UCC.to_csv(UCC_cat, na_rep="nan", index=False, quoting=csv.QUOTE_NONNUMERIC)
 
+    DBs_combine.diff_between_dfs(logging, UCC_old, df_UCC, cols_exclude=None)
+    logging.info("Files 'UCC_diff_xxx.csv' saved\n")
 
-def updt_UCC(logging, df_UCC, params_updt):
+
+def updt_UCC(df_UCC, params_updt) -> pd.DataFrame:
     """
     Update these values for all the processed clusters
     """
@@ -37,8 +41,7 @@ def updt_UCC(logging, df_UCC, params_updt):
         fname = params_updt["fname"][i]
         UCC_fnames = df_UCC["fnames"][idx]
         if fname not in UCC_fnames:
-            logging.info("ERROR in 'updt_UCC': fnames do not match")
-            return
+            raise ValueError("ERROR in 'updt_UCC': fnames do not match")
 
         df_UCC.at[idx, "N_fixed"] = params_updt["N_fixed"][i]
         # df_UCC.at[idx, "N_membs"] = int(params_updt["N_survived"][i])
@@ -51,7 +54,7 @@ def updt_UCC(logging, df_UCC, params_updt):
         df_UCC.at[idx, "GLAT_m"] = params_updt["GLAT_m"][i]
         df_UCC.at[idx, "RA_ICRS_m"] = params_updt["RA_ICRS_m"][i]
         df_UCC.at[idx, "DE_ICRS_m"] = params_updt["DE_ICRS_m"][i]
-        df_UCC.at[idx, "plx_m"] = params_updt["plx_m"][i]
+        df_UCC.at[idx, "Plx_m"] = params_updt["Plx_m"][i]
         df_UCC.at[idx, "pmRA_m"] = params_updt["pmRA_m"][i]
         df_UCC.at[idx, "pmDE_m"] = params_updt["pmDE_m"][i]
         df_UCC.at[idx, "Rv_m"] = params_updt["Rv_m"][i]
@@ -68,10 +71,20 @@ def updt_UCC(logging, df_UCC, params_updt):
     return df_UCC
 
 
-def members_duplicates(logging, df_UCC, prob_cut=0.25):
+def members_duplicates(df_UCC: pd.DataFrame, prob_cut: float = 0.25) -> pd.DataFrame:
     """
     Assign a 'duplicate probability' for each cluster in the UCC, based on its
-    estimated members
+    estimated members.
+
+    Parameters:
+        logging: Logger instance for logging messages.
+        df_UCC: Dictionary containing cluster data, including keys 'fnames',
+                'GLON_m', 'GLAT_m', 'plx_m', 'pmRA_m', and 'pmDE_m'.
+        prob_cut: Float representing the probability cutoff for identifying duplicates.
+
+    Returns:
+        Updated df_UCC dictionary with added keys 'dups_fnames_m' and 'dups_probs_m',
+        if duplicates are found.
     """
     logging.info("Finding final duplicates and their probabilities...")
     # Use members data
@@ -79,7 +92,7 @@ def members_duplicates(logging, df_UCC, prob_cut=0.25):
         df_UCC["fnames"],
         df_UCC["GLON_m"],
         df_UCC["GLAT_m"],
-        df_UCC["plx_m"],
+        df_UCC["Plx_m"],
         df_UCC["pmRA_m"],
         df_UCC["pmDE_m"],
         prob_cut,
