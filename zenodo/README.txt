@@ -27,8 +27,8 @@ If you find this data useful please cite its associated article
 You can alternatively mention the UCC in the 'Acknowledgements' section of your
 paper:
 
-"This research has made use of the Unified Cluster Catalogue (UCC)
-(Perren et al. 2023)."
+"This research has made use of the Unified Cluster Catalogue
+\citep[\url{https://ucc.ar};][]{Perren_2023}."
 
 
 ## Contents
