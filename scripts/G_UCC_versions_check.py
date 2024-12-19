@@ -1,9 +1,8 @@
-import csv
 import os
 
 import pandas as pd
 from HARDCODED import UCC_folder
-from modules import UCC_new_match, logger, read_ini_file
+from modules import DBs_combine, UCC_new_match, logger, read_ini_file
 
 logging = logger.main()
 
@@ -29,7 +28,7 @@ def main():
 
     UCC_old.rename(columns={"plx_m": "Plx_m", "plx": "Plx"}, inplace=True)
 
-    diff_between_dfs(UCC_old, UCC_new)
+    DBs_combine.diff_between_dfs(logging, UCC_old, UCC_new)
     logging.info("Files 'UCC_diff_xxx.csv' saved\n")
 
     fnames_old_all = list(UCC_old["fnames"])
@@ -131,46 +130,6 @@ def fnames_checker(df_UCC):
     N_unique = len(list(set(fname0_UCC)))
     if NT != N_unique:
         raise ValueError("Initial fnames are not unique")
-
-
-def diff_between_dfs(df_old: pd.DataFrame, df_new: pd.DataFrame, cols_exclude=None):
-    """
-    Compare two DataFrames, find non-matching rows while preserving order, and
-    output these rows in two files.
-
-    Args:
-        df_old (pd.DataFrame): First DataFrame to compare.
-        df_new (pd.DataFrame): Second DataFrame to compare.
-        cols_exclude (list | None): List of columns to exclude from the diff
-    """
-    if cols_exclude is not None:
-        df1 = df_old.drop(columns=cols_exclude)
-        df2 = df_new.drop(columns=cols_exclude)
-    else:
-        logging.info("No columns excluded")
-        df1 = df_old
-        df2 = df_new
-
-    # Convert DataFrames to lists of tuples (rows) for comparison
-    rows1 = [[str(_) for _ in row] for row in df1.values]
-    rows2 = [[str(_) for _ in row] for row in df2.values]
-
-    # Convert lists to sets for quick comparison
-    set1, set2 = set(map(tuple, rows1)), set(map(tuple, rows2))
-
-    # Get non-matching rows in original order
-    non_matching1 = [row for row in rows1 if tuple(row) not in set2]
-    non_matching2 = [row for row in rows2 if tuple(row) not in set1]
-
-    # Write intertwined lines to the output file
-    with open("../UCC_diff_old.csv", "w", newline="") as out:
-        writer = csv.writer(out)
-        for row in non_matching1:
-            writer.writerow(row)
-    with open("../UCC_diff_new.csv", "w", newline="") as out:
-        writer = csv.writer(out)
-        for row in non_matching2:
-            writer.writerow(row)
 
 
 def check_new_entries(fnames_old_all, i_new, fnames_new):
