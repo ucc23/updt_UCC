@@ -1,15 +1,23 @@
 
 # UCC management
 
-The UCC files live in several repositories within the [UCC23](https://github.com/ucc23) organization.
+The UCC lives in several repositories within the [UCC23](https://github.com/ucc23) organization
+and in its associated [Zenodo repository](https://doi.org/10.5281/zenodo.8250523).
 
-- The [ucc](https://github.com/ucc23/ucc) repository contains the main files required to build the
-  [public site](https://ucc.ar). Every pushed commit to this repo produces an
-  **automatic build of the site**
-- The eight `QXX` repositories ([Q1P](https://github.com/ucc23/Q1P), etc.) contain the bulk of the files used 
-  by the site,  within the folders `datafiles, notebooks, plots`
-- The [updt_ucc](https://github.com/ucc23/updt_UCC), this one, contains the scripts and data files required to
-  update the UCC (mostly) automatically
+- The main UCC database along, with a single file with all the identified members, is
+  stored in the Zenodo repository
+
+- For each entry in the database there is a corresponding entry in the [ucc](https://github.com/ucc23/ucc)
+  repository in the form of an `.md` file. This repository also contains most of the
+  files required to build the [public site](https://ucc.ar)
+
+- The eight `QXX` repositories ([Q1P](https://github.com/ucc23/Q1P), etc.) contain the `.parquet` files with the
+  identified members for each OC (in the `datafiles` folders), as well as two plots per
+  OC: one with the four diagrams and one for the Aladin Lite plot (in the `plots`
+  folders). The plots are loaded by the public site from this repository.
+
+- Finally the [updt_ucc](https://github.com/ucc23/updt_UCC) repository, this one, contains the scripts and data files
+  required to update the UCC (mostly) automatically
 
 
 **What do you want to do?**
