@@ -36,6 +36,29 @@ The format of the name for the DB is `SMITH2024` or, if required, `SMITH2024_1`.
 The name of the DB **must not** contain any non letter characters except for the
 `_` required to differentiate DBs with the same names published in the same year.
 
+This code reads and stores the new database with the required format.
+
+```
+import csv
+import numpy as np
+import pandas as pd
+
+df = pd.read_csv("NEWDATABASE20XX.csv")
+
+# Remove leading and trailing spaces
+df = df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
+
+# Replace empty strings or whitespace-only strings with NaN
+df = df.replace(r'^\s*$', np.nan, regex=True)
+
+# Store as CSV with required format
+df.to_csv(
+    "NEWDATABASE20XX_out.csv",
+    na_rep="nan",
+    index=False,
+    quoting=csv.QUOTE_NONNUMERIC,
+)
+```
 
 **Required columns**
 
