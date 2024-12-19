@@ -1,11 +1,19 @@
 import numpy as np
+import pandas as pd
 
 from .DBs_combine import radec2lonlat, rename_standard, rm_name_dups
 
 
 def main(
-    logging, new_DB_ID, df_UCC, df_new, json_pars, new_DB_fnames, db_matches, sep=","
-):
+    logging,
+    new_DB_ID: str,
+    df_UCC: pd.DataFrame,
+    df_new: pd.DataFrame,
+    json_pars: dict,
+    new_DB_fnames,
+    db_matches,
+    sep=",",
+) -> dict:
     """ """
     # Extract names of (ra, dec, plx, pmRA, pmDE) columns for this new DB
     cols = []
