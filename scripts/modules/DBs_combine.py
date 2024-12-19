@@ -1,7 +1,9 @@
+import csv
 from string import ascii_lowercase
 
 import astropy.units as u
 import numpy as np
+import pandas as pd
 from astropy.coordinates import SkyCoord
 
 """
@@ -305,3 +307,49 @@ def check_cents_diff(xy_c_o, vpd_c_o, plx_c_o, xy_c_n, vpd_c_n, plx_c_n, rad_dup
     bad_center = bad_center_xy + bad_center_pm + bad_center_plx
 
     return bad_center
+
+
+def diff_between_dfs(
+    logging, df_old: pd.DataFrame, df_new: pd.DataFrame, cols_exclude=None
+):
+    """
+    Compare two DataFrames, find non-matching rows while preserving order, and
+    output these rows in two files.
+
+    Args:
+        df_old (pd.DataFrame): First DataFrame to compare.
+        df_new (pd.DataFrame): Second DataFrame to compare.
+        cols_exclude (list | None): List of columns to exclude from the diff
+    """
+    if cols_exclude is not None:
+        logging.info(f"{cols_exclude} columns excluded")
+        for col in cols_exclude:
+            if col in df_old.keys():
+                df_old = df_old.drop(columns=(col))
+            if col in df_new.keys():
+                df_new = df_new.drop(columns=(col))
+    else:
+        logging.info("No columns excluded")
+    df1 = df_old
+    df2 = df_new
+
+    # Convert DataFrames to lists of tuples (rows) for comparison
+    rows1 = [[str(_) for _ in row] for row in df1.values]
+    rows2 = [[str(_) for _ in row] for row in df2.values]
+
+    # Convert lists to sets for quick comparison
+    set1, set2 = set(map(tuple, rows1)), set(map(tuple, rows2))
+
+    # Get non-matching rows in original order
+    non_matching1 = [row for row in rows1 if tuple(row) not in set2]
+    non_matching2 = [row for row in rows2 if tuple(row) not in set1]
+
+    # Write intertwined lines to the output file
+    with open("../UCC_diff_old.csv", "w", newline="") as out:
+        writer = csv.writer(out)
+        for row in non_matching1:
+            writer.writerow(row)
+    with open("../UCC_diff_new.csv", "w", newline="") as out:
+        writer = csv.writer(out)
+        for row in non_matching2:
+            writer.writerow(row)
