@@ -223,7 +223,6 @@ def main():
             myfile.write(pars_str)
 
         logging.info(f"*** Cluster {cl['ID']} processed with fastMP\n")
-        breakpoint()
 
 
 def run_fastMP(field_df, radec_c, pms_c, plx_c, fixed_centers):
