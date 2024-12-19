@@ -1,0 +1,43 @@
+# This file contains the preferred order in which the OCs where named in the first
+# version of the UCC. This name is important because the OCs files will be named
+# using it.
+
+blanco
+westerlund
+ngc
+melotte
+trumpler
+ruprecht
+berkeley
+pismis
+vdbh
+loden
+kronberger
+collinder
+haffner
+tombaugh
+dolidze
+auner
+waterloo
+basel
+bochum
+hogg
+carraro
+lynga
+johansson
+mamajek
+platais
+harvard
+czernik
+koposov
+eso
+ascc
+teutsch
+alessi
+king
+saurer
+fsr
+juchert
+antalova
+stephenson
+sai
