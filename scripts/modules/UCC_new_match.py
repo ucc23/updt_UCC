@@ -6,7 +6,9 @@ import pandas as pd
 from . import DBs_combine, read_ini_file
 
 
-def load_data(logging, dbs_folder, all_DBs_json, UCC_folder):
+def load_data(
+    logging, dbs_folder, all_DBs_json, UCC_folder
+) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
     """ """
     pars_dict = read_ini_file.main()
     new_DB = pars_dict["new_DB"]
@@ -27,7 +29,7 @@ def load_data(logging, dbs_folder, all_DBs_json, UCC_folder):
 
 
 def standardize_and_match(
-    logging: object,
+    logging,
     df_UCC: pd.DataFrame,
     df_new: pd.DataFrame,
     json_pars: dict,
