@@ -5,100 +5,15 @@ from itertools import islice
 import numpy as np
 import pandas as pd
 from HARDCODED import (
-    UCC_folder,
-    all_DBs_json,
     clusters_json,
-    dbs_folder,
     pages_folder,
     root_UCC_path,
 )
-from modules import UCC_new_match, files_handler, logger, ucc_plots
+
 from modules.ucc_entry import UCC_color
 
-logging = logger.main()
 
-# Order used for the C3 classes
-class_order = [
-    "AA",
-    "AB",
-    "BA",
-    "AC",
-    "CA",
-    "BB",
-    "AD",
-    "DA",
-    "BC",
-    "CB",
-    "BD",
-    "DB",
-    "CC",
-    "CD",
-    "DC",
-    "DD",
-]
-
-# Use to process files without writing changes to files
-DRY_RUN = True
-
-
-def main():
-    """ """
-    logging.info("\nRunning 'J_database_updt' script\n")
-    logging.info(f"DRY RUN IS {DRY_RUN}\n")
-
-    # Read latest version of the UCC
-    df_UCC, _ = UCC_new_match.latest_cat_detect(logging, UCC_folder)
-
-    # # TODO: radius in parsec, unused yet (24/12/04)
-    # pc_rad = pc_radius(df_UCC["r_50"].values, df_UCC["Plx_m"].values)
-
-    # Load DATABASE.md file
-    with open(root_UCC_path + pages_folder + "/" + "DATABASE.md") as file:
-        database_md = file.read()
-
-    # Load clusters data in JSON file
-    with open(dbs_folder + all_DBs_json) as f:
-        dbs_used = json.load(f)
-
-    # Count number of OCs in each class
-    OCs_per_class = count_OCs_classes(df_UCC)
-    # Mask with duplicates
-    dups_msk = count_dups(df_UCC)
-    # Mask with N50 members
-    membs_msk = count_N50membs(df_UCC)
-
-    # Update plots
-    make_plots(df_UCC, dbs_used, OCs_per_class)
-
-    # Update DATABASE.md file
-    database_md_updt = ucc_n_total_updt(len(df_UCC), len(dbs_used), database_md)
-    database_md_updt = updt_cats_used(df_UCC, dbs_used, database_md_updt)
-    database_md_updt = updt_C3_classification(OCs_per_class, database_md_updt)
-    database_md_updt = updt_OCs_per_quad(df_UCC, database_md_updt)
-    database_md_updt = updt_dups_table(dups_msk, database_md_updt)
-    database_md_updt = memb_number_table(membs_msk, database_md_updt)
-    # Save updated page
-    if database_md != database_md_updt:
-        if DRY_RUN is False:
-            with open(root_UCC_path + pages_folder + "/" + "DATABASE.md", "w") as file:
-                file.write(database_md_updt)
-        logging.info("DATABASE.md updated")
-
-    # Prepare df_UCC to be used in the updating of the table files below
-    df_updt = updt_UCC(df_UCC)
-
-    # Update groups of tables
-    updt_DBs_tables(dbs_used, df_updt)
-    updt_n50members_tables(df_updt, membs_msk)
-    updt_C3_tables(df_updt)
-    updt_dups_tables(df_updt, dups_msk)
-    updt_quad_tables(df_updt)
-
-    # Update JSON file
-    updt_cls_JSON(df_updt)
-
-
-def count_OCs_classes(df_UCC):
+def count_OCs_classes(df_UCC, class_order):
     """Count the number of OCs per C3 class"""
     C3_classif, C3_count = np.unique(df_UCC["C3"], return_counts=True)
     C3_classif = list(C3_classif)

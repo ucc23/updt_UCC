@@ -1,4 +1,3 @@
-import csv
 import sys
 from difflib import SequenceMatcher
 
@@ -7,57 +6,35 @@ import numpy as np
 import pandas as pd
 from astropy import units as u
 from astropy.coordinates import SkyCoord, angular_separation
-from HARDCODED import GCs_cat, UCC_folder, all_DBs_json, dbs_folder
-from modules import UCC_new_match, logger, read_ini_file
 from scipy.spatial.distance import cdist
 
-# Print entries to screen
-show_entries = True
+from modules import aux
+from modules.HARDCODED import GCs_cat, dbs_folder
 
 
-def main():
-    """ """
-    logging = logger.main()
-    pars_dict = read_ini_file.main()
+def run(logging, pars_dict, df_UCC, df_new, json_pars, new_DB_fnames, db_matches):
+    """
+    1. Checks for duplicate entries between the new database and the UCC.
+    2. Checks for nearby GCs.
+    3. Checks for OCs very close to each other within the new database.
+    4. Checks for OCs very close to each other between the new database and the UCC.
+    5. Checks for instances of 'vdBergh-Hagen' and 'vdBergh'.
+    6. Checks positions and flags for attention if required.
+    """
     new_DB = pars_dict["new_DB"]
     logging.info(f"Running 'new_DB_check' script on {new_DB}")
-
-    # Load the current UCC, the new DB, and its JSON values
-    df_UCC, df_new, json_pars = UCC_new_match.load_data(
-        logging, dbs_folder, all_DBs_json, UCC_folder
-    )
-
-    # Check for semi-colon and underscore present in name column
-    logging.info("\nPossible bad characters in names (';', '_')")
-    bad_name_flag = name_chars_check(logging, df_new, pars_dict, show_entries)
-    if bad_name_flag:
-        print("Resolve the above issues before moving on.")
-        return
-
-    # Standardize and match the new DB with the UCC
-    new_DB_fnames, db_matches = UCC_new_match.standardize_and_match(
-        logging, df_UCC, df_new, json_pars, pars_dict, new_DB, show_entries
-    )
 
     # Duplicate check between entries in the new DB and the UCC
     logging.info(f"\nChecking for entries in {new_DB} that must be combined")
     dup_flag = dups_check_newDB_UCC(logging, new_DB, df_UCC, new_DB_fnames, db_matches)
     if dup_flag:
-        print("Resolve the above issues before moving on.")
-        return
+        raise ValueError("Resolve the above issues before moving on.")
     else:
-        print("No issues found")
-
-    # Equatorial to galactic
-    RA, DEC = pars_dict["RA"], pars_dict["DEC"]
-    ra, dec = df_new[RA].values, df_new[DEC].values
-    gc = SkyCoord(ra=ra * u.degree, dec=dec * u.degree)
-    lb = gc.transform_to("galactic")
-    glon, glat = lb.l.value, lb.b.value
+        logging.info("No issues found")
 
     # Check for GCs
     logging.info("\nClose GC check")
-    gc_flag = GCs_check(logging, pars_dict, df_new, glon, glat)
+    glon, glat, gc_flag = GCs_check(logging, pars_dict, df_new)
     if gc_flag:
         if input("Move on? (y/n): ").lower() != "y":
             sys.exit()
@@ -85,11 +62,13 @@ def main():
         if input("Move on? (y/n): ").lower() != "y":
             sys.exit()
 
-    # Replace empty positions with 'nans'
-    logging.info("\nEmpty entries replace finished")
-    empty_nan_replace(dbs_folder, new_DB, df_new)
-
-    logging.info("\nFinished")
+    # Check positions and flag for attention if required
+    attention_flag = positions_check(
+        logging, df_UCC, pars_dict, df_new, json_pars, new_DB_fnames, db_matches
+    )
+    if attention_flag is True:
+        if input("\nMove on? (y/n): ").lower() != "y":
+            sys.exit()
 
 
 def dups_check_newDB_UCC(logging, new_DB, df_UCC, new_DB_fnames, db_matches):
@@ -121,10 +100,17 @@ def dups_check_newDB_UCC(logging, new_DB, df_UCC, new_DB_fnames, db_matches):
     return False
 
 
-def GCs_check(logging, pars_dict, df_new, glon, glat):
+def GCs_check(logging, pars_dict, df_new):
     """
     Check for nearby GCs for a new database
     """
+    # Equatorial to galactic
+    RA, DEC = pars_dict["RA"], pars_dict["DEC"]
+    ra, dec = df_new[RA].values, df_new[DEC].values
+    gc = SkyCoord(ra=ra * u.degree, dec=dec * u.degree)
+    lb = gc.transform_to("galactic")
+    glon, glat = np.array(lb.l), np.array(lb.b)
+
     search_rad, ID = (pars_dict["search_rad"], pars_dict["ID"])
 
     # Read GCs DB
@@ -166,7 +152,7 @@ def GCs_check(logging, pars_dict, df_new, glon, glat):
     else:
         logging.info("No probable GCs found")
 
-    return gc_flag
+    return glon, glat, gc_flag
 
 
 def close_OC_check(logging, df_new, pars_dict):
@@ -246,7 +232,6 @@ def close_OC_UCC_check(
     Looks for OCs in the new DB that are close to OCs in the UCC (GLON, GLAT) but
     with different names.
     """
-    # RA, DEC = pars_dict["RA"], pars_dict["DEC"],
     rad_dup = pars_dict["rad_dup"]
 
     coords_new = np.array([glon, glat]).T
@@ -290,35 +275,14 @@ def close_OC_UCC_check(
     return dups_flag
 
 
-def name_chars_check(logging, df_new, pars_dict, show_entries):
-    """ """
-    ID = pars_dict["ID"]
-    all_bad_names = []
-    for new_cl in df_new[ID]:
-        if ";" in new_cl or "_" in new_cl:
-            # badchars_found += 1
-            # logging.info(f"{new_cl}: bad char found")
-            all_bad_names.append(new_cl)
-
-    if len(all_bad_names) == 0:
-        bad_name_flag = False
-        logging.info("No bad-chars found in name(s) column")
-    else:
-        bad_name_flag = True
-        logging.info(
-            f"{len(all_bad_names)} entries with bad-chars found in name(s) column"
-        )
-
-    if show_entries:
-        for new_cl in all_bad_names:
-            logging.info(f"{new_cl}: bad char found")
-
-    return bad_name_flag
-
-
 def vdberg_check(logging, df_new, pars_dict):
     """
     Check for instances of 'vdBergh-Hagen' and 'vdBergh'
+
+    Per CDS recommendation:
+
+    * VDBergh-Hagen --> VDBH
+    * VDBergh       --> VDB
     """
     names_lst = ["vdBergh-Hagen", "vdBergh", "van den Bergh–Hagen", "van den Bergh"]
     names_lst = [_.lower().replace("-", "").replace(" ", "") for _ in names_lst]
@@ -344,17 +308,182 @@ def vdberg_check(logging, df_new, pars_dict):
     return vdb_flag
 
 
-def empty_nan_replace(dbs_folder, new_DB, df_new):
+def prep_newDB(
+    df_new: "pd.DataFrame", json_pars: dict, new_DB_fnames: list, db_matches: list
+) -> dict:
     """
-    Replace possible empty entries in columns
+    Prepare information from a new database matched with the Unified Cluster Catalog
+    (UCC).
+
+    Args:
+        df_new (pd.DataFrame): DataFrame containing information about the new database.
+        json_pars (dict): Dictionary containing parameters specifying column names for
+        position (RA, Dec, etc.).
+        new_DB_fnames (list): List of lists, where each inner list contains file names
+        for each cluster in the new database.
+        db_matches (list): List of indices representing matches in the UCC, or None if
+        no match exists.
+
+    Returns:
+        dict: A dictionary containing:
+            - "fnames" (list): List of concatenated filenames for each cluster.
+            - "RA_ICRS" (list): List of right ascension (RA) values.
+            - "DE_ICRS" (list): List of declination (Dec) values.
+            - "pmRA" (list): List of proper motion in RA.
+            - "pmDE" (list): List of proper motion in Dec.
+            - "Plx" (list): List of parallax values.
+            - "UCC_idx" (list): List of indices of matched clusters in the UCC, or None
+              for new clusters.
+            - "GLON" (list): List of Galactic longitude values.
+            - "GLAT" (list): List of Galactic latitude values.
     """
-    df_new.to_csv(
-        dbs_folder + new_DB + ".csv",
-        na_rep="nan",
-        index=False,
-        quoting=csv.QUOTE_NONNUMERIC,
+    # Extract names of (ra, dec, plx, pmRA, pmDE) columns
+    cols = []
+    for v in json_pars["pos"].split(","):
+        if str(v) == "None":
+            v = None
+        cols.append(v)
+    # Remove Rv column
+    ra_c, dec_c, plx_c, pmra_c, pmde_c = cols[:-1]
+
+    new_db_info = {
+        "fnames": [],
+        "RA_ICRS": [],
+        "DE_ICRS": [],
+        "pmRA": [],
+        "pmDE": [],
+        "Plx": [],
+        "UCC_idx": [],
+    }
+
+    for i, fnames_lst in enumerate(new_DB_fnames):
+        # Use semi-colon here to math the UCC format
+        fnames = ";".join(fnames_lst)
+        row_n = df_new.iloc[i]
+
+        # Coordinates for this cluster in the new DB
+        plx_n, pmra_n, pmde_n = np.nan, np.nan, np.nan
+        ra_n, dec_n = row_n[ra_c], row_n[dec_c]
+        if plx_c is not None:
+            plx_n = row_n[plx_c]
+        if pmra_c is not None:
+            pmra_n = row_n[pmra_c]
+        if pmde_c is not None:
+            pmde_n = row_n[pmde_c]
+
+        # Index of the match for this new cluster in the old DB (if any)
+        db_match_j = db_matches[i]
+
+        # If the cluster is already present in the UCC
+        if db_match_j is not None:
+            new_db_info["fnames"].append(fnames)
+            new_db_info["RA_ICRS"].append(ra_n)
+            new_db_info["DE_ICRS"].append(dec_n)
+            new_db_info["pmRA"].append(pmra_n)
+            new_db_info["pmDE"].append(pmde_n)
+            new_db_info["Plx"].append(plx_n)
+            new_db_info["UCC_idx"].append(db_match_j)
+        else:
+            # This is a new cluster
+            new_db_info["fnames"].append(fnames)
+            new_db_info["RA_ICRS"].append(np.nan)
+            new_db_info["DE_ICRS"].append(np.nan)
+            new_db_info["pmRA"].append(np.nan)
+            new_db_info["pmDE"].append(np.nan)
+            new_db_info["Plx"].append(plx_n)
+            new_db_info["UCC_idx"].append(None)
+
+    lon_n, lat_n = aux.radec2lonlat(new_db_info["RA_ICRS"], new_db_info["DE_ICRS"])
+    new_db_info["GLON"] = list(np.round(lon_n, 4))
+    new_db_info["GLAT"] = list(np.round(lat_n, 4))
+
+    return new_db_info
+
+
+def flag_log(logging, df_UCC, new_db_info, bad_center, fnames, i, j):
+    """ """
+    txt = ""
+    if bad_center[0] == "y":
+        d_arcmin = (
+            np.sqrt(
+                (df_UCC["GLON_m"][j] - new_db_info["GLON"][i]) ** 2
+                + (df_UCC["GLAT_m"][j] - new_db_info["GLAT"][i]) ** 2
+            )
+            * 60
+        )
+        txt += "{:.1f} ".format(d_arcmin)
+    else:
+        txt += "-- "
+
+    if bad_center[1] == "y":
+        pmra_p = 100 * abs(
+            (df_UCC["pmRA_m"][j] - new_db_info["pmRA"][i])
+            / (df_UCC["pmRA_m"][j] + 0.001)
+        )
+        pmde_p = 100 * abs(
+            (df_UCC["pmDE_m"][j] - new_db_info["pmDE"][i])
+            / (df_UCC["pmDE_m"][j] + 0.001)
+        )
+        txt += "{:.1f} {:.1f} ".format(pmra_p, pmde_p)
+    else:
+        txt += "-- -- "
+
+    if bad_center[2] == "y":
+        plx_p = (
+            100
+            * abs(df_UCC["plx_m"][j] - new_db_info["plx"][i])
+            / (df_UCC["plx_m"][j] + 0.001)
+        )
+        txt += "{:.1f}".format(plx_p)
+    else:
+        txt += "--"
+
+    txt = txt.split()
+    logging.info(
+        "{:<15} {:<5} {:>12} {:>8} {:>8} {:>7}".format(fnames, bad_center, *txt)
     )
 
 
-if __name__ == "__main__":
-    main()
+def positions_check(
+    logging, df_UCC, pars_dict, df_new, json_pars, new_DB_fnames, db_matches
+):
+    """ """
+    new_db_info = prep_newDB(df_new, json_pars, new_DB_fnames, db_matches)
+
+    ocs_attention = []
+    rad_dup = pars_dict["rad_dup"]
+    for i, fnames in enumerate(new_db_info["fnames"]):
+        j = new_db_info["UCC_idx"][i]
+        # If the OC is already present in the UCC
+        if j is not None:
+            bad_center = aux.check_centers(
+                (df_UCC["GLON_m"][j], df_UCC["GLAT_m"][j]),
+                (df_UCC["pmRA_m"][j], df_UCC["pmDE_m"][j]),
+                df_UCC["Plx_m"][j],
+                (new_db_info["GLON"][i], new_db_info["GLAT"][i]),
+                (new_db_info["pmRA"][i], new_db_info["pmDE"][i]),
+                new_db_info["Plx"][i],
+                rad_dup,
+            )
+            # Is the difference between the old vs new center values large?
+            if bad_center == "nnn":
+                continue
+            # Store information on the OCs that require attention
+            ocs_attention.append([fnames, i, j, bad_center])
+
+    attention_flag = False
+    if len(ocs_attention) > 0:
+        attention_flag = True
+        logging.info("\nOCs flagged for attention:\n")
+        logging.info(
+            "{:<15} {:<5} {}".format(
+                "name", "cent_flag", "[arcmin] [pmRA %] [pmDE %] [plx %]"
+            )
+        )
+        for oc in ocs_attention:
+            fnames, i, j, bad_center = oc
+            flag_log(logging, df_UCC, new_db_info, bad_center, fnames, i, j)
+    else:
+        logging.info("\nNo OCs flagged for attention")
+
+    return attention_flag
