@@ -1,9 +1,7 @@
-# import gzip
-import pandas as pd
-import astropy.units as u
-from astropy.coordinates import SkyCoord
 import numpy as np
+import pandas as pd
 
+from . import aux
 
 # ******** IMPORTANT ********
 #
@@ -24,7 +22,7 @@ def verbose_p(txt, v, verbose, logging):
         logging.info(txt)
 
 
-def run(frames_path, fdata, c_ra, c_dec, box_s_eq, plx_min, max_mag, verbose, logging):
+def run(logging, frames_path, fdata, box_s_eq, plx_min, max_mag, c_ra, c_dec, verbose):
     """
     box_s_eq: Size of box to query (in degrees)
     """
@@ -166,10 +164,10 @@ def query(
 
     all_frames = []
     for i, file in enumerate(data_in_files):
-        if ".csv" in file:
-            data = pd.read_csv(frames_path + file)
-        elif ".parquet" in file:
-            data = pd.read_parquet(frames_path + file)
+        # if ".csv" in file:
+        #     data = pd.read_csv(frames_path + file)
+        # elif ".parquet" in file:
+        data = pd.read_parquet(frames_path + file)
 
         mx = (data["ra"] >= xmin_cl) & (data["ra"] <= xmax_cl)
         my = (data["dec"] >= ymin_cl) & (data["dec"] <= ymax_cl)
@@ -190,12 +188,12 @@ def query(
 
     c_ra, c_dec = c_ra, c_dec
     box_s_h = box_s_eq * 0.5
-    gal_cent = radec2lonlat(c_ra, c_dec)
+    gal_cent = aux.radec2lonlat(c_ra, c_dec)
 
     if all_frames["l"].max() - all_frames["l"].min() > 180:
         verbose_p("Frame wraps around 360 in longitude. Fixing..", 1, verbose, logging)
 
-        lon = all_frames["l"].values
+        lon = np.array(all_frames["l"])
         if gal_cent[0] > 180:
             msk = lon < 180
             lon[msk] += 360
@@ -209,7 +207,7 @@ def query(
     mx = (all_frames["l"] >= xmin_cl) & (all_frames["l"] <= xmax_cl)
     my = (all_frames["b"] >= ymin_cl) & (all_frames["b"] <= ymax_cl)
     msk = mx & my
-    all_frames = all_frames[msk]
+    all_frames = pd.DataFrame(all_frames[msk])
 
     all_frames = all_frames.rename(
         columns={
@@ -264,10 +262,3 @@ def uncertMags(data):
     data["e_BP-RP"] = np.sqrt(e_BP**2 + e_RP**2)
 
     return data
-
-
-def radec2lonlat(ra, dec):
-    gc = SkyCoord(ra=ra * u.degree, dec=dec * u.degree)
-    lb = gc.transform_to("galactic")
-    lon, lat = lb.l.value, lb.b.value
-    return lon, lat

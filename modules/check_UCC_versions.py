@@ -1,35 +1,24 @@
 import os
 
 import pandas as pd
-from HARDCODED import UCC_folder
-from modules import DBs_combine, UCC_new_match, logger, read_ini_file
-
-logging = logger.main()
 
 
-def main():
-    """ """
-    pars_dict = read_ini_file.main()
-    old_UCC_name = pars_dict["old_UCC_name"]
+def run(logging, UCC_old: pd.DataFrame, UCC_new: pd.DataFrame) -> None:
+    """Run checks on old and new UCC files to ensure consistency and identify possible
+    issues.
 
-    # Read latest version of the UCC
-    UCC_new, _ = UCC_new_match.latest_cat_detect(logging, UCC_folder)
+    Parameters:
+    - logging: Logger instance for recording messages.
+    - UCC_old: DataFrame containing the old UCC data.
+    - UCC_new: DataFrame containing the new UCC data.
 
+    Returns:
+    - None
+    """
     # Check number of files
-    file_checker(UCC_new)
+    file_checker(logging, UCC_old, UCC_new)
 
     fnames_checker(UCC_new)
-
-    # Read old version of the UCC
-    UCC_old = pd.read_csv(UCC_folder + old_UCC_name)
-    old_date = old_UCC_name.split("_")[-1].split(".")[0]
-    logging.info(f"\nUCC version {old_date} loaded (N={len(UCC_old)}) <-- OLD")
-    print("")
-
-    UCC_old.rename(columns={"plx_m": "Plx_m", "plx": "Plx"}, inplace=True)
-
-    DBs_combine.diff_between_dfs(logging, UCC_old, UCC_new)
-    logging.info("Files 'UCC_diff_xxx.csv' saved\n")
 
     fnames_old_all = list(UCC_old["fnames"])
     fnames_new_all = list(UCC_new["fnames"])
@@ -39,8 +28,8 @@ def main():
         try:
             i_old = fnames_old_all.index(fnames_new)
         except ValueError:
-            print(f"OC not found in old UCC: {fnames_new}")
-            check_new_entries(fnames_old_all, i_new, fnames_new)
+            logging.info(f"OC not found in old UCC: {fnames_new}")
+            check_new_entries(logging, fnames_old_all, i_new, fnames_new)
 
     # Check existing entries
     logging.info("\nold name   | new name   --> column name: differences")
@@ -76,25 +65,34 @@ def main():
 
             name_old = str(UCC_old["fnames"][i_old])
             name_new = str(UCC_new["fnames"][i_new])
-            check_rows(name_old, name_new, diff_cols, row_old, row_new)
+            check_rows(logging, name_old, name_new, diff_cols, row_old, row_new)
 
 
-def file_checker(df_UCC):
-    """ """
+def file_checker(logging, UCC_old: pd.DataFrame, UCC_new: pd.DataFrame) -> None:
+    """Check the number and types of files in directories for consistency.
+
+    Parameters:
+    - logging: Logger instance for recording messages.
+    - UCC_old: DataFrame containing the old UCC data.
+    - UCC_new: DataFrame containing the new UCC data.
+
+    Returns:
+    - None
+    """
     logging.info("\nChecking number of files")
-    logging.info("    parquet webp  aladin")
+    logging.info("    parquet webp  aladin  extra")
 
     flag_error = False
-    NT_parquet, NT_webp, NT_webp_aladin = 0, 0, 0
+    NT_parquet, NT_webp, NT_webp_aladin, NT_extra = 0, 0, 0, 0
     for qnum in range(1, 5):
         for lat in ("P", "N"):
-            N_parquet, N_webp, N_webp_aladin = 0, 0, 0
+            N_parquet, N_webp, N_webp_aladin, N_extra = 0, 0, 0, 0
             for ffolder in ("datafiles", "plots"):
-                qfold = "../../Q" + str(qnum) + lat + f"/{ffolder}/"
+                qfold = "../" + "Q" + str(qnum) + lat + f"/{ffolder}/"
                 # Read all files in Q folder
                 for file in os.listdir(qfold):
                     if "HUNT23" in file or "CANTAT20" in file:
-                        continue
+                        pass
                     elif "aladin" in file:
                         N_webp_aladin += 1
                         NT_webp_aladin += 1
@@ -104,27 +102,39 @@ def file_checker(df_UCC):
                     elif "webp" in file:
                         N_webp += 1
                         NT_webp += 1
+                    else:
+                        N_extra += 1
+                        NT_extra += 1
 
             mark = "V" if (N_parquet == N_webp == N_webp_aladin) else "X"
+            if N_extra > 0:
+                mark = "X"
             logging.info(
-                f"{str(qnum) + lat}:   {N_parquet}  {N_webp}  {N_webp_aladin} <-- {mark}"
+                f"{str(qnum) + lat}:   {N_parquet}  {N_webp}  {N_webp_aladin}    {N_extra} <-- {mark}"
             )
             if mark == "X":
                 flag_error = True
-
-    logging.info(f"Total UCC: {len(df_UCC)}")
     logging.info(
-        f"Total parquet/webp/aladin: {NT_parquet}, {NT_webp}, {NT_webp_aladin}"
+        f"Total parquet/webp/aladin/extra: {NT_parquet}, {NT_webp}, {NT_webp_aladin}, {NT_extra}"
     )
-    if not (NT_parquet == NT_webp == NT_webp_aladin):
+    if not (NT_parquet == NT_webp == NT_webp_aladin) or NT_extra > 0:
         flag_error = True
-
     if flag_error:
         raise ValueError("The file check was unsuccessful")
 
+    logging.info(f"Total old UCC: {len(UCC_new)}")
+    logging.info(f"Total new UCC: {len(UCC_old)}\n")
 
-def fnames_checker(df_UCC):
-    """ """
+
+def fnames_checker(df_UCC: pd.DataFrame) -> None:
+    """Ensure that filenames in the DataFrame are unique.
+
+    Parameters:
+    - df_UCC: DataFrame containing UCC data.
+
+    Returns:
+    - None
+    """
     fname0_UCC = [_.split(";")[0] for _ in df_UCC["fnames"]]
     NT = len(fname0_UCC)
     N_unique = len(list(set(fname0_UCC)))
@@ -132,8 +142,20 @@ def fnames_checker(df_UCC):
         raise ValueError("Initial fnames are not unique")
 
 
-def check_new_entries(fnames_old_all, i_new, fnames_new):
-    """ """
+def check_new_entries(
+    logging, fnames_old_all: list, i_new: int, fnames_new: str
+) -> None:
+    """Check for new entries in the UCC that are not present in the old UCC.
+
+    Parameters:
+    - logging: Logger instance for recording messages.
+    - fnames_old_all: List of filenames in the old UCC.
+    - i_new: Index of the new filename being checked.
+    - fnames_new: New filename to check.
+
+    Returns:
+    - None
+    """
     idxs_old_match = []
     for i_old, fnames_old in enumerate(fnames_old_all):
         for fname_new in fnames_new.split(";"):
@@ -142,16 +164,20 @@ def check_new_entries(fnames_old_all, i_new, fnames_new):
                     idxs_old_match.append(i_old)
     idxs_old_match = list(set(idxs_old_match))
     if len(idxs_old_match) > 1:
-        print(f"ERROR: duplicate fname, new:{i_new}, old:{idxs_old_match}")
+        logging.info(f"ERROR: duplicate fname, new:{i_new}, old:{idxs_old_match}")
 
 
-def check_rows(name_old: str, name_new: str, diff_cols: list, row_old, row_new) -> None:
+def check_rows(
+    logging, name_old: str, name_new: str, diff_cols: list, row_old, row_new
+) -> None:
     """
     Compares rows from two DataFrames at specified indices and prints details
     of differences in selected columns if differences exceed specified
     thresholds or do not fall under certain exceptions.
 
     Parameters:
+    - logging:
+        Logger instance for recording messages.
     - name_old: str
         Name(s) of cluster in the old version
     - name_new: str
@@ -212,25 +238,48 @@ def check_rows(name_old: str, name_new: str, diff_cols: list, row_old, row_new) 
         txt = dups_check(txt, "dups_probs_m", row_old, row_new)
 
     if txt != "":
-        print(f"{name_old:<10} | {name_new:<10} --> ", txt)
+        logging.info(f"{name_old:<10} | {name_new:<10} --> ", txt)
     return
 
 
-def coords_check(txt, coord_id, row_old, row_new, deg_diff=0.001):
-    """ """
+def coords_check(
+    txt: str,
+    coord_id: str,
+    row_old: pd.Series,
+    row_new: pd.Series,
+    deg_diff: float = 0.001,
+) -> str:
+    """Check differences in coordinate values and append to log message.
+
+    Parameters:
+    - txt: Existing log message text.
+    - coord_id: Column name of the coordinate.
+    - row_old: Series representing the old row.
+    - row_new: Series representing the new row.
+    - deg_diff: Threshold for coordinate difference.
+
+    Returns:
+    - Updated log message text.
+    """
     if abs(row_old[coord_id] - row_new[coord_id]) > deg_diff:
         txt += f"; {coord_id}: " + str(abs(row_old[coord_id] - row_new[coord_id]))
     return txt
 
 
-def dups_check(txt, dup_id, row_old, row_new):
-    """ """
+def dups_check(txt: str, dup_id: str, row_old: pd.Series, row_new: pd.Series) -> str:
+    """Check differences in duplicate-related columns and append to log message.
+
+    Parameters:
+    - txt: Existing log message text.
+    - dup_id: Column name of the duplicate field.
+    - row_old: Series representing the old row.
+    - row_new: Series representing the new row.
+
+    Returns:
+    - Updated log message text.
+    """
     aa = str(row_old[dup_id]).split(";")
     bb = str(row_new[dup_id]).split(";")
     if len(list(set(aa) - set(bb))) > 0:
         txt += f"; {dup_id}: " + str(row_old[dup_id]) + " | " + str(row_new[dup_id])
     return txt
-
-
-if __name__ == "__main__":
-    main()

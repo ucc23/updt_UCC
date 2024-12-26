@@ -2,7 +2,7 @@ import numpy as np
 from scipy.spatial.distance import cdist
 
 
-def main(fnames, x, y, plx, pmRA, pmDE, prob_cut, Nmax=3):
+def run(fnames, x, y, plx, pmRA, pmDE, prob_cut, Nmax=3):
     """
     Identify a cluster as a duplicate following an arbitrary definition
     that depends on the parallax
@@ -86,6 +86,10 @@ def dprob(x, y, pmRA, pmDE, plx, i, j, Nmax=2):
         rad, plx_r, pm_r = 2, 0.05, 0.15
     elif plx_ref < 0.25:
         rad, plx_r, pm_r = 1.5, 0.025, 0.1
+    else:
+        raise ValueError(
+            "Could not define 'rad, plx_r, pm_r' values, plx_ref is out of bounds"
+        )
 
     # Angular distance in arcmin
     d = np.sqrt((x[i] - x[j]) ** 2 + (y[i] - y[j]) ** 2) * 60
@@ -143,6 +147,9 @@ def max_coords_rad(plx_i):
         rad = 2.5
     elif plx_i < 0.5:
         rad = 1.5
+    else:
+        raise ValueError("Could not define 'rad' values, plx_i is out of bounds")
+
     rad = rad / 60  # To degrees
     return rad
 
