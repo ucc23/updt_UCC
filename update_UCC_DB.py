@@ -34,17 +34,16 @@ def main():
     This function performs the following steps:
     1. Sets up logging.
     2. Reads parameters from the `params.ini` configuration file.
-    3. Checks the accessibility of required Gaia data files.
-    4. Loads the latest and new versions of the UCC.
-    5. Prepares the new database format.
-    6. Adds the new database to the JSON file.
-    7. Loads the current UCC, the new database, and its JSON values.
-    8. Standardizes and matches the new database with the UCC.
-    9. Checks the entries in the new database.
-    10. Generates a new UCC file with the new database incorporated.
-    11. Updates membership probabilities if there are new OCs to process.
-    12. Compares the old and new versions of the UCC.
-    13. Updates (move + rename + remove) files
+    3. Checks the accessibility of required files and folders, generate required paths.
+    4. Prepares the new database format.
+    5. Adds the new database to the JSON file.
+    6. Loads the current UCC, the new database, and its JSON values.
+    7. Standardizes and matches the new database with the UCC.
+    8. Checks the entries in the new database.
+    9. Generates a new UCC file with the new database incorporated.
+    10. Updates membership probabilities if there are new OCs to process.
+    11. Compares the old and new versions of the UCC.
+    12. Updates (move + rename + remove) files
 
     Raises:
         ValueError: If required Gaia data files are not accessible.
@@ -52,20 +51,30 @@ def main():
     logging = aux.logger()
     pars_dict = read_ini_file()
 
-    # Check if the required Gaia datafiles are accessible
-    check_Gaia_files(pars_dict)
-
-    # Load the temporary path to the new version of the UCC
-    temp_ucc_path = get_new_version_path(logging)
+    # Generate paths and check for required folders and files
+    (
+        JSON_file,
+        temp_JSON_file,
+        new_DB_file,
+        ucc_file,
+        temp_ucc_file,
+        archived_UCC_file,
+    ) = get_check_paths(logging, pars_dict)
 
     # New DB format check
-    all_dbs_json, db_year = prepare_new_DB.run(logging, pars_dict)
+    prepare_new_DB.run(logging, pars_dict, JSON_file, new_DB_file)
 
-    # Adds the new database to the JSON file.
-    add_DB_to_JSON(logging, pars_dict, all_dbs_json, db_year)
+    # Adds the new database to the (temp) JSON file.
+    add_DB_to_JSON(logging, pars_dict, JSON_file, temp_JSON_file)
 
-    # Load the current UCC, the new DB, and its JSON values
-    last_version, df_UCC, df_new, json_pars = load_data(logging, pars_dict)
+    # Load the current UCC, the new DB, and its JSON values (from the temp file)
+    df_UCC, df_new, json_pars = load_data(
+        logging,
+        pars_dict,
+        temp_JSON_file,
+        ucc_file,
+        new_DB_file,
+    )
     df_UCC_old = df_UCC.copy()
 
     # Standardize and match the new DB with the UCC
@@ -84,7 +93,7 @@ def main():
     )
     df_UCC = possible_duplicates(logging, df_UCC, "literature")
 
-    df_UCC = save_and_reload(logging, temp_ucc_path, df_UCC)
+    df_UCC = save_and_reload(logging, temp_ucc_file, df_UCC)
     df_UCC_old2 = df_UCC.copy()
     diff_between_dfs(logging, df_UCC_old, df_UCC, cols_exclude=None)
     if input("Move on? (y/n): ").lower() != "y":
@@ -97,7 +106,7 @@ def main():
         df_UCC = member_files_updt_UCC.run(logging, pars_dict, df_UCC)
         # Update membership probabilities
         df_UCC = possible_duplicates(logging, df_UCC, "UCC_members")
-        df_UCC = save_and_reload(logging, temp_ucc_path, df_UCC)
+        df_UCC = save_and_reload(logging, temp_ucc_file, df_UCC)
         diff_between_dfs(logging, df_UCC_old2, df_UCC, cols_exclude=None)
     else:
         logging.info("No new OCs to process")
@@ -107,7 +116,9 @@ def main():
     )
     check_UCC_versions.run(logging, df_UCC_old, df_UCC)
 
-    move_files(logging, last_version, temp_ucc_path)
+    if input("Move files to their final destination? (y/n): ").lower() != "y":
+        sys.exit()
+    move_files(logging, temp_ucc_file)
 
     logging.info("\nAll done! Proceed with the next script")
 
@@ -166,41 +177,80 @@ def read_ini_file():
     return pars_dict
 
 
-def check_Gaia_files(pars_dict):
+def get_check_paths(logging, pars_dict: dict) -> tuple[str, str, str, str, str, str]:
     """ """
+    # Check for Gaia files
     if not os.path.isdir(pars_dict["frames_path"]):
         raise ValueError(f"Folder {pars_dict['frames_path']} is not present")
-
     if not os.path.isfile(pars_dict["frames_ranges"]):
         raise ValueError(f"File {pars_dict['frames_ranges']} is not present")
 
+    # Generate required temp folders
+    # Temporary zenodo/ folder
+    temp_zenodo_fold = temp_fold + UCC_folder
+    # Create new temp zenodo folder if required
+    if not os.path.exists(temp_zenodo_fold):
+        os.makedirs(temp_zenodo_fold)
+    # Temporary databases/ folder
+    temp_database_folder = temp_fold + dbs_folder
+    # Create new temp databases folder if required
+    if not os.path.exists(temp_database_folder):
+        os.makedirs(temp_database_folder)
 
-def get_new_version_path(logging) -> str:
-    """
-    Generate path to the new (temporary) version.
-    """
-    # Create new temp folder if required
-    out_path = temp_fold + UCC_folder
-    if not os.path.exists(out_path):
-        os.makedirs(out_path)
+    # Path to the latest version of the UCC catalogue
+    last_version = None
+    for file in os.listdir(UCC_folder):
+        if file.endswith("csv"):
+            last_version = file
+            break
+    if last_version is None:
+        raise ValueError(f"UCC file not found in {UCC_folder}")
+    # Path to the current UCC csv file
+    ucc_file = UCC_folder + last_version
 
-    # Get new version of UCC database
+    # Path to the new (temp) version of the UCC database
     new_version = datetime.datetime.now().strftime("%Y%m%d%H")[2:]
-    temp_ucc_path = out_path + "UCC_cat_" + new_version + ".csv"
-
-    # Check if file exists
-    if os.path.exists(temp_ucc_path):
-        logging.info(f"File {temp_ucc_path} already exists. Moving on will re-write it")
+    temp_ucc_file = temp_zenodo_fold + "UCC_cat_" + new_version + ".csv"
+    # Check if file already exists
+    if os.path.exists(temp_ucc_file):
+        logging.info(f"File {temp_ucc_file} already exists. Moving on will re-write it")
         if input("Move on? (y/n): ").lower() != "y":
             sys.exit()
 
-    return temp_ucc_path
+    # Path to the current JSON file
+    JSON_file = dbs_folder + name_DBs_json
+    # Path to the new (temp) JSON file
+    temp_JSON_file = temp_database_folder + name_DBs_json
+
+    # Path to the new DB
+    new_DB_file = dbs_folder + pars_dict["new_DB"] + ".csv"
+
+    # Path to the archived current UCC csv file
+    archived_UCC_file = UCC_folder + UCC_archive + last_version.replace(".csv", ".gz")
+
+    return (
+        JSON_file,
+        temp_JSON_file,
+        new_DB_file,
+        ucc_file,
+        temp_ucc_file,
+        archived_UCC_file,
+    )
 
 
-def add_DB_to_JSON(logging, pars_dict, all_dbs_json, db_year):
+def add_DB_to_JSON(
+    logging, pars_dict: dict, JSON_file: str, temp_JSON_file: str
+) -> None:
     """ """
-    db_year = int(db_year)
-    # Extract years
+    # Extract DB's year
+    db_root = pars_dict["new_DB"].split("_")[0]
+    db_year = int(db_root[-4:])
+
+    # Load current JSON file
+    with open(JSON_file) as f:
+        all_dbs_json = json.load(f)
+
+    # Extract years in current JSON file
     years = []
     for db in all_dbs_json.keys():
         years.append(int(db.split("_")[0][-4:]))
@@ -214,7 +264,7 @@ def add_DB_to_JSON(logging, pars_dict, all_dbs_json, db_year):
     elif index > len(all_dbs_json):
         index = len(all_dbs_json)  # Append if index is beyond the end
 
-    #
+    # Create 'new_db_json' dictionary with the new DB's params
     new_db_json = {}
     new_db_json["ref"] = f"[{pars_dict['DB_name']}]({pars_dict['DB_ref']})"
     new_db_json["names"] = f"{pars_dict['ID']}"
@@ -267,39 +317,35 @@ def add_DB_to_JSON(logging, pars_dict, all_dbs_json, db_year):
         else:
             new_json_dict[pars_dict["new_DB"]] = new_db_json
 
-    out_path = temp_fold + dbs_folder
-    if not os.path.exists(out_path):
-        os.makedirs(out_path)
-    with open(out_path + name_DBs_json, "w") as f:
+    # Save to (temp) JSON file
+    with open(temp_JSON_file, "w") as f:
         json.dump(new_json_dict, f, indent=2)  # Use indent for readability
 
-    logging.info("\nJSON file updated")
+    logging.info("\nTemp JSON file updated")
 
 
-def load_data(logging, pars_dict: dict) -> tuple[str, pd.DataFrame, pd.DataFrame, dict]:
+def load_data(
+    logging,
+    pars_dict: dict,
+    temp_JSON_file: str,
+    ucc_file: str,
+    new_DB_file: str,
+) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
     """ """
     # Load column data for the new catalogue
-    with open(temp_fold + dbs_folder + name_DBs_json) as f:
+    with open(temp_JSON_file) as f:
         dbs_used = json.load(f)
     json_pars = dbs_used[pars_dict["new_DB"]]
-    logging.info(f"JSON file {name_DBs_json} loaded")
+    logging.info(f"JSON file {temp_JSON_file} loaded")
 
-    # Load the latest version of the combined catalogue
-    last_version = None
-    for file in os.listdir(UCC_folder):
-        if file.endswith("csv"):
-            last_version = file
-            break
-    if last_version is None:
-        raise ValueError(f"UCC file not found in {UCC_folder}")
-    df_UCC = pd.read_csv(UCC_folder + last_version)
-    logging.info(f"UCC version {last_version} loaded (N={len(df_UCC)})")
+    df_UCC = pd.read_csv(ucc_file)
+    logging.info(f"UCC version {ucc_file} loaded (N={len(df_UCC)})")
 
     # Load the new DB
-    df_new = pd.read_csv(dbs_folder + pars_dict["new_DB"] + ".csv")
+    df_new = pd.read_csv(new_DB_file)
     logging.info(f"New DB {pars_dict['new_DB']} loaded (N={len(df_new)})")
 
-    return last_version, df_UCC, df_new, json_pars
+    return df_UCC, df_new, json_pars
 
 
 def possible_duplicates(logging, df_UCC: pd.DataFrame, data_orig: str) -> pd.DataFrame:
@@ -362,17 +408,17 @@ def possible_duplicates(logging, df_UCC: pd.DataFrame, data_orig: str) -> pd.Dat
     return df_UCC
 
 
-def save_and_reload(logging, temp_ucc_path, df_UCC):
+def save_and_reload(logging, temp_ucc_file, df_UCC):
     """ """
     # Order by (lon, lat) first
     df_UCC = df_UCC.sort_values(["GLON", "GLAT"])
     df_UCC = df_UCC.reset_index(drop=True)
+    # Save UCC to CSV file
     df_UCC.to_csv(
-        temp_ucc_path, na_rep="nan", index=False, quoting=csv.QUOTE_NONNUMERIC
+        temp_ucc_file, na_rep="nan", index=False, quoting=csv.QUOTE_NONNUMERIC
     )
-
-    # Load new UCC file
-    df_UCC = pd.read_csv(temp_ucc_path)
+    # Load new UCC
+    df_UCC = pd.read_csv(temp_ucc_file)
 
     logging.info(f"UCC updated (N={len(df_UCC)})")
 
@@ -436,33 +482,37 @@ def diff_between_dfs(
     logging.info("Files 'UCC_diff_xxx.csv' saved\n")
 
 
-def move_files(logging, last_version, temp_ucc_path):
+def move_files(
+    logging,
+    JSON_file: str,
+    temp_JSON_file: str,
+    ucc_file: str,
+    temp_ucc_file: str,
+    archived_UCC_file: str,
+) -> None:
     """ """
     # Move JSON file
-    JSON_file_path = dbs_folder + name_DBs_json
-    temp_JSON_file_path = temp_fold + dbs_folder + name_DBs_json
-    os.remove(JSON_file_path)
-    os.rename(temp_JSON_file_path, JSON_file_path)
+    os.remove(JSON_file)
+    os.rename(temp_JSON_file, JSON_file)
     logging.info("\nJSON file updated")
 
-    # Path to last (old) UCC database
-    old_UCC = UCC_folder + last_version
     # Generate '.gz' compressed file for the old UCC and archive it
-    df = pd.read_csv(old_UCC)
+    df = pd.read_csv(ucc_file)
     df.to_csv(
-        UCC_folder + UCC_archive + last_version.replace(".csv", ".gz"),
+        archived_UCC_file,
         na_rep="nan",
         index=False,
         quoting=csv.QUOTE_NONNUMERIC,
     )
     # Remove old csv file
-    os.remove(old_UCC)
+    os.remove(ucc_file)
     # Move new UCC file
-    new_ucc_path = "/".join(temp_ucc_path.split("/")[1:])
-    os.rename(temp_ucc_path, new_ucc_path)
+    new_ucc_path = "/".join(temp_ucc_file.split("/")[1:])
+    os.rename(temp_ucc_file, new_ucc_path)
     logging.info("UCC file updated")
 
     # Move all .parquet member files
+    XXXX
 
     # Remove folder
     shutil.rmtree(temp_fold)
