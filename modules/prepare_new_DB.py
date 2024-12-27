@@ -6,10 +6,8 @@ import sys
 import numpy as np
 import pandas as pd
 
-from .HARDCODED import dbs_folder, name_DBs_json
 
-
-def run(logging, pars_dict, show_entries=True):
+def run(logging, pars_dict, JSON_file, new_DB_file, show_entries=True):
     """
     Prepares a new database for inclusion in the Unified Cluster Catalogue (UCC).
 
@@ -31,10 +29,10 @@ def run(logging, pars_dict, show_entries=True):
         contain a valid year, or if there are issues with columns.
     """
     # Check that the new DB is not already present in the 'old' JSON file
-    with open(dbs_folder + name_DBs_json) as f:
+    with open(JSON_file) as f:
         all_dbs_json = json.load(f)
     if pars_dict["new_DB"] in all_dbs_json.keys():
-        logging.info(f"The DB {pars_dict['new_DB']} is already in the JSON file")
+        logging.info(f"The DB {pars_dict['new_DB']} is in the current JSON file")
         if input("Move on? (y/n): ").lower() != "y":
             sys.exit()
 
@@ -43,17 +41,19 @@ def run(logging, pars_dict, show_entries=True):
         raise ValueError(
             f"The DB name {pars_dict['new_DB']} contains special characters"
         )
+
+    # Extract DB's year
     db_root = pars_dict["new_DB"].split("_")[0]
     db_year = db_root[-4:]
     if is_convertible_to_int(db_year) is False:
         raise ValueError(
-            f"The DB {pars_dict['new_DB']} does not contain a valid year: {db_year}"
+            f"The DB name {pars_dict['new_DB']} does not contain a valid year: {db_year}"
         )
     if int(db_year) < 1950 or int(db_year) > 2050:
         raise ValueError(f"The DB year {db_year} looks suspicious")
 
     # Load CSV
-    df_new = pd.read_csv(dbs_folder + pars_dict["new_DB"] + ".csv")
+    df_new = pd.read_csv(new_DB_file)
     logging.info(f"\nName & url: {pars_dict['DB_name']}, {pars_dict['DB_ref']}")
 
     # Check for required columns
@@ -95,10 +95,8 @@ def run(logging, pars_dict, show_entries=True):
         raise ValueError("Resolve the above issues before moving on.")
 
     # Replace empty positions with 'nans'
-    empty_nan_replace(pars_dict["new_DB"], df_new)
+    empty_nan_replace(new_DB_file, df_new)
     logging.info(f"\nEmpty entries replace finished in {pars_dict['new_DB']}")
-
-    return all_dbs_json, db_year
 
 
 def contains_special_char(text):
@@ -159,7 +157,7 @@ def name_chars_check(logging, df_new, pars_dict, show_entries):
     return bad_name_flag
 
 
-def empty_nan_replace(new_DB, df_new):
+def empty_nan_replace(new_DB_file, df_new):
     """
     Replace possible empty entries in columns
     """
@@ -170,7 +168,7 @@ def empty_nan_replace(new_DB, df_new):
     df_new = df_new.replace(r"^\s*$", np.nan, regex=True)
 
     df_new.to_csv(
-        dbs_folder + new_DB + ".csv",
+        new_DB_file,
         na_rep="nan",
         index=False,
         quoting=csv.QUOTE_NONNUMERIC,
