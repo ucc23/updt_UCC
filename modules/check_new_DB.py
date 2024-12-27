@@ -22,7 +22,6 @@ def run(logging, pars_dict, df_UCC, df_new, json_pars, new_DB_fnames, db_matches
     6. Checks positions and flags for attention if required.
     """
     new_DB = pars_dict["new_DB"]
-    logging.info(f"Running 'new_DB_check' script on {new_DB}")
 
     # Duplicate check between entries in the new DB and the UCC
     logging.info(f"\nChecking for entries in {new_DB} that must be combined")
@@ -40,14 +39,14 @@ def run(logging, pars_dict, df_UCC, df_new, json_pars, new_DB_fnames, db_matches
             sys.exit()
 
     # Check for OCs very close to each other (possible duplicates)
-    logging.info("\nPossible inner duplicates check")
+    logging.info("\nProbable inner duplicates check")
     inner_flag = close_OC_check(logging, df_new, pars_dict)
     if inner_flag:
         if input("Move on? (y/n): ").lower() != "y":
             sys.exit()
 
     # Check for OCs very close to each other (possible duplicates)
-    logging.info("\nPossible UCC duplicates check")
+    logging.info("\nProbable UCC duplicates check")
     dups_flag = close_OC_UCC_check(
         logging, df_UCC, new_DB_fnames, db_matches, pars_dict, glon, glat
     )
@@ -107,7 +106,7 @@ def GCs_check(logging, pars_dict, df_new):
     # Equatorial to galactic
     RA, DEC = pars_dict["RA"], pars_dict["DEC"]
     ra, dec = df_new[RA].values, df_new[DEC].values
-    gc = SkyCoord(ra=ra * u.degree, dec=dec * u.degree)
+    gc = SkyCoord(ra=ra * u.deg, dec=dec * u.deg)
     lb = gc.transform_to("galactic")
     glon, glat = np.array(lb.l), np.array(lb.b)
 
@@ -141,8 +140,6 @@ def GCs_check(logging, pars_dict, df_new):
 
         gc_flag = True
         logging.info(f"Found {GCs_found} probable GCs")
-        logging.info("i          OC              --> GC              Dist [arcmin]")
-        logging.info("------------------------------------------------------------")
         for gc in gc_all:
             idx, row_id, df_gcs_name, d_arcmin = gc
             logging.info(
@@ -211,8 +208,6 @@ def close_OC_check(logging, df_new, pars_dict):
         i_sort = np.argsort(all_dists)
 
         logging.info(f"Found {dups_found} probable inner duplicates")
-        logging.info("i          OC                     --> OC              d [arcmin]")
-        logging.info("----------------------------------------------------------------")
         for idx in i_sort:
             i, cl_name, N_inner_dups, dups, dist, L_ratios = all_dups[idx]
             logging.info(
@@ -220,7 +215,7 @@ def close_OC_check(logging, df_new, pars_dict):
                 + f"{';'.join(dups):<15} d={';'.join(dist)}, L={';'.join(L_ratios)}"
             )
     else:
-        logging.info("No probable inner duplicates found")
+        logging.info("No inner duplicates found")
 
     return inner_flag
 
@@ -240,7 +235,7 @@ def close_OC_UCC_check(
     dist = cdist(coords_new, coords_UCC) * 60
 
     idxs = np.arange(0, len(df_UCC))
-    dups_list, dups_found = [], 0
+    dups_list, dups_found = [], []
     for i, cl_d in enumerate(dist):
         msk = cl_d < rad_dup
         if msk.sum() == 0:
@@ -254,23 +249,25 @@ def close_OC_UCC_check(
             # cl_name is present in the UCC (df_UCC['fnames'][db_matches[i]])
             continue
 
-        dups_found += 1
-
         dups, dist = [], []
         for j in idxs[msk]:
             dup_name = df_UCC["fnames"][j]
             dups_list.append(dup_name)
             dups.append(dup_name)
             dist.append(str(round(cl_d[j], 1)))
-        logging.info(
+        dups_found.append(
             f"{i} {cl_name} (N={msk.sum()}) --> "
             + f"{'|'.join(dups)}, d={'|'.join(dist)}"
         )
 
     dups_flag = True
-    if dups_found == 0:
+    if len(dups_found) > 0:
+        logging.info(f"Found {len(dups_found)} probable UCC duplicates")
+        for dup in dups_found:
+            logging.info(dup)
+    else:
         dups_flag = False
-        logging.info("No probable duplicates found")
+        logging.info("No UCC duplicates found")
 
     return dups_flag
 
