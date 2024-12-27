@@ -7,7 +7,7 @@ def run(
     df_new: pd.DataFrame,
     json_pars: dict,
     pars_dict: dict,
-    show_entries: bool = False,
+    show_entries: bool = True,
 ) -> tuple[list[str], list[str | None], int]:
     """
     Standardizes names in a new database and matches them against an existing UCC
