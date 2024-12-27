@@ -162,4 +162,5 @@ cython_debug/
 *sublime*
 OLD/*
 params.ini.default
+temp/*
 temp_updt/*
