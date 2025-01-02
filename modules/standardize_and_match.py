@@ -181,7 +181,7 @@ def rm_chars_from_name(name):
 
 def get_matches_new_DB(df_UCC, new_DB_fnames):
     """
-    Get cluster matches for the new DB being added to the combined DB
+    Get cluster matches for the new DB being added to the UCC
     """
 
     def match_fname(new_cl):
@@ -193,8 +193,8 @@ def get_matches_new_DB(df_UCC, new_DB_fnames):
         return None
 
     db_matches = []
-    for i, new_cl in enumerate(new_DB_fnames):
-        # Check if this new fname is already in the old DBs list of fnames
+    for new_cl in new_DB_fnames:
+        # Check if this new fname is already in the UCC
         db_matches.append(match_fname(new_cl))
 
     return db_matches
