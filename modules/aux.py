@@ -57,7 +57,7 @@ def check_centers(xy_c_m, vpd_c_m, plx_c_m, xy_c_n, vpd_c_n, plx_c_n, rad_dup=5)
         bad_center_xy = "y"
 
     # Relative difference
-    if not np.isnan(vpd_c_m[0]):
+    if not np.isnan(vpd_c_n[0]):
         pm_max = []
         for vpd_c_i in abs(np.array(vpd_c_m)):
             if vpd_c_i > 5:
@@ -76,7 +76,7 @@ def check_centers(xy_c_m, vpd_c_m, plx_c_m, xy_c_n, vpd_c_n, plx_c_n, rad_dup=5)
             bad_center_pm = "y"
 
     # Relative difference
-    if not np.isnan(plx_c_m):
+    if not np.isnan(plx_c_n):
         if plx_c_m > 0.2:
             plx_max = 25
         elif plx_c_m > 0.1:
