@@ -1,7 +1,5 @@
-import configparser
 import csv
 import json
-import sys
 from pathlib import Path
 
 import Levenshtein
@@ -19,6 +17,9 @@ from modules.HARDCODED import (
     name_DBs_json,
     temp_fold,
 )
+
+# NASA/ADS url to the new DB
+ADS_url0 = "https://ui.adsabs.harvard.edu/abs/xxxx"
 
 # This is the structure for each database in the JSON fle
 JSON_struct = {
@@ -63,9 +64,8 @@ def main():
     """ """
     logging = aux.logger()
 
-    ADS_url = read_ini_file()
-
     # Proper url format
+    ADS_url = ADS_url0
     if ADS_url.endswith("/"):
         ADS_url = ADS_url[:-1]
     if ADS_url.endswith("/abstract"):
@@ -91,9 +91,9 @@ def main():
         raise ValueError(f"Could not fetch the URL {ADS_url}\n{str(e)}")
     with open("temp.html", "w") as f:
         f.write(str(ADS_soup))
+    logging.info("NASA/ADS data downloaded")
     # with open("temp.html", "rb") as f:
     #     ADS_soup = BeautifulSoup(f.read(), "html.parser")
-    logging.info("NASA/ADS data downloaded")
 
     authors, year = get_autors_year(ADS_soup)
     if year is None:
@@ -114,25 +114,44 @@ def main():
     # Path to the new (temp) DB file
     temp_CSV_file = temp_database_folder + DB_name + ".csv"
 
-    quest = "y"
+    quest = "n"
     if Path(temp_CSV_file).is_file():
-        quest = input(
-            "Attempt Vizier database download? Else load from file (y/n): "
-        ).lower()
+        quest = input("Load Vizier database from file (else download)? (y/n): ").lower()
     if quest == "y":
-        df = load_Vizier_df(logging, ADS_soup, temp_CSV_file)
+        df_all = [pd.read_csv(temp_CSV_file)]
+        logging.info("Vizier CSV file loaded from file")
     else:
-        df = pd.read_csv(temp_CSV_file)
+        cds_url = get_CDS_url(logging, ADS_soup)
+        if cds_url is None:
+            logging.info("Could not extract the CDS url")
+            if (
+                input(
+                    "Input Vizier id manually (format '2010AA..36..75G')? (y/n): "
+                ).lower()
+                == "y"
+            ):
+                cds_url = str(input("Vizier id (format '2010AA..36..75G'): "))
+
+        df_all = None
+        if cds_url is not None:
+            df_all = get_DB_from_Vizier(logging, cds_url)
+
+        if df_all is not None:
+            # Save the database(s) to a CSV file(s)
+            save_DB_CSV(temp_CSV_file, df_all)
+            logging.info(f"New DB csv file(s) stored {temp_CSV_file}\n")
 
     # Extract the names, positions, parameters, and uncertainties column names from
     # the current JSON
     names_dict, pos_dict, pars_dict, e_pars_dict = current_JSON_vals(current_JSON)
 
     # Extract the matches for each column in the new DB
-    df_col_id = new_DB_columns_match(
-        logging, names_dict, pos_dict, pars_dict, e_pars_dict, df
-    )
-    logging.info("Column names for temp JSON file extracted")
+    df_col_id = None
+    if df_all is not None:
+        df_col_id = new_DB_columns_match(
+            logging, names_dict, pos_dict, pars_dict, e_pars_dict, df_all
+        )
+        logging.info("Column names for temp JSON file extracted")
 
     names, pos_dict, pars_dict, e_pars_dict = proper_json_struct(df_col_id)
 
@@ -151,20 +170,7 @@ def main():
     )
     logging.info("Temp JSON file generated")
 
-
-def read_ini_file() -> str:
-    """
-    Load .ini config file
-    """
-    # The interpolation argument allows readng urls with '%' characters
-    in_params = configparser.ConfigParser(interpolation=None)
-    in_params.read("params.ini")
-    print("Loaded params.ini")
-
-    pars = in_params["New DB data"]
-    ADS_url = str(pars.get("ADS_url"))
-
-    return ADS_url
+    logging.info("\nCheck carefully the JSON and CSV file before moving on!")
 
 
 def get_ADS_soup(ADS_url):
@@ -238,41 +244,6 @@ def get_DB_name(current_JSON: dict, authors: str, year: str) -> str:
     return DB_name
 
 
-def load_Vizier_df(logging, ADS_soup, temp_CSV_file: str) -> pd.DataFrame:
-    """
-    Load the Vizier database into a DataFrame. If the user opts not to download,
-    load the DataFrame from a local CSV file.
-
-    Parameters:
-    logging (logging.Logger): Logger instance for logging messages.
-    ADS_soup (BeautifulSoup): Parsed HTML content of the ADS page.
-    temp_CSV_file (str): Path to the temporary CSV file.
-
-    Returns:
-    pd.DataFrame: DataFrame containing the Vizier database.
-    """
-    cds_url = get_CDS_url(logging, ADS_soup)
-    if cds_url is None:
-        logging.info("Could not extract the CDS url")
-        if input("Input Vizier id manually? (y/n): ").lower() == "n":
-            sys.exit()
-        else:
-            cds_url = str(input("Vizier id with the format '2010AA..36..75G': "))
-    else:
-        logging.info("CDS url obtained")
-
-    df = get_DB_from_Vizier(logging, cds_url)
-    # Extract number of columns and rows from DataFrame
-    logging.info(
-        f"Dataframe extracted from Vizier: {df.shape[1]} cols, {df.shape[0]} rows"
-    )
-
-    save_DB_CSV(temp_CSV_file, df)
-    logging.info(f"New DB csv file stored {temp_CSV_file}")
-
-    return df
-
-
 def get_CDS_url(logging, ADS_soup):
     """ """
     cds_url = None
@@ -299,10 +270,12 @@ def get_CDS_url(logging, ADS_soup):
         elif "VizieR?-source=" in cds_url:
             cds_url = cds_url.split("VizieR?-source=")[-1]
 
+        logging.info(f"\nCDS url obtained: {cds_url}")
+
     return cds_url
 
 
-def get_DB_from_Vizier(logging, cds_url: str) -> pd.DataFrame:
+def get_DB_from_Vizier(logging, cds_url: str) -> list | None:
     """
     Retrieve a database from Vizier and convert it to a pandas DataFrame.
 
@@ -321,97 +294,81 @@ def get_DB_from_Vizier(logging, cds_url: str) -> pd.DataFrame:
     cat_name = list(vdict.keys())[0]
     if cat_name is None:
         raise ValueError(f"Could not extract the catalog's name from {cds_url}")
+    logging.info(
+        f"Full url: https://vizier.cds.unistra.fr/viz-bin/VizieR?-source={cat_name}\n"
+    )
+    for k, v in vdict.items():
+        logging.info(str(k) + ":" + str(v.description))
 
     try:
         # Download full database
         cat = viz.get_catalogs(vdict)
         if len(cat) > 1:
-            logging.info("\nMore than one table found at:")
-            logging.info(
-                f"https://vizier.cds.unistra.fr/viz-bin/VizieR?-source={cat_name}\n"
-            )
             rows = cat.__str__().split("\n")
             logging.info(rows[0].strip())
             for i, row in enumerate(rows[1:]):
                 logging.info(f"{i}: " + cat[i].meta["description"])
                 logging.info("   " + row.strip())
             while True:
-                tab_idx = input("Input index of table to store: ").strip()
-                if tab_idx.isdigit() is True:
-                    tab_idx = int(tab_idx)
-                    if 0 <= tab_idx < len(cat):
+                tab_idx = input("Input index(es) of table(s) to store (-1 for none): ")
+                if tab_idx.strip() == "-1":
+                    return None
+                tab_idx = tab_idx.strip().split(" ")
+                try:
+                    tab_idx = np.array([int(_) for _ in tab_idx])
+                    if (tab_idx >= 0).all() and (tab_idx < len(cat)).all():
                         break
+                    else:
+                        logging.info("Invalid input")
+                except ValueError:
+                    logging.info("Invalid input")
         else:
-            tab_idx = 0
-        # Convert to pandas
-        df = cat[tab_idx].to_pandas()
+            tab_idx = [0]
+
+        # Convert to pandas before storing
+        df_all = []
+        for idx in tab_idx:
+            df_all.append(cat[int(idx)].to_pandas())
     except Exception as e:
         raise ValueError(f"Could not extract the data from {cat_name}\n{str(e)}")
 
-    return df
+    return df_all
 
 
-def proper_json_struct(df_col_id):
-    """ """
-    # Generate the proper structure for storing in the JSON file
-    names = "None"
-    if "names" in df_col_id.keys():
-        names = df_col_id["names"]
-    all_dicts = []
-    for _id in ("pos", "pars", "e_pars"):
-        pdict = {}
-        for val in JSON_struct["SMITH2500"][_id].keys():
-            try:
-                pdict[val] = df_col_id[val]
-            except KeyError:
-                pass
-        all_dicts.append(pdict)
+def save_DB_CSV(temp_CSV_file, df_all):
+    """
+    Replace possible empty entries in columns
+    """
+    for idx, df in enumerate(df_all):
+        name_CSV_file = str(temp_CSV_file)
+        if idx > 0:
+            name_CSV_file = temp_CSV_file.replace(".csv", f"_{idx}.csv")
 
-    return names, *all_dicts
+        # Save and reload to bypass issue:
+        # https://github.com/astropy/astropy/issues/17601
+        df.to_csv(
+            name_CSV_file,
+            index=False,
+        )
+        df = pd.read_csv(name_CSV_file)
 
+        # Remove leading and trailing spaces
+        df = df.map(lambda x: x.strip() if isinstance(x, str) else x)
 
-def new_DB_columns_match(
-    logging, names_dict, pos_dict, pars_dict, e_pars_dict, df, ratio_min_fix=0.5
-):
-    """ """
-    # Combine into a single dictionary
-    merged_dict = {**names_dict, **pos_dict, **pars_dict, **e_pars_dict}
+        # Replace empty strings or whitespace-only strings with NaN
+        df = df.replace(r"^\s*$", np.nan, regex=True)
 
-    df_col_id = {}
-    for col in df.keys():
-        id_match, ratio_min = None, ratio_min_fix
+        # Remove columns that are not useful
+        for col in ("recno", "Simbad", "SimbadName"):
+            if col in df.columns:
+                df = df.drop(columns=[col])
 
-        for key, vals in merged_dict.items():
-            vals_ratios = []
-            for val in vals:
-                ld1 = Levenshtein.ratio(col, val)
-                ld2 = Levenshtein.ratio(col.lower(), val.lower())
-                vals_ratios.append(max(ld1, ld2))
-            if vals_ratios:
-                ratio_max = max(vals_ratios)
-                if ratio_max > ratio_min:
-                    id_match = key
-                    ratio_min = ratio_max
-
-        # Keep the match with the largest value for this 'key'
-        if id_match is not None:
-            try:
-                ratio_old = df_col_id[id_match][0]
-                if ratio_min > ratio_old:
-                    df_col_id[id_match] = [ratio_min, col]
-            except KeyError:
-                df_col_id[id_match] = [ratio_min, col]
-
-    # Only values are used
-    df_col_id = {k: v[1] for k, v in df_col_id.items()}
-
-    no_match_cols = []
-    for key in df.keys():
-        if key not in df_col_id.values():
-            no_match_cols.append(key)
-    logging.info(f"Columns in new DB with no match:\n  {no_match_cols}")
-
-    return df_col_id
+        df.to_csv(
+            name_CSV_file,
+            na_rep="nan",
+            index=False,
+            quoting=csv.QUOTE_NONNUMERIC,
+        )
 
 
 def current_JSON_vals(current_JSON):
@@ -453,6 +410,89 @@ def current_JSON_vals(current_JSON):
         all_dicts.append(pdict)
 
     return names_dict, *all_dicts
+
+
+def new_DB_columns_match(
+    logging, names_dict, pos_dict, pars_dict, e_pars_dict, df_all, ratio_min_fix=0.5
+):
+    """ """
+    # Combine into a single dictionary
+    merged_dict = {**names_dict, **pos_dict, **pars_dict, **e_pars_dict}
+
+    df = df_all[0]
+    if len(df_all) > 1:
+        logging.info(f"Tables downloaded: {len(df_all)}")
+        while True:
+            tab_idx = input("Index of table used to obtain column names: ")
+            try:
+                tab_idx = int(tab_idx)
+                if tab_idx >= 0 and tab_idx < len(df_all):
+                    break
+                else:
+                    logging.info("Invalid input")
+            except ValueError:
+                logging.info("Invalid input")
+        df = df_all[tab_idx]
+
+    df_col_id = {}
+    for col in df.keys():
+        id_match, ratio_min = None, ratio_min_fix
+
+        for key, vals in merged_dict.items():
+            vals_ratios = []
+            for val in vals:
+                ld1 = Levenshtein.ratio(col, val)
+                ld2 = Levenshtein.ratio(col.lower(), val.lower())
+                vals_ratios.append(max(ld1, ld2))
+            if vals_ratios:
+                ratio_max = max(vals_ratios)
+                if ratio_max > ratio_min:
+                    id_match = key
+                    ratio_min = ratio_max
+
+        # Keep the match with the largest value for this 'key'
+        if id_match is not None:
+            try:
+                ratio_old = df_col_id[id_match][0]
+                if ratio_min > ratio_old:
+                    df_col_id[id_match] = [ratio_min, col]
+            except KeyError:
+                df_col_id[id_match] = [ratio_min, col]
+
+    # Only values are used
+    df_col_id = {k: v[1] for k, v in df_col_id.items()}
+
+    no_match_cols = []
+    for key in df.keys():
+        if key not in df_col_id.values():
+            no_match_cols.append(key)
+    logging.info(f"Columns in new DB with no match:\n  {no_match_cols}")
+
+    return df_col_id
+
+
+def proper_json_struct(df_col_id):
+    """ """
+    # Generate the proper structure for storing in the JSON file
+    names = "None"
+    if df_col_id is not None:
+        if "names" in df_col_id.keys():
+            names = df_col_id["names"]
+
+    all_dicts = []
+    for _id in ("pos", "pars", "e_pars"):
+        pdict = {}
+        for val in JSON_struct["SMITH2500"][_id].keys():
+            try:
+                if df_col_id is not None:
+                    pdict[val] = df_col_id[val]
+                else:
+                    pdict[val] = "None"
+            except KeyError:
+                pass
+        all_dicts.append(pdict)
+
+    return names, *all_dicts
 
 
 def add_DB_to_JSON(
@@ -505,24 +545,6 @@ def add_DB_to_JSON(
     # Save to (temp) JSON file
     with open(temp_JSON_file, "w") as f:
         json.dump(new_json_dict, f, indent=2)  # Use indent for readability
-
-
-def save_DB_CSV(temp_CSV_file, df):
-    """
-    Replace possible empty entries in columns
-    """
-    # Remove leading and trailing spaces
-    df = df.map(lambda x: x.strip() if isinstance(x, str) else x)
-
-    # Replace empty strings or whitespace-only strings with NaN
-    df = df.replace(r"^\s*$", np.nan, regex=True)
-
-    df.to_csv(
-        temp_CSV_file,
-        na_rep="nan",
-        index=False,
-        quoting=csv.QUOTE_NONNUMERIC,
-    )
 
 
 if __name__ == "__main__":
