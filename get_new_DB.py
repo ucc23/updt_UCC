@@ -89,9 +89,9 @@ def main():
         ADS_soup = get_ADS_soup(ADS_url)
     except Exception as e:
         raise ValueError(f"Could not fetch the URL {ADS_url}\n{str(e)}")
-    with open("temp.html", "w") as f:
-        f.write(str(ADS_soup))
     logging.info("NASA/ADS data downloaded")
+    # with open("temp.html", "w") as f:
+    #     f.write(str(ADS_soup))
     # with open("temp.html", "rb") as f:
     #     ADS_soup = BeautifulSoup(f.read(), "html.parser")
 
