@@ -337,7 +337,8 @@
       "DEC": "DE_ICRS",
       "plx": "Plx",
       "pmra": "pmRA",
-      "pmde": "pmDE"
+      "pmde": "pmDE",
+      "Rv": "RV"
     },
     "pars": {
       "ext": "Av",
