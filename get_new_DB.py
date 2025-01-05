@@ -138,22 +138,10 @@ def main():
         df_all = [pd.read_csv(temp_CSV_file)]
         logging.info("Vizier CSV file loaded from file")
     else:
-        cds_url = get_CDS_url(logging, ADS_soup)
-        if cds_url is None:
-            logging.info("Could not extract the CDS url")
-            if (
-                input(
-                    "Input Vizier id manually (format '2010AA..36..75G')? (y/n): "
-                ).lower()
-                == "y"
-            ):
-                cds_url = str(input("Vizier id (format '2010AA..36..75G'): "))
-
         df_all = None
-        if cds_url is not None:
-            df_all = get_DB_from_Vizier(logging, cds_url)
-
-        if df_all is not None:
+        table_url = get_CDS_url(logging, ADS_soup)
+        if len(table_url) > 0:
+            df_all = get_DB_from_Vizier(table_url)
             # Save the database(s) to a CSV file(s)
             save_DB_CSV(temp_CSV_file, df_all)
             logging.info(f"New DB csv file(s) stored {temp_CSV_file}\n")
@@ -263,7 +251,7 @@ def get_DB_name(current_JSON: dict, authors: str, year: str) -> str:
     return DB_name
 
 
-def get_CDS_url(logging, ADS_soup):
+def get_CDS_url(logging, ADS_soup) -> list:
     """ """
     cds_url = None
     try:
@@ -290,66 +278,68 @@ def get_CDS_url(logging, ADS_soup):
             cds_url = cds_url.split("VizieR?-source=")[-1]
 
         logging.info(f"\nCDS url obtained: {cds_url}")
+    else:
+        raise ValueError("Could not extract CDS url")
 
-    return cds_url
+    # Obtain the available tables. Use row_limit=1 to avoid downloading the entire
+    # tables
+    viz = Vizier(row_limit=1)
+    cat = viz.get_catalogs(cds_url)
+    if len(cat) == 0:
+        raise ValueError(f"Could not extract data from {cds_url}")
+    logging.info(
+        f"Full url: https://vizier.cds.unistra.fr/viz-bin/VizieR?-source={cds_url}\n"
+    )
+
+    rows = cat.__str__().split("\n")
+    logging.info(rows[0].strip())
+    for i, row in enumerate(rows[1:]):
+        logging.info(f"{i}: " + cat[i].meta["description"])
+        logging.info("   " + row.strip())
+
+    if len(cat) > 1:
+        while True:
+            tab_idx = input("Input index(es) of table(s) to store (-1 for none): ")
+            if tab_idx.strip() == "-1":
+                return []
+            tab_idx = tab_idx.strip().split(" ")
+            try:
+                tab_idx = np.array([int(_) for _ in tab_idx])
+                if (tab_idx >= 0).all() and (tab_idx < len(cat)).all():
+                    table_url = [cat.keys()[_] for _ in tab_idx]
+                    break
+                else:
+                    logging.info("Invalid input")
+            except ValueError:
+                logging.info("Invalid input")
+    else:
+        table_url = [cat.keys()[0]]
+
+    return table_url
 
 
-def get_DB_from_Vizier(logging, cds_url: str) -> list | None:
+def get_DB_from_Vizier(table_url: list) -> list:
     """
     Retrieve a database from Vizier and convert it to a pandas DataFrame.
 
     Parameters:
-    cds_url (str): The Vizier catalog identifier.
+    table_url (list): The Vizier catalog's table identifier.
 
     Returns:
-    pd.DataFrame: DataFrame containing the Vizier database.
+    list of pd.DataFrame: List of DataFrame containing the Vizier database.
     """
     # No limit to number of rows or columns
     viz = Vizier(row_limit=-1, columns=["all"])
-    # Find catalog
-    vdict = viz.find_catalogs(cds_url)
 
-    # Extract catalog's name
-    cat_name = list(vdict.keys())[0]
-    if cat_name is None:
-        raise ValueError(f"Could not extract the catalog's name from {cds_url}")
-    logging.info(
-        f"Full url: https://vizier.cds.unistra.fr/viz-bin/VizieR?-source={cat_name}\n"
-    )
-    for k, v in vdict.items():
-        logging.info(str(k) + ":" + str(v.description))
-
-    try:
-        # Download full database
-        cat = viz.get_catalogs(vdict)
-        if len(cat) > 1:
-            rows = cat.__str__().split("\n")
-            logging.info(rows[0].strip())
-            for i, row in enumerate(rows[1:]):
-                logging.info(f"{i}: " + cat[i].meta["description"])
-                logging.info("   " + row.strip())
-            while True:
-                tab_idx = input("Input index(es) of table(s) to store (-1 for none): ")
-                if tab_idx.strip() == "-1":
-                    return None
-                tab_idx = tab_idx.strip().split(" ")
-                try:
-                    tab_idx = np.array([int(_) for _ in tab_idx])
-                    if (tab_idx >= 0).all() and (tab_idx < len(cat)).all():
-                        break
-                    else:
-                        logging.info("Invalid input")
-                except ValueError:
-                    logging.info("Invalid input")
-        else:
-            tab_idx = [0]
-
-        # Convert to pandas before storing
-        df_all = []
-        for idx in tab_idx:
-            df_all.append(cat[int(idx)].to_pandas())
-    except Exception as e:
-        raise ValueError(f"Could not extract the data from {cat_name}\n{str(e)}")
+    df_all = []
+    for turl in table_url:
+        # Download table
+        try:
+            cat = viz.get_catalogs(turl)
+            # Convert to pandas before storing
+            df_all.append(cat.values()[0].to_pandas())
+        except Exception as e:
+            raise ValueError(f"Could not extract the data from {turl}\n{str(e)}")
 
     return df_all
 
