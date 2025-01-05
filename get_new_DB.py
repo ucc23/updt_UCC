@@ -187,7 +187,9 @@ def main():
     )
     logging.info("Temp JSON file generated")
 
-    logging.info("\nCheck carefully the JSON and CSV file before moving on!")
+    logging.info("\n********************************************************")
+    logging.info("Check the JSON and CSV files carefully before moving on!")
+    logging.info("********************************************************")
 
 
 def get_ADS_soup(ADS_url):
