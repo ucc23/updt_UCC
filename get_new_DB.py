@@ -61,7 +61,24 @@ JSON_struct = {
 
 
 def main():
-    """ """
+    """
+    Main function to download and process a database using NASA/ADS and Vizier data.
+
+    Steps:
+    1. Validate and format the provided NASA/ADS URL.
+    2. Load the current JSON database file.
+    3. Check if the URL is already listed in the current database.
+    4. Fetch and parse data from the NASA/ADS URL.
+    5. Extract publication authors and year.
+    6. Generate a new database name based on extracted metadata.
+    7. Handle temporary database files and check for existing data.
+    8. Fetch Vizier data or allow manual input for Vizier IDs.
+    9. Match new database columns with current JSON structure.
+    10. Update the JSON file and save the database as CSV.
+
+    Raises:
+        ValueError: If URL data fetching or metadata extraction fails.
+    """
     logging = aux.logger()
 
     # Proper url format
