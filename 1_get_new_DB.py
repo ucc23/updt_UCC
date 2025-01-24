@@ -21,28 +21,19 @@ from modules.HARDCODED import (
 ADS_bibcode = "2010AstL...36...75G"
 
 
-# ADS API endpoint for searching
-api_url = "https://api.adsabs.harvard.edu/v1/search/query"
-# Read token from file
-with open("NASA_API_TOKEN", "r") as file:
-    NASA_API_TOKEN = file.read().strip()
-headers = {"Authorization": f"Bearer {NASA_API_TOKEN}"}
-
-
-def main(JSON_struct):
+def main():
     """
     Main function to download and process a database using NASA/ADS and Vizier data.
 
     Steps:
-    2. Load the current JSON database file.
-    3. Check if the URL is already listed in the current database.
-    4. Fetch and parse data from the NASA/ADS URL.
-    5. Extract publication authors and year.
-    6. Generate a new database name based on extracted metadata.
-    7. Handle temporary database files and check for existing data.
-    8. Fetch Vizier data or allow manual input for Vizier IDs.
-    9. Match new database columns with current JSON structure.
-    10. Update the JSON file and save the database as CSV.
+    1. Load the current JSON database file.
+    2. Check if the URL is already listed in the current database.
+    3. Fetch publication authors and year from NASA/ADS
+    4. Generate a new database name based on extracted metadata.
+    5. Handle temporary database files and check for existing data.
+    6. Fetch Vizier data or allow manual input for Vizier IDs.
+    7. Match new database columns with current JSON structure.
+    8. Update the JSON file and save the database as CSV.
 
     Raises:
         ValueError: If URL data fetching or metadata extraction fails.
@@ -63,47 +54,8 @@ def main(JSON_struct):
             )
             # logging.info(f"The URL {ADS_url}\nis already in the JSON file under: {db}")
 
-    logging.info("Fetching NASA/ADS url...")
-
-    # Define the query parameters
-    params = {"q": f"bibcode:{ADS_bibcode}", "fl": "author,year", "rows": 1}
-    # Make the request to the ADS API
-    response = requests.get(api_url, headers=headers, params=params)
-
-    # Check if the request was successful
-    if response.status_code == 200:
-        data = response.json()
-        if data["response"]["numFound"] > 0:
-            article = data["response"]["docs"][0]
-
-            authors_lst = article.get('author')
-            if len(authors_lst) == 1:
-                authors = authors_lst[0].split(",")[0]
-            elif len(authors_lst) == 2:
-                authors = (
-                    authors_lst[0].split(",")[0] + " & " + authors_lst[1].split(",")[0]
-                )
-            else:
-                authors = authors_lst[0].split(",")[0] + " et al."
-
-            year = article.get("year")
-        else:
-            raise ValueError(f"No article found with the given bibcode: {ADS_bibcode}")
-    else:
-        raise ValueError(f"Failed to fetch data: {response.status_code}")
-
-    # try:
-    #     ADS_soup0 = get_ADS_soup(ADS_url)
-    # except Exception as e:
-    #     raise ValueError(f"Could not fetch the URL {ADS_url}\n{str(e)}")
-    # logging.info("NASA/ADS data downloaded")
-
-    # authors, year = get_autors_year(ADS_soup)
-    # if year is None:
-    #     raise ValueError("Could not extract the publication year")
-    # if authors is None:
-    #     raise ValueError("Could not create the authors list")
-
+    logging.info("Fetching NASA/ADS data...")
+    authors, year = get_ADS_data()
     logging.info(f"Extracted author ({authors}) and year ({year})")
 
     DB_name = get_DB_name(current_JSON, authors, year)
@@ -125,10 +77,8 @@ def main(JSON_struct):
         df_all = [pd.read_csv(temp_CSV_file)]
         logging.info("Vizier CSV file loaded from file")
     else:
-        df_all = None
-        table_url = get_CDS_url(logging, ADS_bibcode)
-        if len(table_url) > 0:
-            df_all = get_DB_from_Vizier(table_url)
+        df_all = get_CDS_table(logging)
+        if df_all is not None:
             # Save the database(s) to a CSV file(s)
             save_DB_CSV(temp_CSV_file, df_all)
             logging.info(f"New DB csv file(s) stored {temp_CSV_file}\n")
@@ -196,45 +146,46 @@ def logger():
     return logging
 
 
-# def get_ADS_soup(ADS_url):
-#     """Fetch the webpage content"""
-#     response = requests.get(ADS_url)
-#     response.raise_for_status()
-#     ADS_soup = BeautifulSoup(response.text, "html.parser")
+def get_ADS_data():
+    """ """
+    # ADS API endpoint for searching
+    api_url = "https://api.adsabs.harvard.edu/v1/search/query"
+    # Read token from file
+    with open("NASA_API_TOKEN", "r") as file:
+        NASA_API_TOKEN = file.read().strip()
+    headers = {"Authorization": f"Bearer {NASA_API_TOKEN}"}
 
-#     return ADS_soup
+    # Replace code with character
+    bibcode_int = ADS_bibcode.replace("%26", "&")
 
+    # Define the query parameters
+    params = {"q": f"bibcode:{bibcode_int}", "fl": "author,year", "rows": 1}
+    # Make the request to the ADS API
+    response = requests.get(api_url, headers=headers, params=params)
 
-# def get_autors_year(ADS_soup) -> tuple[str | None, str | None]:
-#     """ """
-#     # Extract year
-#     year = None
-#     try:
-#         year_element = ADS_soup.find(
-#             "meta", attrs={"property": "article:published_time"}
-#         )
-#         if year_element is not None:
-#             year = year_element.get("content")
-#             year = str(year).split("/")[1]
-#     except Exception:
-#         pass
+    # Check if the request was successful
+    if response.status_code == 200:
+        data = response.json()
+        if data["response"]["numFound"] > 0:
+            article = data["response"]["docs"][0]
 
-#     # Extract authors
-#     authors = None
-#     try:
-#         authors_lst = [author.text for author in ADS_soup.select(".author")]
-#         if len(authors_lst) == 1:
-#             authors = authors_lst[0].split(",")[0]
-#         elif len(authors_lst) == 2:
-#             authors = (
-#                 authors_lst[0].split(",")[0] + " & " + authors_lst[1].split(",")[0]
-#             )
-#         else:
-#             authors = authors_lst[0].split(",")[0] + " et al."
-#     except Exception:
-#         pass
+            authors_lst = article.get("author")
+            if len(authors_lst) == 1:
+                authors = authors_lst[0].split(",")[0]
+            elif len(authors_lst) == 2:
+                authors = (
+                    authors_lst[0].split(",")[0] + " & " + authors_lst[1].split(",")[0]
+                )
+            else:
+                authors = authors_lst[0].split(",")[0] + " et al."
 
-#     return authors, year
+            year = article.get("year")
+        else:
+            raise ValueError(f"No article found with the given bibcode: {bibcode_int}")
+    else:
+        raise ValueError(f"Failed to fetch data: {response.status_code}")
+
+    return authors, year
 
 
 def get_DB_name(current_JSON: dict, authors: str, year: str) -> str:
@@ -267,72 +218,59 @@ def get_DB_name(current_JSON: dict, authors: str, year: str) -> str:
     return DB_name
 
 
-def get_CDS_url(logging, bibcode) -> list:
+def get_CDS_table(logging) -> list | None:
     """ """
-    # cds_url = None
-    # try:
-    #     # Extract CDS URL if available
-    #     cds_link = ADS_soup.find("a", href=True, string=lambda _: _ and "CDS" in _)
-    #     base_url = "https://ui.adsabs.harvard.edu"
-    #     if cds_link:
-    #         cds_url = base_url + cds_link["href"]
-    #         response = requests.get(cds_url)
-    #         soup = BeautifulSoup(response.text, "html.parser")
-    #         vizier_element = soup.find("a", {"uib-popover": "Query VizieR table(s)"})
-    #         if vizier_element:
-    #             cds_url = vizier_element.get("href")
-    # except Exception as e:
-    #     logging.info(f"\n{e}\n")
-    #     pass
-
-    # if cds_url is not None:
-    #     cds_url = str(cds_url)
-    #     # Extract string required for the Vizier query
-    #     if cds_url.split("/")[-1] == "CDS":
-    #         cds_url = cds_url.split("/")[-2]
-    #     elif "VizieR?-source=" in cds_url:
-    #         cds_url = cds_url.split("VizieR?-source=")[-1]
-
-    #     logging.info(f"\nCDS url obtained: {cds_url}")
-    # else:
-    #     raise ValueError("Could not extract CDS url")
-
     # Obtain the available tables. Use row_limit=1 to avoid downloading the entire
     # tables
     viz = Vizier(row_limit=1)
-    # cat = viz.get_catalogs(cds_url)
-    cat = viz.get_catalogs(bibcode)
+    cat = viz.get_catalogs(ADS_bibcode)  # pyright: ignore
     if len(cat) == 0:
-        raise ValueError(f"Could not extract data from {bibcode}")
-    logging.info(
-        f"Full url: https://vizier.cds.unistra.fr/viz-bin/VizieR?-source={bibcode}\n"
-    )
+        raise ValueError(f"Could not extract data from {ADS_bibcode}")
 
+    # Print info to screen
+    logging.info(
+        f"\nFull url: https://vizier.cds.unistra.fr/viz-bin/VizieR?-source={ADS_bibcode}\n"
+    )
     rows = cat.__str__().split("\n")
     logging.info(rows[0].strip())
     for i, row in enumerate(rows[1:]):
-        logging.info(f"{i}: " + cat[i].meta["description"])
-        logging.info("   " + row.strip())
+        logging.info(
+            f"{i}: " + cat[i].meta["description"] + " : " + row.split("with")[0].strip()
+        )
 
-    if len(cat) > 1:
-        while True:
-            tab_idx = input("Input index(es) of table(s) to store (-1 for none): ")
-            if tab_idx.strip() == "-1":
-                return []
-            tab_idx = tab_idx.strip().split(" ")
-            try:
-                tab_idx = np.array([int(_) for _ in tab_idx])
-                if (tab_idx >= 0).all() and (tab_idx < len(cat)).all():
-                    table_url = [cat.keys()[_] for _ in tab_idx]
-                    break
-                else:
-                    logging.info("Invalid input")
-            except ValueError:
+    # Select table(s) to download
+    while True:
+        tab_idx = input("\nInput index(es) of table(s) to store (-1 for none): ")
+        if tab_idx.strip() == "-1":
+            table_url = []
+            break
+        tab_idx = tab_idx.strip().split(" ")
+        try:
+            tab_idx = np.array([int(_) for _ in tab_idx])
+            if (tab_idx >= 0).all() and (tab_idx < len(cat)).all():
+                table_url = [cat.keys()[_] for _ in tab_idx]
+                break
+            else:
                 logging.info("Invalid input")
-    else:
-        table_url = [cat.keys()[0]]
+        except ValueError:
+            logging.info("Invalid input")
 
-    return table_url
+    # Download selected table(s), if any
+    df_all = None
+    if len(table_url) > 0:
+        # No limit to number of rows or columns
+        viz = Vizier(row_limit=-1, columns=["all"])
+        df_all = []
+        for turl in table_url:
+            # Download table
+            try:
+                cat = viz.get_catalogs(turl)  # pyright: ignore
+                # Convert to pandas before storing
+                df_all.append(cat.values()[0].to_pandas())
+            except Exception as e:
+                raise ValueError(f"Could not extract the data from {turl}\n{str(e)}")
+
+    return df_all
 
 
 def get_DB_from_Vizier(table_url: list) -> list:
@@ -352,7 +290,7 @@ def get_DB_from_Vizier(table_url: list) -> list:
     for turl in table_url:
         # Download table
         try:
-            cat = viz.get_catalogs(turl)
+            cat = viz.get_catalogs(turl)  # pyright: ignore
             # Convert to pandas before storing
             df_all.append(cat.values()[0].to_pandas())
         except Exception as e:
@@ -574,7 +512,7 @@ def add_DB_to_JSON(
 
 
 if __name__ == "__main__":
-    # This is the structure for each database in the JSON fle
+    # This is the structure for each database in the JSON file
     JSON_struct = {
         "SMITH2500": {
             "ADS_url": "https://ui.adsabs.harvard.edu/abs/xxxx",
@@ -612,4 +550,4 @@ if __name__ == "__main__":
         }
     }
 
-    main(JSON_struct)
+    main()
