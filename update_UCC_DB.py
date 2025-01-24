@@ -1,30 +1,36 @@
-import configparser
 import csv
 import datetime
 import json
+import logging
 import os
 import shutil
 import sys
+from os.path import join
+from pathlib import Path
 
+import numpy as np
 import pandas as pd
+from scipy.spatial import KDTree
 
-from modules import (
-    add_new_DB,
-    aux,
-    check_new_DB,
-    check_UCC_versions,
-    duplicate_probs,
-    member_files_updt_UCC,
-    prepare_new_DB,
-    standardize_and_match,
-)
+from modules import updt_UCC_DB_funcs as fs
 from modules.HARDCODED import (
+    GCs_cat,
     UCC_archive,
     UCC_folder,
     dbs_folder,
+    manual_pars_file,
     name_DBs_json,
     temp_fold,
 )
+
+# Paths to the Gaia DR3 files
+path_gaia_frames = "/media/gabriel/backup/gabriel/GaiaDR3/datafiles_parquet_G20/"
+# Paths to the file that informs the sky area covered by each file
+path_gaia_frames_ranges = (
+    "/media/gabriel/backup/gabriel/GaiaDR3/files_G20/frame_ranges.txt"
+)
+# Maximum magnitude to retrieve
+gaia_max_mag = 20
 
 
 def main():
@@ -32,11 +38,8 @@ def main():
     Main function to update the UCC (Unified Cluster Catalogue) with a new database.
 
     This function performs the following steps:
-    1. Sets up logging.
-    2. Reads parameters from the `params.ini` configuration file.
     3. Checks the accessibility of required files and folders, generate required paths.
     4. Prepares the new database format.
-    5. Adds the new database to the JSON file.
     6. Loads the current UCC, the new database, and its JSON values.
     7. Standardizes and matches the new database with the UCC.
     8. Checks the entries in the new database.
@@ -48,48 +51,46 @@ def main():
     Raises:
         ValueError: If required Gaia data files are not accessible.
     """
-    logging = aux.logger()
-    pars_dict = read_ini_file()
+    logging = logger()
 
     # Generate paths and check for required folders and files
     (
-        JSON_file,
-        temp_JSON_file,
+        current_JSON,
+        temp_JSON,
+        gaia_frames_data,
+        df_GCs,
+        manual_pars,
+        temp_database_folder,
+        GCs_path,
         new_DB_file,
         ucc_file,
         temp_ucc_file,
         archived_UCC_file,
-    ) = get_check_paths(logging, pars_dict)
+        new_DB,
+        df_UCC,
+        df_new,
+    ) = get_paths_check_paths(logging)
 
-    # New DB format check
-    prepare_new_DB.run(logging, pars_dict, JSON_file, new_DB_file)
+    # Load column data for the new catalogue
+    newDB_json = temp_JSON[new_DB]
 
-    # Adds the new database to the (temp) JSON file.
-    add_DB_to_JSON(logging, pars_dict, JSON_file, temp_JSON_file)
-
-    # Load the current UCC, the new DB, and its JSON values (from the temp file)
-    df_UCC, df_new, json_pars = load_data(
-        logging,
-        pars_dict,
-        temp_JSON_file,
-        ucc_file,
-        new_DB_file,
-    )
+    # Check for required columns in the new DB
+    check_new_DB_cols(logging, current_JSON, new_DB, df_new, newDB_json)
     df_UCC_old = df_UCC.copy()
 
     # Standardize and match the new DB with the UCC
-    new_DB_fnames, db_matches, N_new = standardize_and_match.run(
-        logging, df_UCC, df_new, json_pars, pars_dict
+    new_DB_fnames, db_matches = standardize_and_match(
+        logging, new_DB, df_UCC, df_new, newDB_json
     )
 
     # Check the entries in the new DB
-    check_new_DB.run(
-        logging, pars_dict, df_UCC, df_new, json_pars, new_DB_fnames, db_matches
+    check_new_DB(
+        logging, GCs_path, new_DB, df_UCC, df_new, newDB_json, new_DB_fnames, db_matches
     )
 
     # Generate new UCC file with the new DB incorporated
-    df_UCC = add_new_DB.run(
-        logging, pars_dict, df_UCC, df_new, json_pars, new_DB_fnames, db_matches
+    df_UCC = add_new_DB(
+        logging, new_DB, newDB_json, df_UCC, df_new, new_DB_fnames, db_matches
     )
     df_UCC = possible_duplicates(logging, df_UCC, "literature")
 
@@ -99,11 +100,12 @@ def main():
     if input("Move on? (y/n): ").lower() != "y":
         sys.exit()
 
+    N_new = db_matches.count(None)
     if N_new > 0:
-        logging.info(
-            f"\nProcessing {N_new} new OCs in {pars_dict['new_DB']} with fastMP...\n"
+        logging.info(f"\nProcessing {N_new} new OCs in {new_DB} with fastMP...\n")
+        df_UCC = member_files_updt_UCC(
+            logging, df_UCC, gaia_frames_data, temp_database_folder, df_GCs, manual_pars
         )
-        df_UCC = member_files_updt_UCC.run(logging, pars_dict, df_UCC)
         # Update membership probabilities
         df_UCC = possible_duplicates(logging, df_UCC, "UCC_members")
         df_UCC = save_and_reload(logging, temp_ucc_file, df_UCC)
@@ -112,78 +114,83 @@ def main():
         logging.info("No new OCs to process")
 
     logging.info(
-        f"Check last version (N={len(df_UCC_old)}) vs new version (N={len(df_UCC)})"
+        f"\nCheck last version (N={len(df_UCC_old)}) vs new version (N={len(df_UCC)})"
     )
-    check_UCC_versions.run(logging, df_UCC_old, df_UCC)
+    check_UCC_versions(logging, df_UCC_old, df_UCC, new_DB_fnames, db_matches)
 
-    if input("Move files to their final destination? (y/n): ").lower() != "y":
+    if input("\nMove files to their final destination? (y/n): ").lower() != "y":
         sys.exit()
     move_files(logging, temp_ucc_file)
+
+    # Check number of files
+    file_checker(logging, temp_database_folder)
 
     logging.info("\nAll done! Proceed with the next script")
 
 
-def read_ini_file():
+def logger():
     """
-    Load .ini config file
+    Sets up a logger that writes log messages to a file named with the current date
+    and also outputs to the console.
+
+    Returns:
+        logging.Logger: Configured logger instance.
     """
-    in_params = configparser.ConfigParser()
-    in_params.read("params.ini")
-    print("Loaded params.ini")
+    mypath = Path().absolute()
 
-    pars_dict = {}
+    # Name of log file using the date
+    x = datetime.date.today()
+    out_file = "logs/" + str(x).replace("-", "_") + ".log"
 
-    pars = in_params["New DB data"]
-    for col in (
-        "new_DB",
-        "DB_name",
-        "DB_ref",
-        "ID",
-        "RA",
-        "DEC",
-        "Plx",
-        "pmRA",
-        "pmDE",
-        "Rv",
-        "Av/E_bv",
-        "dm/dist",
-        "Age/logt",
-        "Z/FeH",
-        "Mass",
-        "binar_frac",
-        "blue_stragglers",
-        "e_Av/E_bv",
-        "e_dm/dist",
-        "e_Age/logt",
-        "e_Z/FeH",
-        "e_Mass",
-        "e_binar_frac",
-        "e_blue_stragglers",
-    ):
-        pars_dict[col] = pars.get(col)
+    # Set up logging module
+    level = logging.INFO
+    frmt = "%(message)s"
+    handlers = [
+        logging.FileHandler(join(mypath, out_file), mode="a"),
+        logging.StreamHandler(),
+    ]
+    logging.basicConfig(level=level, format=frmt, handlers=handlers)
 
-    pars = in_params["New DB check"]
-    pars_dict["search_rad"] = pars.getfloat("search_rad")
-    pars_dict["leven_rad"] = pars.getfloat("leven_rad")
-    pars_dict["rad_dup"] = pars.getfloat("rad_dup")
+    logging.info("\n------------------------------")
+    logging.info(str(datetime.datetime.now()) + "\n")
 
-    pars = in_params["Run fastMP / Updt UCC"]
-    pars_dict["frames_path"] = pars.get("frames_path")
-    pars_dict["frames_ranges"] = pars.get("frames_ranges")
-    pars_dict["max_mag"] = pars.getfloat("max_mag")
-    pars_dict["manual_pars_f"] = pars.get("manual_pars_f")
-    pars_dict["verbose"] = pars.getint("verbose")
-
-    return pars_dict
+    return logging
 
 
-def get_check_paths(logging, pars_dict: dict) -> tuple[str, str, str, str, str, str]:
+def get_paths_check_paths(
+    logging,
+) -> tuple[
+    dict,
+    dict,
+    pd.DataFrame | None,
+    pd.DataFrame,
+    pd.DataFrame,
+    str,
+    str,
+    str,
+    str,
+    str,
+    str,
+    str,
+    pd.DataFrame,
+    pd.DataFrame,
+]:
     """ """
     # Check for Gaia files
-    if not os.path.isdir(pars_dict["frames_path"]):
-        raise ValueError(f"Folder {pars_dict['frames_path']} is not present")
-    if not os.path.isfile(pars_dict["frames_ranges"]):
-        raise ValueError(f"File {pars_dict['frames_ranges']} is not present")
+    if not os.path.isdir(path_gaia_frames):
+        logging.info(f"Folder {path_gaia_frames} is not present")
+
+    if not os.path.isfile(path_gaia_frames_ranges):
+        logging.info(f"File {path_gaia_frames_ranges} is not present")
+        gaia_frames_data = None
+    else:
+        gaia_frames_data = pd.read_csv(path_gaia_frames_ranges)
+
+    GCs_path = dbs_folder + GCs_cat
+    # Load GCs data
+    df_GCs = pd.read_csv(GCs_path)
+    # Read OCs manual parameters
+    manual_pars = pd.read_csv(manual_pars_file)
 
     # Generate required temp folders
     # Temporary zenodo/ folder
@@ -197,6 +204,14 @@ def get_check_paths(logging, pars_dict: dict) -> tuple[str, str, str, str, str, 
     if not os.path.exists(temp_database_folder):
         os.makedirs(temp_database_folder)
 
+    # Create quadrant folders
+    for Nquad in range(1, 5):
+        for lat in ("P", "N"):
+            quad = "Q" + str(Nquad) + lat
+            out_path = temp_fold + quad + "/datafiles/"
+            if not os.path.exists(out_path):
+                os.makedirs(out_path)
+
     # Path to the latest version of the UCC catalogue
     last_version = None
     for file in os.listdir(UCC_folder):
@@ -207,6 +222,9 @@ def get_check_paths(logging, pars_dict: dict) -> tuple[str, str, str, str, str, 
         raise ValueError(f"UCC file not found in {UCC_folder}")
     # Path to the current UCC csv file
     ucc_file = UCC_folder + last_version
+
+    df_UCC = pd.read_csv(ucc_file)
+    logging.info(f"\nUCC version {ucc_file} loaded (N={len(df_UCC)})")
 
     # Path to the new (temp) version of the UCC database
     new_version = datetime.datetime.now().strftime("%Y%m%d%H")[2:]
@@ -222,130 +240,270 @@ def get_check_paths(logging, pars_dict: dict) -> tuple[str, str, str, str, str, 
     # Path to the new (temp) JSON file
     temp_JSON_file = temp_database_folder + name_DBs_json
 
+    # Load current JSON file
+    with open(JSON_file) as f:
+        current_JSON = json.load(f)
+    # Load temp JSON file
+    with open(temp_JSON_file) as f:
+        temp_JSON = json.load(f)
+    logging.info(f"JSON file {temp_JSON_file} loaded")
+    # Extract new DB's name
+    new_DB = list(set(temp_JSON.keys()) - set(current_JSON.keys()))[0]
+
     # Path to the new DB
-    new_DB_file = dbs_folder + pars_dict["new_DB"] + ".csv"
+    new_DB_file = temp_database_folder + new_DB + ".csv"
+    # Load the new DB
+    df_new = pd.read_csv(new_DB_file)
+    logging.info(f"New DB {new_DB} loaded (N={len(df_new)})")
 
     # Path to the archived current UCC csv file
     archived_UCC_file = UCC_folder + UCC_archive + last_version.replace(".csv", ".gz")
 
     return (
-        JSON_file,
-        temp_JSON_file,
+        current_JSON,
+        temp_JSON,
+        gaia_frames_data,
+        df_GCs,
+        manual_pars,
+        temp_database_folder,
+        GCs_path,
         new_DB_file,
         ucc_file,
         temp_ucc_file,
         archived_UCC_file,
+        new_DB,
+        df_UCC,
+        df_new,
     )
 
 
-def add_DB_to_JSON(
-    logging, pars_dict: dict, JSON_file: str, temp_JSON_file: str
+def check_new_DB_cols(
+    logging, current_JSON, new_DB, df_new, newDB_json, show_entries=True
 ) -> None:
     """ """
-    # Extract DB's year
-    db_root = pars_dict["new_DB"].split("_")[0]
-    db_year = int(db_root[-4:])
+    # Check that the new DB is not already present in the 'old' JSON file
+    if new_DB in current_JSON.keys():
+        raise ValueError(f"The DB '{new_DB}' is in the current JSON file")
 
-    # Load current JSON file
-    with open(JSON_file) as f:
-        all_dbs_json = json.load(f)
+    # Check for required columns
+    cols = [newDB_json["names"]]
+    for entry in ("pos", "pars", "e_pars"):
+        for k, v in newDB_json[entry].items():
+            cols.append(v)
+    # Acces columns stored in JSON file
+    for col in cols:
+        df_new[col]
+    logging.info(f"\nAll columns present in {new_DB}")
 
-    # Extract years in current JSON file
-    years = []
-    for db in all_dbs_json.keys():
-        years.append(int(db.split("_")[0][-4:]))
-
-    # Index into a sorted list of integers, maintaining the sorted order
-    index = 0
-    while index < len(years) and years[index] < db_year:
-        index += 1
-    if index < 0:
-        index = 0  # Prepend if index is negative
-    elif index > len(all_dbs_json):
-        index = len(all_dbs_json)  # Append if index is beyond the end
-
-    # Create 'new_db_json' dictionary with the new DB's params
-    new_db_json = {}
-    new_db_json["ref"] = f"[{pars_dict['DB_name']}]({pars_dict['DB_ref']})"
-    new_db_json["names"] = f"{pars_dict['ID']}"
-    #
-    pos_entry = ""
-    for col in ("RA", "DEC", "Plx", "pmRA", "pmDE", "Rv"):
-        if pars_dict[col] != "None":
-            pos_entry += pars_dict[col] + ","
-        else:
-            pos_entry += "None,"
-    pos_entry = pos_entry[:-1]
-    new_db_json["pos"] = f"{pos_entry}"
-
-    pars_entry, e_pars_entry = [], []
-    for col in (
-        "Av/E_bv",
-        "dm/dist",
-        "Age/logt",
-        "Z/FeH",
-        "Mass",
-        "binar_frac",
-        "blue_stragglers",
-    ):
-        if pars_dict[col] != "None":
-            pars_entry.append(pars_dict[col].strip())
-            if pars_dict["e_" + col] != "None":
-                e_pars_entry.append(pars_dict["e_" + col])
-            else:
-                e_pars_entry.append("None")
-    if pars_entry:
-        pars_entry = ",".join(pars_entry)
+    # Check for semi-colon and underscore present in name column
+    logging.info("\nPossible bad characters in names (';', '_')")
+    all_bad_names = []
+    for new_cl in df_new[newDB_json["names"]]:
+        if ";" in new_cl or "_" in new_cl:
+            all_bad_names.append(new_cl)
+    if len(all_bad_names) == 0:
+        logging.info("No bad-chars found in name(s) column")
     else:
-        pars_entry = ""
-    new_db_json["pars"] = pars_entry
-    #
-    if e_pars_entry:
-        e_pars_entry = ",".join(e_pars_entry)
-    else:
-        e_pars_entry = ""
-    new_db_json["pars"] = pars_entry
-    new_db_json["e_pars"] = e_pars_entry
-
-    # Adds an element to a JSON array within a file at a specific index.
-    dbs_keys = list(all_dbs_json.keys())
-    dbs_keys.insert(index, pars_dict["new_DB"])
-    new_json_dict = {}
-    for key in dbs_keys:
-        if key != pars_dict["new_DB"]:
-            new_json_dict[key] = all_dbs_json[key]
-        else:
-            new_json_dict[pars_dict["new_DB"]] = new_db_json
-
-    # Save to (temp) JSON file
-    with open(temp_JSON_file, "w") as f:
-        json.dump(new_json_dict, f, indent=2)  # Use indent for readability
-
-    logging.info("\nTemp JSON file updated")
+        logging.info(
+            f"{len(all_bad_names)} entries with bad-chars found in name(s) column"
+        )
+        if show_entries:
+            for new_cl in all_bad_names:
+                logging.info(f"{new_cl}: bad char found")
+        raise ValueError("Resolve the above issues before moving on.")
 
 
-def load_data(
+def standardize_and_match(
     logging,
-    pars_dict: dict,
-    temp_JSON_file: str,
-    ucc_file: str,
-    new_DB_file: str,
-) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
-    """ """
-    # Load column data for the new catalogue
-    with open(temp_JSON_file) as f:
-        dbs_used = json.load(f)
-    json_pars = dbs_used[pars_dict["new_DB"]]
-    logging.info(f"JSON file {temp_JSON_file} loaded")
+    new_DB: str,
+    df_UCC: pd.DataFrame,
+    df_new: pd.DataFrame,
+    newDB_json: dict,
+    show_entries: bool = True,
+) -> tuple[list[list[str]], list[int | None]]:
+    """
+    Standardizes names in a new database and matches them against an existing UCC
+    database.
 
-    df_UCC = pd.read_csv(ucc_file)
-    logging.info(f"UCC version {ucc_file} loaded (N={len(df_UCC)})")
+    This function processes entries in a new database, standardizes their names,
+    and attempts to match them with entries in an existing UCC database. It also
+    provides logging information about the number of matches found and optionally
+    displays new OCs that weren't matched.
 
-    # Load the new DB
-    df_new = pd.read_csv(new_DB_file)
-    logging.info(f"New DB {pars_dict['new_DB']} loaded (N={len(df_new)})")
+    Args:
+        logging: logger object
+        new_DB (str): Name of the new DB
+        df_UCC (pd.DataFrame): DataFrame containing the existing UCC database entries
+        df_new (pd.DataFrame): DataFrame containing the new database entries
+        newDB_json (dict): Parameters for database combination operations
+        show_entries (bool, optional): If True, prints unmatched OCs. Defaults to False
 
-    return df_UCC, df_new, json_pars
+    Returns:
+        tuple[list[list[str]], list[int | None]]: A tuple containing:
+            - List of list of standardized filenames from the new database
+            - List of matching entries where None indicates no match found
+    """
+    logging.info(f"\nStandardize names in {new_DB}")
+    new_DB_fnames = fs.get_fnames_new_DB(df_new, newDB_json)
+    db_matches = fs.get_matches_new_DB(df_UCC, new_DB_fnames)
+    N_matches = sum(match is not None for match in db_matches)
+    logging.info(f"Found {N_matches} matches in {new_DB}")
+    N_new = len(df_new) - N_matches
+    logging.info(f"Found {N_new} new OCs in {new_DB}")
+
+    name_col = newDB_json["names"]
+    if show_entries:
+        for i, oc_new_db in enumerate(df_new[name_col].values):
+            if db_matches[i] is None:
+                logging.info(f"  {i}: {oc_new_db.strip()}")
+
+    return new_DB_fnames, db_matches
+
+
+def check_new_DB(
+    logging,
+    GCs_path: str,
+    new_DB: str,
+    df_UCC,
+    df_new,
+    newDB_json,
+    new_DB_fnames,
+    db_matches,
+    rad_dup=10,
+) -> None:
+    """
+    1. Checks for duplicate entries between the new database and the UCC.
+    2. Checks for nearby GCs.
+    3. Checks for OCs very close to each other within the new database.
+    4. Checks for OCs very close to each other between the new database and the UCC.
+    5. Checks for instances of 'vdBergh-Hagen' and 'vdBergh'.
+    6. Checks positions and flags for attention if required.
+    """
+
+    # Duplicate check between entries in the new DB and the UCC
+    logging.info(f"\nChecking for entries in {new_DB} that must be combined")
+    dup_flag = fs.dups_check_newDB_UCC(
+        logging, new_DB, df_UCC, new_DB_fnames, db_matches
+    )
+    if dup_flag:
+        raise ValueError("Resolve the above issues before moving on.")
+    else:
+        logging.info("No issues found")
+
+    # Check for GCs
+    logging.info("\nClose GC check")
+    glon, glat, gc_flag = fs.GCs_check(logging, GCs_path, newDB_json, df_new)
+    if gc_flag:
+        if input("Move on? (y/n): ").lower() != "y":
+            sys.exit()
+
+    # Check for OCs very close to each other (possible duplicates)
+    logging.info("\nProbable inner duplicates check")
+    inner_flag = fs.close_OC_check(logging, newDB_json, df_new, rad_dup)
+    if inner_flag:
+        if input("Move on? (y/n): ").lower() != "y":
+            sys.exit()
+
+    # Check for OCs very close to each other (possible duplicates)
+    logging.info("\nProbable UCC duplicates check")
+    dups_flag = fs.close_OC_UCC_check(
+        logging, df_UCC, new_DB_fnames, db_matches, glon, glat, rad_dup
+    )
+    if dups_flag:
+        if input("Move on? (y/n): ").lower() != "y":
+            sys.exit()
+
+    # Check for 'vdBergh-Hagen', 'vdBergh' OCs
+    logging.info("\nPossible vdBergh-Hagen/vdBergh check")
+    vdb_flag = fs.vdberg_check(logging, newDB_json, df_new)
+    if vdb_flag:
+        if input("Move on? (y/n): ").lower() != "y":
+            sys.exit()
+
+    # Prepare information from a new database matched with the UCC
+    new_db_info = fs.prep_newDB(newDB_json, df_new, new_DB_fnames, db_matches)
+
+    # Check positions and flag for attention if required
+    attention_flag = fs.positions_check(logging, df_UCC, new_db_info, rad_dup)
+    if attention_flag is True:
+        if input("\nMove on? (y/n): ").lower() != "y":
+            sys.exit()
+
+
+def add_new_DB(
+    logging, new_DB: str, newDB_json: dict, df_UCC, df_new, new_DB_fnames, db_matches
+) -> pd.DataFrame:
+    """
+    Adds a new database to the Unified Cluster Catalogue (UCC).
+    This function performs the following steps:
+
+    1. Combines the UCC and the new database.
+    2. Assigns UCC IDs and quadrants for new clusters.
+    3. Drops clusters from the UCC that are present in the new database.
+    4. Performs a final duplicate check.
+
+    Args:
+        logging (logging.Logger): Logger instance for logging messages.
+        pars_dict (dict): Dictionary containing parameters for the new database.
+        df_UCC (pd.DataFrame): DataFrame containing the current UCC.
+        df_new (pd.DataFrame): DataFrame containing the new database.
+        json_pars (dict): Dictionary containing JSON parameters for the new database.
+        new_DB_fnames (list): List of lists, each containing the filenames of the
+        entries in the new database.
+        db_matches (list): List of indexes into the UCC pointing to each entry in the
+        new database.
+
+    Returns:
+        pd.DataFrame: Updated UCC DataFrame with the new database incorporated.
+
+    Raises:
+        ValueError: If duplicated entries are found in the 'ID', 'UCC_ID', or 'fnames'
+        columns.
+    """
+
+    logging.info(f"Adding new DB: {new_DB}")
+
+    logging.info("")
+    new_db_dict = fs.combine_UCC_new_DB(
+        logging,
+        new_DB,
+        newDB_json,
+        df_UCC,
+        df_new,
+        new_DB_fnames,
+        db_matches,
+    )
+    N_new = len(df_new) - sum(_ is not None for _ in db_matches)
+    logging.info(f"\nN={N_new} new clusters in {new_DB}")
+    logging.info("")
+
+    # Add UCC_IDs and quadrants for new clusters
+    ucc_ids_old = list(df_UCC["UCC_ID"].values)
+    for i, UCC_ID in enumerate(new_db_dict["UCC_ID"]):
+        # Only process new OCs
+        if str(UCC_ID) != "nan":
+            continue
+        new_db_dict["UCC_ID"][i] = fs.assign_UCC_ids(
+            logging, new_db_dict["GLON"][i], new_db_dict["GLAT"][i], ucc_ids_old
+        )
+        new_db_dict["quad"][i] = fs.QXY_fold(new_db_dict["UCC_ID"][i])
+        ucc_ids_old += [new_db_dict["UCC_ID"][i]]
+
+    # Drop OCs from the UCC that are present in the new DB
+    # Remove 'None' entries first from the indexes list
+    idx_rm_comb_db = [_ for _ in db_matches if _ is not None]
+    df_UCC_no_new = df_UCC.drop(list(df_UCC.index[idx_rm_comb_db]))
+    df_UCC_no_new.reset_index(drop=True, inplace=True)
+    df_all = pd.concat([df_UCC_no_new, pd.DataFrame(new_db_dict)], ignore_index=True)
+
+    # Final duplicate check
+    dup_flag = fs.duplicates_check(logging, df_all)
+    if dup_flag:
+        raise ValueError(
+            "Duplicated entries found in either 'ID, UCC_ID, fnames' column"
+        )
+
+    return df_all
 
 
 def possible_duplicates(logging, df_UCC: pd.DataFrame, data_orig: str) -> pd.DataFrame:
@@ -368,29 +526,20 @@ def possible_duplicates(logging, df_UCC: pd.DataFrame, data_orig: str) -> pd.Dat
 
     # prob_cut: Float representing the probability cutoff for identifying duplicates.
     if data_orig == "literature":
-        x, y, plx, pmRA, pmDE = (
-            df_UCC["GLON"],
-            df_UCC["GLAT"],
-            df_UCC["Plx"],
-            df_UCC["pmRA"],
-            df_UCC["pmDE"],
-        )
+        d_id = ""
         prob_cut = 0.5
     elif data_orig == "UCC_members":
-        x, y, plx, pmRA, pmDE = (
-            df_UCC["GLON_m"],
-            df_UCC["GLAT_m"],
-            df_UCC["Plx_m"],
-            df_UCC["pmRA_m"],
-            df_UCC["pmDE_m"],
-        )
+        d_id = "_m"
         prob_cut = 0.25
     else:
         raise ValueError(f"Incorrect 'data_orig' value: {data_orig}")
 
+    cols = ("GLON", "GLAT", "Plx", "pmRA", "pmDE")
+    x, y, plx, pmRA, pmDE = [np.array(df_UCC[col + d_id]) for col in cols]
+
     # Use members data
-    dups_fnames, dups_probs = duplicate_probs.run(
-        df_UCC["fnames"],
+    dups_fnames, dups_probs = fs.duplicate_probs(
+        list(df_UCC["fnames"]),
         x,
         y,
         plx,
@@ -404,6 +553,68 @@ def possible_duplicates(logging, df_UCC: pd.DataFrame, data_orig: str) -> pd.Dat
     else:
         df_UCC["dups_fnames_m"], df_UCC["dups_probs_m"] = dups_fnames, dups_probs
     logging.info("Duplicates (using members data) added to UCC\n")
+
+    return df_UCC
+
+
+def member_files_updt_UCC(
+    logging, df_UCC, gaia_frames_data, temp_database_folder, df_GCs, manual_pars
+):
+    """
+    Updates the Unified Cluster Catalogue (UCC) with new open clusters (OCs).
+    This function performs the following steps:
+
+    1. Reads extra input data including frame ranges, globular clusters (GCs) catalog,
+       and manual parameters.
+    2. Constructs a KD-tree for efficient spatial queries on the UCC.
+    3. Processes each new OC by:
+        a. Checking if it is a new OC that should be processed.
+        b. Generating a frame for the OC.
+        c. Applying manual parameters if available.
+        d. Identifying close clusters.
+        e. Requesting data for the OC.
+        f. Processing the OC with the `fastMP` method.
+        g. Splitting the data into members and field stars.
+        h. Extracting cluster data and updating the UCC.
+        i. Save members .parquet file in the proper Q folder
+
+    Args:
+        logging (logging.Logger): Logger instance for logging messages.
+        pars_dict (dict): Dictionary containing parameters for the new database.
+        df_UCC (pd.DataFrame): DataFrame containing the current UCC.
+
+    Returns:
+        pd.DataFrame: Updated UCC DataFrame with new OCs processed.
+    """
+
+    # Parameters used to search for close-by clusters
+    xys = np.array([df_UCC["GLON"].values, df_UCC["GLAT"].values]).T
+    tree = KDTree(xys)
+
+    # For each new OC
+    for index, new_cl in df_UCC.iterrows():
+        # Check if this is a new OC that should be processed
+        if str(new_cl["C3"]) != "nan":
+            continue
+
+        logging.info(f"*** {index} Processing {new_cl['fnames']}")
+        df_membs, df_UCC = fs.process_new_OC(
+            logging,
+            df_UCC,
+            path_gaia_frames,
+            gaia_max_mag,
+            gaia_frames_data,
+            df_GCs,
+            manual_pars,
+            tree,
+            index,
+            new_cl,
+        )
+
+        # Write member stars for cluster and some field
+        fs.save_cl_datafile(logging, temp_database_folder, new_cl, df_membs)
+
+        logging.info(f"*** Cluster {new_cl['ID']} processed with fastMP\n")
 
     return df_UCC
 
@@ -482,6 +693,88 @@ def diff_between_dfs(
     logging.info("Files 'UCC_diff_xxx.csv' saved\n")
 
 
+def check_UCC_versions(
+    logging,
+    UCC_old: pd.DataFrame,
+    UCC_new: pd.DataFrame,
+    new_DB_fnames: list,
+    db_matches: list,
+) -> None:
+    """Run checks on old and new UCC files to ensure consistency and identify possible
+    issues.
+
+    Parameters:
+    - logging: Logger instance for recording messages.
+    - UCC_old: DataFrame containing the old UCC data.
+    - UCC_new: DataFrame containing the new UCC data.
+    - new_DB_fnames: List of lists with fnames of the new DB
+    - db_matches: List of indexes of OCs in the new DB into the UCC ('None' for new OCs)
+
+    Returns:
+    - None
+    """
+    fs.fnames_checker(UCC_new)
+
+    fnames_old_all = list(UCC_old["fnames"])
+    fnames_new_all = list(UCC_new["fnames"])
+
+    i_fname_new_in_old = []
+    for fnames_new in fnames_new_all:
+        try:
+            i_fname_new_in_old.append(fnames_old_all.index(fnames_new))
+        except ValueError:
+            # 'fnames_new' not in old UCC
+            i_fname_new_in_old.append(None)
+
+    # Extract new fnames
+    new_fnames = []
+    for i, j in enumerate(db_matches):
+        if j is None:
+            new_fnames.append(";".join(new_DB_fnames[i]))
+    # Check new entries
+    logging.info("\nOCs with fnames that changed or are new:")
+    for i_new, i_old in enumerate(i_fname_new_in_old):
+        if i_old is None:
+            fnames_new = fnames_new_all[i_new]
+            if fnames_new in new_fnames:
+                logging.info(f"new     : {fnames_new}")
+            else:
+                logging.info(f"changed : {fnames_new}")
+            fs.check_new_entries(fnames_old_all, i_new, fnames_new)
+
+    # Check existing entries
+    logging.info("\nOCs with fnames that did not change:")
+    logging.info("fnames     --> column name: differences")
+    for i_new, i_old in enumerate(i_fname_new_in_old):
+        if i_old is None:
+            continue
+
+        # If 'fnames_new' was found in the old UCC, compare both entries
+        # Extract rows
+        row_new = UCC_new.iloc[i_new]
+        row_old = UCC_old.iloc[i_old]
+
+        # Compare rows using pandas method
+        row_compared = row_new.compare(row_old)
+
+        # If rows are not equal
+        if row_compared.empty is False:
+            # Extract column names with differences
+            row_dict = row_compared.to_dict()
+            diff_cols = list(row_dict["self"].keys())
+
+            # If the only diffs are in the ID columns, skip check
+            if (
+                diff_cols == ["DB", "DB_i"]
+                or diff_cols == ["DB"]
+                or diff_cols == ["DB_i"]
+            ):
+                continue
+
+            fnames = str(UCC_old["fnames"][i_old])
+            fs.check_rows(logging, fnames, diff_cols, row_old, row_new)
+
+
 def move_files(
     logging,
     JSON_file: str,
@@ -517,6 +810,60 @@ def move_files(
     # Remove folder
     shutil.rmtree(temp_fold)
     logging.info("temp/ folder removed")
+
+
+def file_checker(logging, temp_database_folder: str) -> None:
+    """Check the number and types of files in directories for consistency.
+
+    Parameters:
+    - logging: Logger instance for recording messages.
+    - UCC_new: DataFrame containing the new UCC data.
+
+    Returns:
+    - None
+    """
+    logging.info("\nChecking number of files")
+    logging.info("    parquet webp  aladin  extra")
+
+    flag_error = False
+    NT_parquet, NT_webp, NT_webp_aladin, NT_extra = 0, 0, 0, 0
+    for qnum in range(1, 5):
+        for lat in ("P", "N"):
+            N_parquet, N_webp, N_webp_aladin, N_extra = 0, 0, 0, 0
+            for ffolder in ("datafiles", "plots"):
+                qfold = temp_database_folder + "Q" + str(qnum) + lat + f"/{ffolder}/"
+                # Read all files in Q folder
+                for file in os.listdir(qfold):
+                    if "HUNT23" in file or "CANTAT20" in file:
+                        pass
+                    elif "aladin" in file:
+                        N_webp_aladin += 1
+                        NT_webp_aladin += 1
+                    elif "parquet" in file:
+                        N_parquet += 1
+                        NT_parquet += 1
+                    elif "webp" in file:
+                        N_webp += 1
+                        NT_webp += 1
+                    else:
+                        N_extra += 1
+                        NT_extra += 1
+
+            mark = "V" if (N_parquet == N_webp == N_webp_aladin) else "X"
+            if N_extra > 0:
+                mark = "X"
+            logging.info(
+                f"{str(qnum) + lat}:   {N_parquet}  {N_webp}  {N_webp_aladin}    {N_extra} <-- {mark}"
+            )
+            if mark == "X":
+                flag_error = True
+    logging.info(
+        f"Total parquet/webp/aladin/extra: {NT_parquet}, {NT_webp}, {NT_webp_aladin}, {NT_extra}"
+    )
+    if not (NT_parquet == NT_webp == NT_webp_aladin) or NT_extra > 0:
+        flag_error = True
+    if flag_error:
+        raise ValueError("The file check was unsuccessful")
 
 
 if __name__ == "__main__":
