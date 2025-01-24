@@ -33,3 +33,6 @@ plots_folder = "plots"
 
 # Folder where files to be uploaded to Zenodo are stored
 zenodo_folder = "../zenodo_upload/"
+
+# Path to the file with manual OC parameters
+manual_pars_file = "manual_params.csv"
