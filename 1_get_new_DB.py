@@ -1,5 +1,8 @@
 import csv
+import datetime
 import json
+import logging
+from os.path import join
 from pathlib import Path
 
 import Levenshtein
@@ -9,9 +12,6 @@ import requests
 from astroquery.vizier import Vizier
 from bs4 import BeautifulSoup
 
-from modules import (
-    aux,
-)
 from modules.HARDCODED import (
     dbs_folder,
     name_DBs_json,
@@ -19,7 +19,7 @@ from modules.HARDCODED import (
 )
 
 # NASA/ADS url to the new DB
-ADS_url0 = "https://ui.adsabs.harvard.edu/abs/xxxx"
+ADS_url0 = "https://ui.adsabs.harvard.edu/abs/2010AstL...36...75G/abstract"
 
 # This is the structure for each database in the JSON fle
 JSON_struct = {
@@ -79,7 +79,7 @@ def main():
     Raises:
         ValueError: If URL data fetching or metadata extraction fails.
     """
-    logging = aux.logger()
+    logging = logger()
 
     # Proper url format
     ADS_url = ADS_url0
@@ -96,10 +96,10 @@ def main():
     # Check if url is already listed in the current JSON file
     for db, vals in current_JSON.items():
         if ADS_url == vals["ADS_url"]:
-            # raise ValueError(
-            #     f"The URL {ADS_url}\nis already in the JSON file under: {db}"
-            # )
-            logging.info(f"The URL {ADS_url}\nis already in the JSON file under: {db}")
+            raise ValueError(
+                f"The URL {ADS_url}\nis already in the JSON file under: {db}"
+            )
+            # logging.info(f"The URL {ADS_url}\nis already in the JSON file under: {db}")
 
     logging.info("Fetching NASA/ADS url...")
     try:
@@ -180,6 +180,35 @@ def main():
     logging.info("********************************************************")
 
 
+def logger():
+    """
+    Sets up a logger that writes log messages to a file named with the current date
+    and also outputs to the console.
+
+    Returns:
+        logging.Logger: Configured logger instance.
+    """
+    mypath = Path().absolute()
+
+    # Name of log file using the date
+    x = datetime.date.today()
+    out_file = "logs/" + str(x).replace("-", "_") + ".log"
+
+    # Set up logging module
+    level = logging.INFO
+    frmt = "%(message)s"
+    handlers = [
+        logging.FileHandler(join(mypath, out_file), mode="a"),
+        logging.StreamHandler(),
+    ]
+    logging.basicConfig(level=level, format=frmt, handlers=handlers)
+
+    logging.info("\n------------------------------")
+    logging.info(str(datetime.datetime.now()) + "\n")
+
+    return logging
+
+
 def get_ADS_soup(ADS_url):
     """Fetch the webpage content"""
     response = requests.get(ADS_url)
@@ -243,7 +272,7 @@ def get_DB_name(current_JSON: dict, authors: str, year: str) -> str:
         i = 2
         while True:
             if DB_name in DBs_in_JSON:
-                DB_name = DB_name.replace(f"_{i-1}", f"_{i}")
+                DB_name = DB_name.replace(f"_{i - 1}", f"_{i}")
             else:
                 break
             i += 1
