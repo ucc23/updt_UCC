@@ -141,11 +141,6 @@ def main():
     else:
         logging.info("No new OCs to process")
 
-    # logging.info(
-    #     f"\nCheck last version (N={len(df_UCC_old)}) vs new version (N={len(df_UCC)})"
-    # )
-    # check_UCC_versions(logging, df_UCC_old, df_UCC, new_DB_fnames, db_matches)
-
     if input("\nMove files to their final destination? (y/n): ").lower() != "y":
         sys.exit()
     move_files(
@@ -164,8 +159,7 @@ def main():
 
     if input("\nRemove temporary files and folders? (y/n): ").lower() == "y":
         # shutil.rmtree(temp_fold)
-        print("remove folder: ", temp_fold)
-        # logging.info(f"Folder removed: {temp_fold}")
+        logging.info(f"Folder removed: {temp_fold}")
 
     logging.info("\nAll done! Proceed with the next script")
 
@@ -777,104 +771,6 @@ def fnames_checker(df_UCC: pd.DataFrame) -> None:
     N_unique = len(list(set(fname0_UCC)))
     if NT != N_unique:
         raise ValueError("fnames are not unique")
-
-
-# def check_UCC_versions(
-#     logging,
-#     UCC_old: pd.DataFrame,
-#     UCC_new: pd.DataFrame,
-#     new_DB_fnames: list,
-#     db_matches: list,
-# ) -> None:
-#     """Run checks on old and new UCC files to ensure consistency and identify possible
-#     issues.
-
-#     Parameters:
-#     - logging: Logger instance for recording messages.
-#     - UCC_old: DataFrame containing the old UCC data.
-#     - UCC_new: DataFrame containing the new UCC data.
-#     - new_DB_fnames: List of lists with fnames of the new DB
-#     - db_matches: List of indexes of OCs in the new DB into the UCC ('None' for new OCs)
-
-#     Returns:
-#     - None
-#     """
-
-#     fnames_old_all = list(UCC_old["fnames"])
-#     fnames_new_all = list(UCC_new["fnames"])
-
-#     fname_old_all_lst = []
-#     for fnames_old in fnames_old_all:
-#         # temp = []
-#         # for fname_old in fnames_old.split(";"):
-#         #     temp.append(fname_old)
-#         fname_old_all_lst.append(fnames_old.split(";"))
-
-#     i_fname_new_in_old = []
-#     for fnames_new in fnames_new_all:
-#         try:
-#             i_fname_new_in_old.append(fnames_old_all.index(fnames_new))
-#         except ValueError:
-#             # 'fnames_new' not in old UCC
-#             i_fname_new_in_old.append(None)
-
-#     # Extract new fnames
-#     new_fnames = []
-#     for i, j in enumerate(db_matches):
-#         if j is None:
-#             new_fnames.append(";".join(new_DB_fnames[i]))
-
-#     # Check new entries
-#     logging.info("\nOCs with fnames that changed or are new:")
-#     for i_new, i_old in enumerate(i_fname_new_in_old):
-#         if i_old is None:
-#             fnames_new = fnames_new_all[i_new]
-#             if fnames_new in new_fnames:
-#                 logging.info(f"new     : {fnames_new}")
-#             else:
-#                 logging.info(f"changed : {fnames_new}")
-
-#             # Check new entries in the UCC that are not present in the old UCC
-#             idxs_old_match = []
-#             for fname_new in fnames_new.split(";"):
-#                 for i_old, fnames_old in enumerate(fname_old_all_lst):
-#                     if fname_new in fnames_old:
-#                         idxs_old_match.append(i_old)
-#             idxs_old_match = list(set(idxs_old_match))
-#             if len(idxs_old_match) > 1:
-#                 raise ValueError(f"Duplicate fname, new:{i_new}, old:{idxs_old_match}")
-
-#     # Check existing entries
-#     logging.info("\nOCs with fnames that did not change:")
-#     logging.info("fnames     --> column name: old value | new value; ...")
-#     for i_new, i_old in enumerate(i_fname_new_in_old):
-#         if i_old is None:
-#             continue
-
-#         # If 'fnames_new' was found in the old UCC, compare both entries
-#         # Extract rows
-#         row_new = UCC_new.iloc[i_new]
-#         row_old = UCC_old.iloc[i_old]
-
-#         # Compare rows using pandas method
-#         row_compared = row_new.compare(row_old)
-
-#         # If rows are not equal
-#         if row_compared.empty is False:
-#             # Extract column names with differences
-#             row_dict = row_compared.to_dict()
-#             diff_cols = list(row_dict["self"].keys())
-
-#             # If the only diffs are in the ID columns, skip check
-#             if (
-#                 diff_cols == ["DB", "DB_i"]
-#                 or diff_cols == ["DB"]
-#                 or diff_cols == ["DB_i"]
-#             ):
-#                 continue
-
-#             fnames = str(UCC_old["fnames"][i_old])
-#             fs.check_rows(logging, fnames, diff_cols, row_old, row_new)
 
 
 def move_files(
