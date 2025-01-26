@@ -3,6 +3,7 @@ import datetime
 import json
 import os
 import sys
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -79,26 +80,27 @@ def main():
     (
         root_folder,
         root_UCC_folder,
-        current_JSON,
-        temp_JSON,
+        GCs_path,
+        temp_database_folder,
+        ucc_file,
+        temp_ucc_file,
+        temp_JSON_file,
+        JSON_file,
+        archived_UCC_file,
+    ) = get_paths_check_paths(logging)
+
+    (
         gaia_frames_data,
         df_GCs,
         manual_pars,
-        temp_database_folder,
-        GCs_path,
-        new_DB_file,
-        ucc_file,
-        temp_ucc_file,
-        archived_UCC_file,
-        new_DB,
-        JSON_file,
-        temp_JSON_file,
         df_UCC,
+        current_JSON,
+        newDB_json,
         df_new,
-    ) = get_paths_check_paths(logging)
-
-    # Load column data for the new catalogue
-    newDB_json = temp_JSON[new_DB]
+        new_DB,
+    ) = load_data(
+        logging, GCs_path, ucc_file, JSON_file, temp_JSON_file, temp_database_folder
+    )
 
     # Check for required columns in the new DB
     check_new_DB_cols(logging, current_JSON, new_DB, df_new, newDB_json)
@@ -160,6 +162,11 @@ def main():
     # Check number of files
     file_checker(logging, root_UCC_folder)
 
+    if input("\nRemove temporary files and folders? (y/n): ").lower() == "y":
+        # shutil.rmtree(temp_fold)
+        print("remove folder: ", temp_fold)
+        # logging.info(f"Folder removed: {temp_fold}")
+
     logging.info("\nAll done! Proceed with the next script")
 
 
@@ -168,11 +175,6 @@ def get_paths_check_paths(
 ) -> tuple[
     str,
     str,
-    dict,
-    dict,
-    pd.DataFrame | None,
-    pd.DataFrame,
-    pd.DataFrame,
     str,
     str,
     str,
@@ -180,41 +182,25 @@ def get_paths_check_paths(
     str,
     str,
     str,
-    str,
-    str,
-    pd.DataFrame,
-    pd.DataFrame,
 ]:
     """ """
-    # Root UCC folder: take root to this folder and remove this folder
-    root_folder = os.getcwd()
-    root_UCC_folder = "/".join(os.getcwd().split("/")[:-1]) + "/"
-
     # Check for Gaia files
     if not os.path.isdir(path_gaia_frames):
-        logging.info(f"Folder {path_gaia_frames} is not present")
-
+        warnings.warn(f"Folder {path_gaia_frames} is not present")
     if not os.path.isfile(path_gaia_frames_ranges):
-        logging.info(f"File {path_gaia_frames_ranges} is not present")
-        gaia_frames_data = None
-    else:
-        gaia_frames_data = pd.read_csv(path_gaia_frames_ranges)
+        warnings.warn(f"File {path_gaia_frames_ranges} is not present")
 
+    # Current root + main UCC folder
+    root_folder = os.getcwd()
+    # Remove this folder for the main UCC folder
+    root_UCC_folder = "/".join(os.getcwd().split("/")[:-1]) + "/"
+
+    # Path to file with GCs data
     GCs_path = dbs_folder + GCs_cat
-    # Load GCs data
-    df_GCs = pd.read_csv(GCs_path)
-    # Read OCs manual parameters
-    manual_pars = pd.read_csv(manual_pars_file)
 
-    # Generate required temp folders
-    # Temporary zenodo/ folder
-    temp_zenodo_fold = temp_fold + UCC_folder
-    # Create new temp zenodo folder if required
-    if not os.path.exists(temp_zenodo_fold):
-        os.makedirs(temp_zenodo_fold)
     # Temporary databases/ folder
     temp_database_folder = temp_fold + dbs_folder
-    # Create new temp databases folder if required
+    # Create if required
     if not os.path.exists(temp_database_folder):
         os.makedirs(temp_database_folder)
 
@@ -236,9 +222,12 @@ def get_paths_check_paths(
         raise ValueError(f"UCC file not found in {UCC_folder}")
     # Path to the current UCC csv file
     ucc_file = UCC_folder + last_version
-    df_UCC = pd.read_csv(ucc_file)
-    logging.info(f"\nUCC version {ucc_file} loaded (N={len(df_UCC)})")
 
+    # Temporary zenodo/ folder
+    temp_zenodo_fold = temp_fold + UCC_folder
+    # Create if required
+    if not os.path.exists(temp_zenodo_fold):
+        os.makedirs(temp_zenodo_fold)
     # Path to the new (temp) version of the UCC database
     new_version = datetime.datetime.now().strftime("%Y%m%d%H")[2:]
     temp_ucc_file = temp_zenodo_fold + "UCC_cat_" + new_version + ".csv"
@@ -250,24 +239,9 @@ def get_paths_check_paths(
 
     # Path to the current JSON file
     JSON_file = dbs_folder + name_DBs_json
+
     # Path to the new (temp) JSON file
     temp_JSON_file = temp_database_folder + name_DBs_json
-
-    # Load current JSON file
-    with open(JSON_file) as f:
-        current_JSON = json.load(f)
-    # Load temp JSON file
-    with open(temp_JSON_file) as f:
-        temp_JSON = json.load(f)
-    logging.info(f"JSON file {temp_JSON_file} loaded")
-    # Extract new DB's name
-    new_DB = list(set(temp_JSON.keys()) - set(current_JSON.keys()))[0]
-
-    # Path to the new DB
-    new_DB_file = temp_database_folder + new_DB + ".csv"
-    # Load the new DB
-    df_new = pd.read_csv(new_DB_file)
-    logging.info(f"New DB {new_DB} loaded (N={len(df_new)})")
 
     # Path to the archived current UCC csv file
     archived_UCC_file = (
@@ -277,22 +251,74 @@ def get_paths_check_paths(
     return (
         root_folder,
         root_UCC_folder,
-        current_JSON,
-        temp_JSON,
+        GCs_path,
+        temp_database_folder,
+        ucc_file,
+        temp_ucc_file,
+        temp_JSON_file,
+        JSON_file,
+        archived_UCC_file,
+    )
+
+
+def load_data(
+    logging,
+    GCs_path: str,
+    ucc_file: str,
+    JSON_file: str,
+    temp_JSON_file: str,
+    temp_database_folder: str,
+) -> tuple[
+    pd.DataFrame,
+    pd.DataFrame,
+    pd.DataFrame,
+    pd.DataFrame,
+    pd.DataFrame,
+    dict,
+    pd.DataFrame,
+    str,
+]:
+    """ """
+    # Load file with Gaia frames ranges
+    gaia_frames_data = pd.read_csv(path_gaia_frames_ranges)
+
+    # Load GCs data
+    df_GCs = pd.read_csv(GCs_path)
+
+    # Read OCs manual parameters
+    manual_pars = pd.read_csv(manual_pars_file)
+
+    df_UCC = pd.read_csv(ucc_file)
+    logging.info(f"\nUCC version {ucc_file} loaded (N={len(df_UCC)})")
+
+    # Load current JSON file
+    with open(JSON_file) as f:
+        current_JSON = json.load(f)
+
+    # Load temp JSON file
+    with open(temp_JSON_file) as f:
+        temp_JSON = json.load(f)
+
+    # Extract new DB's name
+    new_DB = list(set(temp_JSON.keys()) - set(current_JSON.keys()))[0]
+
+    # Load column data for the new catalogue
+    newDB_json = temp_JSON[new_DB]
+
+    # Load the new DB
+    new_DB_file = temp_database_folder + new_DB + ".csv"
+    df_new = pd.read_csv(new_DB_file)
+    logging.info(f"New DB {new_DB} loaded (N={len(df_new)})")
+
+    return (
         gaia_frames_data,
         df_GCs,
         manual_pars,
-        temp_database_folder,
-        GCs_path,
-        new_DB_file,
-        ucc_file,
-        temp_ucc_file,
-        archived_UCC_file,
-        new_DB,
-        JSON_file,
-        temp_JSON_file,
         df_UCC,
+        current_JSON,
+        newDB_json,
         df_new,
+        new_DB,
     )
 
 
@@ -877,12 +903,12 @@ def move_files(
 
     # Generate '.gz' compressed file for the old UCC and archive it
     df = pd.read_csv(ucc_file)
-    df.to_csv(
-        archived_UCC_file,
-        na_rep="nan",
-        index=False,
-        quoting=csv.QUOTE_NONNUMERIC,
-    )
+    # df.to_csv(
+    #     archived_UCC_file,
+    #     na_rep="nan",
+    #     index=False,
+    #     quoting=csv.QUOTE_NONNUMERIC,
+    # )
     print("Create: ", root_folder + "/" + archived_UCC_file)
     # Remove old csv file
     # os.remove(ucc_file)
@@ -913,10 +939,6 @@ def move_files(
                         " to: ",
                         root_UCC_folder + qfold + members_folder + "/" + file,
                     )
-
-    # # Remove folder
-    # shutil.rmtree(temp_fold)
-    # logging.info("temp/ folder removed")
 
 
 def file_checker(logging, root_UCC_fold: str) -> None:
