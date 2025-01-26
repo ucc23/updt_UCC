@@ -508,7 +508,7 @@ def positions_check(
     attention_flag = False
     if len(ocs_attention) > 0:
         attention_flag = True
-        logging.info("\nOCs flagged for attention:\n")
+        logging.info("\nOCs flagged for attention:")
         logging.info(
             "{:<15} {:<5} {}".format(
                 "name", "cent_flag", "[arcmin] [pmRA %] [pmDE %] [plx %]"
