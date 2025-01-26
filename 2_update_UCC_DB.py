@@ -1,34 +1,56 @@
 import csv
 import datetime
 import json
-import logging
 import os
-import shutil
 import sys
-from os.path import join
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
 from scipy.spatial import KDTree
 
-from modules import updt_UCC_DB_funcs as fs
 from modules.HARDCODED import (
     GCs_cat,
     UCC_archive,
     UCC_folder,
     dbs_folder,
     manual_pars_file,
+    members_folder,
     name_DBs_json,
     temp_fold,
 )
+from modules.update_database.add_new_DB_funcs import (
+    QXY_fold,
+    assign_UCC_ids,
+    combine_UCC_new_DB,
+    duplicates_check,
+)
+from modules.update_database.check_new_DB_funcs import (
+    GCs_check,
+    close_OC_check,
+    close_OC_UCC_check,
+    dups_check_newDB_UCC,
+    positions_check,
+    prep_newDB,
+    vdberg_check,
+)
+from modules.update_database.member_files_updt_funcs import (
+    extract_cl_data,
+    process_new_OC,
+    save_cl_datafile,
+    split_membs_field,
+)
+from modules.update_database.possible_duplicates_funcs import duplicate_probs
+from modules.update_database.standardize_and_match_funcs import (
+    get_fnames_new_DB,
+    get_matches_new_DB,
+)
+from modules.utils import logger
 
 # Paths to the Gaia DR3 files
-path_gaia_frames = "/media/gabriel/backup/gabriel/GaiaDR3/datafiles_parquet_G20/"
+root = "/media/gabriel/backup/gabriel/GaiaDR3/"
+path_gaia_frames = root + "datafiles_G20/"
 # Paths to the file that informs the sky area covered by each file
-path_gaia_frames_ranges = (
-    "/media/gabriel/backup/gabriel/GaiaDR3/files_G20/frame_ranges.txt"
-)
+path_gaia_frames_ranges = root + "files_G20/frame_ranges.txt"
 # Maximum magnitude to retrieve
 gaia_max_mag = 20
 
@@ -55,6 +77,8 @@ def main():
 
     # Generate paths and check for required folders and files
     (
+        root_folder,
+        root_UCC_folder,
         current_JSON,
         temp_JSON,
         gaia_frames_data,
@@ -67,6 +91,8 @@ def main():
         temp_ucc_file,
         archived_UCC_file,
         new_DB,
+        JSON_file,
+        temp_JSON_file,
         df_UCC,
         df_new,
     ) = get_paths_check_paths(logging)
@@ -103,8 +129,8 @@ def main():
     N_new = db_matches.count(None)
     if N_new > 0:
         logging.info(f"\nProcessing {N_new} new OCs in {new_DB} with fastMP...\n")
-        df_UCC = member_files_updt_UCC(
-            logging, df_UCC, gaia_frames_data, temp_database_folder, df_GCs, manual_pars
+        df_UCC = member_files_updt(
+            logging, df_UCC, gaia_frames_data, df_GCs, manual_pars
         )
         # Update membership probabilities
         df_UCC = possible_duplicates(logging, df_UCC, "UCC_members")
@@ -113,53 +139,35 @@ def main():
     else:
         logging.info("No new OCs to process")
 
-    logging.info(
-        f"\nCheck last version (N={len(df_UCC_old)}) vs new version (N={len(df_UCC)})"
-    )
-    check_UCC_versions(logging, df_UCC_old, df_UCC, new_DB_fnames, db_matches)
+    # logging.info(
+    #     f"\nCheck last version (N={len(df_UCC_old)}) vs new version (N={len(df_UCC)})"
+    # )
+    # check_UCC_versions(logging, df_UCC_old, df_UCC, new_DB_fnames, db_matches)
 
     if input("\nMove files to their final destination? (y/n): ").lower() != "y":
         sys.exit()
-    move_files(logging, temp_ucc_file)
+    move_files(
+        logging,
+        JSON_file,
+        root_folder,
+        root_UCC_folder,
+        temp_JSON_file,
+        ucc_file,
+        temp_ucc_file,
+        archived_UCC_file,
+    )
 
     # Check number of files
-    file_checker(logging, temp_database_folder)
+    file_checker(logging, root_UCC_folder)
 
     logging.info("\nAll done! Proceed with the next script")
-
-
-def logger():
-    """
-    Sets up a logger that writes log messages to a file named with the current date
-    and also outputs to the console.
-
-    Returns:
-        logging.Logger: Configured logger instance.
-    """
-    mypath = Path().absolute()
-
-    # Name of log file using the date
-    x = datetime.date.today()
-    out_file = "logs/" + str(x).replace("-", "_") + ".log"
-
-    # Set up logging module
-    level = logging.INFO
-    frmt = "%(message)s"
-    handlers = [
-        logging.FileHandler(join(mypath, out_file), mode="a"),
-        logging.StreamHandler(),
-    ]
-    logging.basicConfig(level=level, format=frmt, handlers=handlers)
-
-    logging.info("\n------------------------------")
-    logging.info(str(datetime.datetime.now()) + "\n")
-
-    return logging
 
 
 def get_paths_check_paths(
     logging,
 ) -> tuple[
+    str,
+    str,
     dict,
     dict,
     pd.DataFrame | None,
@@ -172,10 +180,16 @@ def get_paths_check_paths(
     str,
     str,
     str,
+    str,
+    str,
     pd.DataFrame,
     pd.DataFrame,
 ]:
     """ """
+    # Root UCC folder: take root to this folder and remove this folder
+    root_folder = os.getcwd()
+    root_UCC_folder = "/".join(os.getcwd().split("/")[:-1]) + "/"
+
     # Check for Gaia files
     if not os.path.isdir(path_gaia_frames):
         logging.info(f"Folder {path_gaia_frames} is not present")
@@ -207,8 +221,8 @@ def get_paths_check_paths(
     # Create quadrant folders
     for Nquad in range(1, 5):
         for lat in ("P", "N"):
-            quad = "Q" + str(Nquad) + lat
-            out_path = temp_fold + quad + "/datafiles/"
+            quad = "Q" + str(Nquad) + lat + "/"
+            out_path = temp_fold + quad + members_folder
             if not os.path.exists(out_path):
                 os.makedirs(out_path)
 
@@ -222,7 +236,6 @@ def get_paths_check_paths(
         raise ValueError(f"UCC file not found in {UCC_folder}")
     # Path to the current UCC csv file
     ucc_file = UCC_folder + last_version
-
     df_UCC = pd.read_csv(ucc_file)
     logging.info(f"\nUCC version {ucc_file} loaded (N={len(df_UCC)})")
 
@@ -257,9 +270,13 @@ def get_paths_check_paths(
     logging.info(f"New DB {new_DB} loaded (N={len(df_new)})")
 
     # Path to the archived current UCC csv file
-    archived_UCC_file = UCC_folder + UCC_archive + last_version.replace(".csv", ".gz")
+    archived_UCC_file = (
+        UCC_folder + UCC_archive + last_version.replace(".csv", ".csv.gz")
+    )
 
     return (
+        root_folder,
+        root_UCC_folder,
         current_JSON,
         temp_JSON,
         gaia_frames_data,
@@ -272,6 +289,8 @@ def get_paths_check_paths(
         temp_ucc_file,
         archived_UCC_file,
         new_DB,
+        JSON_file,
+        temp_JSON_file,
         df_UCC,
         df_new,
     )
@@ -290,7 +309,7 @@ def check_new_DB_cols(
     for entry in ("pos", "pars", "e_pars"):
         for k, v in newDB_json[entry].items():
             cols.append(v)
-    # Acces columns stored in JSON file
+    # Access columns stored in JSON file
     for col in cols:
         df_new[col]
     logging.info(f"\nAll columns present in {new_DB}")
@@ -344,8 +363,9 @@ def standardize_and_match(
             - List of matching entries where None indicates no match found
     """
     logging.info(f"\nStandardize names in {new_DB}")
-    new_DB_fnames = fs.get_fnames_new_DB(df_new, newDB_json)
-    db_matches = fs.get_matches_new_DB(df_UCC, new_DB_fnames)
+    new_DB_fnames = get_fnames_new_DB(df_new, newDB_json)
+    db_matches = get_matches_new_DB(df_UCC, new_DB_fnames)
+
     N_matches = sum(match is not None for match in db_matches)
     logging.info(f"Found {N_matches} matches in {new_DB}")
     N_new = len(df_new) - N_matches
@@ -382,9 +402,7 @@ def check_new_DB(
 
     # Duplicate check between entries in the new DB and the UCC
     logging.info(f"\nChecking for entries in {new_DB} that must be combined")
-    dup_flag = fs.dups_check_newDB_UCC(
-        logging, new_DB, df_UCC, new_DB_fnames, db_matches
-    )
+    dup_flag = dups_check_newDB_UCC(logging, new_DB, df_UCC, new_DB_fnames, db_matches)
     if dup_flag:
         raise ValueError("Resolve the above issues before moving on.")
     else:
@@ -392,21 +410,21 @@ def check_new_DB(
 
     # Check for GCs
     logging.info("\nClose GC check")
-    glon, glat, gc_flag = fs.GCs_check(logging, GCs_path, newDB_json, df_new)
+    glon, glat, gc_flag = GCs_check(logging, GCs_path, newDB_json, df_new)
     if gc_flag:
         if input("Move on? (y/n): ").lower() != "y":
             sys.exit()
 
     # Check for OCs very close to each other (possible duplicates)
     logging.info("\nProbable inner duplicates check")
-    inner_flag = fs.close_OC_check(logging, newDB_json, df_new, rad_dup)
+    inner_flag = close_OC_check(logging, newDB_json, df_new, rad_dup)
     if inner_flag:
         if input("Move on? (y/n): ").lower() != "y":
             sys.exit()
 
     # Check for OCs very close to each other (possible duplicates)
     logging.info("\nProbable UCC duplicates check")
-    dups_flag = fs.close_OC_UCC_check(
+    dups_flag = close_OC_UCC_check(
         logging, df_UCC, new_DB_fnames, db_matches, glon, glat, rad_dup
     )
     if dups_flag:
@@ -415,16 +433,16 @@ def check_new_DB(
 
     # Check for 'vdBergh-Hagen', 'vdBergh' OCs
     logging.info("\nPossible vdBergh-Hagen/vdBergh check")
-    vdb_flag = fs.vdberg_check(logging, newDB_json, df_new)
+    vdb_flag = vdberg_check(logging, newDB_json, df_new)
     if vdb_flag:
         if input("Move on? (y/n): ").lower() != "y":
             sys.exit()
 
     # Prepare information from a new database matched with the UCC
-    new_db_info = fs.prep_newDB(newDB_json, df_new, new_DB_fnames, db_matches)
+    new_db_info = prep_newDB(newDB_json, df_new, new_DB_fnames, db_matches)
 
     # Check positions and flag for attention if required
-    attention_flag = fs.positions_check(logging, df_UCC, new_db_info, rad_dup)
+    attention_flag = positions_check(logging, df_UCC, new_db_info, rad_dup)
     if attention_flag is True:
         if input("\nMove on? (y/n): ").lower() != "y":
             sys.exit()
@@ -464,7 +482,7 @@ def add_new_DB(
     logging.info(f"Adding new DB: {new_DB}")
 
     logging.info("")
-    new_db_dict = fs.combine_UCC_new_DB(
+    new_db_dict = combine_UCC_new_DB(
         logging,
         new_DB,
         newDB_json,
@@ -483,10 +501,10 @@ def add_new_DB(
         # Only process new OCs
         if str(UCC_ID) != "nan":
             continue
-        new_db_dict["UCC_ID"][i] = fs.assign_UCC_ids(
+        new_db_dict["UCC_ID"][i] = assign_UCC_ids(
             logging, new_db_dict["GLON"][i], new_db_dict["GLAT"][i], ucc_ids_old
         )
-        new_db_dict["quad"][i] = fs.QXY_fold(new_db_dict["UCC_ID"][i])
+        new_db_dict["quad"][i] = QXY_fold(new_db_dict["UCC_ID"][i])
         ucc_ids_old += [new_db_dict["UCC_ID"][i]]
 
     # Drop OCs from the UCC that are present in the new DB
@@ -497,7 +515,7 @@ def add_new_DB(
     df_all = pd.concat([df_UCC_no_new, pd.DataFrame(new_db_dict)], ignore_index=True)
 
     # Final duplicate check
-    dup_flag = fs.duplicates_check(logging, df_all)
+    dup_flag = duplicates_check(logging, df_all)
     if dup_flag:
         raise ValueError(
             "Duplicated entries found in either 'ID, UCC_ID, fnames' column"
@@ -538,7 +556,7 @@ def possible_duplicates(logging, df_UCC: pd.DataFrame, data_orig: str) -> pd.Dat
     x, y, plx, pmRA, pmDE = [np.array(df_UCC[col + d_id]) for col in cols]
 
     # Use members data
-    dups_fnames, dups_probs = fs.duplicate_probs(
+    dups_fnames, dups_probs = duplicate_probs(
         list(df_UCC["fnames"]),
         x,
         y,
@@ -557,26 +575,13 @@ def possible_duplicates(logging, df_UCC: pd.DataFrame, data_orig: str) -> pd.Dat
     return df_UCC
 
 
-def member_files_updt_UCC(
-    logging, df_UCC, gaia_frames_data, temp_database_folder, df_GCs, manual_pars
-):
+def member_files_updt(logging, df_UCC, gaia_frames_data, df_GCs, manual_pars):
     """
     Updates the Unified Cluster Catalogue (UCC) with new open clusters (OCs).
     This function performs the following steps:
 
-    1. Reads extra input data including frame ranges, globular clusters (GCs) catalog,
-       and manual parameters.
     2. Constructs a KD-tree for efficient spatial queries on the UCC.
-    3. Processes each new OC by:
-        a. Checking if it is a new OC that should be processed.
-        b. Generating a frame for the OC.
-        c. Applying manual parameters if available.
-        d. Identifying close clusters.
-        e. Requesting data for the OC.
-        f. Processing the OC with the `fastMP` method.
-        g. Splitting the data into members and field stars.
-        h. Extracting cluster data and updating the UCC.
-        i. Save members .parquet file in the proper Q folder
+    3. Processes each new OC
 
     Args:
         logging (logging.Logger): Logger instance for logging messages.
@@ -592,13 +597,31 @@ def member_files_updt_UCC(
     tree = KDTree(xys)
 
     # For each new OC
-    for index, new_cl in df_UCC.iterrows():
+    df_UCC_updt = {
+        "fname": [],
+        "UCC_idx": [],
+        "C1": [],
+        "C2": [],
+        "C3": [],
+        "GLON_m": [],
+        "GLAT_m": [],
+        "RA_ICRS_m": [],
+        "DE_ICRS_m": [],
+        "Plx_m": [],
+        "pmRA_m": [],
+        "pmDE_m": [],
+        "Rv_m": [],
+        "N_Rv": [],
+        "N_50": [],
+        "r_50": [],
+    }
+    for UCC_idx, new_cl in df_UCC.iterrows():
         # Check if this is a new OC that should be processed
         if str(new_cl["C3"]) != "nan":
             continue
 
-        logging.info(f"*** {index} Processing {new_cl['fnames']}")
-        df_membs, df_UCC = fs.process_new_OC(
+        logging.info(f"\nProcessing {new_cl['fnames']} (idx={UCC_idx}) with fastMP")
+        gaia_frame, probs_all = process_new_OC(
             logging,
             df_UCC,
             path_gaia_frames,
@@ -607,14 +630,31 @@ def member_files_updt_UCC(
             df_GCs,
             manual_pars,
             tree,
-            index,
+            UCC_idx,
             new_cl,
         )
 
-        # Write member stars for cluster and some field
-        fs.save_cl_datafile(logging, temp_database_folder, new_cl, df_membs)
+        # Split into members and field stars according to the probability values
+        # assigned
+        df_membs, df_field = split_membs_field(gaia_frame, probs_all)
 
-        logging.info(f"*** Cluster {new_cl['ID']} processed with fastMP\n")
+        # Extract data to update the UCC
+        dict_UCC_updt = extract_cl_data(df_membs, df_field)
+
+        # Update UCC (and temporary csv file)
+        fname0 = new_cl["fnames"].split(";")[0]
+        df_UCC_updt["fname"].append(fname0)
+        df_UCC_updt["UCC_idx"].append(UCC_idx)
+        for key, val in dict_UCC_updt.items():
+            df_UCC.at[UCC_idx, key] = val
+            df_UCC_updt[key].append(val)
+
+        # Write selected member stars to file
+        save_cl_datafile(logging, temp_fold, members_folder, new_cl, df_membs)
+
+    df_UCC_updt = pd.DataFrame(df_UCC_updt)
+    df_UCC_updt.to_csv(temp_fold + "df_UCC_updt.csv", index=False)
+    logging.info("\nTemp file df_UCC_updt saved")
 
     return df_UCC
 
@@ -693,101 +733,147 @@ def diff_between_dfs(
     logging.info("Files 'UCC_diff_xxx.csv' saved\n")
 
 
-def check_UCC_versions(
-    logging,
-    UCC_old: pd.DataFrame,
-    UCC_new: pd.DataFrame,
-    new_DB_fnames: list,
-    db_matches: list,
-) -> None:
-    """Run checks on old and new UCC files to ensure consistency and identify possible
-    issues.
-
-    Parameters:
-    - logging: Logger instance for recording messages.
-    - UCC_old: DataFrame containing the old UCC data.
-    - UCC_new: DataFrame containing the new UCC data.
-    - new_DB_fnames: List of lists with fnames of the new DB
-    - db_matches: List of indexes of OCs in the new DB into the UCC ('None' for new OCs)
-
-    Returns:
-    - None
+def fnames_checker(df_UCC: pd.DataFrame) -> None:
     """
-    fs.fnames_checker(UCC_new)
+    Ensure that filenames in the DataFrame are unique.
 
-    fnames_old_all = list(UCC_old["fnames"])
-    fnames_new_all = list(UCC_new["fnames"])
+    Parameters
+    ----------
+    df_UCC : pd.DataFrame
+        DataFrame containing UCC data.
 
-    i_fname_new_in_old = []
-    for fnames_new in fnames_new_all:
-        try:
-            i_fname_new_in_old.append(fnames_old_all.index(fnames_new))
-        except ValueError:
-            # 'fnames_new' not in old UCC
-            i_fname_new_in_old.append(None)
+    Returns
+    -------
+    None
+    """
+    fname0_UCC = [_.split(";")[0] for _ in df_UCC["fnames"]]
+    NT = len(fname0_UCC)
+    N_unique = len(list(set(fname0_UCC)))
+    if NT != N_unique:
+        raise ValueError("fnames are not unique")
 
-    # Extract new fnames
-    new_fnames = []
-    for i, j in enumerate(db_matches):
-        if j is None:
-            new_fnames.append(";".join(new_DB_fnames[i]))
-    # Check new entries
-    logging.info("\nOCs with fnames that changed or are new:")
-    for i_new, i_old in enumerate(i_fname_new_in_old):
-        if i_old is None:
-            fnames_new = fnames_new_all[i_new]
-            if fnames_new in new_fnames:
-                logging.info(f"new     : {fnames_new}")
-            else:
-                logging.info(f"changed : {fnames_new}")
-            fs.check_new_entries(fnames_old_all, i_new, fnames_new)
 
-    # Check existing entries
-    logging.info("\nOCs with fnames that did not change:")
-    logging.info("fnames     --> column name: differences")
-    for i_new, i_old in enumerate(i_fname_new_in_old):
-        if i_old is None:
-            continue
+# def check_UCC_versions(
+#     logging,
+#     UCC_old: pd.DataFrame,
+#     UCC_new: pd.DataFrame,
+#     new_DB_fnames: list,
+#     db_matches: list,
+# ) -> None:
+#     """Run checks on old and new UCC files to ensure consistency and identify possible
+#     issues.
 
-        # If 'fnames_new' was found in the old UCC, compare both entries
-        # Extract rows
-        row_new = UCC_new.iloc[i_new]
-        row_old = UCC_old.iloc[i_old]
+#     Parameters:
+#     - logging: Logger instance for recording messages.
+#     - UCC_old: DataFrame containing the old UCC data.
+#     - UCC_new: DataFrame containing the new UCC data.
+#     - new_DB_fnames: List of lists with fnames of the new DB
+#     - db_matches: List of indexes of OCs in the new DB into the UCC ('None' for new OCs)
 
-        # Compare rows using pandas method
-        row_compared = row_new.compare(row_old)
+#     Returns:
+#     - None
+#     """
 
-        # If rows are not equal
-        if row_compared.empty is False:
-            # Extract column names with differences
-            row_dict = row_compared.to_dict()
-            diff_cols = list(row_dict["self"].keys())
+#     fnames_old_all = list(UCC_old["fnames"])
+#     fnames_new_all = list(UCC_new["fnames"])
 
-            # If the only diffs are in the ID columns, skip check
-            if (
-                diff_cols == ["DB", "DB_i"]
-                or diff_cols == ["DB"]
-                or diff_cols == ["DB_i"]
-            ):
-                continue
+#     fname_old_all_lst = []
+#     for fnames_old in fnames_old_all:
+#         # temp = []
+#         # for fname_old in fnames_old.split(";"):
+#         #     temp.append(fname_old)
+#         fname_old_all_lst.append(fnames_old.split(";"))
 
-            fnames = str(UCC_old["fnames"][i_old])
-            fs.check_rows(logging, fnames, diff_cols, row_old, row_new)
+#     i_fname_new_in_old = []
+#     for fnames_new in fnames_new_all:
+#         try:
+#             i_fname_new_in_old.append(fnames_old_all.index(fnames_new))
+#         except ValueError:
+#             # 'fnames_new' not in old UCC
+#             i_fname_new_in_old.append(None)
+
+#     # Extract new fnames
+#     new_fnames = []
+#     for i, j in enumerate(db_matches):
+#         if j is None:
+#             new_fnames.append(";".join(new_DB_fnames[i]))
+
+#     # Check new entries
+#     logging.info("\nOCs with fnames that changed or are new:")
+#     for i_new, i_old in enumerate(i_fname_new_in_old):
+#         if i_old is None:
+#             fnames_new = fnames_new_all[i_new]
+#             if fnames_new in new_fnames:
+#                 logging.info(f"new     : {fnames_new}")
+#             else:
+#                 logging.info(f"changed : {fnames_new}")
+
+#             # Check new entries in the UCC that are not present in the old UCC
+#             idxs_old_match = []
+#             for fname_new in fnames_new.split(";"):
+#                 for i_old, fnames_old in enumerate(fname_old_all_lst):
+#                     if fname_new in fnames_old:
+#                         idxs_old_match.append(i_old)
+#             idxs_old_match = list(set(idxs_old_match))
+#             if len(idxs_old_match) > 1:
+#                 raise ValueError(f"Duplicate fname, new:{i_new}, old:{idxs_old_match}")
+
+#     # Check existing entries
+#     logging.info("\nOCs with fnames that did not change:")
+#     logging.info("fnames     --> column name: old value | new value; ...")
+#     for i_new, i_old in enumerate(i_fname_new_in_old):
+#         if i_old is None:
+#             continue
+
+#         # If 'fnames_new' was found in the old UCC, compare both entries
+#         # Extract rows
+#         row_new = UCC_new.iloc[i_new]
+#         row_old = UCC_old.iloc[i_old]
+
+#         # Compare rows using pandas method
+#         row_compared = row_new.compare(row_old)
+
+#         # If rows are not equal
+#         if row_compared.empty is False:
+#             # Extract column names with differences
+#             row_dict = row_compared.to_dict()
+#             diff_cols = list(row_dict["self"].keys())
+
+#             # If the only diffs are in the ID columns, skip check
+#             if (
+#                 diff_cols == ["DB", "DB_i"]
+#                 or diff_cols == ["DB"]
+#                 or diff_cols == ["DB_i"]
+#             ):
+#                 continue
+
+#             fnames = str(UCC_old["fnames"][i_old])
+#             fs.check_rows(logging, fnames, diff_cols, row_old, row_new)
 
 
 def move_files(
     logging,
     JSON_file: str,
+    root_folder: str,
+    root_UCC_folder: str,
     temp_JSON_file: str,
     ucc_file: str,
     temp_ucc_file: str,
     archived_UCC_file: str,
 ) -> None:
     """ """
+
     # Move JSON file
-    os.remove(JSON_file)
-    os.rename(temp_JSON_file, JSON_file)
-    logging.info("\nJSON file updated")
+    # os.remove(current_JSON)
+    print("remove: ", root_folder + "/" + JSON_file)
+    # os.rename(temp_JSON, current_JSON)
+    print(
+        "rename: ",
+        root_folder + "/" + temp_JSON_file,
+        " to: ",
+        root_folder + "/" + JSON_file,
+    )
+    logging.info("JSON file updated")
 
     # Generate '.gz' compressed file for the old UCC and archive it
     df = pd.read_csv(ucc_file)
@@ -797,22 +883,43 @@ def move_files(
         index=False,
         quoting=csv.QUOTE_NONNUMERIC,
     )
+    print("Create: ", root_folder + "/" + archived_UCC_file)
     # Remove old csv file
-    os.remove(ucc_file)
+    # os.remove(ucc_file)
+    print("remove: ", root_folder + "/" + ucc_file)
     # Move new UCC file
     new_ucc_path = "/".join(temp_ucc_file.split("/")[1:])
-    os.rename(temp_ucc_file, new_ucc_path)
+    # os.rename(temp_ucc_file, new_ucc_path)
+    print(
+        "rename: ",
+        root_folder + "/" + temp_ucc_file,
+        " to: ",
+        root_folder + "/" + new_ucc_path,
+    )
     logging.info("UCC file updated")
 
     # Move all .parquet member files
-    XXXX
+    for qN in range(1, 5):
+        for lat in ("P", "N"):
+            qfold = "Q" + str(qN) + lat + "/"
+            # Check if folder exists
+            qmembs_fold = temp_fold + qfold + members_folder
+            if os.path.exists(qmembs_fold):
+                # For every file in this folder
+                for file in os.listdir(qmembs_fold):
+                    print(
+                        "rename: ",
+                        root_UCC_folder + qmembs_fold + "/" + file,
+                        " to: ",
+                        root_UCC_folder + qfold + members_folder + "/" + file,
+                    )
 
-    # Remove folder
-    shutil.rmtree(temp_fold)
-    logging.info("temp/ folder removed")
+    # # Remove folder
+    # shutil.rmtree(temp_fold)
+    # logging.info("temp/ folder removed")
 
 
-def file_checker(logging, temp_database_folder: str) -> None:
+def file_checker(logging, root_UCC_fold: str) -> None:
     """Check the number and types of files in directories for consistency.
 
     Parameters:
@@ -831,7 +938,7 @@ def file_checker(logging, temp_database_folder: str) -> None:
         for lat in ("P", "N"):
             N_parquet, N_webp, N_webp_aladin, N_extra = 0, 0, 0, 0
             for ffolder in ("datafiles", "plots"):
-                qfold = temp_database_folder + "Q" + str(qnum) + lat + f"/{ffolder}/"
+                qfold = root_UCC_fold + "Q" + str(qnum) + lat + f"/{ffolder}/"
                 # Read all files in Q folder
                 for file in os.listdir(qfold):
                     if "HUNT23" in file or "CANTAT20" in file:
