@@ -2,7 +2,14 @@ import json
 
 import pandas as pd
 
+from modules import (
+    add_new_DB,
     aux,
+    check_new_DB,
+    check_UCC_versions,
+    duplicate_probs,
+    member_files_updt_UCC,
+    prepare_new_DB,
     standardize_and_match,
 )
 from modules.HARDCODED import UCC_folder, dbs_folder, name_DBs_json, temp_fold
