@@ -1,13 +1,30 @@
-Som of these are intermediate versions of the UCC database that are not
-published.
+Some of these are intermediate versions of the UCC database that are not published.
 
 
-# 2501XXYY
+## 2501XXYY
 
 - Added GLUSHKOVA2010
 
 
-# 24123010
+
+## 25012510
+
+- Removed columns: "N_fixed", "fixed_cent", "cent_flags"
+
+```
+import csv
+import pandas as pd
+
+df = pd.read_csv("UCC_cat_25012510.csv")
+df = df.drop(columns=["N_fixed", "fixed_cent", "cent_flags"])
+df.to_csv(
+    "UCC_cat_25012510_2.csv",
+    na_rep="nan",
+    index=False,
+
+```
+
+## 24123010
 
 - Changed CHI2023 DBs names:
  - CHI2023   -> CHI2023_1
@@ -15,17 +32,17 @@ published.
  - CHI2023_3 -> CHI2023_2
 
 
-# 24122618
+## 24122618
 
 - Added CHEN2003
 
 
-# 241213
+## 241213
 
 - Changed cent_flags column: 0 -> n ; 1 -> y
 
 
-# 241212
+## 241212
 
 Changed names:
 
@@ -65,12 +82,12 @@ Removed names (unnecessary duplicates):
  - Juchert Saloran 1
 
 
-# 241211
+## 241211
 
 - Add '19' and 20' to all DBs names to use full years
 
 
-# 241210
+## 241210
 
 - plx -> Plx (column names)
 - rm 'N_menbs' column
