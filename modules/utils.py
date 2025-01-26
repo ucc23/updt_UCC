@@ -1,0 +1,282 @@
+import datetime
+import logging
+from os.path import join
+from pathlib import Path
+
+import numpy as np
+from astropy import units as u
+from astropy.coordinates import SkyCoord
+
+
+def logger():
+    """
+    Sets up a logger that writes log messages to a file named with the current date
+    and also outputs to the console.
+
+    Returns:
+        logging.Logger: Configured logger instance.
+    """
+    mypath = Path().absolute()
+
+    # Name of log file using the date
+    x = datetime.date.today()
+    out_file = "logs/" + str(x).replace("-", "_") + ".log"
+
+    # Set up logging module
+    level = logging.INFO
+    frmt = "%(message)s"
+    handlers = [
+        logging.FileHandler(join(mypath, out_file), mode="a"),
+        logging.StreamHandler(),
+    ]
+    logging.basicConfig(level=level, format=frmt, handlers=handlers)
+
+    logging.info("\n------------------------------")
+    logging.info(str(datetime.datetime.now()) + "\n")
+
+    return logging
+
+
+def radec2lonlat(ra: float | list, dec: float | list) -> tuple[float, float]:
+    """
+    Converts equatorial coordinates (RA, Dec) to galactic coordinates (lon, lat).
+
+    Parameters
+    ----------
+    ra : float or list
+        Right ascension in degrees.
+    dec : float or list
+        Declination in degrees.
+
+    Returns
+    -------
+    tuple
+        A tuple containing the galactic longitude and latitude in degrees.
+    """
+    gc = SkyCoord(ra=ra * u.degree, dec=dec * u.degree)  # pyright: ignore
+    lb = gc.transform_to("galactic")
+    return lb.l.value, lb.b.value
+
+
+def check_centers(
+    xy_c_m: tuple[float, float],
+    vpd_c_m: tuple[float, float],
+    plx_c_m: float,
+    xy_c_n: tuple[float, float],
+    vpd_c_n: tuple[float, float],
+    plx_c_n: float,
+    rad_dup: float = 5,
+) -> str:
+    """
+    Compares the centers of a cluster estimated from members with those from the
+    literature.
+
+    Parameters
+    ----------
+    xy_c_m : tuple
+        Center coordinates (lon, lat) from estimated members.
+    vpd_c_m : tuple
+        Center proper motion (pmRA, pmDE) from estimated members.
+    plx_c_m : float
+        Center parallax from estimated members.
+    xy_c_n : tuple
+        Center coordinates (lon, lat) from the literature.
+    vpd_c_n : tuple
+        Center proper motion (pmRA, pmDE) from the literature.
+    plx_c_n : float
+        Center parallax from the literature.
+    rad_dup : float, optional
+        Maximum allowed distance between centers in arcmin. Default is 5.
+
+    Returns
+    -------
+    str
+        A string indicating the quality of the center comparison:
+        - "nnn": Centers are in agreement.
+        - "y": Indicates a significant difference in xy, pm, or plx,
+        with each 'y' corresponding to a specific discrepancy.
+    """
+
+    bad_center_xy, bad_center_pm, bad_center_plx = "n", "n", "n"
+
+    # Max distance in arcmin, 'rad_dup' arcmin maximum
+    d_arcmin = np.sqrt((xy_c_m[0] - xy_c_n[0]) ** 2 + (xy_c_m[1] - xy_c_n[1]) ** 2) * 60
+    if d_arcmin > rad_dup:
+        bad_center_xy = "y"
+
+    # Relative difference
+    if not np.isnan(vpd_c_n[0]):
+        pm_max = []
+        for vpd_c_i in abs(np.array(vpd_c_m)):
+            if vpd_c_i > 5:
+                pm_max.append(10)
+            elif vpd_c_i > 1:
+                pm_max.append(15)
+            elif vpd_c_i > 0.1:
+                pm_max.append(20)
+            elif vpd_c_i > 0.01:
+                pm_max.append(25)
+            else:
+                pm_max.append(50)
+        pmra_p = 100 * abs((vpd_c_m[0] - vpd_c_n[0]) / (vpd_c_m[0] + 0.001))
+        pmde_p = 100 * abs((vpd_c_m[1] - vpd_c_n[1]) / (vpd_c_m[1] + 0.001))
+        if pmra_p > pm_max[0] or pmde_p > pm_max[1]:
+            bad_center_pm = "y"
+
+    # Relative difference
+    if not np.isnan(plx_c_n):
+        if plx_c_m > 0.2:
+            plx_max = 25
+        elif plx_c_m > 0.1:
+            plx_max = 30
+        elif plx_c_m > 0.05:
+            plx_max = 35
+        elif plx_c_m > 0.01:
+            plx_max = 50
+        else:
+            plx_max = 70
+        plx_p = 100 * abs(plx_c_m - plx_c_n) / (plx_c_m + 0.001)
+        if abs(plx_p) > plx_max:
+            bad_center_plx = "y"
+
+    bad_center = bad_center_xy + bad_center_pm + bad_center_plx
+
+    return bad_center
+
+
+def rename_standard(name: str) -> str:
+    """
+    Standardize the naming of these clusters
+
+    FSR XXX w leading zeros
+    FSR XXX w/o leading zeros
+    FSR_XXX w leading zeros
+    FSR_XXX w/o leading zeros
+
+    --> FSR_XXXX (w leading zeroes)
+
+    ESO XXX-YY w leading zeros
+    ESO XXX-YY w/o leading zeros
+    ESO_XXX_YY w leading zeros
+    ESO_XXX_YY w/o leading zeros
+    ESO_XXX-YY w leading zeros
+    ESO_XXX-YY w/o leading zeros
+    ESOXXX_YY w leading zeros (LOKTIN17)
+
+    --> ESO_XXX_YY (w leading zeroes)
+
+    Parameters
+    ----------
+    name : str
+        Name of the cluster.
+
+    Returns
+    -------
+    str
+        Standardized name of the cluster.
+    """
+    if name.startswith("FSR"):
+        if " " in name or "_" in name:
+            if "_" in name:
+                n2 = name.split("_")[1]
+            else:
+                n2 = name.split(" ")[1]
+            n2 = int(n2)
+            if n2 < 10:
+                n2 = "000" + str(n2)
+            elif n2 < 100:
+                n2 = "00" + str(n2)
+            elif n2 < 1000:
+                n2 = "0" + str(n2)
+            else:
+                n2 = str(n2)
+            name = "FSR_" + n2
+
+    if name.startswith("ESO"):
+        if name[:4] not in ("ESO_", "ESO "):
+            # E.g.: LOKTIN17, BOSSINI19
+            name = "ESO_" + name[3:]
+
+        if " " in name[4:]:
+            n1, n2 = name[4:].split(" ")
+        elif "_" in name[4:]:
+            n1, n2 = name[4:].split("_")
+        elif "-" in name[4:]:
+            n1, n2 = name[4:].split("-")
+        else:
+            # This assumes that all ESo clusters are names as: 'ESO XXX YY'
+            n1, n2 = name[4 : 4 + 3], name[4 + 3 :]
+
+        n1 = int(n1)
+        if n1 < 10:
+            n1 = "00" + str(n1)
+        elif n1 < 100:
+            n1 = "0" + str(n1)
+        else:
+            n1 = str(n1)
+        n2 = int(n2)
+        if n2 < 10:
+            n2 = "0" + str(n2)
+        else:
+            n2 = str(n2)
+        name = "ESO_" + n1 + "_" + n2
+
+    if "UBC" in name and "UBC " not in name and "UBC_" not in name:
+        name = name.replace("UBC", "UBC ")
+    if "UBC_" in name:
+        name = name.replace("UBC_", "UBC ")
+
+    if "UFMG" in name and "UFMG " not in name and "UFMG_" not in name:
+        name = name.replace("UFMG", "UFMG ")
+
+    if (
+        "LISC" in name
+        and "LISC " not in name
+        and "LISC_" not in name
+        and "LISC-" not in name
+    ):
+        name = name.replace("LISC", "LISC ")
+
+    if "OC-" in name:
+        name = name.replace("OC-", "OC ")
+
+    # Removes duplicates such as "NGC_2516" and "NGC 2516"
+    name = name.replace("_", " ")
+
+    return name
+
+
+def date_order_DBs(DB: str, DB_i: str) -> tuple[str, str]:
+    """
+    Orders two semicolon-separated strings of database entries by the year extracted
+    from each entry.
+
+    Parameters
+    ----------
+    DB : str
+        A semicolon-separated string where each entry contains a year in
+        the format "_YYYY".
+    DB_i : str
+        A semicolon-separated string with integers associated to `DB`.
+
+    Returns
+    -------
+    tuple
+        A tuple containing two semicolon-separated strings (`DB`, `DB_i`)
+        ordered by year.
+    """
+    # Split lists
+    all_dbs = DB.split(";")
+    all_dbs_i = DB_i.split(";")
+
+    # Extract years from DBs
+    all_years = []
+    for db in all_dbs:
+        year = db.split("_")[0][-4:]
+        all_years.append(year)
+
+    # Sort and re-generate strings
+    idx = np.argsort(all_years)
+    DB = ";".join(list(np.array(all_dbs)[idx]))
+    DB_i = ";".join(list(np.array(all_dbs_i)[idx]))
+    return DB, DB_i
