@@ -11,14 +11,12 @@ from .gaia_query_frames import run as query_run
 
 def process_new_OC(
     logging,
-    df_UCC: pd.DataFrame,
+    box_s,
+    plx_min: float,
     frames_path: str,
     max_mag: float,
     frames_data: pd.DataFrame,
-    df_gcs: pd.DataFrame,
     manual_pars: pd.DataFrame,
-    tree: KDTree,
-    UCC_idx: int,
     new_cl: pd.Series,
 ) -> tuple[pd.DataFrame, np.ndarray]:
     """
@@ -54,11 +52,7 @@ def process_new_OC(
         - gaia_frame: DataFrame centered on cluster.
         - probs_all: Array with probabilities
     """
-    # Identify position in the UCC
     fname0 = str(new_cl["fnames"]).split(";")[0]
-
-    # Generate frame
-    box_s, plx_min = get_frame(new_cl)
 
     #
     fix_N_clust = np.nan
@@ -71,26 +65,6 @@ def process_new_OC(
             if row_manual_p["box_s"] != "nan":
                 box_s = float(row_manual_p["box_s"])
                 logging.info(f"Manual box size applied: {box_s}")
-
-    # Get close clusters coords
-    centers_ex = get_close_cls(
-        float(new_cl["GLON"]),
-        float(new_cl["GLAT"]),
-        tree,
-        box_s,
-        UCC_idx,
-        df_UCC,
-        str(new_cl["dups_fnames"]),
-        df_gcs,
-    )
-    if len(centers_ex) > 0:
-        logging.info("WARNING: there are clusters close by:")
-        logging.info(
-            f"*{new_cl['ID']}: {(new_cl['GLON'], new_cl['GLAT'])}"
-            + f" {new_cl['pmRA'], new_cl['pmDE']} ({new_cl['Plx']}) <-- Processed"
-        )
-        for gc in centers_ex:
-            logging.info("  " + gc)
 
     # Request data
     gaia_frame = query_run(
@@ -107,10 +81,10 @@ def process_new_OC(
     # Extract center coordinates from UCC
     lonlat_c = (float(new_cl["GLON"]), float(new_cl["GLAT"]))
     vpd_c = (np.nan, np.nan)
-    if not np.isnan(new_cl["pmRA"]):
+    if new_cl["pmRA"] != "nan":
         vpd_c = (float(new_cl["pmRA"]), float(new_cl["pmDE"]))
     plx_c = np.nan
-    if not np.isnan(new_cl["Plx"]):
+    if new_cl["Plx"] != "nan":
         plx_c = float(new_cl["Plx"])
 
     # If the cluster has no PM or Plx center values assigned, run fastMP with fixed
@@ -146,7 +120,7 @@ def process_new_OC(
     return gaia_frame, probs_all
 
 
-def get_frame(cl: pd.Series) -> tuple[float, float]:
+def get_frame_limits(cl: pd.Series) -> tuple[float, float]:
     """
     Determines the frame size and minimum parallax for data retrieval based on cluster
     properties.
@@ -163,8 +137,8 @@ def get_frame(cl: pd.Series) -> tuple[float, float]:
         - box_s_eq (float): Size of the box to query (in degrees).
         - plx_min (float): Minimum parallax value for data retrieval.
     """
-    if not np.isnan(cl["Plx"]):
-        c_plx = cl["Plx"]
+    if cl["Plx"] != "nan":
+        c_plx = float(cl["Plx"])
     else:
         c_plx = None
 
@@ -220,13 +194,12 @@ def get_frame(cl: pd.Series) -> tuple[float, float]:
 
 
 def get_close_cls(
-    x: float,
-    y: float,
+    logging,
+    df_UCC,
+    idx: int,
+    new_cl,
     tree: KDTree,
     box_s: float,
-    idx: int,
-    df_UCC: pd.DataFrame,
-    dups_fnames: str,
     df_gcs: pd.DataFrame,
 ) -> list[str]:
     """
@@ -246,8 +219,6 @@ def get_close_cls(
         Index of the cluster in the UCC.
     df_UCC : pd.DataFrame
         DataFrame of the UCC.
-    dups_fnames : str
-        String of semicolon-separated duplicate filenames.
     df_gcs : pd.DataFrame
         DataFrame of globular clusters.
 
@@ -257,6 +228,7 @@ def get_close_cls(
         A list of strings, each representing a nearby cluster or GC with its
         coordinates and properties.
     """
+    x, y = float(new_cl["GLON"]), float(new_cl["GLAT"])
 
     # Radius that contains the entire frame
     rad = np.sqrt(2 * (box_s / 2) ** 2)
@@ -265,23 +237,24 @@ def get_close_cls(
     # Remove self cluster
     del ex_cls_idx[ex_cls_idx.index(idx)]
 
-    duplicate_cls = []
-    if str(dups_fnames) != "nan":
-        duplicate_cls = dups_fnames.split(";")
+    # duplicate_cls = []
+    # if str(dups_fnames) != "nan":
+    #     duplicate_cls = dups_fnames.split(";")
 
     centers_ex = []
     for i in ex_cls_idx:
-        # Check if this close cluster is identified as a probable duplicate
-        # of this cluster. If it is, do not add it to the list of extra
-        # clusters in the frame
-        skip_cl = False
-        if duplicate_cls:
-            for dup_fname_i in str(df_UCC["fnames"][i]).split(";"):
-                if dup_fname_i in duplicate_cls:
-                    skip_cl = True
-                    break
-            if skip_cl:
-                continue
+        # DEPRECATED: 27/01/25
+        # # Check if this close cluster is identified as a probable duplicate
+        # # of this cluster. If it is, do not add it to the list of extra
+        # # clusters in the frame
+        # skip_cl = False
+        # if duplicate_cls:
+        #     for dup_fname_i in str(df_UCC["fnames"][i]).split(";"):
+        #         if dup_fname_i in duplicate_cls:
+        #             skip_cl = True
+        #             break
+        #     if skip_cl:
+        #         continue
 
         # If the cluster does not contain PM or Plx information, check its
         # distance in (lon, lat) with the main cluster. If the distance locates
@@ -292,9 +265,10 @@ def get_close_cls(
         # neighboring clusters (e.g.: NGC 2516 disrupted by FSR 1479) and
         # at the same time removes more distant clusters that disrupt the
         # number of members estimation process in fastMP
-        if np.isnan(df_UCC["pmRA"][i]) or np.isnan(df_UCC["Plx"][i]):
+        if (df_UCC["pmRA"][i] == "nan") or (df_UCC["Plx"][i] == "nan"):
             xy_dist = np.sqrt(
-                (x - df_UCC["GLON"][i]) ** 2 + (y - df_UCC["GLAT"][i]) ** 2
+                (x - float(df_UCC["GLON"][i])) ** 2
+                + (y - float(df_UCC["GLAT"][i]) ** 2)
             )
             if xy_dist < 0.75 * rad:
                 continue
@@ -302,9 +276,9 @@ def get_close_cls(
         ex_cl_dict = (
             f"{df_UCC['ID'][i]}: ({df_UCC['GLON'][i]:.4f}, {df_UCC['GLAT'][i]:.4f})"
         )
-        if not np.isnan(df_UCC["pmRA"][i]):
+        if df_UCC["pmRA"][i] != "nan":
             ex_cl_dict += f", ({df_UCC['pmRA'][i]:.4f}, {df_UCC['pmDE'][i]:.4f})"
-        if not np.isnan(df_UCC["Plx"][i]):
+        if df_UCC["Plx"][i] != "nan":
             ex_cl_dict += f", {df_UCC['Plx'][i]:.4f}"
 
         centers_ex.append(ex_cl_dict)
@@ -322,6 +296,15 @@ def get_close_cls(
                 + f", {df_gcs['Plx'][i]:.4f}"
             )
             centers_ex.append(ex_cl_dict)
+
+    if len(centers_ex) > 0:
+        logging.info("WARNING: there are clusters close by:")
+        logging.info(
+            f"*{new_cl['ID']}: {(new_cl['GLON'], new_cl['GLAT'])}"
+            + f" {new_cl['pmRA'], new_cl['pmDE']} ({new_cl['Plx']}) <-- Processed"
+        )
+        for clust in centers_ex:
+            logging.info("  " + clust)
 
     return centers_ex
 
