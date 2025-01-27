@@ -303,8 +303,6 @@ def updt_new_db_dict(
     for col in (
         "UCC_ID",
         "quad",
-        "dups_fnames",
-        "dups_probs",
         "r_50",
         "N_50",
         "C1",
