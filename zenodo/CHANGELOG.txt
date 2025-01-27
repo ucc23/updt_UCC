@@ -6,6 +6,11 @@ Some of these are intermediate versions of the UCC database that are not publish
 - Added GLUSHKOVA2010
 
 
+## 25012710
+
+- Removed columns: "dups_fnames", "dups_probs"
+
+
 
 ## 25012510
 
@@ -21,8 +26,10 @@ df.to_csv(
     "UCC_cat_25012510_2.csv",
     na_rep="nan",
     index=False,
-
+    quoting=csv.QUOTE_NONNUMERIC,
+)
 ```
+
 
 ## 24123010
 
