@@ -57,6 +57,26 @@
       "e_age": "e_Age"
     }
   },
+  "GLUSHKOVA2010": {
+    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2010AstL...36...75G",
+    "authors": "Glushkova et al.",
+    "year": "2010",
+    "names": "Name",
+    "pos": {
+      "RA": "RAJ2000",
+      "DEC": "DEJ2000"
+    },
+    "pars": {
+      "ext": "E(B-V)",
+      "dist": "Dm",
+      "age": "Age"
+    },
+    "e_pars": {
+      "e_ext": "e_E(B-V)",
+      "e_dist": "e_Dm",
+      "e_age": "e_Age"
+    }
+  },
   "KHARCHENKO2012": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/2012A%26A...543A.156K",
     "authors": "Kharchenko et al.",
