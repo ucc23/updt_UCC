@@ -47,7 +47,7 @@ from modules.update_database.standardize_and_match_funcs import (
     get_fnames_new_DB,
     get_matches_new_DB,
 )
-from modules.utils import file_checker, logger
+from modules.utils import file_checker, get_last_version_UCC, logger
 
 # Paths to the Gaia DR3 files
 root = "/media/gabriel/backup/gabriel/GaiaDR3/"
@@ -210,14 +210,7 @@ def get_paths_check_paths(
             if not os.path.exists(out_path):
                 os.makedirs(out_path)
 
-    # Path to the latest version of the UCC catalogue
-    last_version = None
-    for file in os.listdir(UCC_folder):
-        if file.endswith("csv"):
-            last_version = file
-            break
-    if last_version is None:
-        raise ValueError(f"UCC file not found in {UCC_folder}")
+    last_version = get_last_version_UCC(UCC_folder)
     # Path to the current UCC csv file
     ucc_file = UCC_folder + last_version
 
