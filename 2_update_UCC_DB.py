@@ -47,7 +47,7 @@ from modules.update_database.standardize_and_match_funcs import (
     get_fnames_new_DB,
     get_matches_new_DB,
 )
-from modules.utils import logger
+from modules.utils import file_checker, logger
 
 # Paths to the Gaia DR3 files
 root = "/media/gabriel/backup/gabriel/GaiaDR3/"
@@ -64,11 +64,11 @@ def main():
     """
     logging = logger()
 
-    # # Check for Gaia files
-    # if not os.path.isdir(path_gaia_frames):
-    #     raise FileNotFoundError(f"Folder {path_gaia_frames} is not present")
-    # if not os.path.isfile(path_gaia_frames_ranges):
-    #     raise FileNotFoundError(f"File {path_gaia_frames_ranges} is not present")
+    # Check for Gaia files
+    if not os.path.isdir(path_gaia_frames):
+        raise FileNotFoundError(f"Folder {path_gaia_frames} is not present")
+    if not os.path.isfile(path_gaia_frames_ranges):
+        raise FileNotFoundError(f"File {path_gaia_frames_ranges} is not present")
 
     # Generate paths and check for required folders and files
     (
@@ -78,7 +78,7 @@ def main():
         temp_database_folder,
         ucc_file,
         temp_zenodo_fold,
-        temp_ucc_file,
+        new_ucc_file,
         temp_JSON_file,
         JSON_file,
         archived_UCC_file,
@@ -90,8 +90,8 @@ def main():
         manual_pars,
         df_UCC_old,
         current_JSON,
-        newDB_json,
         df_new,
+        newDB_json,
         new_DB_file,
         new_DB,
     ) = load_data(
@@ -126,11 +126,12 @@ def main():
     if input("Move on? (y/n): ").lower() != "y":
         sys.exit()
 
+    # Check the entries with no C3 value are identified as new and processed with fastMP
     N_new = (df_UCC_new2["C3"] == "nan").sum()
     if N_new > 0:
         logging.info(f"\nProcessing {N_new} new OCs in {new_DB} with fastMP...")
 
-        # Generate member fils for new OCs and obtain their data
+        # Generate member files for new OCs and obtain their data
         df_UCC_updt = member_files_updt(
             logging, df_UCC_new2, gaia_frames_data, df_GCs, manual_pars
         )
@@ -143,7 +144,7 @@ def main():
         df_UCC_new4 = df_UCC_new2
 
     # Save updated UCC to CSV file
-    save_final_UCC(logging, temp_zenodo_fold, temp_ucc_file, df_UCC_new4)
+    save_final_UCC(logging, temp_zenodo_fold, new_ucc_file, df_UCC_new4)
 
     if input("\nMove files to their final destination? (y/n): ").lower() != "y":
         sys.exit()
@@ -155,18 +156,19 @@ def main():
         temp_JSON_file,
         new_DB_file,
         ucc_file,
-        temp_ucc_file,
+        new_ucc_file,
         temp_zenodo_fold,
         temp_database_folder,
         archived_UCC_file,
     )
 
     # Check number of files
-    file_checker(logging, root_UCC_folder)
+    N_UCC = len(df_UCC_new4)
+    file_checker(logging, N_UCC, root_UCC_folder)
 
-    if input("\nRemove temporary files and folders? (y/n): ").lower() == "y":
-        # shutil.rmtree(temp_fold)
-        logging.info(f"Folder removed: {temp_fold}")
+    # if input("\nRemove temporary files and folders? (y/n): ").lower() == "y":
+    #     # shutil.rmtree(temp_fold)
+    #     logging.info(f"Folder removed: {temp_fold}")
 
     logging.info("\nAll done! Proceed with the next script")
 
@@ -227,10 +229,10 @@ def get_paths_check_paths(
 
     # Path to the new (temp) version of the UCC database
     new_version = datetime.datetime.now().strftime("%Y%m%d%H")[2:]
-    temp_ucc_file = "UCC_cat_" + new_version + ".csv"
+    new_ucc_file = "UCC_cat_" + new_version + ".csv"
     # Check if file already exists
-    if os.path.exists(temp_zenodo_fold + temp_ucc_file):
-        logging.info(f"File {temp_ucc_file} already exists. Moving on will re-write it")
+    if os.path.exists(temp_zenodo_fold + new_ucc_file):
+        logging.info(f"File {new_ucc_file} already exists. Moving on will re-write it")
         if input("Move on? (y/n): ").lower() != "y":
             sys.exit()
 
@@ -252,7 +254,7 @@ def get_paths_check_paths(
         temp_database_folder,
         ucc_file,
         temp_zenodo_fold,
-        temp_ucc_file,
+        new_ucc_file,
         temp_JSON_file,
         JSON_file,
         archived_UCC_file,
@@ -272,8 +274,8 @@ def load_data(
     pd.DataFrame,
     pd.DataFrame,
     pd.DataFrame,
-    dict,
     pd.DataFrame,
+    dict,
     str,
     str,
 ]:
@@ -319,8 +321,8 @@ def load_data(
         manual_pars,
         df_UCC,
         current_JSON,
-        newDB_json,
         df_new,
+        newDB_json,
         new_DB_file,
         new_DB,
     )
@@ -742,7 +744,7 @@ def diff_between_dfs(
 
 
 def save_final_UCC(
-    logging, temp_zenodo_fold: str, temp_ucc_file: str, df_UCC: pd.DataFrame
+    logging, temp_zenodo_fold: str, new_ucc_file: str, df_UCC: pd.DataFrame
 ):
     """ """
     # Order by (lon, lat) first
@@ -750,7 +752,7 @@ def save_final_UCC(
     df_UCC = df_UCC.reset_index(drop=True)
     # Save UCC to CSV file
     df_UCC.to_csv(
-        temp_zenodo_fold + temp_ucc_file,
+        temp_zenodo_fold + new_ucc_file,
         na_rep="nan",
         index=False,
         quoting=csv.QUOTE_NONNUMERIC,
@@ -786,57 +788,47 @@ def move_files(
     temp_JSON_file: str,
     new_DB_file: str,
     ucc_file: str,
-    temp_ucc_file: str,
+    new_ucc_file: str,
     temp_zenodo_fold: str,
     temp_database_folder: str,
     archived_UCC_file: str,
 ) -> None:
     """ """
+    logging.info("\nUpdate files:")
 
-    # # Move JSON file
-    # os.rename(root_current_folder + "/" + temp_JSON_file, root_current_folder + "/" + JSON_file)
-    # logging.info("JSON file updated")
-    print(
-        "rename",
-        root_current_folder + "/" + temp_JSON_file,
-        root_current_folder + "/" + JSON_file,
+    # Move JSON file
+    json_stored = root_current_folder + "/" + JSON_file
+    json_temp = root_current_folder + "/" + temp_JSON_file
+    os.rename(json_temp, json_stored)
+    logging.info(json_temp + " --> " + json_stored)
+    logging.info("JSON file updated")
+
+    # Move new DB file
+    db_stored = root_current_folder + "/" + dbs_folder + new_DB_file
+    db_temp = root_current_folder + "/" + temp_database_folder + new_DB_file
+    os.rename(db_temp, db_stored)
+    logging.info(db_temp + " --> " + db_stored)
+    logging.info("New DB stored")
+
+    # Generate '.gz' compressed file for the old UCC and archive it
+    df = pd.read_csv(ucc_file)
+    gz_UCC_stored = root_current_folder + "/" + archived_UCC_file
+    df.to_csv(
+        gz_UCC_stored,
+        na_rep="nan",
+        index=False,
+        quoting=csv.QUOTE_NONNUMERIC,
     )
-
-    # # Move new DB file
-    # os.rename(
-    #     root_current_folder + "/" + temp_database_folder + new_DB_file,
-    #     root_current_folder + "/" + dbs_folder + new_DB_file,
-    # )
-    # logging.info("New DB file moved to destination")
-    print(
-        "rename",
-        root_current_folder + "/" + temp_database_folder + new_DB_file,
-        root_current_folder + "/" + dbs_folder + new_DB_file,
-    )
-
-    # # Generate '.gz' compressed file for the old UCC and archive it
-    # df = pd.read_csv(ucc_file)
-    # df.to_csv(
-    #     root_current_folder + "/" + archived_UCC_file,
-    #     na_rep="nan",
-    #     index=False,
-    #     quoting=csv.QUOTE_NONNUMERIC,
-    # )
-
-    print("Create: ", root_current_folder + "/" + archived_UCC_file)
+    logging.info("Create: " + gz_UCC_stored)
     # Remove old csv file
-    # os.remove(root_current_folder + "/" + ucc_file)
-    print("remove: ", root_current_folder + "/" + ucc_file)
+    old_ucc = root_current_folder + "/" + ucc_file
+    os.remove(old_ucc)
+    logging.info("Remove: " + old_ucc)
     # Move new UCC file
-    # os.rename(
-    #     root_current_folder + "/" + temp_zenodo_fold + temp_ucc_file,
-    #     root_current_folder + "/" + UCC_folder + temp_ucc_file,
-    # )
-    print(
-        "rename",
-        root_current_folder + "/" + temp_zenodo_fold + temp_ucc_file,
-        root_current_folder + "/" + UCC_folder + temp_ucc_file,
-    )
+    ucc_temp = root_current_folder + "/" + temp_zenodo_fold + new_ucc_file
+    ucc_stored = root_current_folder + "/" + UCC_folder + new_ucc_file
+    os.rename(ucc_temp, ucc_stored)
+    logging.info(ucc_temp + " --> " + ucc_stored)
     logging.info("UCC file updated")
 
     # Move all .parquet member files
@@ -848,72 +840,13 @@ def move_files(
             if os.path.exists(qmembs_fold):
                 # For every file in this folder
                 for file in os.listdir(qmembs_fold):
-                    # # Skip field files
-                    # if "_field" in file:
-                    #     continue
-                    print(
-                        "rename",
-                        root_UCC_folder + "/" + qmembs_fold + "/" + file,
-                        root_UCC_folder + "/" + qfold + members_folder + "/" + file,
+                    parquet_temp = root_current_folder + "/" + qmembs_fold + "/" + file
+                    parquet_stored = (
+                        root_UCC_folder + "/" + qfold + members_folder + "/" + file
                     )
-                    # os.rename(
-                    #     root_UCC_folder + qmembs_fold + "/" + file,
-                    #     root_UCC_folder + qfold + members_folder + "/" + file,
-                    # )
-
-
-def file_checker(logging, root_UCC_fold: str) -> None:
-    """Check the number and types of files in directories for consistency.
-
-    Parameters:
-    - logging: Logger instance for recording messages.
-    - UCC_new: DataFrame containing the new UCC data.
-
-    Returns:
-    - None
-    """
-    logging.info("\nChecking number of files")
-    logging.info("    parquet webp  aladin  extra")
-
-    flag_error = False
-    NT_parquet, NT_webp, NT_webp_aladin, NT_extra = 0, 0, 0, 0
-    for qnum in range(1, 5):
-        for lat in ("P", "N"):
-            N_parquet, N_webp, N_webp_aladin, N_extra = 0, 0, 0, 0
-            for ffolder in ("datafiles", "plots"):
-                qfold = root_UCC_fold + "/Q" + str(qnum) + lat + f"/{ffolder}/"
-                # Read all files in Q folder
-                for file in os.listdir(qfold):
-                    if "HUNT23" in file or "CANTAT20" in file:
-                        pass
-                    elif "aladin" in file:
-                        N_webp_aladin += 1
-                        NT_webp_aladin += 1
-                    elif "parquet" in file:
-                        N_parquet += 1
-                        NT_parquet += 1
-                    elif "webp" in file:
-                        N_webp += 1
-                        NT_webp += 1
-                    else:
-                        N_extra += 1
-                        NT_extra += 1
-
-            mark = "V" if (N_parquet == N_webp == N_webp_aladin) else "X"
-            if N_extra > 0:
-                mark = "X"
-            logging.info(
-                f"{str(qnum) + lat}:   {N_parquet}  {N_webp}  {N_webp_aladin}    {N_extra} <-- {mark}"
-            )
-            if mark == "X":
-                flag_error = True
-    logging.info(
-        f"Total parquet/webp/aladin/extra: {NT_parquet}, {NT_webp}, {NT_webp_aladin}, {NT_extra}"
-    )
-    if not (NT_parquet == NT_webp == NT_webp_aladin) or NT_extra > 0:
-        flag_error = True
-    if flag_error:
-        raise ValueError("The file check was unsuccessful")
+                    os.rename(parquet_temp, parquet_stored)
+                    logging.info(parquet_temp + " --> " + parquet_stored)
+    logging.info("Cluster member files stored")
 
 
 if __name__ == "__main__":
