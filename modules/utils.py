@@ -1,5 +1,6 @@
 import datetime
 import logging
+import os
 from os.path import join
 from pathlib import Path
 
@@ -280,3 +281,78 @@ def date_order_DBs(DB: str, DB_i: str) -> tuple[str, str]:
     DB = ";".join(list(np.array(all_dbs)[idx]))
     DB_i = ";".join(list(np.array(all_dbs_i)[idx]))
     return DB, DB_i
+
+
+def file_checker(logging, N_UCC: int, root_UCC_fold: str, datafiles_only=True) -> None:
+    """Check the number and types of files in directories for consistency.
+
+    Parameters:
+    - logging: Logger instance for recording messages.
+    - UCC_new: DataFrame containing the new UCC data.
+
+    Returns:
+    - None
+    """
+    logging.info(f"\nChecking number of files against N_UCC={N_UCC}")
+    if datafiles_only:
+        folders_log = "parquet / extra"
+        folders = ("datafiles",)
+        logging.info("    parquet  extra")
+    else:
+        folders_log = "parquet / webp / aladin / extra"
+        folders = ("datafiles", "plots")
+        logging.info("    parquet webp  aladin  extra")
+
+    flag_error = False
+    NT_parquet, NT_webp, NT_webp_aladin, NT_extra = 0, 0, 0, 0
+    for qnum in range(1, 5):
+        for lat in ("P", "N"):
+            N_parquet, N_webp, N_webp_aladin, N_extra = 0, 0, 0, 0
+            for ffolder in folders:
+                qfold = root_UCC_fold + "/Q" + str(qnum) + lat + f"/{ffolder}/"
+                # Read all files in Q folder
+                for file in os.listdir(qfold):
+                    if "HUNT23" in file or "CANTAT20" in file:
+                        pass
+                    elif "aladin" in file:
+                        N_webp_aladin += 1
+                        NT_webp_aladin += 1
+                    elif "parquet" in file:
+                        N_parquet += 1
+                        NT_parquet += 1
+                    elif "webp" in file:
+                        N_webp += 1
+                        NT_webp += 1
+                    else:
+                        N_extra += 1
+                        NT_extra += 1
+
+            if datafiles_only:
+                mark = "V" if (N_extra == 0) else "X"
+                logging.info(
+                    f"{str(qnum) + lat}:   {N_parquet}     {N_extra} <-- {mark}"
+                )
+            else:
+                mark = "V" if (N_parquet == N_webp == N_webp_aladin == N_UCC) else "X"
+                logging.info(
+                    f"{str(qnum) + lat}:   {N_parquet}  {N_webp}  {N_webp_aladin}    {N_extra} <-- {mark}"
+                )
+            if N_extra > 0:
+                mark = "X"
+
+            if mark == "X":
+                flag_error = True
+
+    if datafiles_only:
+        logging.info(f"Total {folders_log}: {NT_parquet} / {NT_extra}")
+        if not (NT_parquet == N_UCC) or NT_extra > 0:
+            flag_error = True
+    else:
+        logging.info(
+            f"Total {folders_log}: {NT_parquet} / {NT_webp} / {NT_webp_aladin} / {NT_extra}"
+        )
+        if not (NT_parquet == NT_webp == NT_webp_aladin == N_UCC) or NT_extra > 0:
+            flag_error = True
+
+    if flag_error:
+        raise ValueError("The file check was unsuccessful")
