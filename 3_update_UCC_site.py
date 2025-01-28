@@ -1,18 +1,18 @@
-import json
+import os
 
 import pandas as pd
 
-from modules import (
-    add_new_DB,
-    aux,
-    check_new_DB,
-    check_UCC_versions,
-    duplicate_probs,
-    member_files_updt_UCC,
-    prepare_new_DB,
-    standardize_and_match,
+from modules.HARDCODED import (
+    UCC_folder,
+    members_folder,
+    temp_fold,
 )
-from modules.HARDCODED import UCC_folder, dbs_folder, name_DBs_json, temp_fold
+from modules.update_site.zenodo_updt import (
+    create_csv_UCC,
+    create_membs_UCC,
+    updt_readme,
+)
+from modules.utils import get_last_version_UCC, logger
 
 # Order used for the C3 classes
 class_order = [
@@ -34,9 +34,35 @@ class_order = [
     "DD",
 ]
 
+
 def main():
     """ """
-    logging = aux.logger()
+    logging = logger()
+
+    # Read latest version of the UCC
+    last_version, df_UCC = load_UCC(logging)
+
+    upld_zenodo_file = temp_fold + UCC_folder + "UCC_cat.csv"
+    create_csv_UCC(upld_zenodo_file, df_UCC)
+    logging.info("\nZenodo 'UCC_cat.csv' file generated")
+
+    logging.info("Reading member files...")
+
+    # Current root + main UCC folder
+    root_current_folder = os.getcwd()
+    # Go up one level
+    root_UCC_path = os.path.dirname(root_current_folder)
+
+    zenodo_members_file = temp_fold + UCC_folder + "UCC_members.parquet"
+    create_membs_UCC(logging, root_UCC_path, members_folder, zenodo_members_file)
+    logging.info("Zenodo 'UCC_members.parquet' file generated")
+
+    zenodo_readme = temp_fold + UCC_folder + "README.txt"
+    updt_readme(UCC_folder, last_version, zenodo_readme)
+    logging.info("Zenodo README file updated")
+
+    ######################################
+    # J script
     logging.info("Updating ucc.ar files\n")
 
     df_UCC, dbs_used, database_md = load_data(logging)
@@ -82,23 +108,27 @@ def main():
     updt_cls_JSON(df_updt)
 
 
-def load_data(logging, last_version: str) -> tuple[pd.DataFrame, pd.DataFrame, list]:
+def load_UCC(logging) -> pd.DataFrame:
     """ """
     # Load the latest version of the combined catalogue
-    df_UCC = pd.read_csv(UCC_folder + "UCC_cat_" + last_version + ".csv")
+    last_version = get_last_version_UCC(UCC_folder)
+    # Path to the current UCC csv file
+    ucc_file = UCC_folder + last_version
+
+    df_UCC = pd.read_csv(ucc_file)
     logging.info(f"UCC version {last_version} loaded (N={len(df_UCC)})")
 
-    # Load clusters data in JSON file
-    with open(temp_fold + dbs_folder + name_DBs_json) as f:
-        dbs_used = json.load(f)
-    logging.info("JSON file loaded")
+    # # Load clusters data in JSON file
+    # with open(temp_fold + dbs_folder + name_DBs_json) as f:
+    #     dbs_used = json.load(f)
+    # logging.info("JSON file loaded")
 
-    # Load DATABASE.md file
-    with open(root_UCC_path + pages_folder + "/" + "DATABASE.md") as file:
-        database_md = file.read()
+    # # Load DATABASE.md file
+    # with open(root_UCC_path + pages_folder + "/" + "DATABASE.md") as file:
+    #     database_md = file.read()
 
-    return df_UCC, dbs_used, database_md
+    return last_version, df_UCC
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
