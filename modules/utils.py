@@ -38,6 +38,19 @@ def logger():
     return logging
 
 
+def get_last_version_UCC(UCC_folder: str) -> str:
+    """Path to the latest version of the UCC catalogue"""
+    last_version = None
+    for file in os.listdir(UCC_folder):
+        if file.endswith("csv"):
+            last_version = file
+            break
+    if last_version is None:
+        raise ValueError(f"UCC file not found in {UCC_folder}")
+
+    return last_version
+
+
 def radec2lonlat(ra: float | list, dec: float | list) -> tuple[float, float]:
     """
     Converts equatorial coordinates (RA, Dec) to galactic coordinates (lon, lat).
