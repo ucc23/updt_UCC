@@ -1,7 +1,7 @@
 Some of these are intermediate versions of the UCC database that are not published.
 
 
-## 2501XXYY
+## 25012716
 
 - Added GLUSHKOVA2010
 
@@ -9,7 +9,6 @@ Some of these are intermediate versions of the UCC database that are not publish
 ## 25012710
 
 - Removed columns: "dups_fnames", "dups_probs"
-
 
 
 ## 25012510
@@ -69,13 +68,13 @@ Removed names (unnecessary duplicates):
  - Alessi Teutsch10
  - Dol Dzim 4
  - Dutra Bica83
+ - Basel 11A
  - Basel 11B
  - UBC 17 b
  - UBC 17 a
  - vdB 1
  - FOF 2302
  - VdB 92
- - Basel 11A
  - AH03 J0748 26.9
  - Arp Madore 2
  - vdBergh_Hagen_4
