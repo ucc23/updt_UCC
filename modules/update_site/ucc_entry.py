@@ -2,12 +2,13 @@ from datetime import datetime
 from pathlib import Path
 
 import numpy as np
-from HARDCODED import (
-    plots_folder,
-    root_UCC_path,
-)
 
-from modules import combine_UCC_new_DB
+# from HARDCODED import (
+#     plots_folder,
+#     root_UCC_path,
+# )
+# from modules import combine_UCC_new_DB
+from ..utils import date_order_DBs
 
 header = """---
 layout: post
@@ -135,23 +136,11 @@ data_foot = """\n
 """
 
 
-def main(df_UCC, UCC_cl, DBs_json, DBs_full_data, fname0, Qfold):
+def make(
+    UCC_cl, fname0, Qfold, posit_table, img_cont, fpars_table, close_table, abcd_c
+):
     """ """
-    # # DBs where this cluster is present
-    # DBs = UCC_cl["DB"].split(";")
-
-    # # Indexes where this cluster is present in each DB
-    # DBs_i = UCC_cl["DB_i"].split(";")
-
     cl_names = UCC_cl["ID"].split(";")
-
-    posit_table = positions_in_lit(DBs_json, DBs_full_data, UCC_cl)
-    img_cont = carousel_div(cl_names[0], Qfold, fname0)
-    close_table = close_cat_cluster(df_UCC, UCC_cl)
-    fpars_table = fpars_in_lit(DBs_json, DBs_full_data, UCC_cl["DB"], UCC_cl["DB_i"])
-
-    # Color used by the 'C1' classification
-    abcd_c = UCC_color(UCC_cl["C3"])
 
     # Start generating the md file
     txt = ""
@@ -161,7 +150,7 @@ def main(df_UCC, UCC_cl, DBs_json, DBs_full_data, fname0, Qfold):
 
     rad_deg = round(2 * (UCC_cl["r_50"] / 60.0), 3)
     txt += (
-        aladin_snippet.replace("QFOLD", str(Qfold))
+        aladin_snippet.replace("QFOLD", str(Qfold).replace('/', ''))
         .replace("FNAME", str(fname0))
         .replace("RAD_DEG", str(rad_deg))
         .replace("RA_ICRS", str(UCC_cl["RA_ICRS_m"]))
@@ -204,7 +193,7 @@ def main(df_UCC, UCC_cl, DBs_json, DBs_full_data, fname0, Qfold):
 
     txt += cl_plot.format(img_cont)
 
-    txt += notebook_url.format(Qfold, fname0)
+    txt += notebook_url.format(Qfold.replace('/', ''), fname0)
 
     if fpars_table != "":
         txt += fpars_table_top
@@ -223,9 +212,7 @@ def main(df_UCC, UCC_cl, DBs_json, DBs_full_data, fname0, Qfold):
 def positions_in_lit(DBs_json, DBs_full_data, row_UCC):
     """ """
     # Re-arrange DBs by year
-    DBs_sort, DBs_i_sort = combine_UCC_new_DB.date_order_DBs(
-        row_UCC["DB"], row_UCC["DB_i"]
-    )
+    DBs_sort, DBs_i_sort = date_order_DBs(row_UCC["DB"], row_UCC["DB_i"])
     DBs_sort, DBs_i_sort = DBs_sort.split(";"), DBs_i_sort.split(";")
 
     table = ""
@@ -235,10 +222,13 @@ def positions_in_lit(DBs_json, DBs_full_data, row_UCC):
 
         # Add positions
         row_in = ""
-        for c in DBs_json[db]["pos"].split(","):
-            if c != "None":
+        for c in ("RA", "DEC", "plx", "pmra", "pmde", "Rv"):
+            # for c in DBs_json[db]["pos"].split(","):
+            # if c != "None":
+            if c in DBs_json[db]["pos"].keys():
+                df_col_name = DBs_json[db]["pos"][c]
                 # Read position as string
-                pos_v = str(df[c][int(DBs_i_sort[i])])
+                pos_v = str(df[df_col_name][int(DBs_i_sort[i])])
                 # Remove empty spaces if any
                 pos_v = pos_v.replace(" ", "")
                 if pos_v != "" and pos_v != "nan":
@@ -251,7 +241,8 @@ def positions_in_lit(DBs_json, DBs_full_data, row_UCC):
         # See if the row contains any values
         if row_in.replace("--", "").replace("|", "").strip() != "":
             # Add reference
-            table += "|" + DBs_json[db]["ref"] + " | "
+            ref_url = f"[{DBs_json[db]['authors']} ({DBs_json[db]['year']})]({DBs_json[db]['ADS_url']})"
+            table += "|" + ref_url + " | "
             # Close and add row
             table += row_in[:-1] + "\n"
 
@@ -268,7 +259,7 @@ def positions_in_lit(DBs_json, DBs_full_data, row_UCC):
     return table
 
 
-def carousel_div(cl_name, Qfold, fname0):
+def carousel_div(root_UCC_path, plots_folder, cl_name, Qfold, fname0):
     """Generate the plot or carousel of plots, depending on whether there is more than
     one plot for a cluster.
     """
@@ -278,7 +269,7 @@ def carousel_div(cl_name, Qfold, fname0):
     dbs_plots = []
     for _db in ("HUNT23", "CANTAT20"):
         plot_fpath = Path(
-            root_UCC_path + Qfold + f"/{plots_folder}/" + fname0 + f"_{_db}.webp"
+            root_UCC_path + Qfold + plots_folder + fname0 + f"_{_db}.webp"
         )
         if plot_fpath.is_file() is True:
             dbs_plots.append(_db)
@@ -286,35 +277,35 @@ def carousel_div(cl_name, Qfold, fname0):
     if len(dbs_plots) == 0:
         img_cont = (
             f"![{cl_name}](https://raw.githubusercontent.com/ucc23/{Qfold}"
-            + f"/main/plots/{fname0}.webp)"
+            + f"main/plots/{fname0}.webp)"
         )
     else:
         img_cont = """<div class="carousel">\n"""
         img_cont += """<input type="radio" name="radio-btn" id="slide1" checked>\n"""
         for _ in range(len(dbs_plots)):
-            img_cont += f"""<input type="radio" name="radio-btn" id="slide{_+2}">\n"""
+            img_cont += f"""<input type="radio" name="radio-btn" id="slide{_ + 2}">\n"""
         img_cont += """<div class="slides">\n"""
         img_cont += """<div class="slide">\n"""
         img_cont += (
             f"""<a href="https://raw.githubusercontent.com/ucc23/{Qfold}"""
-            + f"""/main/plots/{fname0}.webp" target="_blank">\n"""
+            + f"""main/plots/{fname0}.webp" target="_blank">\n"""
         )
         img_cont += f"""<img src="https://raw.githubusercontent.com/ucc23/{Qfold}"""
         img_cont += (
-            f"""/main/plots/{fname0}.webp" alt="{cl_name} UCC">\n</a>\n</div>\n"""
+            f"""main/plots/{fname0}.webp" alt="{cl_name} UCC">\n</a>\n</div>\n"""
         )
         for _db in dbs_plots:
             img_cont += """<div class="slide">\n"""
             img_cont += (
                 f"""<a href="https://raw.githubusercontent.com/ucc23/{Qfold}"""
-                + f"""/main/plots/{fname0}_{_db}.webp" target="_blank">\n"""
+                + f"""main/plots/{fname0}_{_db}.webp" target="_blank">\n"""
             )
             img_cont += f"""<img src="https://raw.githubusercontent.com/ucc23/{Qfold}"""
-            img_cont += f"""/main/plots/{fname0}_{_db}.webp" alt="{cl_name} {_db}">\n</a>\n</div>\n"""
+            img_cont += f"""main/plots/{fname0}_{_db}.webp" alt="{cl_name} {_db}">\n</a>\n</div>\n"""
         img_cont += """</div>\n<div class="indicators">\n"""
         img_cont += """<label for="slide1">1</label>\n"""
         for _ in range(len(dbs_plots)):
-            img_cont += f"""<label for="slide{_+2}">{_+2}</label>\n"""
+            img_cont += f"""<label for="slide{_ + 2}">{_ + 2}</label>\n"""
         img_cont += """</div>\n</div>"""
 
     with open("/home/gabriel/Descargas/imag_cont.txt", "w") as text_file:
@@ -369,7 +360,7 @@ def close_cat_cluster(df_UCC, row):
 
 
 def fpars_in_lit(
-    DBs_json: dict, DBs_full_data: dict, DBs: list, DBs_i: list, max_chars=7
+    DBs_json: dict, DBs_full_data: dict, DBs: str, DBs_i: str, max_chars=7
 ):
     """
     DBs_json: JSON that contains the data for all DBs
@@ -377,22 +368,22 @@ def fpars_in_lit(
     DBs: DBs where this cluster is present
     DBs_i: Indexes where this cluster is present in each DB
     """
-    DBs, DBs_i = DBs.split(";"), DBs_i.split(";")
+    DBs_lst, DBs_i_lst = DBs.split(";"), DBs_i.split(";")
 
     # Select DBs with parameters
     DBs_w_pars, DBs_i_w_pars = [], []
-    for i, db in enumerate(DBs):
+    for i, db in enumerate(DBs_lst):
         # If this database contains any estimated fundamental parameters
-        if DBs_json[db]["pars"] != "":
+        if (not DBs_json[db]["pars"]) is False:
             DBs_w_pars.append(db)
-            DBs_i_w_pars.append(DBs_i[i])
+            DBs_i_w_pars.append(DBs_i_lst[i])
 
     if len(DBs_w_pars) == 0:
         table = ""
         return table
 
     # Re-arrange DBs by year
-    DBs_w_pars, DBs_i_w_pars = combine_UCC_new_DB.date_order_DBs(
+    DBs_w_pars, DBs_i_w_pars = date_order_DBs(
         ";".join(DBs_w_pars), ";".join(DBs_i_w_pars)
     )
     DBs_w_pars, DBs_i_w_pars = DBs_w_pars.split(";"), DBs_i_w_pars.split(";")
@@ -402,11 +393,12 @@ def fpars_in_lit(
         # Full 'db' database
         df = DBs_full_data[db]
         # Add reference
-        txt_db = "| " + DBs_json[db]["ref"] + " | "
+        ref_url = f"[{DBs_json[db]['authors']} ({DBs_json[db]['year']})]({DBs_json[db]['ADS_url']})"
+        txt_db = "| " + ref_url + " | "
 
         txt_pars = ""
         # Add non-nan parameters
-        for par in DBs_json[db]["pars"].split(","):
+        for k, par in DBs_json[db]["pars"].items():
             # Read parameter value from DB as string
             par_v = str(df[par][int(DBs_i_w_pars[i])])
 

@@ -7,6 +7,15 @@ dbs_folder = "databases/"
 # Name of JSON file with DBs data
 name_DBs_json = "all_dbs.json"
 
+# Folder where the member files are stored
+members_folder = "datafiles/"
+
+# Folder where the plots are stored
+plots_folder = "plots/"
+
+# Path to the file with manual OC parameters
+manual_pars_file = "manual_params.csv"
+
 # Database of listed GCs
 GCs_cat = "globulars.csv"
 
@@ -17,19 +26,13 @@ UCC_folder = "zenodo/"
 UCC_archive = "archived/"
 
 # Folder where the pages are stored
-pages_folder = "ucc/_pages"
+pages_folder = "ucc/_pages/"
 
 # Path to the OCs JSON file
 clusters_json = "ucc/clusters.json.gz"
 
 # Folder where the md entries are stored
-md_folder = "ucc/_clusters"
+md_folder = "ucc/_clusters/"
 
-# Folder where the member files are stored
-members_folder = "datafiles"
-
-# Folder where the plots are stored
-plots_folder = "plots"
-
-# Path to the file with manual OC parameters
-manual_pars_file = "manual_params.csv"
+# Folder where the ucc site images are stored
+images_folder = "ucc/images/"
