@@ -1,21 +1,14 @@
-import gzip
-import json
 from itertools import islice
 
 import numpy as np
 import pandas as pd
-from HARDCODED import (
-    clusters_json,
-    pages_folder,
-    root_UCC_path,
-)
 
-from modules.ucc_entry import UCC_color
+from .ucc_entry import UCC_color
 
 
-def count_OCs_classes(df_UCC, class_order):
+def count_OCs_classes(C3, class_order):
     """Count the number of OCs per C3 class"""
-    C3_classif, C3_count = np.unique(df_UCC["C3"], return_counts=True)
+    C3_classif, C3_count = np.unique(C3, return_counts=True)
     C3_classif = list(C3_classif)
     OCs_per_class = []
     for c in class_order:
@@ -77,26 +70,6 @@ def count_N50membs(df_UCC: pd.DataFrame) -> list:
     membs_msk.append(Ninf)
 
     return membs_msk
-
-
-def make_plots(df_UCC, dbs_used, OCs_per_class):
-    """ """
-    plot_path = "../../ucc/images/catalogued_ocs.webp"
-    txt0 = files_handler.update_image(
-        DRY_RUN, logging, plot_path, (ucc_plots.make_N_vs_year_plot, df_UCC)
-    )
-    if txt0 != "":
-        logging.info(f"Plot {txt0}: number of OCs vs years")
-
-    plot_path = "../../ucc/images/classif_bar.webp"
-    txt0 = files_handler.update_image(
-        DRY_RUN,
-        logging,
-        plot_path,
-        (ucc_plots.make_classif_plot, OCs_per_class, class_order),
-    )
-    if txt0 != "":
-        logging.info(f"Plot {txt0}: classification histogram")
 
 
 def pc_radius(
@@ -166,7 +139,7 @@ def replace_text_between(
     return leading_text + delimiter_a + replacement_text
 
 
-def ucc_n_total_updt(N_cl_UCC, N_db_UCC, database_md):
+def ucc_n_total_updt(logging, N_cl_UCC, N_db_UCC, database_md):
     """Update the total number of entries and databases in the UCC"""
     delimiter_a = "<!-- NT1 -->"
     delimiter_b = "<!-- NT2 -->"
@@ -188,10 +161,10 @@ def ucc_n_total_updt(N_cl_UCC, N_db_UCC, database_md):
     return database_md_updt
 
 
-def updt_cats_used(df_UCC, dbs_used, database_md_in):
+def updt_cats_used(logging, df_UCC, current_JSON, database_md_in):
     """ """
     # Count DB occurrences in UCC
-    all_DBs = list(dbs_used.keys())
+    all_DBs = list(current_JSON.keys())
     N_in_DB = {_: 0 for _ in all_DBs}
     for _ in df_UCC["DB"].values:
         for DB in _.split(";"):
@@ -199,10 +172,13 @@ def updt_cats_used(df_UCC, dbs_used, database_md_in):
 
     md_table = "\n| Name | N | Name | N |\n"
     md_table += "| ---- | :-: | ---- | :-: |\n"
-    for dict_chunk in chunks(dbs_used):
+    for dict_chunk in chunks(current_JSON):
         row = ""
         for DB, DB_data in dict_chunk.items():
-            row += f"| {DB_data['ref']} | [{N_in_DB[DB]}](/{DB}_table) "
+            ref_url = (
+                f"[{DB_data['authors']} ({DB_data['year']})]({DB_data['ADS_url']})"
+            )
+            row += f"| {ref_url} | [{N_in_DB[DB]}](/{DB}_table) "
         md_table += row + "|\n"
     md_table += "\n"
 
@@ -218,7 +194,7 @@ def updt_cats_used(df_UCC, dbs_used, database_md_in):
     return database_md_updt
 
 
-def updt_C3_classification(OCs_per_class, database_md_in):
+def updt_C3_classification(logging, class_order, OCs_per_class, database_md_in):
     """ """
     C3_table = "\n| C3 |  N  | C3 |  N  | C3 |  N  | C3 |  N  |\n"
     C3_table += "|----| :-: |----| :-: |----| :-: |----| :-: |\n"
@@ -250,7 +226,7 @@ def updt_C3_classification(OCs_per_class, database_md_in):
     return database_md_updt
 
 
-def updt_OCs_per_quad(df_UCC, database_md_in):
+def updt_OCs_per_quad(logging, df_UCC, database_md_in):
     """Update table of OCs per quadrants"""
     quad_table = "\n| Region  | lon range  | lat range  |   N |\n"
     quad_table += "|---------|------------|------------| :-: |\n"
@@ -287,7 +263,7 @@ def updt_OCs_per_quad(df_UCC, database_md_in):
     return database_md_updt
 
 
-def updt_dups_table(dups_msk: list, database_md_in: str) -> str:
+def updt_dups_table(logging, dups_msk: list, database_md_in: str) -> str:
     """
     Updates a Markdown string with a summary table of duplicate counts, categorized
     by the number of duplicates.
@@ -308,7 +284,7 @@ def updt_dups_table(dups_msk: list, database_md_in: str) -> str:
         Nde = " N_dup ="
         if i == 4:
             Nde = "N_dup >="
-        dups_table += f"|     {Nde} {i + 1}      | [{msk.sum()}](/Nd{i+1}_table) |\n"
+        dups_table += f"|     {Nde} {i + 1}      | [{msk.sum()}](/Nd{i + 1}_table) |\n"
     dups_table += "\n"
 
     delimeterA = "<!-- Begin table 4 -->\n"
@@ -323,7 +299,7 @@ def updt_dups_table(dups_msk: list, database_md_in: str) -> str:
     return database_md_updt
 
 
-def memb_number_table(membs_msk, database_md_in):
+def memb_number_table(logging, membs_msk, database_md_in):
     """
     Updates a Markdown string with a summary table categorized by the number of
     N_50 members.
@@ -369,88 +345,7 @@ def memb_number_table(membs_msk, database_md_in):
     return database_md_updt
 
 
-def updt_UCC(df_UCC: pd.DataFrame) -> pd.DataFrame:
-    """
-    Updates a DataFrame of astronomical cluster data by processing identifiers,
-    coordinates, URLs, and derived quantities such as distances.
-
-    Args:
-        df_UCC (pd.DataFrame): The input DataFrame containing cluster data with columns:
-                               - "ID": A semicolon-separated string of identifiers.
-                               - "fnames": A semicolon-separated string of file names.
-                               - "RA_ICRS", "DE_ICRS", "GLON", "GLAT": Coordinates.
-                               - "Plx_m": Parallax measurements in milliarcseconds.
-
-    Returns:
-        pd.DataFrame: The updated DataFrame with the following changes:
-                      - "ID": Extracts the first identifier from the "ID" column.
-                      - "ID_url": Adds URLs linking to cluster details.
-                      - "RA_ICRS", "DE_ICRS", "GLON", "GLAT": Rounded coordinates.
-                      - "dist_pc": Adds parallax-based distances in parsecs, clipped
-                                   to the range [10, 50000].
-    """
-    df = pd.DataFrame(df_UCC)
-
-    # Extract the first identifier from the "ID" column
-    df["ID"] = [_.split(";")[0] for _ in df_UCC["ID"]]
-
-    # Generate URLs for names
-    names_url = []
-    for i, cl in df.iterrows():
-        name = str(cl["ID"]).split(";")[0]
-        fname = str(cl["fnames"]).split(";")[0]
-        url = "/_clusters/" + fname + "/"
-        names_url.append(f"[{name}]({url})")
-    df["ID_url"] = names_url
-
-    # Round coordinate columns
-    df["RA_ICRS"] = np.round(df_UCC["RA_ICRS"].values, 2)
-    df["DE_ICRS"] = np.round(df_UCC["DE_ICRS"].values, 2)
-    df["GLON"] = np.round(df_UCC["GLON"].values, 2)
-    df["GLAT"] = np.round(df_UCC["GLAT"].values, 2)
-
-    # Compute parallax-based distances in parsecs
-    dist_pc = 1000 / np.clip(np.array(df["Plx_m"]), a_min=0.0000001, a_max=np.inf)
-    dist_pc = np.clip(dist_pc, a_min=10, a_max=50000)
-    df["dist_pc"] = np.round(dist_pc, 0)
-
-    return df
-
-
-def general_table_update(new_table: str, table_name: str) -> None:
-    """
-    Updates a markdown table file if the content has changed.
-
-    Args:
-        logging: A logging object used to log messages.
-        new_table: The updated table content as a string.
-        table_name: The name of the table, used to construct the file path.
-
-    Returns:
-        None
-    """
-    # Read old entry, if any
-    try:
-        with open(
-            root_UCC_path + pages_folder + "/tables/" + table_name + "_table.md", "r"
-        ) as f:
-            old_table = f.read()
-    except FileNotFoundError:
-        # This is a new table with no md entry yet
-        old_table = ""
-
-    # Write to file if any changes are detected
-    if old_table != new_table:
-        if DRY_RUN is False:
-            with open(
-                root_UCC_path + pages_folder + "/tables/" + table_name + "_table.md",
-                "w",
-            ) as file:
-                file.write(new_table)
-        logging.info(f"Table {table_name} updated")
-
-
-def updt_DBs_tables(dbs_used, df_updt):
+def updt_DBs_tables(dbs_used, df_updt) -> dict:
     """Update the DBs classification table files"""
     header = (
         """---\nlayout: page\ntitle: \n""" + """permalink: /DB_link_table/\n---\n\n"""
@@ -459,9 +354,11 @@ def updt_DBs_tables(dbs_used, df_updt):
     # Count DB occurrences in UCC
     all_DBs = list(dbs_used.keys())
 
+    new_tables_dict = {}
     for DB_id in all_DBs:
         md_table = header.replace("DB_link", DB_id)
-        md_table += "&nbsp;\n" + f"# {dbs_used[DB_id]['ref']}" + "\n\n"
+        ref_url = f"[{dbs_used[DB_id]['authors']} ({dbs_used[DB_id]['year']})]({dbs_used[DB_id]['ADS_url']})"
+        md_table += "&nbsp;\n" + f"# {ref_url}" + "\n\n"
 
         msk = []
         for _ in df_updt["DB"].values:
@@ -472,10 +369,12 @@ def updt_DBs_tables(dbs_used, df_updt):
         msk = np.array(msk)
 
         new_table = generate_table(df_updt, md_table, msk)
-        general_table_update(new_table, DB_id)
+        new_tables_dict[DB_id] = new_table
+
+    return new_tables_dict
 
 
-def updt_n50members_tables(df_updt, membs_msk):
+def updt_n50members_tables(df_updt, membs_msk) -> dict:
     """Update the duplicates table files"""
     header = (
         """---\nlayout: page\ntitle: nmembs_title\n"""
@@ -487,7 +386,7 @@ def updt_n50members_tables(df_updt, membs_msk):
         "nmembs_link", "N50_0"
     )
     md_table = generate_table(df_updt, md_table, membs_msk[0])
-    general_table_update(md_table, "N50_0")
+    new_tables_dict = {"N50_0": md_table}
 
     Ni = 0
     for i, Nf in enumerate((25, 50, 75, 100, 250, 500, 1000, 2000)):
@@ -496,23 +395,26 @@ def updt_n50members_tables(df_updt, membs_msk):
         md_table = header.replace("nmembs_title", title).replace("nmembs_link", Nmembs)
         md_table = generate_table(df_updt, md_table, membs_msk[i + 1])
         Ni = Nf
-        general_table_update(md_table, Nmembs)
+        new_tables_dict[Nmembs] = md_table
 
     # N>2000 table
     md_table = header.replace("nmembs_title", "N50 members (>2000)").replace(
         "nmembs_link", "N50_inf"
     )
     md_table = generate_table(df_updt, md_table, membs_msk[-1])
-    general_table_update(md_table, "N50_inf")
+    new_tables_dict["N50_inf"] = md_table
+
+    return new_tables_dict
 
 
-def updt_C3_tables(df_updt):
+def updt_C3_tables(df_updt, class_order: list) -> dict:
     """Update the C3 classification table files"""
     header = (
         """---\nlayout: page\ntitle: C3_title\n"""
         + """permalink: /C3_link_table/\n---\n\n"""
     )
 
+    new_tables_dict = {}
     for C3_N in range(16):
         title = f"{class_order[C3_N]} classification"
         md_table = header.replace("C3_title", title).replace(
@@ -521,23 +423,28 @@ def updt_C3_tables(df_updt):
         msk = df_updt["C3"] == class_order[C3_N]
         md_table = generate_table(df_updt, md_table, msk)
 
-        general_table_update(md_table, class_order[C3_N])
+        new_tables_dict[class_order[C3_N]] = md_table
+
+    return new_tables_dict
 
 
-def updt_dups_tables(df_updt, dups_msk):
+def updt_dups_tables(df_updt, dups_msk) -> dict:
     """Update the duplicates table files"""
     header = (
         """---\nlayout: page\ntitle: dups_title\n"""
         + """permalink: /dups_link_table/\n---\n\n"""
     )
 
+    new_tables_dict = {}
     for i, dups_N in enumerate(("Nd1", "Nd2", "Nd3", "Nd4", "Nd5")):
         title = f"{dups_N} duplicates"
         md_table = header.replace("dups_title", title).replace("dups_link", dups_N)
         msk = dups_msk[i]
         md_table = generate_table(df_updt, md_table, msk)
 
-        general_table_update(md_table, dups_N)
+        new_tables_dict[dups_N] = md_table
+
+    return new_tables_dict
 
 
 def updt_quad_tables(df_updt):
@@ -556,6 +463,7 @@ def updt_quad_tables(df_updt):
         "N": "negative",
     }
 
+    new_tables_dict = {}
     for quad_N in range(1, 5):
         for quad_s in ("P", "N"):
             quad = "Q" + str(quad_N) + quad_s
@@ -564,7 +472,9 @@ def updt_quad_tables(df_updt):
             md_table = header.replace("quad_title", title).replace("quad_link", quad)
             msk = df_updt["quad"] == quad
             md_table = generate_table(df_updt, md_table, msk)
-            general_table_update(md_table, quad)
+            new_tables_dict[quad] = md_table
+
+    return new_tables_dict
 
 
 def generate_table(df_updt, md_table, msk):
@@ -592,78 +502,3 @@ def generate_table(df_updt, md_table, msk):
         md_table += "| " + abcd + " |\n"
 
     return md_table
-
-
-def updt_cls_JSON(df_updt):
-    """
-    Update cluster.json file used by 'ucc.ar' search
-    """
-    df = pd.DataFrame(
-        df_updt[
-            [
-                "ID",
-                "fnames",
-                "RA_ICRS",
-                "DE_ICRS",
-                "GLON",
-                "GLAT",
-                "dist_pc",
-                "N_50",
-            ]
-        ]
-    )
-    df = df.sort_values("GLON")
-
-    df.rename(
-        columns={
-            "ID": "N",
-            "fnames": "F",
-            "RA_ICRS": "R",
-            "DE_ICRS": "D",
-            "GLON": "L",
-            "GLAT": "B",
-            "dist_pc": "P",
-            "N_50": "M",
-        },
-        inplace=True,
-    )
-    json_new = df.to_dict(orient="records")
-
-    # Load the old JSON data
-    with gzip.open(root_UCC_path + clusters_json, "rt", encoding="utf-8") as file:
-        json_old = json.load(file)
-
-    # Check if new JSON is equal to the old one
-    update_flag = False
-    if len(json_old) != len(json_new):
-        update_flag = True
-    else:
-        # True if JSONs are NOT equal
-        update_flag = not all(a == b for a, b in zip(json_old, json_new))
-        # Print differences to screen
-        for i, (dict1, dict2) in enumerate(zip(json_old, json_new)):
-            differing_keys = {
-                key
-                for key in dict1.keys() | dict2.keys()
-                if dict1.get(key) != dict2.get(key)
-            }
-            if differing_keys:
-                for key in differing_keys:
-                    logging.info(
-                        f"{i}, {key} --> OLD: {dict1.get(key)} | NEW: {dict2.get(key)}"
-                    )
-
-    # Update JSON if required
-    if update_flag is True:
-        if DRY_RUN is False:
-            df.to_json(
-                root_UCC_path + clusters_json,
-                orient="records",
-                indent=1,
-                compression="gzip",
-            )
-        logging.info("File 'clusters.json.gz' updated")
-
-
-if __name__ == "__main__":
-    main()

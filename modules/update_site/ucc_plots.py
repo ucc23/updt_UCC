@@ -1,16 +1,16 @@
 import warnings
+from urllib.parse import urlencode
 
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 from astropy.io import fits
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from scipy import ndimage
 
 
-def members_plot(
+def plot_CMD(
     plot_fpath,
-    parquet_path,
+    df_membs,
     title="UCC",
     cmap="plasma",
     dpi=200,
@@ -18,9 +18,7 @@ def members_plot(
     """ """
     # This is a modified style that removes the Latex dependence from the
     # 'scienceplots' package
-    plt.style.use("modules/science2.mplstyle")
-
-    df_membs = pd.read_parquet(parquet_path)
+    plt.style.use("modules/update_site/science2.mplstyle")
 
     # Sort by probabilities
     df_membs.sort_values("probs", inplace=True, kind="stable")
@@ -197,7 +195,7 @@ def diag_limits(phot_x, phot_y):
     return x_max_cmd, x_min_cmd, y_min_cmd, y_max_cmd
 
 
-def make_aladin_plot(
+def plot_aladin(
     ra,
     dec,
     r_50,
@@ -257,9 +255,9 @@ def make_aladin_plot(
     plt.close(fig)
 
 
-def make_N_vs_year_plot(path, df_UCC, fontsize=7, dpi=300):
+def make_N_vs_year_plot(file_out_name, df_UCC, fontsize=7, dpi=300):
     """ """
-    plt.style.use("modules/science2.mplstyle")
+    plt.style.use("modules/update_site/science2.mplstyle")
 
     # Extract minimum year of publication for each catalogued OC
     years = []
@@ -362,7 +360,7 @@ def make_N_vs_year_plot(path, df_UCC, fontsize=7, dpi=300):
     plt.yscale("log")
     fig.tight_layout()
 
-    plt.savefig(path, dpi=dpi)
+    plt.savefig(file_out_name, dpi=dpi)
     # https://stackoverflow.com/a/65910539/1391441
     fig.clear()
     plt.close(fig)
@@ -370,7 +368,7 @@ def make_N_vs_year_plot(path, df_UCC, fontsize=7, dpi=300):
 
 def make_classif_plot(path, height, class_order, dpi=300):
     """ """
-    plt.style.use("modules/science2.mplstyle")
+    plt.style.use("modules/update_site/science2.mplstyle")
 
     def rescale(x):
         return (x - np.min(x)) / (np.max(x) - np.min(x))
