@@ -1,38 +1,41 @@
-# Folder where all updated and new files will be stored temporarily
-temp_fold = "temp_updt/"
+# UCC site paths
+#
+# Root path to the repo for the ucc site
+ucc_path = "ucc/"
+# Path to the md entries folder
+md_folder = ucc_path + "_clusters/"
+# Path to the pages folder
+pages_folder = ucc_path + "_pages/"
+# Path to the tables folders
+tables_folder = pages_folder + "tables/"
+dbs_tables_folder = tables_folder + "dbs/"
+# Path to the ucc site images folder
+images_folder = ucc_path + "images/"
+# Path to the compressed JSON file with clusters data
+clusters_json_path = ucc_path + "clusters.json.gz"
+# Path to the md file with the tables
+databases_md_path = pages_folder + "DATABASE.md"
 
-# Folder where the databases and required files are located
-dbs_folder = "databases/"
-
-# Name of JSON file with DBs data
-name_DBs_json = "all_dbs.json"
-
-# Folder where the member files are stored
+# Q folders paths
+#
+# Path to the .parquet member files
 members_folder = "datafiles/"
-
-# Folder where the plots are stored
+# Path to the cluster's plots
 plots_folder = "plots/"
 
+# updt_ucc paths
+#
+# Path to the DBs and their JSON files are stored
+dbs_folder = "databases/"
+# Path to the JSON file with DBs data
+name_DBs_json = dbs_folder + "all_dbs.json"
+# Path to the database of GCs
+GCs_cat = dbs_folder + "globulars.csv"
 # Path to the file with manual OC parameters
 manual_pars_file = "manual_params.csv"
-
-# Database of listed GCs
-GCs_cat = "globulars.csv"
-
-# Folder where the latest UCC version is stored
+# Path to store temporarily all updated and new files
+temp_fold = "temp_updt/"
+# Path to the folder that stores the latest UCC version
 UCC_folder = "zenodo/"
-
-# Folder where the archived UCC versions are stored
-UCC_archive = "archived/"
-
-# Folder where the pages are stored
-pages_folder = "ucc/_pages/"
-
-# Path to the OCs JSON file
-clusters_json = "ucc/clusters.json.gz"
-
-# Folder where the md entries are stored
-md_folder = "ucc/_clusters/"
-
-# Folder where the ucc site images are stored
-images_folder = "ucc/images/"
+# Path to the folder that stores the archived UCC versions
+UCC_archive = UCC_folder + "archived/"
