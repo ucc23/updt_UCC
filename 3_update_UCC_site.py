@@ -3,19 +3,23 @@ import json
 import os
 import sys
 from pathlib import Path
+
 import numpy as np
 import pandas as pd
 
 from modules.HARDCODED import (
     UCC_folder,
-    clusters_json,
+    clusters_json_path,
+    databases_md_path,
     dbs_folder,
+    dbs_tables_folder,
     images_folder,
     md_folder,
     members_folder,
     name_DBs_json,
     pages_folder,
     plots_folder,
+    tables_folder,
     temp_fold,
 )
 from modules.update_site import ucc_entry, ucc_plots
@@ -67,71 +71,67 @@ def main():
     """ """
     logging = logger()
 
-    # Read paths and load required files
+    # Get the latest version of the UCC catalogue
+    UCC_last_version = get_last_version_UCC(UCC_folder)
+
+    # Read paths
     (
-        root_current_path,
+        ucc_file_path,
         root_UCC_path,
-        ucc_gz_JSON_path,
         temp_gz_JSON_path,
-        temp_pages_path,
-        ucc_pages_path,
-        temp_entries_path,
-        ucc_entries_path,
-        temp_image_path,
-        ucc_images_path,
+        ucc_gz_JSON_path,
         temp_tables_path,
         ucc_tables_path,
         temp_dbs_tables_path,
         ucc_dbs_tables_path,
-        last_version,
-        df_UCC,
+        temp_entries_path,
+        ucc_entries_path,
+        temp_image_path,
+    ) = load_paths(UCC_last_version)
+
+    # Load required files
+    df_UCC, current_JSON, DBs_full_data, database_md = load_data(
+        logging, ucc_file_path, root_UCC_path
+    )
+
+    #
+    updt_zenodo_files(logging, root_UCC_path, UCC_last_version, df_UCC)
+
+    updt_ucc_cluster_files(
+        logging,
+        root_UCC_path,
+        ucc_entries_path,
+        temp_entries_path,
         DBs_full_data,
+        df_UCC,
         current_JSON,
-        database_md,
-    ) = load_UCC_and_paths(logging)
-
-    #
-    # updat_zenodo_files(logging, root_UCC_path, last_version, df_UCC)
-
-    #
-    # updt_ucc_cluster_files(
-    #     logging,
-    #     root_UCC_path,
-    #     root_current_path,
-    #     ucc_entries_path,
-    #     temp_entries_path,
-    #     DBs_full_data,
-    #     df_UCC,
-    #     current_JSON,
-    # )
+    )
 
     # Prepare df_UCC to be used in the updating of the table files below
     df_updt = updt_UCC(df_UCC)
 
-    # #
-    # updt_ucc_main_files(
-    #     logging,
-    #     temp_image_path,
-    #     temp_pages_path,
-    #     temp_tables_path,
-    #     ucc_tables_path,
-    #     temp_dbs_tables_path,
-    #     ucc_dbs_tables_path,
-    #     df_UCC,
-    #     current_JSON,
-    #     database_md,
-    #     df_updt,
-    # )
+    #
+    updt_ucc_main_files(
+        logging,
+        temp_image_path,
+        temp_tables_path,
+        ucc_tables_path,
+        temp_dbs_tables_path,
+        ucc_dbs_tables_path,
+        df_UCC,
+        current_JSON,
+        database_md,
+        df_updt,
+    )
 
-    # # Update JSON file
-    # updt_cls_JSON(logging, ucc_gz_JSON_path, temp_gz_JSON_path, df_updt)
+    # Update JSON file
+    updt_cls_JSON(logging, ucc_gz_JSON_path, temp_gz_JSON_path, df_updt)
 
     if input("\nMove files to their final destination? (y/n): ").lower() != "y":
         sys.exit()
     move_files(
         logging,
         root_UCC_path,
-        root_current_path,
     )
     logging.info("All files moved into place")
 
@@ -142,8 +142,8 @@ def main():
     logging.info("\nAll done!")
 
 
-def load_UCC_and_paths(
-    logging,
+def load_paths(
+    UCC_last_version: str,
 ) -> tuple[
     str,
     str,
@@ -156,17 +156,9 @@ def load_UCC_and_paths(
     str,
     str,
     str,
-    str,
-    str,
-    str,
-    str,
-    pd.DataFrame,
-    dict,
-    dict,
-    str,
 ]:
     """ """
-    # Create quadrant folders
+    # Create temp quadrant folders
     for Nquad in range(1, 5):
         for lat in ("P", "N"):
             quad = "Q" + str(Nquad) + lat + "/"
@@ -174,88 +166,93 @@ def load_UCC_and_paths(
             if not os.path.exists(out_path):
                 os.makedirs(out_path)
 
-    # Load the latest version of the combined catalogue
-    last_version = get_last_version_UCC(UCC_folder)
-    # Path to the current UCC csv file
-    ucc_file = UCC_folder + last_version
+    # Full path to the current UCC csv file
+    ucc_file_path = UCC_folder + UCC_last_version
+
+    temp_zenodo_path = temp_fold + UCC_folder
+    if not os.path.exists(temp_zenodo_path):
+        os.makedirs(temp_zenodo_path)
+
+    # Current root path
+    # root_current_path = os.getcwd() + "/"
+    # Root UCC path
+    # Go up one level (remove added '/')
+    # root_UCC_path = os.path.dirname(root_current_path[:-1]) + "/"
+    root_UCC_path = os.path.dirname(os.getcwd()) + "/"
+
+    # UCC and temp path to compressed JSON file
+    ucc_gz_JSON_path = root_UCC_path + clusters_json_path
+    temp_gz_JSON_path = temp_fold + clusters_json_path
+
+    # Temp path to the ucc pages
+    temp_pages_path = temp_fold + pages_folder
+    if not os.path.exists(temp_pages_path):
+        os.makedirs(temp_pages_path)
+
+    # Temp path to the ucc table files
+    temp_tables_path = temp_fold + tables_folder
+    if not os.path.exists(temp_tables_path):
+        os.makedirs(temp_tables_path)
+    # Root path to the ucc table files
+    ucc_tables_path = root_UCC_path + tables_folder
+
+    # Temp path to the ucc table files for each DB
+    temp_dbs_tables_path = temp_fold + dbs_tables_folder
+    if not os.path.exists(temp_dbs_tables_path):
+        os.makedirs(temp_dbs_tables_path)
+    # Root path to the ucc table files for each DB
+    ucc_dbs_tables_path = root_UCC_path + dbs_tables_folder
+
+    # Temp path to the ucc cluster folder where each md entry is stored
+    temp_entries_path = temp_fold + md_folder
+    if not os.path.exists(temp_entries_path):
+        os.makedirs(temp_entries_path)
+    # Root path to the ucc cluster folder where each md entry is stored
+    ucc_entries_path = root_UCC_path + md_folder
+
+    # Temp path to ucc images folder
+    temp_image_path = temp_fold + images_folder
+    if not os.path.exists(temp_image_path):
+        os.makedirs(temp_image_path)
+
+    return (
+        ucc_file_path,
+        root_UCC_path,
+        temp_gz_JSON_path,
+        ucc_gz_JSON_path,
+        temp_tables_path,
+        ucc_tables_path,
+        temp_dbs_tables_path,
+        ucc_dbs_tables_path,
+        temp_entries_path,
+        ucc_entries_path,
+        temp_image_path,
+    )
+
+
+def load_data(logging, ucc_file: str, root_UCC_path: str):
+    """ """
 
     df_UCC = pd.read_csv(ucc_file)
-    logging.info(f"UCC version {last_version} loaded (N={len(df_UCC)})")
-
-    # Current root + main UCC folder
-    root_current_path = os.getcwd()
-    # Go up one level
-    root_UCC_path = os.path.dirname(root_current_path) + "/"
-    root_current_path = root_current_path + "/"
+    logging.info(f"UCC {ucc_file} loaded (N={len(df_UCC)})")
 
     # Load clusters data in JSON file
-    with open(dbs_folder + name_DBs_json) as f:
+    with open(name_DBs_json) as f:
         current_JSON = json.load(f)
-
-    ucc_gz_JSON_path = root_UCC_path + clusters_json
-    temp_gz_JSON_path = root_current_path + temp_fold + clusters_json
 
     # Read the data for every DB in the UCC as a pandas DataFrame
     DBs_full_data = {}
     for k, v in current_JSON.items():
         DBs_full_data[k] = pd.read_csv(dbs_folder + k + ".csv")
 
-    # Folder name where the ucc pages are stored
-    temp_pages_path = root_current_path + temp_fold + pages_folder
-    if not os.path.exists(temp_pages_path):
-        os.makedirs(temp_pages_path)
-    ucc_pages_path = root_UCC_path + pages_folder
-
     # Load DATABASE.md file
-    with open(ucc_pages_path + "DATABASE.md") as file:
+    with open(root_UCC_path + databases_md_path) as file:
         database_md = file.read()
 
-    # Folder name where the datafile is stored
-    temp_entries_path = root_current_path + temp_fold + md_folder
-    if not os.path.exists(temp_entries_path):
-        os.makedirs(temp_entries_path)
-    ucc_entries_path = root_UCC_path + md_folder
-
-    # Folder name where the ucc images are stored
-    temp_image_path = root_current_path + temp_fold + images_folder
-    if not os.path.exists(temp_image_path):
-        os.makedirs(temp_image_path)
-    ucc_images_path = root_UCC_path + images_folder
-
-    temp_tables_path = temp_pages_path + "tables/"
-    if not os.path.exists(temp_tables_path):
-        os.makedirs(temp_tables_path)
-    ucc_tables_path = root_UCC_path + pages_folder + "/tables/"
-
-    temp_dbs_tables_path = temp_pages_path + "tables/dbs/"
-    if not os.path.exists(temp_dbs_tables_path):
-        os.makedirs(temp_dbs_tables_path)
-    ucc_dbs_tables_path = root_UCC_path + pages_folder + "/tables/dbs/"
-
-    return (
-        root_current_path,
-        root_UCC_path,
-        ucc_gz_JSON_path,
-        temp_gz_JSON_path,
-        temp_pages_path,
-        ucc_pages_path,
-        temp_entries_path,
-        ucc_entries_path,
-        temp_image_path,
-        ucc_images_path,
-        temp_tables_path,
-        ucc_tables_path,
-        temp_dbs_tables_path,
-        ucc_dbs_tables_path,
-        last_version,
-        df_UCC,
-        DBs_full_data,
-        current_JSON,
-        database_md,
-    )
+    return df_UCC, current_JSON, DBs_full_data, database_md
 
 
-def updat_zenodo_files(logging, root_UCC_path, last_version, df_UCC):
+def updt_zenodo_files(logging, root_UCC_path, last_version, df_UCC):
     """ """
     #
     upld_zenodo_file = temp_fold + UCC_folder + "UCC_cat.csv"
@@ -276,7 +273,6 @@ def updat_zenodo_files(logging, root_UCC_path, last_version, df_UCC):
 def updt_ucc_cluster_files(
     logging,
     root_UCC_path,
-    root_current_path,
     ucc_entries_path,
     temp_entries_path,
     DBs_full_data,
@@ -291,7 +287,6 @@ def updt_ucc_cluster_files(
         fname0 = str(UCC_cl["fnames"]).split(";")[0]
         Qfold = UCC_cl["quad"] + "/"
 
-        # txt0 = f"{Qfold}{fname0}: "
         txt = f"{Qfold}{fname0}: "
 
         # Make catalogue entry
@@ -311,7 +306,6 @@ def updt_ucc_cluster_files(
         # Make plots
         txt_p = make_plots(
             root_UCC_path,
-            root_current_path,
             temp_fold,
             Qfold,
             members_folder,
@@ -340,11 +334,10 @@ def make_entry(
     fname0,
 ) -> str:
     """ """
-
     # Generate table with positional data: (ra, dec, plx, pmra, pmde, Rv)
     posit_table = ucc_entry.positions_in_lit(current_JSON, DBs_full_data, UCC_cl)
 
-    # Generate image carousel
+    # Generate CMD image carousel
     cl_name = UCC_cl["ID"].split(";")[0]
     img_cont = ucc_entry.carousel_div(
         root_UCC_path, plots_folder, cl_name, Qfold, fname0
@@ -358,10 +351,10 @@ def make_entry(
     # Generate table with close OCs
     close_table = ucc_entry.close_cat_cluster(df_UCC, UCC_cl)
 
-    # Color used by the 'CX' classification
+    # Get colors used by the 'CX' classification
     abcd_c = ucc_entry.UCC_color(UCC_cl["C3"])
 
-    # Generate entry
+    # Generate full entry
     new_md_entry = ucc_entry.make(
         UCC_cl,
         fname0,
@@ -409,7 +402,6 @@ def make_entry(
 
 def make_plots(
     root_UCC_path,
-    root_current_path,
     temp_fold,
     Qfold,
     members_folder,
@@ -425,12 +417,11 @@ def make_plots(
     orig_CMD_file = root_UCC_path + Qfold + plots_folder + fname0 + ".webp"
     # If image files does not exist --> generate
     if Path(orig_CMD_file).is_file() is False:
+        # Read members .parquet file
         parquet_path = root_UCC_path + Qfold + members_folder + fname0 + ".parquet"
         df_membs = pd.read_parquet(parquet_path)
         # Path were new image will be stored
-        save_plot_file = (
-            root_current_path + temp_fold + Qfold + plots_folder + fname0 + ".webp"
-        )
+        save_plot_file = temp_fold + Qfold + plots_folder + fname0 + ".webp"
         ucc_plots.plot_CMD(save_plot_file, df_membs)
         txt += " CMD plot generated |"
 
@@ -440,14 +431,7 @@ def make_plots(
     # If image files does not exist --> generate
     if Path(orig_aladin_path).is_file() is False:
         # Path were new image will be stored
-        save_plot_file = (
-            root_current_path
-            + temp_fold
-            + Qfold
-            + plots_folder
-            + fname0
-            + "_aladin.webp"
-        )
+        save_plot_file = temp_fold + Qfold + plots_folder + fname0 + "_aladin.webp"
         ucc_plots.plot_aladin(
             UCC_cl["RA_ICRS_m"],
             UCC_cl["DE_ICRS_m"],
@@ -510,7 +494,6 @@ def updt_UCC(df_UCC: pd.DataFrame) -> pd.DataFrame:
 def updt_ucc_main_files(
     logging,
     temp_image_path,
-    temp_pages_path,
     temp_tables_path,
     ucc_tables_path,
     temp_dbs_tables_path,
@@ -536,10 +519,9 @@ def updt_ucc_main_files(
     # Update site plots
     make_site_plots(logging, temp_image_path, df_UCC, OCs_per_class)
 
-    # Update main DATABASE.md file
+    # Update DATABASE.md file (store in temp folder)
     update_main_database_page(
         logging,
-        temp_pages_path,
         current_JSON,
         df_UCC,
         database_md,
@@ -584,7 +566,6 @@ def make_site_plots(logging, temp_image_path, df_UCC, OCs_per_class):
 
 def update_main_database_page(
     logging,
-    temp_pages_path,
     current_JSON,
     df_UCC,
     database_md,
@@ -610,9 +591,9 @@ def update_main_database_page(
 
     database_md_updt = memb_number_table(logging, membs_msk, database_md_updt)
 
-    # Save updated page
+    # Save updated page (temp)
     if database_md != database_md_updt:
-        with open(temp_pages_path + "DATABASE.md", "w") as file:
+        with open(temp_fold + databases_md_path, "w") as file:
             file.write(database_md_updt)
         logging.info("DATABASE.md updated")
 
@@ -713,18 +694,17 @@ def updt_cls_JSON(logging, ucc_gz_JSON_path: str, temp_gz_JSON_path: str, df_upd
 def move_files(
     logging,
     root_UCC_path,
-    root_current_path,
 ) -> None:
     """ """
     logging.info("\nUpdate files:")
 
-    temp_ucc_fold = root_current_path + temp_fold + "ucc/"
+    temp_ucc_fold = temp_fold + "ucc/"
     for root, dirs, files in os.walk(temp_ucc_fold):
         for filename in files:
             file_path = os.path.join(root, filename)
-            file_ucc = file_path.replace(root_current_path + temp_fold, root_UCC_path)
-            # os.rename(file_path, file_ucc)
+            file_ucc = file_path.replace(temp_fold, root_UCC_path)
             logging.info(file_path + " --> " + file_ucc)
+            os.rename(file_path, file_ucc)
 
     logging.info("")
     # Move all CMD and Aladin plots in Q folders
@@ -736,10 +716,10 @@ def move_files(
             if os.path.exists(qplots_fold):
                 # For every file in this folder
                 for file in os.listdir(qplots_fold):
-                    plot_temp = root_current_path + qplots_fold + file
+                    plot_temp = qplots_fold + file
                     plot_stored = root_UCC_path + qfold + plots_folder + file
-                    # os.rename(plot_temp, plot_stored)
-                    # logging.info(plot_temp + " --> " + plot_stored)
+                    logging.info(plot_temp + " --> " + plot_stored)
+                    os.rename(plot_temp, plot_stored)
 
 
 if __name__ == "__main__":
