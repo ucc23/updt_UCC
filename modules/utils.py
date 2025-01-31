@@ -346,7 +346,7 @@ def file_checker(logging, N_UCC: int, root_UCC_fold: str, datafiles_only=True) -
                     f"{str(qnum) + lat}:   {N_parquet}     {N_extra} <-- {mark}"
                 )
             else:
-                mark = "V" if (N_parquet == N_webp == N_webp_aladin == N_UCC) else "X"
+                mark = "V" if (N_parquet == N_webp == N_webp_aladin) else "X"
                 logging.info(
                     f"{str(qnum) + lat}:   {N_parquet}  {N_webp}  {N_webp_aladin}    {N_extra} <-- {mark}"
                 )
