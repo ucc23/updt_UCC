@@ -90,13 +90,14 @@ def main():
     ) = load_paths(UCC_last_version)
 
     # Load required files
-    df_UCC, current_JSON, DBs_full_data, database_md = load_data(
+    df_UCC, df_tables, current_JSON, DBs_full_data, database_md = load_data(
         logging, ucc_file_path, root_UCC_path
     )
 
-    #
+    # Update Zenodo files
     updt_zenodo_files(logging, root_UCC_path, UCC_last_version, df_UCC)
 
+    # Update per cluster md and webp files
     updt_ucc_cluster_files(
         logging,
         root_UCC_path,
@@ -107,10 +108,7 @@ def main():
         current_JSON,
     )
 
-    # Prepare df_UCC to be used in the updating of the table files below
-    df_updt = updt_UCC(df_UCC)
-
-    #
+    # Update the main ucc site files
     updt_ucc_main_files(
         logging,
         temp_image_path,
@@ -121,11 +119,11 @@ def main():
         df_UCC,
         current_JSON,
         database_md,
-        df_updt,
+        df_tables,
     )
 
     # Update JSON file
-    updt_cls_JSON(logging, ucc_gz_JSON_path, temp_gz_JSON_path, df_updt)
+    updt_cls_JSON(logging, ucc_gz_JSON_path, temp_gz_JSON_path, df_tables)
 
     if input("\nMove files to their final destination? (y/n): ").lower() != "y":
         sys.exit()
@@ -136,7 +134,7 @@ def main():
     logging.info("All files moved into place")
 
     # Check number of files
-    N_UCC = len(df_updt)
+    N_UCC = len(df_UCC)
     file_checker(logging, N_UCC, root_UCC_path, datafiles_only=False)
 
     logging.info("\nAll done!")
@@ -173,11 +171,7 @@ def load_paths(
     if not os.path.exists(temp_zenodo_path):
         os.makedirs(temp_zenodo_path)
 
-    # Current root path
-    # root_current_path = os.getcwd() + "/"
     # Root UCC path
-    # Go up one level (remove added '/')
-    # root_UCC_path = os.path.dirname(root_current_path[:-1]) + "/"
     root_UCC_path = os.path.dirname(os.getcwd()) + "/"
 
     # UCC and temp path to compressed JSON file
@@ -236,6 +230,9 @@ def load_data(logging, ucc_file: str, root_UCC_path: str):
     df_UCC = pd.read_csv(ucc_file)
     logging.info(f"UCC {ucc_file} loaded (N={len(df_UCC)})")
 
+    # Prepare df_UCC to be used in the updating of the table files
+    df_tables = updt_UCC(df_UCC)
+
     # Load clusters data in JSON file
     with open(name_DBs_json) as f:
         current_JSON = json.load(f)
@@ -249,7 +246,55 @@ def load_data(logging, ucc_file: str, root_UCC_path: str):
     with open(root_UCC_path + databases_md_path) as file:
         database_md = file.read()
 
-    return df_UCC, current_JSON, DBs_full_data, database_md
+    return df_UCC, df_tables, current_JSON, DBs_full_data, database_md
+
+
+def updt_UCC(df_UCC: pd.DataFrame) -> pd.DataFrame:
+    """
+    Updates a DataFrame of astronomical cluster data by processing identifiers,
+    coordinates, URLs, and derived quantities such as distances.
+
+    Args:
+        df_UCC (pd.DataFrame): The input DataFrame containing cluster data with columns:
+                               - "ID": A semicolon-separated string of identifiers.
+                               - "fnames": A semicolon-separated string of file names.
+                               - "RA_ICRS", "DE_ICRS", "GLON", "GLAT": Coordinates.
+                               - "Plx_m": Parallax measurements in milliarcseconds.
+
+    Returns:
+        pd.DataFrame: The updated DataFrame with the following changes:
+                      - "ID": Extracts the first identifier from the "ID" column.
+                      - "ID_url": Adds URLs linking to cluster details.
+                      - "RA_ICRS", "DE_ICRS", "GLON", "GLAT": Rounded coordinates.
+                      - "dist_pc": Adds parallax-based distances in parsecs, clipped
+                                   to the range [10, 50000].
+    """
+    df = pd.DataFrame(df_UCC)
+
+    # Extract the first identifier from the "ID" column
+    df["ID"] = [_.split(";")[0] for _ in df_UCC["ID"]]
+
+    # Generate URLs for names
+    names_url = []
+    for i, cl in df.iterrows():
+        name = str(cl["ID"]).split(";")[0]
+        fname = str(cl["fnames"]).split(";")[0]
+        url = "/_clusters/" + fname + "/"
+        names_url.append(f"[{name}]({url})")
+    df["ID_url"] = names_url
+
+    # Round coordinate columns
+    df["RA_ICRS"] = np.round(df_UCC["RA_ICRS"], 2)
+    df["DE_ICRS"] = np.round(df_UCC["DE_ICRS"], 2)
+    df["GLON"] = np.round(df_UCC["GLON"], 2)
+    df["GLAT"] = np.round(df_UCC["GLAT"], 2)
+
+    # Compute parallax-based distances in parsecs
+    dist_pc = 1000 / np.clip(np.array(df["Plx_m"]), a_min=0.0000001, a_max=np.inf)
+    dist_pc = np.clip(dist_pc, a_min=10, a_max=50000)
+    df["dist_pc"] = np.round(dist_pc, 0)
+
+    return df
 
 
 def updt_zenodo_files(logging, root_UCC_path, last_version, df_UCC):
@@ -443,54 +488,6 @@ def make_plots(
     return txt
 
 
-def updt_UCC(df_UCC: pd.DataFrame) -> pd.DataFrame:
-    """
-    Updates a DataFrame of astronomical cluster data by processing identifiers,
-    coordinates, URLs, and derived quantities such as distances.
-
-    Args:
-        df_UCC (pd.DataFrame): The input DataFrame containing cluster data with columns:
-                               - "ID": A semicolon-separated string of identifiers.
-                               - "fnames": A semicolon-separated string of file names.
-                               - "RA_ICRS", "DE_ICRS", "GLON", "GLAT": Coordinates.
-                               - "Plx_m": Parallax measurements in milliarcseconds.
-
-    Returns:
-        pd.DataFrame: The updated DataFrame with the following changes:
-                      - "ID": Extracts the first identifier from the "ID" column.
-                      - "ID_url": Adds URLs linking to cluster details.
-                      - "RA_ICRS", "DE_ICRS", "GLON", "GLAT": Rounded coordinates.
-                      - "dist_pc": Adds parallax-based distances in parsecs, clipped
-                                   to the range [10, 50000].
-    """
-    df = pd.DataFrame(df_UCC)
-
-    # Extract the first identifier from the "ID" column
-    df["ID"] = [_.split(";")[0] for _ in df_UCC["ID"]]
-
-    # Generate URLs for names
-    names_url = []
-    for i, cl in df.iterrows():
-        name = str(cl["ID"]).split(";")[0]
-        fname = str(cl["fnames"]).split(";")[0]
-        url = "/_clusters/" + fname + "/"
-        names_url.append(f"[{name}]({url})")
-    df["ID_url"] = names_url
-
-    # Round coordinate columns
-    df["RA_ICRS"] = np.round(df_UCC["RA_ICRS"], 2)
-    df["DE_ICRS"] = np.round(df_UCC["DE_ICRS"], 2)
-    df["GLON"] = np.round(df_UCC["GLON"], 2)
-    df["GLAT"] = np.round(df_UCC["GLAT"], 2)
-
-    # Compute parallax-based distances in parsecs
-    dist_pc = 1000 / np.clip(np.array(df["Plx_m"]), a_min=0.0000001, a_max=np.inf)
-    dist_pc = np.clip(dist_pc, a_min=10, a_max=50000)
-    df["dist_pc"] = np.round(dist_pc, 0)
-
-    return df
-
-
 def updt_ucc_main_files(
     logging,
     temp_image_path,
@@ -501,7 +498,7 @@ def updt_ucc_main_files(
     df_UCC,
     current_JSON,
     database_md,
-    df_updt,
+    df_tables,
 ):
     """ """
     logging.info("\nUpdating ucc.ar files")
@@ -531,25 +528,25 @@ def updt_ucc_main_files(
     )
 
     # Update pages for individual databases
-    new_tables_dict = updt_DBs_tables(current_JSON, df_updt)
+    new_tables_dict = updt_DBs_tables(current_JSON, df_tables)
     general_table_update(
         logging, ucc_dbs_tables_path, temp_dbs_tables_path, new_tables_dict
     )
 
     # Update page with N members
-    new_tables_dict = updt_n50members_tables(df_updt, membs_msk)
+    new_tables_dict = updt_n50members_tables(df_tables, membs_msk)
     general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
 
     #
-    new_tables_dict = updt_C3_tables(df_updt, class_order)
+    new_tables_dict = updt_C3_tables(df_tables, class_order)
     general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
 
     #
-    new_tables_dict = updt_dups_tables(df_updt, dups_msk)
+    new_tables_dict = updt_dups_tables(df_tables, dups_msk)
     general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
 
     #
-    new_tables_dict = updt_quad_tables(df_updt)
+    new_tables_dict = updt_quad_tables(df_tables)
     general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
 
 
@@ -621,12 +618,14 @@ def general_table_update(
             logging.info(f"Table {table_name} {txt}")
 
 
-def updt_cls_JSON(logging, ucc_gz_JSON_path: str, temp_gz_JSON_path: str, df_updt):
+def updt_cls_JSON(
+    logging, ucc_gz_JSON_path: str, temp_gz_JSON_path: str, df_tables: pd.DataFrame
+) -> None:
     """
     Update cluster.json file used by 'ucc.ar' search
     """
     df = pd.DataFrame(
-        df_updt[
+        df_tables[
             [
                 "ID",
                 "fnames",
