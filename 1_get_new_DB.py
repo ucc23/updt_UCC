@@ -1,8 +1,5 @@
 import csv
-import datetime
 import json
-import logging
-from os.path import join
 from pathlib import Path
 
 import Levenshtein
@@ -17,8 +14,10 @@ from modules.HARDCODED import (
     temp_fold,
 )
 
+from modules.utils import logger
+
 # NASA/ADS bibcode for the new DB
-ADS_bibcode = "2010AstL...36...75G"
+ADS_bibcode = "2011A%26A...532A.131B"
 
 
 def main():
@@ -41,8 +40,7 @@ def main():
     logging = logger()
 
     # Load current JSON file
-    JSON_file = dbs_folder + name_DBs_json
-    with open(JSON_file) as f:
+    with open(name_DBs_json) as f:
         current_JSON = json.load(f)
 
     # Check if url is already listed in the current JSON file
@@ -66,7 +64,7 @@ def main():
     # Create folder if it does not exist
     Path(temp_database_folder).mkdir(parents=True, exist_ok=True)
     # Path to the new (temp) JSON file
-    temp_JSON_file = temp_database_folder + name_DBs_json
+    temp_JSON_file = temp_fold + name_DBs_json
     # Path to the new (temp) DB file
     temp_CSV_file = temp_database_folder + DB_name + ".csv"
 
@@ -115,35 +113,6 @@ def main():
     logging.info("\n********************************************************")
     logging.info("Check the JSON and CSV files carefully before moving on!")
     logging.info("********************************************************")
-
-
-def logger():
-    """
-    Sets up a logger that writes log messages to a file named with the current date
-    and also outputs to the console.
-
-    Returns:
-        logging.Logger: Configured logger instance.
-    """
-    mypath = Path().absolute()
-
-    # Name of log file using the date
-    x = datetime.date.today()
-    out_file = "logs/" + str(x).replace("-", "_") + ".log"
-
-    # Set up logging module
-    level = logging.INFO
-    frmt = "%(message)s"
-    handlers = [
-        logging.FileHandler(join(mypath, out_file), mode="a"),
-        logging.StreamHandler(),
-    ]
-    logging.basicConfig(level=level, format=frmt, handlers=handlers)
-
-    logging.info("\n------------------------------")
-    logging.info(str(datetime.datetime.now()) + "\n")
-
-    return logging
 
 
 def get_ADS_data():
@@ -235,7 +204,7 @@ def get_CDS_table(logging) -> list | None:
     logging.info(rows[0].strip())
     for i, row in enumerate(rows[1:]):
         logging.info(
-            f"{i}: " + cat[i].meta["description"] + " : " + row.split("with")[0].strip()
+            f"{i}: " + cat[i].meta["description"] + " : " + row.split("and")[0].strip()
         )
 
     # Select table(s) to download
