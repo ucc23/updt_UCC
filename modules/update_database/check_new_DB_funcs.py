@@ -6,6 +6,7 @@ import pandas as pd
 from astropy import units as u
 from astropy.coordinates import SkyCoord, angular_separation
 from scipy.spatial.distance import cdist
+
 from ..utils import check_centers, radec2lonlat
 
 
@@ -468,6 +469,22 @@ def positions_check(
 ) -> bool:
     """
     Checks the positions of clusters in the new database against those in the UCC.
+
+    The logic for flagging for attention is handled as follows:
+
+    Is the OC already present in the UCC?
+        |         |
+        v         |--> No --> do nothing
+       Yes
+        |
+        v
+    Is the difference between the old vs new centers values large?
+        |         |
+        v         |--> No --> do nothing
+       Yes
+        |
+        v
+    Request attention
 
     Parameters
     ----------
