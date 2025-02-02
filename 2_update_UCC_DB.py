@@ -64,23 +64,27 @@ def main():
     """
     logging = logger()
 
+    txt = ""
     # Check for Gaia files
     if not os.path.isdir(path_gaia_frames):
-        raise FileNotFoundError(f"Folder {path_gaia_frames} is not present")
+        # raise FileNotFoundError(f"Folder {path_gaia_frames} is not present")
+        txt += f"Folder {path_gaia_frames} is not present\n"
     if not os.path.isfile(path_gaia_frames_ranges):
-        raise FileNotFoundError(f"File {path_gaia_frames_ranges} is not present")
+        # raise FileNotFoundError(f"File {path_gaia_frames_ranges} is not present")
+        txt += f"File {path_gaia_frames_ranges} is not present"
+    if txt != "":
+        logging.info(txt)
+        if input("Move on? (y/n): ").lower() != "y":
+            sys.exit()
 
     # Generate paths and check for required folders and files
     (
-        root_current_folder,
         root_UCC_folder,
-        GCs_path,
         temp_database_folder,
         ucc_file,
         temp_zenodo_fold,
         new_ucc_file,
         temp_JSON_file,
-        JSON_file,
         archived_UCC_file,
     ) = get_paths_check_paths(logging)
 
@@ -94,9 +98,7 @@ def main():
         newDB_json,
         new_DB_file,
         new_DB,
-    ) = load_data(
-        logging, GCs_path, ucc_file, JSON_file, temp_JSON_file, temp_database_folder
-    )
+    ) = load_data(logging, ucc_file, temp_JSON_file, temp_database_folder)
 
     # Check for required columns in the new DB
     check_new_DB_cols(logging, current_JSON, new_DB, df_new, newDB_json)
@@ -109,7 +111,7 @@ def main():
     # Check the entries in the new DB
     check_new_DB(
         logging,
-        GCs_path,
+        df_GCs,
         new_DB,
         df_UCC_old,
         df_new,
@@ -150,9 +152,7 @@ def main():
         sys.exit()
     move_files(
         logging,
-        root_current_folder,
         root_UCC_folder,
-        JSON_file,
         temp_JSON_file,
         new_DB_file,
         ucc_file,
@@ -183,18 +183,12 @@ def get_paths_check_paths(
     str,
     str,
     str,
-    str,
-    str,
-    str,
 ]:
     """ """
     # Current root + main UCC folder
     root_current_folder = os.getcwd()
     # Go up one level
-    root_UCC_folder = os.path.dirname(root_current_folder)
-
-    # Path to file with GCs data
-    GCs_path = dbs_folder + GCs_cat
+    root_UCC_folder = os.path.dirname(root_current_folder) + "/"
 
     # Temporary databases/ folder
     temp_database_folder = temp_fold + dbs_folder
@@ -229,36 +223,26 @@ def get_paths_check_paths(
         if input("Move on? (y/n): ").lower() != "y":
             sys.exit()
 
-    # Path to the current JSON file
-    JSON_file = dbs_folder + name_DBs_json
-
     # Path to the new (temp) JSON file
-    temp_JSON_file = temp_database_folder + name_DBs_json
+    temp_JSON_file = temp_fold + name_DBs_json
 
-    # Path to the archived current UCC csv file
-    archived_UCC_file = (
-        UCC_folder + UCC_archive + last_version.replace(".csv", ".csv.gz")
-    )
+    # Path to archive the current UCC csv file
+    archived_UCC_file = UCC_archive + last_version.replace(".csv", ".csv.gz")
 
     return (
-        root_current_folder,
         root_UCC_folder,
-        GCs_path,
         temp_database_folder,
         ucc_file,
         temp_zenodo_fold,
         new_ucc_file,
         temp_JSON_file,
-        JSON_file,
         archived_UCC_file,
     )
 
 
 def load_data(
     logging,
-    GCs_path: str,
     ucc_file: str,
-    JSON_file: str,
     temp_JSON_file: str,
     temp_database_folder: str,
 ) -> tuple[
@@ -281,7 +265,7 @@ def load_data(
         warnings.warn(f"File {path_gaia_frames_ranges} not found")
 
     # Load GCs data
-    df_GCs = pd.read_csv(GCs_path)
+    df_GCs = pd.read_csv(GCs_cat)
 
     # Read OCs manual parameters
     manual_pars = pd.read_csv(manual_pars_file)
@@ -290,10 +274,10 @@ def load_data(
     logging.info(f"\nUCC version {ucc_file} loaded (N={len(df_UCC)})")
 
     # Load current JSON file
-    with open(JSON_file) as f:
+    with open(name_DBs_json) as f:
         current_JSON = json.load(f)
 
-    # Load temp JSON file
+    # Load new temp JSON file
     with open(temp_JSON_file) as f:
         temp_JSON = json.load(f)
 
@@ -332,7 +316,7 @@ def check_new_DB_cols(
     # Check for required columns
     cols = [newDB_json["names"]]
     for entry in ("pos", "pars", "e_pars"):
-        for k, v in newDB_json[entry].items():
+        for _, v in newDB_json[entry].items():
             cols.append(v)
     # Access columns stored in JSON file
     for col in cols:
@@ -407,7 +391,7 @@ def standardize_and_match(
 
 def check_new_DB(
     logging,
-    GCs_path: str,
+    df_GCs: pd.DataFrame,
     new_DB: str,
     df_UCC,
     df_new,
@@ -435,7 +419,7 @@ def check_new_DB(
 
     # Check for GCs
     logging.info("\nClose GC check")
-    glon, glat, gc_flag = GCs_check(logging, GCs_path, newDB_json, df_new)
+    glon, glat, gc_flag = GCs_check(logging, df_GCs, newDB_json, df_new)
     if gc_flag:
         if input("Move on? (y/n): ").lower() != "y":
             sys.exit()
@@ -562,9 +546,10 @@ def member_files_updt(
 
     # If file exists, read and return it
     if os.path.isfile(temp_fold + "df_UCC_updt.csv"):
-        df_UCC_updt = pd.read_csv(temp_fold + "df_UCC_updt.csv")
-        logging.info("\nTemp file df_UCC_updt loaded")
-        return df_UCC_updt
+        if input("\nTemp file df_UCC_updt exists. Load it? (y/n): ").lower() == "y":
+            df_UCC_updt = pd.read_csv(temp_fold + "df_UCC_updt.csv")
+            logging.info("\nTemp file df_UCC_updt loaded")
+            return df_UCC_updt
 
     # Parameters used to search for close-by clusters
     xys = np.array([df_UCC["GLON"].values, df_UCC["GLAT"].values]).T
@@ -775,9 +760,7 @@ def fnames_checker(df_UCC: pd.DataFrame) -> None:
 
 def move_files(
     logging,
-    root_current_folder: str,
     root_UCC_folder: str,
-    JSON_file: str,
     temp_JSON_file: str,
     new_DB_file: str,
     ucc_file: str,
@@ -790,39 +773,33 @@ def move_files(
     logging.info("\nUpdate files:")
 
     # Move JSON file
-    json_stored = root_current_folder + "/" + JSON_file
-    json_temp = root_current_folder + "/" + temp_JSON_file
+    json_stored = name_DBs_json
+    json_temp = temp_JSON_file
     os.rename(json_temp, json_stored)
     logging.info(json_temp + " --> " + json_stored)
-    logging.info("JSON file updated")
 
     # Move new DB file
-    db_stored = root_current_folder + "/" + dbs_folder + new_DB_file
-    db_temp = root_current_folder + "/" + temp_database_folder + new_DB_file
+    db_stored = dbs_folder + new_DB_file
+    db_temp = temp_database_folder + new_DB_file
     os.rename(db_temp, db_stored)
     logging.info(db_temp + " --> " + db_stored)
-    logging.info("New DB stored")
 
     # Generate '.gz' compressed file for the old UCC and archive it
     df = pd.read_csv(ucc_file)
-    gz_UCC_stored = root_current_folder + "/" + archived_UCC_file
     df.to_csv(
-        gz_UCC_stored,
+        archived_UCC_file,
         na_rep="nan",
         index=False,
         quoting=csv.QUOTE_NONNUMERIC,
     )
-    logging.info("Create: " + gz_UCC_stored)
-    # Remove old csv file
-    old_ucc = root_current_folder + "/" + ucc_file
-    os.remove(old_ucc)
-    logging.info("Remove: " + old_ucc)
-    # Move new UCC file
-    ucc_temp = root_current_folder + "/" + temp_zenodo_fold + new_ucc_file
-    ucc_stored = root_current_folder + "/" + UCC_folder + new_ucc_file
+    # Remove old UCC csv file
+    os.remove(ucc_file)
+    logging.info(ucc_file + " --> " + archived_UCC_file)
+    # Move new UCC file into place
+    ucc_temp = temp_zenodo_fold + new_ucc_file
+    ucc_stored = UCC_folder + new_ucc_file
     os.rename(ucc_temp, ucc_stored)
     logging.info(ucc_temp + " --> " + ucc_stored)
-    logging.info("UCC file updated")
 
     # Move all .parquet member files
     for qN in range(1, 5):
@@ -833,13 +810,13 @@ def move_files(
             if os.path.exists(qmembs_fold):
                 # For every file in this folder
                 for file in os.listdir(qmembs_fold):
-                    parquet_temp = root_current_folder + "/" + qmembs_fold + "/" + file
-                    parquet_stored = (
-                        root_UCC_folder + "/" + qfold + members_folder + "/" + file
-                    )
+                    parquet_temp = qmembs_fold + file
+                    parquet_stored = root_UCC_folder + qfold + members_folder + file
                     os.rename(parquet_temp, parquet_stored)
-                    logging.info(parquet_temp + " --> " + parquet_stored)
-    logging.info("Cluster member files stored")
+
+    parquet_temp = temp_fold + "QXX/" + members_folder + "*.parquet"
+    parquet_stored = root_UCC_folder + "QXX/" + members_folder + "*.parquet"
+    logging.info(parquet_temp + " --> " + parquet_stored)
 
 
 if __name__ == "__main__":
