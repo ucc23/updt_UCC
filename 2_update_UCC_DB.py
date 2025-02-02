@@ -79,7 +79,7 @@ def main():
 
     # Generate paths and check for required folders and files
     (
-        root_UCC_folder,
+        root_UCC_path,
         temp_database_folder,
         ucc_file,
         temp_zenodo_fold,
@@ -152,7 +152,7 @@ def main():
         sys.exit()
     move_files(
         logging,
-        root_UCC_folder,
+        root_UCC_path,
         temp_JSON_file,
         new_DB_file,
         ucc_file,
@@ -164,7 +164,7 @@ def main():
 
     # Check number of files
     N_UCC = len(df_UCC_new4)
-    file_checker(logging, N_UCC, root_UCC_folder)
+    file_checker(logging, N_UCC, root_UCC_path)
 
     # if input("\nRemove temporary files and folders? (y/n): ").lower() == "y":
     #     # shutil.rmtree(temp_fold)
@@ -188,7 +188,7 @@ def get_paths_check_paths(
     # Current root + main UCC folder
     root_current_folder = os.getcwd()
     # Go up one level
-    root_UCC_folder = os.path.dirname(root_current_folder) + "/"
+    root_UCC_path = os.path.dirname(root_current_folder) + "/"
 
     # Temporary databases/ folder
     temp_database_folder = temp_fold + dbs_folder
@@ -230,7 +230,7 @@ def get_paths_check_paths(
     archived_UCC_file = UCC_archive + last_version.replace(".csv", ".csv.gz")
 
     return (
-        root_UCC_folder,
+        root_UCC_path,
         temp_database_folder,
         ucc_file,
         temp_zenodo_fold,
@@ -760,7 +760,7 @@ def fnames_checker(df_UCC: pd.DataFrame) -> None:
 
 def move_files(
     logging,
-    root_UCC_folder: str,
+    root_UCC_path: str,
     temp_JSON_file: str,
     new_DB_file: str,
     ucc_file: str,
@@ -811,11 +811,11 @@ def move_files(
                 # For every file in this folder
                 for file in os.listdir(qmembs_fold):
                     parquet_temp = qmembs_fold + file
-                    parquet_stored = root_UCC_folder + qfold + members_folder + file
+                    parquet_stored = root_UCC_path + qfold + members_folder + file
                     os.rename(parquet_temp, parquet_stored)
 
     parquet_temp = temp_fold + "QXX/" + members_folder + "*.parquet"
-    parquet_stored = root_UCC_folder + "QXX/" + members_folder + "*.parquet"
+    parquet_stored = root_UCC_path + "QXX/" + members_folder + "*.parquet"
     logging.info(parquet_temp + " --> " + parquet_stored)
 
 
