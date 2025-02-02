@@ -77,6 +77,18 @@
       "e_age": "e_Age"
     }
   },
+  "BORISSOVA2011": {
+    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2011A%26A...532A.131B",
+    "authors": "Borissova et al.",
+    "year": "2011",
+    "names": "VVV-CL",
+    "pos": {
+      "RA": "RA",
+      "DEC": "DEC"
+    },
+    "pars": {},
+    "e_pars": {}
+  },
   "KHARCHENKO2012": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/2012A%26A...543A.156K",
     "authors": "Kharchenko et al.",
