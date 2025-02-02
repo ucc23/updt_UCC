@@ -322,7 +322,7 @@ def file_checker(logging, N_UCC: int, root_UCC_fold: str, datafiles_only=True) -
         for lat in ("P", "N"):
             N_parquet, N_webp, N_webp_aladin, N_extra = 0, 0, 0, 0
             for ffolder in folders:
-                qfold = root_UCC_fold + "/Q" + str(qnum) + lat + f"/{ffolder}/"
+                qfold = root_UCC_fold + "Q" + str(qnum) + lat + f"/{ffolder}/"
                 # Read all files in Q folder
                 for file in os.listdir(qfold):
                     if "HUNT23" in file or "CANTAT20" in file:

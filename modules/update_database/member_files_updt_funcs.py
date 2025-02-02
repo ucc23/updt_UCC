@@ -611,6 +611,6 @@ def save_cl_datafile(
     # Order by probabilities
     df_membs = df_membs.sort_values("probs", ascending=False)
 
-    out_fname = temp_fold + quad + members_folder + "/" + fname0 + ".parquet"
+    out_fname = temp_fold + quad + members_folder + fname0 + ".parquet"
     df_membs.to_parquet(out_fname, index=False)
     logging.info(f"Saved file to: {out_fname}")
