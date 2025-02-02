@@ -368,7 +368,7 @@ def updt_DBs_tables(dbs_used, df_updt) -> dict:
                 msk.append(False)
         msk = np.array(msk)
 
-        new_table = generate_table(df_updt, md_table, msk)
+        new_table = generate_table(df_updt[msk], md_table)
         new_tables_dict[DB_id] = new_table
 
     return new_tables_dict
@@ -385,7 +385,7 @@ def updt_n50members_tables(df_updt, membs_msk) -> dict:
     md_table = header.replace("nmembs_title", "N50 members (==0)").replace(
         "nmembs_link", "N50_0"
     )
-    md_table = generate_table(df_updt, md_table, membs_msk[0])
+    md_table = generate_table(df_updt[membs_msk[0]], md_table)
     new_tables_dict = {"N50_0": md_table}
 
     Ni = 0
@@ -393,7 +393,7 @@ def updt_n50members_tables(df_updt, membs_msk) -> dict:
         title = f"N50 members ({Ni}, {Nf}]"
         Nmembs = f"N50_{Nf}"
         md_table = header.replace("nmembs_title", title).replace("nmembs_link", Nmembs)
-        md_table = generate_table(df_updt, md_table, membs_msk[i + 1])
+        md_table = generate_table(df_updt[membs_msk[i + 1]], md_table)
         Ni = Nf
         new_tables_dict[Nmembs] = md_table
 
@@ -401,7 +401,7 @@ def updt_n50members_tables(df_updt, membs_msk) -> dict:
     md_table = header.replace("nmembs_title", "N50 members (>2000)").replace(
         "nmembs_link", "N50_inf"
     )
-    md_table = generate_table(df_updt, md_table, membs_msk[-1])
+    md_table = generate_table(df_updt[membs_msk[-1]], md_table)
     new_tables_dict["N50_inf"] = md_table
 
     return new_tables_dict
@@ -421,7 +421,7 @@ def updt_C3_tables(df_updt, class_order: list) -> dict:
             "C3_link", class_order[C3_N]
         )
         msk = df_updt["C3"] == class_order[C3_N]
-        md_table = generate_table(df_updt, md_table, msk)
+        md_table = generate_table(df_updt[msk], md_table)
 
         new_tables_dict[class_order[C3_N]] = md_table
 
@@ -440,7 +440,7 @@ def updt_dups_tables(df_updt, dups_msk) -> dict:
         title = f"{dups_N} duplicates"
         md_table = header.replace("dups_title", title).replace("dups_link", dups_N)
         msk = dups_msk[i]
-        md_table = generate_table(df_updt, md_table, msk)
+        md_table = generate_table(df_updt[msk], md_table)
 
         new_tables_dict[dups_N] = md_table
 
@@ -471,19 +471,18 @@ def updt_quad_tables(df_updt):
             title = f"{title_dict[quad_N]} quadrant, {title_dict[quad_s]} latitude"
             md_table = header.replace("quad_title", title).replace("quad_link", quad)
             msk = df_updt["quad"] == quad
-            md_table = generate_table(df_updt, md_table, msk)
+            md_table = generate_table(df_updt[msk], md_table)
             new_tables_dict[quad] = md_table
 
     return new_tables_dict
 
 
-def generate_table(df_updt, md_table, msk):
+def generate_table(df_m, md_table):
     """ """
     md_table += "| Name | l | b | ra | dec | Plx | N50 | r50 | C3 |\n"
     md_table += "| ---- | - | - | -- | --- | --- | --  | --  |-- |\n"
 
-    df_m = df_updt[msk]
-    df_m = df_m.sort_values("ID_url")
+    df_m = df_m.sort_values("ID")
     df_m["N_50"] = df_m["N_50"].astype(int)
 
     for i, row in df_m.iterrows():
