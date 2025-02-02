@@ -77,7 +77,7 @@ def dups_check_newDB_UCC(
 
 def GCs_check(
     logging,
-    GCs_path: str,
+    df_GCs: pd.DataFrame,
     newDB_json: dict,
     df_new: pd.DataFrame,
     search_rad: float = 15,
@@ -89,8 +89,8 @@ def GCs_check(
     ----------
     logging : logging.Logger
         Logger object for outputting information.
-    GCs_path : str
-        Path to the GCs database.
+    df_GCs : pd.DataFrame
+        GCs database.
     newDB_json : dict
         Dictionary with the parameters of the new database.
     df_new : pd.DataFrame
@@ -115,8 +115,7 @@ def GCs_check(
     glon_glat = list(zip(*[lb.l, lb.b]))
 
     # Read GCs DB
-    df_gcs = pd.read_csv(GCs_path)
-    l_gc, b_gc = df_gcs["GLON"].values * u.deg, df_gcs["GLAT"].values * u.deg  # pyright: ignore
+    l_gc, b_gc = df_GCs["GLON"].values * u.deg, df_GCs["GLAT"].values * u.deg  # pyright: ignore
 
     gc_all, GCs_found = [], 0
     for idx, (glon_i, glat_i) in enumerate(glon_glat):
@@ -129,7 +128,7 @@ def GCs_check(
                 [
                     idx,
                     df_new.iloc[idx][newDB_json["names"]],
-                    df_gcs["Name"][j1],
+                    df_GCs["Name"][j1],
                     d_arcmin[j1],
                 ]
             )
