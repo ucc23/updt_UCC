@@ -296,7 +296,13 @@ def date_order_DBs(DB: str, DB_i: str) -> tuple[str, str]:
     return DB, DB_i
 
 
-def file_checker(logging, N_UCC: int, root_UCC_fold: str, datafiles_only=True) -> None:
+def file_checker(
+    logging,
+    N_UCC: int,
+    root_UCC_fold: str,
+    datafiles_only: bool = True,
+    md_folder: str = "",
+) -> None:
     """Check the number and types of files in directories for consistency.
 
     Parameters:
@@ -365,6 +371,16 @@ def file_checker(logging, N_UCC: int, root_UCC_fold: str, datafiles_only=True) -
             f"Total {folders_log}: {NT_parquet} / {NT_webp} / {NT_webp_aladin} / {NT_extra}"
         )
         if not (NT_parquet == NT_webp == NT_webp_aladin == N_UCC) or NT_extra > 0:
+            flag_error = True
+
+        # Check .md files
+        clusters_md_fold = root_UCC_fold + md_folder
+        NT_md = len(os.listdir(clusters_md_fold))
+        NT_extra = NT_md - N_UCC
+        mark = "V" if (NT_extra == 0) else "X"
+        logging.info("\nN_UCC   md      extra")
+        logging.info(f"{N_UCC}   {NT_md}   {NT_extra} <-- {mark}")
+        if mark == "X":
             flag_error = True
 
     if flag_error:
