@@ -94,8 +94,8 @@ def main():
         logging, ucc_file_path, root_UCC_path
     )
 
-    # Update Zenodo files
-    updt_zenodo_files(logging, root_UCC_path, UCC_last_version, df_UCC)
+    # # Update Zenodo files
+    # updt_zenodo_files(logging, root_UCC_path, UCC_last_version, df_UCC)
 
     # Update per cluster md and webp files
     updt_ucc_cluster_files(
@@ -361,7 +361,7 @@ def updt_ucc_cluster_files(
 
         if txt_e != "" or txt_p != "":
             N_total += 1
-            logging.info(f"{i_ucc}: " + txt + txt_e + txt_p + f" ({N_total})")
+            logging.info(f"{N_total} -> " + txt + txt_e + txt_p + f" ({i_ucc})")
 
     logging.info(f"\nN={N_total} OCs processed")
 
@@ -688,6 +688,8 @@ def updt_cls_JSON(
             compression="gzip",
         )
         logging.info("File 'clusters.json.gz' updated")
+    else:
+        logging.info("File 'cluster.json.gz' not updated (no changes)")
 
 
 def move_files(
@@ -702,10 +704,14 @@ def move_files(
         for filename in files:
             file_path = os.path.join(root, filename)
             file_ucc = file_path.replace(temp_fold, root_UCC_path)
-            logging.info(file_path + " --> " + file_ucc)
+            if "_clusters" not in root:
+                logging.info(file_path + " --> " + file_ucc)
             os.rename(file_path, file_ucc)
+        if "_clusters" in root:
+            file_path = root + "/*.md"
+            file_ucc = file_path.replace(temp_fold, root_UCC_path)
+            logging.info(file_path + " --> " + file_ucc)
 
-    logging.info("")
     # Move all CMD and Aladin plots in Q folders
     for qN in range(1, 5):
         for lat in ("P", "N"):
@@ -717,8 +723,11 @@ def move_files(
                 for file in os.listdir(qplots_fold):
                     plot_temp = qplots_fold + file
                     plot_stored = root_UCC_path + qfold + plots_folder + file
-                    logging.info(plot_temp + " --> " + plot_stored)
                     os.rename(plot_temp, plot_stored)
+
+    plot_temp = temp_fold + "QXX/" + plots_folder + "*.webp"
+    plot_stored = root_UCC_path + "QXX/" + plots_folder + "*.webp"
+    logging.info(plot_temp + " --> " + plot_stored)
 
 
 if __name__ == "__main__":
