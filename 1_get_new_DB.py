@@ -13,7 +13,6 @@ from modules.HARDCODED import (
     name_DBs_json,
     temp_fold,
 )
-
 from modules.utils import logger
 
 # NASA/ADS bibcode for the new DB
@@ -68,7 +67,7 @@ def main():
     # Path to the new (temp) DB file
     temp_CSV_file = temp_database_folder + DB_name + ".csv"
 
-    quest = "n"
+    vizier_url, quest = "N/A", "n"
     if Path(temp_CSV_file).is_file():
         quest = input("Load Vizier database from file (else download)? (y/n): ").lower()
     if quest == "y":
@@ -80,6 +79,9 @@ def main():
             # Save the database(s) to a CSV file(s)
             save_DB_CSV(temp_CSV_file, df_all)
             logging.info(f"New DB csv file(s) stored {temp_CSV_file}\n")
+            vizier_url = (
+                f"https://vizier.cds.unistra.fr/viz-bin/VizieR?-source={ADS_bibcode}"
+            )
 
     # Extract the names, positions, parameters, and uncertainties column names from
     # the current JSON
@@ -98,6 +100,7 @@ def main():
     # Create new temporary JSON
     add_DB_to_JSON(
         ADS_url,
+        vizier_url,
         current_JSON,
         temp_JSON_file,
         DB_name,
@@ -194,7 +197,8 @@ def get_CDS_table(logging) -> list | None:
     viz = Vizier(row_limit=1)
     cat = viz.get_catalogs(ADS_bibcode)  # pyright: ignore
     if len(cat) == 0:
-        raise ValueError(f"Could not extract data from {ADS_bibcode}")
+        logging.info(f"Could not extract data from {ADS_bibcode}")
+        return None
 
     # Print info to screen
     logging.info(
@@ -237,7 +241,7 @@ def get_CDS_table(logging) -> list | None:
                 # Convert to pandas before storing
                 df_all.append(cat.values()[0].to_pandas())
             except Exception as e:
-                raise ValueError(f"Could not extract the data from {turl}\n{str(e)}")
+                logging.info(f"Could not extract the data from {turl}\n{str(e)}")
 
     return df_all
 
@@ -429,16 +433,17 @@ def proper_json_struct(df_col_id):
 
 
 def add_DB_to_JSON(
-    ADS_url,
-    current_JSON,
-    temp_JSON_file,
-    DB_name,
-    authors,
-    year,
-    names,
-    pos_dict,
-    pars_dict,
-    e_pars_dict,
+    ADS_url: str,
+    vizier_url: str,
+    current_JSON: dict,
+    temp_JSON_file: str,
+    DB_name: str,
+    authors: str,
+    year: str,
+    names: str,
+    pos_dict: dict,
+    pars_dict: dict,
+    e_pars_dict: dict,
 ) -> None:
     """ """
     # Extract years in current JSON file
@@ -458,6 +463,7 @@ def add_DB_to_JSON(
     # Create 'new_db_json' dictionary with the new DB's params
     new_db_json = {}
     new_db_json["ADS_url"] = ADS_url
+    new_db_json["vizier_url"] = vizier_url
     new_db_json["authors"] = authors
     new_db_json["year"] = year
     new_db_json["names"] = names
@@ -485,6 +491,7 @@ if __name__ == "__main__":
     JSON_struct = {
         "SMITH2500": {
             "ADS_url": "https://ui.adsabs.harvard.edu/abs/xxxx",
+            "vizier_url": "N/A",
             "authors": "Smith et al.",
             "year": "2050",
             "names": "Name",
