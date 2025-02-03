@@ -1,6 +1,7 @@
 {
   "DAMBIS1999": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/1999AstL...25....7D",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=1999AstL...25....7D",
     "authors": "Dambis",
     "year": "1999",
     "names": "Name",
@@ -19,6 +20,7 @@
   },
   "CHEN2003": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/2003AJ....125.1397C",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2003AJ....125.1397C",
     "authors": "Chen et al.",
     "year": "2003",
     "names": "Name",
@@ -39,6 +41,7 @@
   },
   "KOPOSOV2008": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/2008A%26A...486..771K",
+    "vizier_url": "N/A",
     "authors": "Koposov et al.",
     "year": "2008",
     "names": "Names",
@@ -59,6 +62,7 @@
   },
   "GLUSHKOVA2010": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/2010AstL...36...75G",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2010AstL...36...75G",
     "authors": "Glushkova et al.",
     "year": "2010",
     "names": "Name",
@@ -79,6 +83,7 @@
   },
   "BORISSOVA2011": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/2011A%26A...532A.131B",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2011A%26A...532A.131B",
     "authors": "Borissova et al.",
     "year": "2011",
     "names": "VVV-CL",
@@ -91,6 +96,7 @@
   },
   "KHARCHENKO2012": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/2012A%26A...543A.156K",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2012A%26A...543A.156K",
     "authors": "Kharchenko et al.",
     "year": "2012",
     "names": "name",
@@ -113,6 +119,7 @@
   },
   "LOKTIN2017": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/2017AstBu..72..257L",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2017AstBu..72..257L",
     "authors": "Loktin & Popova",
     "year": "2017",
     "names": "Name",
@@ -136,6 +143,7 @@
   },
   "CASTRO2018": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/2018A%26A...618A..59C",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2018A%26A...618A..59C",
     "authors": "Castro-Ginard et al.",
     "year": "2018",
     "names": "Cluster",
@@ -152,6 +160,7 @@
   },
   "BICA2019": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/2019AJ....157...12B",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2019AJ....157...12B",
     "authors": "Bica et al.",
     "year": "2019",
     "names": "Name",
@@ -164,6 +173,7 @@
   },
   "BOSSINI2019": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/2019A%26A...623A.108B",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2019A%26A...623A.108B",
     "authors": "Bossini et al.",
     "year": "2019",
     "names": "Cluster",
@@ -185,6 +195,7 @@
   },
   "CASTRO2019": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/2019A%26A...627A..35C",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2019A%26A...627A..35C",
     "authors": "Castro-Ginard et al.",
     "year": "2019",
     "names": "Cluster",
@@ -200,6 +211,7 @@
   },
   "SIM2019": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/2019JKAS...52..145S",
+    "vizier_url": "N/A",
     "authors": "Sim et al.",
     "year": "2019",
     "names": "ID",
@@ -219,6 +231,7 @@
   },
   "LIUPANG2019": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/2019ApJS..245...32L",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2019ApJS..245...32L",
     "authors": "Liu & Pang",
     "year": "2019",
     "names": "Name",
@@ -239,6 +252,7 @@
   },
   "FERREIRA2019": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/2019MNRAS.483.5508F",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2019MNRAS.483.5508F",
     "authors": "Ferreira et al.",
     "year": "2019",
     "names": "Name",
@@ -263,6 +277,7 @@
   },
   "CANTAT2020": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/2020A%26A...640A...1C",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2020A%26A...640A...1C",
     "authors": "Cantat-Gaudin et al.",
     "year": "2020",
     "names": "Cluster",
@@ -282,6 +297,7 @@
   },
   "CASTRO2020": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/2020A%26A...635A..45C",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2020A%26A...635A..45C",
     "authors": "Castro-Ginard et al.",
     "year": "2020",
     "names": "Cluster",
@@ -297,6 +313,7 @@
   },
   "FERREIRA2020": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/2020MNRAS.496.2021F",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2020MNRAS.496.2021F",
     "authors": "Ferreira et al.",
     "year": "2020",
     "names": "Name",
@@ -320,6 +337,7 @@
   },
   "HAO2020": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/2020PASP..132c4502H",
+    "vizier_url": "N/A",
     "authors": "Hao et al.",
     "year": "2020",
     "names": "Name",
@@ -342,6 +360,7 @@
   },
   "DONOR2020": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/2020AJ....159..199D",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2020AJ....159..199D",
     "authors": "Donor et al.",
     "year": "2020",
     "names": "Name",
@@ -361,6 +380,7 @@
   },
   "DIAS2021": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/2021MNRAS.504..356D",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2021MNRAS.504..356D",
     "authors": "Dias et al.",
     "year": "2021",
     "names": "Cluster",
@@ -387,6 +407,7 @@
   },
   "CASADO2021": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/2021RAA....21..117C",
+    "vizier_url": "N/A",
     "authors": "Casado",
     "year": "2021",
     "names": "Name",
@@ -406,6 +427,7 @@
   },
   "FERREIRA2021": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/2021MNRAS.502L..90F",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2021MNRAS.502L..90F",
     "authors": "Ferreira et al.",
     "year": "2021",
     "names": "Name",
@@ -429,6 +451,7 @@
   },
   "HUNT2021": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/2021A%26A...646A.104H",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2021A%26A...646A.104H",
     "authors": "Hunt & Reffert",
     "year": "2021",
     "names": "Name",
@@ -444,6 +467,7 @@
   },
   "JAEHNIG2021": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/2021ApJ...923..129J",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2021ApJ...923..129J",
     "authors": "Jaehnig et al.",
     "year": "2021",
     "names": "Cl",
@@ -467,6 +491,7 @@
   },
   "SANTOS2021": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/2021MNRAS.508.1033S",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2021MNRAS.508.1033S",
     "authors": "Santos-Silva et al.",
     "year": "2021",
     "names": "Groups",
@@ -492,6 +517,7 @@
   },
   "HE2021": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/2021RAA....21...93H",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2021RAA....21...93H",
     "authors": "He et al.",
     "year": "2021",
     "names": "OC",
@@ -512,6 +538,7 @@
   },
   "CASTRO2022": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/2022A%26A...661A.118C",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2022A%26A...661A.118C",
     "authors": "Castro-Ginard et al.",
     "year": "2022",
     "names": "Cluster",
@@ -532,6 +559,7 @@
   },
   "TARRICQ2022": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/2022A%26A...659A..59T",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2022A%26A...659A..59T",
     "authors": "Tarricq et al.",
     "year": "2022",
     "names": "Cluster",
@@ -550,6 +578,7 @@
   },
   "LI2022": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/2022ApJS..259...19L",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2022ApJS..259...19L",
     "authors": "Li et al.",
     "year": "2022",
     "names": "LISC",
@@ -571,6 +600,7 @@
   },
   "HE2022": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/2022ApJS..260....8H",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2022ApJS..260....8H",
     "authors": "He et al.",
     "year": "2022",
     "names": "Cluster",
@@ -592,6 +622,7 @@
   },
   "HE2022_1": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/2022ApJS..262....7H",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2022ApJS..262....7H",
     "authors": "He et al.",
     "year": "2022",
     "names": "Cluster",
@@ -610,6 +641,7 @@
   },
   "HAO2022": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/2022A%26A...660A...4H",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2022A%26A...660A...4H",
     "authors": "Hao et al.",
     "year": "2022",
     "names": "Cluster",
@@ -632,6 +664,7 @@
   },
   "PERREN2022": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/2022A%26A...663A.131P",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2022A%26A...663A.131P",
     "authors": "Perren et al.",
     "year": "2022",
     "names": "Cluster",
@@ -651,6 +684,7 @@
   },
   "CHI2023": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/2023ApJS..265...20C",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2023ApJS..265...20C",
     "authors": "Chi et al.",
     "year": "2023",
     "names": "Name",
@@ -668,7 +702,8 @@
     "e_pars": {}
   },
   "CHI2023_1": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2023arXiv230208926C",
+    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2023RAA....23f5008C",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2023RAA....23f5008C",
     "authors": "Chi et al.",
     "year": "2023",
     "names": "name",
@@ -688,7 +723,8 @@
     "e_pars": {}
   },
   "CHI2023_2": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2023arXiv230310380C",
+    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2023ApJS..266...36C",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2023ApJS..266...36C",
     "authors": "Chi et al.",
     "year": "2023",
     "names": "Id",
@@ -708,6 +744,7 @@
   },
   "HE2023": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/2023ApJS..264....8H",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2023ApJS..264....8H",
     "authors": "He et al.",
     "year": "2023",
     "names": "CWNU_id",
@@ -730,6 +767,7 @@
   },
   "HE2023_1": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/2023ApJS..267...34H",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2023ApJS..267...34H",
     "authors": "He et al.",
     "year": "2023",
     "names": "ID",
@@ -750,6 +788,7 @@
   },
   "CASADOHENDY2023": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/2023MNRAS.521.1399C",
+    "vizier_url": "N/A",
     "authors": "Casado & Hendy",
     "year": "2023",
     "names": "name",
@@ -771,6 +810,7 @@
   },
   "HUNT2023": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/2023A%26A...673A.114H",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2023A%26A...673A.114H",
     "authors": "Hunt & Reffert",
     "year": "2023",
     "names": "Name",
@@ -809,6 +849,7 @@
   },
   "QIN2023": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/2023ApJS..265...12Q",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2023ApJS..265...12Q",
     "authors": "Qin et al.",
     "year": "2023",
     "names": "Name",
@@ -829,6 +870,7 @@
   },
   "LI2023": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/2023ApJS..265....3L",
+    "vizier_url": "N/A",
     "authors": "Li & Mao",
     "year": "2023",
     "names": "id",
@@ -844,6 +886,7 @@
   },
   "CAVALLO2024": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/2024AJ....167...12C",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2024AJ....167...12C",
     "authors": "Cavallo et al.",
     "year": "2024",
     "names": "Cluster",
