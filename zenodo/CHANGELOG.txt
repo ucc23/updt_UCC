@@ -1,6 +1,27 @@
 Some of these are intermediate versions of the UCC database that are not published.
 
 
+## 25020212
+
+- Changed 'vvvcl006' to 'vvv006' to match the rest of the VVV clusters:
+ - DONOR20: "VVV CL006,VVV 006" -> "VVV 006,VVV CL006"
+ - UCC_cat_25020211:
+   - 13188: "VVV CL006;VVV 006;VVV 6;VVV-CL 006" -> "VVV 006;VVV CL006;VVV 6;VVV-CL 006"
+   - 13188: "vvvcl006;vvv006;vvv6" -> "vvv006;vvvcl006;vvv6"
+   - 13189: "sai116;teutsch230;vvvcl006" -> "sai116;teutsch230;vvv006"
+   - 13190: "sai116;oc0572;vvvcl006" -> "sai116;oc0572;vvv006"
+   - 13192: "oc0572;teutsch230;vvvcl006" -> "oc0572;teutsch230;vvv006"
+ - UCC/Q4N/datafiles/vvvcl006.parquet -> vvv006.parquet
+ - UCC/Q4N/plots/vvvcl006.webp -> vvv006.webp
+ - UCC/Q4N/plots/vvvcl006_aladin.webp -> vvv006_aladin.webp
+ - UCC/ucc/_clusters/vvvcl006.md -> vvv006.md
+
+
+## 25020211
+
+- Added BORISSOVA2011
+
+
 ## 25012716
 
 - Added GLUSHKOVA2010
