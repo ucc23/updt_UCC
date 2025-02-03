@@ -162,23 +162,26 @@ def ucc_n_total_updt(logging, N_cl_UCC, N_db_UCC, database_md):
 
 
 def updt_cats_used(logging, df_UCC, current_JSON, database_md_in):
-    """ """
+    """Update the table with the catalogues used in the UCC"""
     # Count DB occurrences in UCC
-    all_DBs = list(current_JSON.keys())
-    N_in_DB = {_: 0 for _ in all_DBs}
+    N_in_DB = {_: 0 for _ in current_JSON.keys()}
     for _ in df_UCC["DB"].values:
         for DB in _.split(";"):
             N_in_DB[DB] += 1
 
-    md_table = "\n| Name | N | Name | N |\n"
-    md_table += "| ---- | :-: | ---- | :-: |\n"
+    # md_table = "\n| Name | N | Name | N |\n"
+    md_table = "\n| ADS | Vizier |  N  | ADS  | Vizier |  N  |\n"
+    md_table += "| ---- | :----: | :-: | ---- | :----: | :-: |\n"
     for dict_chunk in chunks(current_JSON):
         row = ""
         for DB, DB_data in dict_chunk.items():
             ref_url = (
                 f"[{DB_data['authors']} ({DB_data['year']})]({DB_data['ADS_url']})"
             )
-            row += f"| {ref_url} | [{N_in_DB[DB]}](/{DB}_table) "
+            viz_url = f"""<a href="{DB_data['vizier_url']}" target="_blank"> <img src="/images/vizier.png " alt="Vizier url"></a>"""
+            if DB_data['vizier_url'] == "N/A":
+                viz_url = "N/A"
+            row += f"| {ref_url} | {viz_url} | [{N_in_DB[DB]}](/{DB}_table) "
         md_table += row + "|\n"
     md_table += "\n"
 
