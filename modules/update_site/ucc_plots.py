@@ -74,6 +74,10 @@ def plot_CMD(
     yr = (ymax - ymin) * 0.1
     xmin, xmax = xmin - xr, xmax + xr
     ymin, ymax = ymin - yr, ymax + yr
+    if xmax - xmin < 0.1:
+        xmin, xmax = xmin - 0.05, xmax + 0.05
+    if ymax - ymin < 0.1:
+        ymin, ymax = ymin - 0.05, ymax + 0.05
     ax1.set_xlim(xmin, xmax)
     ax1.set_ylim(ymin, ymax)
 
@@ -100,6 +104,7 @@ def plot_CMD(
 
     ax2.set_xlabel("pmRA [mas/yr]", fontsize=fs)
     ax2.set_ylabel("pmDE [mas/yr]", fontsize=fs)
+
     # Plot limits
     xmin, xmax = np.nanmin(df_membs["pmRA"]), np.nanmax(df_membs["pmRA"])
     xr = (xmax - xmin) * 0.1
