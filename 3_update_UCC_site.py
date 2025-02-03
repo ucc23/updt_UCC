@@ -573,11 +573,12 @@ def update_main_database_page(
     membs_msk,
 ):
     """Update DATABASE.md file"""
-    #
+    # Update the total number of entries and databases in the UCC
     database_md_updt = ucc_n_total_updt(
         logging, len(df_UCC), len(current_JSON), database_md
     )
 
+    # Update the table with the catalogues used in the UCC
     database_md_updt = updt_cats_used(logging, df_UCC, current_JSON, database_md_updt)
 
     database_md_updt = updt_C3_classification(
