@@ -9,6 +9,16 @@ def main():
     # Load the CSV file
     df = pd.read_csv("BORISSOVA2011.csv")
 
+    df = func(df)
+
+    # Update the CSV file
+    df.to_csv(
+        "updated_DB.csv",
+        na_rep="nan",
+        index=False,
+        quoting=csv.QUOTE_NONNUMERIC,
+    )
+
 
 def add_RADE_cols_add_str_name_col(df):
     """Used in BORISSOVA 2011"""
@@ -36,13 +46,7 @@ def add_RADE_cols_add_str_name_col(df):
     zeroes = pd.Series(["0" * (3 - len(_)) for _ in vvv_num])
     df["VVV-CL"] = "VVV " + vvv_num + ", VVV-CL " + zeroes + vvv_num
 
-    # Update the CSV file
-    df.to_csv(
-        "updated_DB.csv",
-        na_rep="nan",
-        index=False,
-        quoting=csv.QUOTE_NONNUMERIC,
-    )
+    return df
 
 
 def merge_name_cols(df):
@@ -53,12 +57,23 @@ def merge_name_cols(df):
         lambda row: ",".join(filter(pd.notna, [row["Name"], row["OtherName"]])), axis=1
     )
     df = df.drop(columns=["OtherName"])
-    df.to_csv(
-        "GLUSHKOVA2010_2.csv",
-        na_rep="nan",
-        index=False,
-        quoting=csv.QUOTE_NONNUMERIC,
-    )
+
+    return df
+
+
+def merge_files():
+    """Used in BORISSOVA2018"""
+    # Load the CSV files into DataFrames
+    df1 = pd.read_csv("BORISSOVA2018.csv")
+    df2 = pd.read_csv("BORISSOVA2018_1.csv")
+
+    # Merge the DataFrames
+    combined_df = pd.merge(df1, df2, on="Name", how="left", suffixes=("", "_drop"))
+
+    # Drop columns that were duplicated and marked with '_drop'
+    df = combined_df[[col for col in combined_df.columns if not col.endswith("_drop")]]
+
+    return df
 
 
 if __name__ == "__main__":
