@@ -192,9 +192,8 @@ def get_DB_name(current_JSON: dict, authors: str, year: str) -> str:
 
 
 def get_CDS_table(logging) -> list:
-    """ """
-    # Obtain the available tables. Use row_limit=1 to avoid downloading the entire
-    # tables
+    """Obtain the available tables from 'ADS_bibcode'"""
+    # Use row_limit=1 to avoid downloading the entire tables
     viz = Vizier(row_limit=1)
     cat = viz.get_catalogs(ADS_bibcode)  # pyright: ignore
     if len(cat) == 0:
