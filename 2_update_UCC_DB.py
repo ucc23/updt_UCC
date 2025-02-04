@@ -573,6 +573,7 @@ def member_files_updt(
         "N_50": [],
         "r_50": [],
     }
+    N_cl = 0
     for UCC_idx, new_cl in df_UCC.iterrows():
         # Check if this is a new OC that should be processed
         if str(new_cl["C3"]) != "nan":
@@ -592,7 +593,9 @@ def member_files_updt(
             df_GCs,
         )
 
-        logging.info(f"\nProcessing {new_cl['fnames']} (idx={UCC_idx}) with fastMP")
+        logging.info(
+            f"\n{N_cl} Processing {new_cl['fnames']} (idx={UCC_idx}) with fastMP"
+        )
         gaia_frame, probs_all = process_new_OC(
             logging,
             box_s,
@@ -618,6 +621,8 @@ def member_files_updt(
         df_UCC_updt["UCC_idx"].append(UCC_idx)
         for key, val in dict_UCC_updt.items():
             df_UCC_updt[key].append(val)
+
+        N_cl += 1
 
     df_UCC_updt = pd.DataFrame(df_UCC_updt)
     df_UCC_updt.to_csv(temp_fold + "df_UCC_updt.csv", index=False)
