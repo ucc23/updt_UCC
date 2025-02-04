@@ -265,7 +265,7 @@ def get_close_cls(
         # neighboring clusters (e.g.: NGC 2516 disrupted by FSR 1479) and
         # at the same time removes more distant clusters that disrupt the
         # number of members estimation process in fastMP
-        if (df_UCC["pmRA"][i] == "nan") or (df_UCC["pmRA"][i]== "nan"):
+        if (df_UCC["pmRA"][i] == "nan") or (df_UCC["pmRA"][i] == "nan"):
             xy_dist = np.sqrt(
                 (x - float(df_UCC["GLON"][i])) ** 2
                 + (y - float(df_UCC["GLAT"][i])) ** 2
@@ -301,7 +301,7 @@ def get_close_cls(
         logging.info("WARNING: there are clusters close by:")
         logging.info(
             f"*{new_cl['ID']}: {(new_cl['GLON'], new_cl['GLAT'])}"
-            + f" {new_cl['pmRA'], new_cl['pmDE']} ({new_cl['Plx']}) <-- Processed"
+            + f", {new_cl['pmRA'], new_cl['pmDE']}, {new_cl['Plx']} <-- Processed"
         )
         for clust in centers_ex:
             logging.info("  " + clust)
