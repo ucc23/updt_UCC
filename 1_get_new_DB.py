@@ -74,7 +74,8 @@ def main():
         df_all = [pd.read_csv(temp_CSV_file)]
         logging.info("Vizier CSV file loaded from file")
     else:
-        df_all = get_CDS_table(logging)
+        table_url = get_CDS_table(logging)
+        df_all = get_DB_from_Vizier(logging, table_url)
         if df_all is not None:
             # Save the database(s) to a CSV file(s)
             save_DB_CSV(temp_CSV_file, df_all)
@@ -190,7 +191,7 @@ def get_DB_name(current_JSON: dict, authors: str, year: str) -> str:
     return DB_name
 
 
-def get_CDS_table(logging) -> list | None:
+def get_CDS_table(logging) -> list:
     """ """
     # Obtain the available tables. Use row_limit=1 to avoid downloading the entire
     # tables
@@ -198,7 +199,7 @@ def get_CDS_table(logging) -> list | None:
     cat = viz.get_catalogs(ADS_bibcode)  # pyright: ignore
     if len(cat) == 0:
         logging.info(f"Could not extract data from {ADS_bibcode}")
-        return None
+        return []
 
     # Print info to screen
     logging.info(
@@ -228,7 +229,36 @@ def get_CDS_table(logging) -> list | None:
         except ValueError:
             logging.info("Invalid input")
 
-    # Download selected table(s), if any
+    return table_url
+
+    # # Download selected table(s), if any
+    # df_all = None
+    # if len(table_url) > 0:
+    #     # No limit to number of rows or columns
+    #     viz = Vizier(row_limit=-1, columns=["all"])
+    #     df_all = []
+    #     for turl in table_url:
+    #         # Download table
+    #         try:
+    #             cat = viz.get_catalogs(turl)  # pyright: ignore
+    #             # Convert to pandas before storing
+    #             df_all.append(cat.values()[0].to_pandas())
+    #         except Exception as e:
+    #             logging.info(f"Could not extract the data from {turl}\n{str(e)}")
+    #
+    # return df_all
+
+
+def get_DB_from_Vizier(logging, table_url: list) -> list | None:
+    """
+    Retrieve a database from Vizier and convert it to a pandas DataFrame.
+
+    Parameters:
+    table_url (list): The Vizier catalog's table identifier.
+
+    Returns:
+    list of pd.DataFrame: List of DataFrame containing the Vizier database.
+    """
     df_all = None
     if len(table_url) > 0:
         # No limit to number of rows or columns
@@ -242,32 +272,6 @@ def get_CDS_table(logging) -> list | None:
                 df_all.append(cat.values()[0].to_pandas())
             except Exception as e:
                 logging.info(f"Could not extract the data from {turl}\n{str(e)}")
-
-    return df_all
-
-
-def get_DB_from_Vizier(table_url: list) -> list:
-    """
-    Retrieve a database from Vizier and convert it to a pandas DataFrame.
-
-    Parameters:
-    table_url (list): The Vizier catalog's table identifier.
-
-    Returns:
-    list of pd.DataFrame: List of DataFrame containing the Vizier database.
-    """
-    # No limit to number of rows or columns
-    viz = Vizier(row_limit=-1, columns=["all"])
-
-    df_all = []
-    for turl in table_url:
-        # Download table
-        try:
-            cat = viz.get_catalogs(turl)  # pyright: ignore
-            # Convert to pandas before storing
-            df_all.append(cat.values()[0].to_pandas())
-        except Exception as e:
-            raise ValueError(f"Could not extract the data from {turl}\n{str(e)}")
 
     return df_all
 
