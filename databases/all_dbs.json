@@ -141,6 +141,30 @@
       "e_age": "e_logt"
     }
   },
+  "BORISSOVA2018": {
+    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2018MNRAS.481.3902B",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2018MNRAS.481.3902B",
+    "authors": "Borissova et al.",
+    "year": "2018",
+    "names": "Name",
+    "pos": {
+      "RA": "RAJ2000",
+      "DEC": "DEJ2000",
+      "plx": "plx",
+      "pmra": "pmRA",
+      "pmde": "pmDE",
+      "Rv": "RV"
+    },
+    "pars": {
+      "dist": "Dist"
+    },
+    "e_pars": {
+      "e_dist": [
+        "Distp5",
+        "Distp95"
+      ]
+    }
+  },
   "CASTRO2018": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/2018A%26A...618A..59C",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2018A%26A...618A..59C",
