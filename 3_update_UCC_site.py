@@ -94,9 +94,6 @@ def main():
         logging, ucc_file_path, root_UCC_path
     )
 
-    # Update Zenodo files
-    updt_zenodo_files(logging, root_UCC_path, UCC_last_version, df_UCC)
-
     # Update per cluster md and webp files
     updt_ucc_cluster_files(
         logging,
@@ -138,6 +135,9 @@ def main():
     file_checker(
         logging, N_UCC, root_UCC_path, datafiles_only=False, md_folder=md_folder
     )
+
+    # Update Zenodo files
+    updt_zenodo_files(logging, root_UCC_path, UCC_last_version, df_UCC)
 
     logging.info("\nAll done!")
 
