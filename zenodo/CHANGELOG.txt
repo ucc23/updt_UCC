@@ -1,5 +1,9 @@
 Some of these are intermediate versions of the UCC database that are not published.
 
+## 25020409
+
+- Added BORISSOVA2018
+
 
 ## 25020310
 
@@ -11,8 +15,6 @@ I also modified in BICA19 and this version of the UCC all the 'VVV CC' to 'VVV-C
 
 Changed *all* names of 'vvv' clusters to follow the format 'vvv00X, vvv0XX, vvvXXX'.
 This only affects 94 VVV clusters with numbers below 100.
-
-
 
 
 ## 25020212
