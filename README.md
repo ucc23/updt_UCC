@@ -8,7 +8,7 @@ and in its associated [Zenodo repository](https://doi.org/10.5281/zenodo.8250523
   stored in the Zenodo repository
 
 - For each entry in the database there is a corresponding entry in the [ucc](https://github.com/ucc23/ucc)
-  repository in the form of an `.md` file. This repository also contains most of the
+  repository in the form of an `.md` file. This repository also contains the
   files required to build the [public site](https://ucc.ar)
 
 - The eight `QXX` repositories ([Q1P](https://github.com/ucc23/Q1P), etc.) contain the `.parquet` files with the
@@ -32,190 +32,68 @@ following steps are required. Most of the process is automated.
 
 ## First script
 
-The first script is called `get_new_DB.py`.
+The first script is called `1_get_new_DB.py`. It manages the updating of the JSON file
+that contains the information for each database in the UCC, as well as downloading
+the Vizier database if available and/or requested.
 
-1. Save the new DB in `csv` format to the `databases/` folder
+Once the JSON file with the entry for the new DB and the generated CSV file are
+stored in the temporary folder, **check carefully both files before moving on**. Both
+might need manual intervention.
 
-The format of the name for the DB is `SMITH2024` or, if required, `SMITH2024_1`.
-The name of the DB **must not** contain any non letter characters except for the
-`_` required to differentiate DBs with the same names published in the same year.
-
-2. Add the article name + url of the new DB and the column names to the `[New DB data]`
-   section of the `params.ini` file.
-
-The new database **must** contain a column with all the names assigned to a given
-OC, a column with `RA`, and a column wit `DEC` values. Columns for Plx, PMs, and/or
-Rv are not a requirement. Columns for any fundamental parameter and their uncertainties
-are not a requirement either.
-
-Once these new DB file and its parameters are in place check carefully both the
-JSON file with the entry for the new DB, and the generated CSV file.
-
+Files generated: `all_dbs.json`, `NEW_DB.csv` (both stored in temp `databases/` folder)
 
 
 ## Second script
 
-The `update_UCC.py` script handles the following tasks:
+The `2_update_UCC.py` script handles the following tasks:
 
-- [Prepare the DB](#prepare-the-db)
-- [Check format and issues](#check-format-and-issues)
-- [Generate a new UCC version](#generate-a-new-ucc-version)
-- [Generate members' datafiles](#generate-members-datafiles)
-- [General check of new UCC](#general-check-of-new-ucc)
+1. Check columns in the new DB
+  a. Checks for required columns
+  b. Checks for special characters in the name column (`;` or `_`)
+2. Standardize names in new DB and match with UCC
+3. Check the new DB
+  a. Checks for duplicate entries between the new database and the UCC
+  b. Checks for nearby GCs
+  c. Checks for OCs very close to each other within the new database
+  d. Checks for OCs very close to each other between the new database and the UCC
+  e. Checks for instances of 'vdBergh-Hagen' and 'vdBergh'
+  f. Checks positions and flags for attention if required
+4. Generate a new UCC version
+  a. Update the UCC catalogue with the new DB
+  b. Assigns UCC IDs and quadrants for new clusters.
+  c. Performs a final duplicate check.
+5. Generate members' datafiles and update UCC
+  a. Generate member files for new OCs using fastMP
+  b. Store the member files in temporary folders (`temp_updt/QXY/datafiles/*.parquet`)
+  c. Update the UCC with the new OCs member's data 
+6. Save updated UCC to a temporary folder (`temp_updt/zenodo/UCC_cat_XXYYZZHH.csv`)
+7. Move temporary files to their final destination
+8. Final check of new UCC
 
+Once this script is finished:
 
-### Prepare the DB
-
-1. Checks if the new database is already in the JSON file.
-2. Validates the new database's name.
-3. Validates the new database's year.
-4. Checks for required and non-required columns.
-5. Checks for special characters in the name column (`;` or `_`).
-6. Replaces empty positions with `NaN`s.
-7. Adds the new database to the `databases/all_dbs.json` JSON file.
-
-- Files edited: `databases/all_dbs.json`, new DB (empty spaces, naming, etc)
-- Files generated: None
-
-
-### Check format and issues
-
-1. Checks for duplicate entries between the new database and the UCC.
-2. Checks for nearby GCs.
-3. Checks for OCs very close to each other within the new database.
-4. Checks for OCs very close to each other between the new database and the UCC.
-5. Checks for instances of 'vdBergh-Hagen' and 'vdBergh' (must be changed to
-  'VDBH' & 'VDB', per CDS recommendation).
-6. Checks positions and flags for attention if required.
-
-The position flags are handled as follows:
-
-```
-Is the OC already present in the UCC?
-    |         |
-    v         |--> No --> do nothing
-   Yes
-    |
-    v
-Is the difference between the old vs new centers values large?
-    |         |
-    v         |--> No --> do nothing
-   Yes
-    |
-    v
-Request attention
-```
-
-- Files edited: None
-- Files generated: None
-
-
-### Generate a new UCC version
-
-This process updates the current `UCC_cat_XXYYZZ.csv` catalogue with the OCs in the
-new DB. The 5D coordinates are **not** updated if the OC(s) is already present in the
-UCC.
-
-1. Combines the UCC and the new database.
-2. Assigns UCC IDs and quadrants for new clusters.
-3. Performs a final duplicate check.
-
-- Files edited: None
-- Files generated: `zenodo/UCC_cat_XXYYZZ.csv` (updated date)
-
-
-### Generate members' datafiles
-
-If no **new** OCs were added by the previous script, this process is skipped. New OCs
-are identified as those with a `nan` value in the `C3` column of the new
-`zenodo/UCC_cat_XXYYZZ.csv` file.
-
-1. Constructs a KD-tree for efficient spatial queries on the UCC.
-2. Processes each new OC by:
-    - Generating a frame for the OC.
-    - Applying manual parameters if available.
-    - Identifying close clusters.
-    - Requesting data for the OC  using Gaia data.
-    - Processing the OC with the `fastMP` method.
-    - Splitting the data into members and field stars.
-    - Extracting members data and updating the UCC.
-    - Save members `.parquet` file in the proper Q folder
-
-- Files edited: `zenodo/UCC_cat_XXYYZZ.csv`
-- Files generated: `QXY/datafiles/*.parquet`
-
-
-### General check of new UCC
-
-Run checks on old and new UCC files to ensure consistency and identify possible issues
-for attention.
-
-- Files edited: None
-- Files generated: None
-
+- The `all_dbs.json` and `NEW_DB.csv` files created by the previous script are moved
+  to the `databases/` folder
+- The `parquet` files for each new OC are moved to the `QXY/` folders
+- The new `UCC_cat_XXYYZZHH.csv` file is moved to the `zenodo/` folder, archiving
+  the old one
 
 
 
 ## Third script
 
-The above steps prepare the files for the updated version of the UCC. The following
-steps **apply** the required changes to the site's files.
+This scripts applies the required changes to update the ucc.ar site. It processes
+the **entire** UCC catalogue and and searches for modifications that need to be applied
+to update the ucc.ar site.
 
-- [8. Generate new Zenodo files](#8-generate-new-zenodo-files) (stored at `zenodo_upload/` folder)
-- [9. Generate new clusters entries](#9-generate-new-clusters-entries)
-- [10. Update site's files](#10-update-sites-files)
-
-
-
-
-## 8. Generate new Zenodo files
-
-Run the script `H_zenodo_updt.py`
-
-This script will generate the files that are to be uploaded to Zenodo. These files
-contain all the UCC information.
-
-**Summary**
-
-- Files edited: None
-- Files generated: `UCC_cat.csv, UCC_members.parquet,README.txt`
-
-
-
-## 9. Generate new clusters entries
-
-Run the `I_make_entries.py` script
-
-This script will process the **entire** UCC and generate an `md` file and plot(s),
-for every OC for which either of those files do not exist.
-
-It will check if the new entry changed compared to the old one, and it will
-update it **only** if it did.
-
-For each processed OC that is missing either of those files:
-
-1. Generate a `.md` entry, stored in `../ucc/_clusters/`
-2. Generate a plot (two, if aladin plot is also generated), stored in `../QXY/plots/`
-
-**Summary**
-
-- Files edited: `../ucc/_clusters/*.md` entries (if there are changes in the new UCC)
-- Files generated: `../ucc/_clusters/*.md` + `../QXY/plots/*.webp` (if files are missing)
-
-
-## 10. Update site's files
-
-Run the script `J_database_updt.py`. This script will:
-
-- update the `DATABASE.md` file used by the `ucc.ar` site
-- update the tables files linked to the above file
-- update the `../ucc/_clusters/clusters.json` file used for searching in `ucc.ar`
-
-**Summary**
-
-- Files edited: `ucc/_pages/DATABASE.md, ucc/_pages/QXY_table.md, ucc/clusters.json`
-- Files generated: `UCC_diff.csv`
-
+1. Generate/update per cluster `.md` (stored in `ucc/_clusters/`) and `.webp` files
+   (stored in the `QXY/plots/` folders)
+2. Update the main ucc site files. This includes the`ucc/_pages/DATABASE.md` as well as
+   all the tables and images used in the site
+3. Update JSON file (`ucc/clusters.json`)
+4. Move all files to their final destination
+5. Check that the number of files is correct
+6. Generate new Zenodo files (`UCC_cat.csv, UCC_members.parquet, README.txt`)
 
 
 
@@ -252,22 +130,26 @@ exclude:
 
 Live build steps:
 
-1. Push changes in each of the `QXY` repositories (if any)
+1. Push changes (if any) to each of the `QXY` repositories. To do this, position
+   the command line in the `UCC/` folder and run (change `YYMMDD` with version number):
+
+```
+for dir in Q*/; do (cd "$dir" && [ -d .git ] && git acp "version YYMMDD"); done
+```
 
 2. Create a 'New version' in the [Zenodo repository](https://zenodo.org/doi/10.5281/zenodo.8250523) 
 
+2.0 Make sure that the version number in the README matches than in the CHANGELOG
 2.1 Upload the three files stored in the `zenodo_upload/` folder by the `H` script
 2.2 Get a DOI
 2.3 Add a 'Publication date' with the format: YYYY-MM-DD
-2.4 Add a 'Version' number with the format: YYMMDD
+2.4 Use the version number in the README (format: YYMMDD) in the release
 
 Publish new release and copy **its own url** (no the general repository url)
 
 3. Update the `CHANGELOG.md` file, use the Zenodo URL for **this** release
 
-Every change pushed to the [ucc](https://github.com/ucc23/ucc) repository triggers an
-automatic build + deployment. **Check carefully before pushing.**
+4. Push the changes to the `ucc` repository
 
-4. Push the changes to `ucc` repository
-
-
+Every change pushed to the [ucc](https://github.com/ucc23/ucc) repository triggers an automatic build and
+deployment. **Check carefully before pushing.**
