@@ -1,0 +1,16 @@
+[project]
+name = "updt-ucc"
+version = "0.1.0"
+description = "Scipts to perform a UCC update"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "astroquery>=0.4.9.post1",
+    "levenshtein>=0.26.1",
+    "matplotlib>=3.10.0",
+    "numpy>=2.2.2",
+    "pandas>=2.2.3",
+    "pyqt6>=6.8.1",
+    "requests>=2.32.3",
+    "scipy>=1.15.1",
+]
