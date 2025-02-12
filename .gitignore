@@ -165,3 +165,6 @@ params.ini.default
 temp/*
 temp_updt/*
 NASA_API_TOKEN
+
+*.vscode
+*.code-workspace
