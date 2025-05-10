@@ -266,12 +266,14 @@ def make_N_vs_year_plot(file_out_name, df_UCC, fontsize=7, dpi=300):
 
     # Extract minimum year of publication for each catalogued OC
     years = []
+    # Go through each OC in the database
     for i, oc in enumerate(df_UCC["DB"]):
         oc_years = []
+        # Extract the years of the DBs were this OC is catalogued
         for cat0 in oc.split(";"):
             cat = cat0.split("_")[0]
             oc_years.append(int(cat[-4:]))
-        # Store the smallest year where this OC was catalogued
+        # Keep the smallest year where this OC was catalogued
         years.append(min(oc_years))
 
     # Count number of OCs per year
@@ -308,7 +310,7 @@ def make_N_vs_year_plot(file_out_name, df_UCC, fontsize=7, dpi=300):
     if min(unique) <= 1987:
         raise ValueError("DB year is smaller than 1987, check")
     years = [1771, 1888, 1987] + list(unique)
-    min_N = 1151
+    min_N = 1151  # Lyngå (1987)
     values = [33, 640, min_N] + list(np.clip(c_sum, a_min=min_N, a_max=np.inf))
 
     fig = plt.figure(figsize=(4, 2.5))
