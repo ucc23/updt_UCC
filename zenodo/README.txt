@@ -1,6 +1,7 @@
 # The Unified Cluster Catalogue (UCC)
 
-These files correspond to the XXXXXX version of the UCC database (https://ucc.ar).
+These files correspond to the XXXXXX version of the UCC database (https://ucc.ar),
+composed of YYYYYY clusters with a combined ZZZZZZ members.
 
 
 ## Referencing

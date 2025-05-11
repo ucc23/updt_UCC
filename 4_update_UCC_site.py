@@ -1,7 +1,7 @@
 import gzip
 import json
 import os
-import sys
+import re
 from pathlib import Path
 
 import numpy as np
@@ -38,11 +38,6 @@ from modules.update_site.main_files_updt import (
     updt_n50members_tables,
     updt_OCs_per_quad,
     updt_quad_tables,
-)
-from modules.update_site.zenodo_updt import (
-    create_csv_UCC,
-    create_membs_UCC,
-    updt_readme,
 )
 from modules.utils import file_checker, get_last_version_UCC, logger
 
@@ -89,55 +84,66 @@ def main():
         temp_image_path,
     ) = load_paths(UCC_last_version)
 
+    # Extract the total number of members from the "README.txt" stored in the
+    # folder 'temp_updt/zenodo/' by the previous script. Run here to fail early if
+    # something is wrong
+    temp_zenodo_README = temp_fold + UCC_folder + "README.txt"
+    with open(temp_zenodo_README, "r") as f:
+        dataf = f.read()
+        match = re.search(r"combined (\d+) members", dataf)
+        N_members_UCC = int(match.group(1))
+    logging.info(f"Total number of members extracted: {N_members_UCC}")
+
     # Load required files
     df_UCC, df_tables, current_JSON, DBs_full_data, database_md = load_data(
         logging, ucc_file_path, root_UCC_path
     )
 
-    # Update per cluster md and webp files
-    updt_ucc_cluster_files(
-        logging,
-        root_UCC_path,
-        ucc_entries_path,
-        temp_entries_path,
-        DBs_full_data,
-        df_UCC,
-        current_JSON,
-    )
+    # Update per cluster md and webp files. If no changes are expected, this step
+    # can be skipped to save time
+    if input("\nUpdate OCs files? (y/n): ").lower() == "y":
+        updt_ucc_cluster_files(
+            logging,
+            root_UCC_path,
+            ucc_entries_path,
+            temp_entries_path,
+            DBs_full_data,
+            df_UCC,
+            current_JSON,
+        )
 
     # Update the main ucc site files
-    updt_ucc_main_files(
-        logging,
-        temp_image_path,
-        temp_tables_path,
-        ucc_tables_path,
-        temp_dbs_tables_path,
-        ucc_dbs_tables_path,
-        df_UCC,
-        current_JSON,
-        database_md,
-        df_tables,
-    )
+    if input("\nUpdate UCC site files? (y/n): ").lower() == "y":
+        updt_ucc_main_files(
+            logging,
+            temp_image_path,
+            temp_tables_path,
+            ucc_tables_path,
+            temp_dbs_tables_path,
+            ucc_dbs_tables_path,
+            df_UCC,
+            current_JSON,
+            database_md,
+            df_tables,
+            N_members_UCC,
+        )
 
     # Update JSON file
-    updt_cls_JSON(logging, ucc_gz_JSON_path, temp_gz_JSON_path, df_tables)
+    if input("\nUpdate JSON file? (y/n): ").lower() == "y":
+        updt_cls_JSON(logging, ucc_gz_JSON_path, temp_gz_JSON_path, df_tables)
 
-    if input("\nMove files to their final destination? (y/n): ").lower() != "y":
-        sys.exit()
-    move_files(
-        logging,
-        root_UCC_path,
-    )
-    logging.info("All files moved into place")
+    if input("\nMove files to their final destination? (y/n): ").lower() == "y":
+        move_files(
+            logging,
+            root_UCC_path,
+        )
+        logging.info("All files moved into place")
 
     # Check number of files
     N_UCC = len(df_UCC)
     file_checker(
         logging, N_UCC, root_UCC_path, datafiles_only=False, md_folder=md_folder
     )
-
-    # Update Zenodo files
-    updt_zenodo_files(logging, root_UCC_path, UCC_last_version, df_UCC)
 
     logging.info("\nAll done!")
 
@@ -158,20 +164,8 @@ def load_paths(
     str,
 ]:
     """ """
-    # Create temp quadrant folders
-    for Nquad in range(1, 5):
-        for lat in ("P", "N"):
-            quad = "Q" + str(Nquad) + lat + "/"
-            out_path = temp_fold + quad + plots_folder
-            if not os.path.exists(out_path):
-                os.makedirs(out_path)
-
     # Full path to the current UCC csv file
     ucc_file_path = UCC_folder + UCC_last_version
-
-    temp_zenodo_path = temp_fold + UCC_folder
-    if not os.path.exists(temp_zenodo_path):
-        os.makedirs(temp_zenodo_path)
 
     # Root UCC path
     root_UCC_path = os.path.dirname(os.getcwd()) + "/"
@@ -299,24 +293,6 @@ def updt_UCC(df_UCC: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def updt_zenodo_files(logging, root_UCC_path, last_version, df_UCC):
-    """ """
-    #
-    upld_zenodo_file = temp_fold + UCC_folder + "UCC_cat.csv"
-    create_csv_UCC(upld_zenodo_file, df_UCC)
-    logging.info("\nZenodo 'UCC_cat.csv' file generated")
-
-    logging.info("Reading member files...")
-
-    zenodo_members_file = temp_fold + UCC_folder + "UCC_members.parquet"
-    create_membs_UCC(logging, root_UCC_path, members_folder, zenodo_members_file)
-    logging.info("Zenodo 'UCC_members.parquet' file generated")
-
-    zenodo_readme = temp_fold + UCC_folder + "README.txt"
-    updt_readme(UCC_folder, last_version, zenodo_readme)
-    logging.info("Zenodo README file updated")
-
-
 def updt_ucc_cluster_files(
     logging,
     root_UCC_path,
@@ -327,6 +303,14 @@ def updt_ucc_cluster_files(
     current_JSON,
 ):
     """ """
+    # Create temp quadrant folders
+    for Nquad in range(1, 5):
+        for lat in ("P", "N"):
+            quad = "Q" + str(Nquad) + lat + "/"
+            out_path = temp_fold + quad + plots_folder
+            if not os.path.exists(out_path):
+                os.makedirs(out_path)
+
     logging.info("\nGenerating md and plot files")
     N_total = 0
     # Iterate trough each entry in the UCC database
@@ -501,6 +485,7 @@ def updt_ucc_main_files(
     current_JSON,
     database_md,
     df_tables,
+    N_members_UCC,
 ):
     """ """
     logging.info("\nUpdating ucc.ar files")
@@ -527,6 +512,7 @@ def updt_ucc_main_files(
         OCs_per_class,
         dups_msk,
         membs_msk,
+        N_members_UCC,
     )
 
     # Update pages for individual databases
@@ -571,11 +557,13 @@ def update_main_database_page(
     OCs_per_class,
     dups_msk,
     membs_msk,
+    N_members_UCC,
 ):
     """Update DATABASE.md file"""
     # Update the total number of entries and databases in the UCC
+    N_db_UCC, N_cl_UCC = len(current_JSON), len(df_UCC)
     database_md_updt = ucc_n_total_updt(
-        logging, len(df_UCC), len(current_JSON), database_md
+        logging, N_db_UCC, N_cl_UCC, N_members_UCC, database_md
     )
 
     # Update the table with the catalogues used in the UCC
