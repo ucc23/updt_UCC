@@ -139,24 +139,31 @@ def replace_text_between(
     return leading_text + delimiter_a + replacement_text
 
 
-def ucc_n_total_updt(logging, N_cl_UCC, N_db_UCC, database_md):
+def ucc_n_total_updt(logging, N_db_UCC, N_cl_UCC, N_members_UCC, database_md):
     """Update the total number of entries and databases in the UCC"""
-    delimiter_a = "<!-- NT1 -->"
-    delimiter_b = "<!-- NT2 -->"
-    replacement_text = str(N_cl_UCC)
+    delimiter_a = "<!-- ND1 -->"
+    delimiter_b = "<!-- ND2 -->"
+    replacement_text = str(N_db_UCC)
     database_md_updt = replace_text_between(
         database_md, replacement_text, delimiter_a, delimiter_b
     )
 
-    delimiter_a = "<!-- ND1 -->"
-    delimiter_b = "<!-- ND2 -->"
-    replacement_text = str(N_db_UCC)
+    delimiter_a = "<!-- NT1 -->"
+    delimiter_b = "<!-- NT2 -->"
+    replacement_text = str(N_cl_UCC)
+    database_md_updt = replace_text_between(
+        database_md_updt, replacement_text, delimiter_a, delimiter_b
+    )
+
+    delimiter_a = "<!-- NM1 -->"
+    delimiter_b = "<!-- NM2 -->"
+    replacement_text = str(N_members_UCC)
     database_md_updt = replace_text_between(
         database_md_updt, replacement_text, delimiter_a, delimiter_b
     )
 
     if database_md_updt != database_md:
-        logging.info("\nNumber of OCs and databases in the UCC updated")
+        logging.info("\nNumber of DBS, OCs and members in the UCC updated")
 
     return database_md_updt
 
@@ -178,10 +185,10 @@ def updt_cats_used(logging, df_UCC, current_JSON, database_md_in):
             ref_url = (
                 f"[{DB_data['authors']} ({DB_data['year']})]({DB_data['ADS_url']})"
             )
-            viz_url = f"""<a href="{DB_data['vizier_url']}" target="_blank"> <img src="/images/vizier.png " alt="Vizier url"></a>"""
-            if DB_data['vizier_url'] == "N/A":
+            viz_url = f"""<a href="{DB_data["vizier_url"]}" target="_blank"> <img src="/images/vizier.png " alt="Vizier url"></a>"""
+            if DB_data["vizier_url"] == "N/A":
                 viz_url = "N/A"
-            row += f"| {ref_url} | {viz_url} | [{N_in_DB[DB]}](/{DB}_table) "
+            row += f"| {ref_url} | {viz_url} | [{N_in_DB[DB]}](/tables/dbs/{DB}_table) "
         md_table += row + "|\n"
     md_table += "\n"
 
@@ -211,7 +218,7 @@ def updt_C3_classification(logging, class_order, OCs_per_class, database_md_in):
         row = ""
         for c in range(4):
             idx += 1
-            row += "| {} | [{}](/{}_table) ".format(
+            row += "| {} | [{}](/tables/{}_table) ".format(
                 classes_colors[idx], OCs_per_class[idx], class_order[idx]
             )
         C3_table += row + "|\n"
@@ -251,7 +258,9 @@ def updt_OCs_per_quad(logging, df_UCC, database_md_in):
             i += 1
             quad = "Q" + str(quad_N) + quad_s
             msk = df == quad
-            quad_table += quad_lines[i - 1] + f" [{msk.sum()}](/{quad}_table) |\n"
+            quad_table += (
+                quad_lines[i - 1] + f" [{msk.sum()}](/tables/{quad}_table) |\n"
+            )
     quad_table += "\n"
 
     delimeterA = "<!-- Begin table 3 -->\n"
@@ -287,7 +296,9 @@ def updt_dups_table(logging, dups_msk: list, database_md_in: str) -> str:
         Nde = " N_dup ="
         if i == 4:
             Nde = "N_dup >="
-        dups_table += f"|     {Nde} {i + 1}      | [{msk.sum()}](/Nd{i + 1}_table) |\n"
+        dups_table += (
+            f"|     {Nde} {i + 1}      | [{msk.sum()}](/tables/Nd{i + 1}_table) |\n"
+        )
     dups_table += "\n"
 
     delimeterA = "<!-- Begin table 4 -->\n"
@@ -320,20 +331,18 @@ def memb_number_table(logging, membs_msk, database_md_in):
     dups_table = "\n| N_50 |   N  | N_50 |   N  |\n"
     dups_table += "| :--: | :--: | :--: | :--: |\n"
 
-    dups_table += f"| == 0 | [{membs_msk[0].sum()}](/N50_0_table) "
+    dups_table += f"| == 0 | [{membs_msk[0].sum()}](/tables/N50_0_table) "
 
     N_limi = 0
     for i, N_limf in enumerate((25, 50, 75, 100, 250, 500, 1000, 2000)):
-        dups_table += (
-            f"| ({N_limi}, {N_limf}] | [{membs_msk[i + 1].sum()}](/N50_{N_limf}_table)"
-        )
+        dups_table += f"| ({N_limi}, {N_limf}] | [{membs_msk[i + 1].sum()}](/tables/N50_{N_limf}_table)"
         if i % 2 == 0:
             dups_table += " |\n"
         else:
             dups_table += " "
         N_limi = N_limf
 
-    dups_table += f"| > 2000 | [{membs_msk[-1].sum()}](/N50_inf_table) |\n"
+    dups_table += f"| > 2000 | [{membs_msk[-1].sum()}](/tables/N50_inf_table) |\n"
     dups_table += "\n"
 
     delimeterA = "<!-- Begin table 5 -->\n"
@@ -351,7 +360,8 @@ def memb_number_table(logging, membs_msk, database_md_in):
 def updt_DBs_tables(dbs_used, df_updt) -> dict:
     """Update the DBs classification table files"""
     header = (
-        """---\nlayout: page\ntitle: \n""" + """permalink: /DB_link_table/\n---\n\n"""
+        """---\nlayout: page\ntitle: \n"""
+        + """permalink: /tables/dbs/DB_link_table/\n---\n\n"""
     )
 
     # Count DB occurrences in UCC
@@ -381,7 +391,7 @@ def updt_n50members_tables(df_updt, membs_msk) -> dict:
     """Update the duplicates table files"""
     header = (
         """---\nlayout: page\ntitle: nmembs_title\n"""
-        + """permalink: /nmembs_link_table/\n---\n\n"""
+        + """permalink: /tables/nmembs_link_table/\n---\n\n"""
     )
 
     # N==0 table
@@ -414,7 +424,7 @@ def updt_C3_tables(df_updt, class_order: list) -> dict:
     """Update the C3 classification table files"""
     header = (
         """---\nlayout: page\ntitle: C3_title\n"""
-        + """permalink: /C3_link_table/\n---\n\n"""
+        + """permalink: /tables/C3_link_table/\n---\n\n"""
     )
 
     new_tables_dict = {}
@@ -435,7 +445,7 @@ def updt_dups_tables(df_updt, dups_msk) -> dict:
     """Update the duplicates table files"""
     header = (
         """---\nlayout: page\ntitle: dups_title\n"""
-        + """permalink: /dups_link_table/\n---\n\n"""
+        + """permalink: /tables/dups_link_table/\n---\n\n"""
     )
 
     new_tables_dict = {}
@@ -454,7 +464,7 @@ def updt_quad_tables(df_updt):
     """Update the per-quadrant table files"""
     header = (
         """---\nlayout: page\ntitle: quad_title\n"""
-        + """permalink: /quad_link_table/\n---\n\n"""
+        + """permalink: /tables/quad_link_table/\n---\n\n"""
     )
 
     title_dict = {
