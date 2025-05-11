@@ -3,6 +3,16 @@ import pandas as pd
 
 from ..utils import radec2lonlat
 
+# Not sure when/why I added this, 11/05/25
+# try:
+#     from ..utils import radec2lonlat
+# except ImportError:
+#     import sys
+#     from pathlib import Path
+
+#     sys.path.append(Path(__file__).parent.resolve())
+#     from utils import radec2lonlat
+
 
 def run(
     logging,
