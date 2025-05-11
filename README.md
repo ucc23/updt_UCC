@@ -32,7 +32,7 @@ following steps are required. Most of the process is automated.
 
 ## First script
 
-The first script is called `1_get_new_DB.py`. It manages the updating of the JSON file
+The  `1_get_new_DB.py` script manages the updating of the JSON file
 that contains the information for each database in the UCC, as well as downloading
 the Vizier database if available and/or requested.
 
@@ -79,12 +79,19 @@ Once this script is finished:
   the old one
 
 
+## Third
 
-## Third script
+The `3_update_zenodo_files.py` script generates the three required files for uploading
+to the Zenodo repository: `UCC_cat.csv, UCC_members.parquet, README.txt`
 
-This scripts applies the required changes to update the ucc.ar site. It processes
-the **entire** UCC catalogue and and searches for modifications that need to be applied
-to update the ucc.ar site.
+The files are stored in the temporary folder `temp_updt/zenodo/` awaiting uploading.
+
+
+## Fourth script
+
+The `4_update_UCC_site.py` script applies the required changes to update the ucc.ar
+site. It processes the **entire** UCC catalogue and and searches for modifications that
+need to be applied to update the site.
 
 1. Generate/update per cluster `.md` (stored in `ucc/_clusters/`) and `.webp` files
    (stored in the `QXY/plots/` folders)
@@ -93,7 +100,6 @@ to update the ucc.ar site.
 3. Update JSON file (`ucc/clusters.json`)
 4. Move all files to their final destination
 5. Check that the number of files is correct
-6. Generate new Zenodo files (`UCC_cat.csv, UCC_members.parquet, README.txt`)
 
 
 
@@ -102,7 +108,15 @@ to update the ucc.ar site.
 
 Before updating the live site, generate a local site build and check the results
 **carefully**. To build a local copy of the site we use Jekyll, see [Jekyll docs](https://jekyllrb.com/docs/).
-Position a terminal in the `/ucc` folder (**not** the `/updt_ucc` folder) and run:
+
+If this is a new installation, update the gems with:
+
+```
+$ bundle update --bundler
+```
+
+To build a local version of the site, position a terminal in the `/ucc` folder
+(**not** the `/updt_ucc` folder) and run:
 
 ```
 $ bundle exec jekyll serve --incremental
@@ -140,7 +154,7 @@ for dir in Q*/; do (cd "$dir" && [ -d .git ] && git acp "version YYMMDD"); done
 2. Create a 'New version' in the [Zenodo repository](https://zenodo.org/doi/10.5281/zenodo.8250523) 
 
 2.0 Make sure that the version number in the README matches than in the CHANGELOG
-2.1 Upload the three files stored in the `zenodo_upload/` folder by the `H` script
+2.1 Upload the three files stored in the `temp_updt/zenodo/` folder
 2.2 Get a DOI
 2.3 Add a 'Publication date' with the format: YYYY-MM-DD
 2.4 Use the version number in the README (format: YYMMDD) in the release
@@ -151,5 +165,12 @@ Publish new release and copy **its own url** (no the general repository url)
 
 4. Push the changes to the `ucc` repository
 
+~NOT ANMORE~
 Every change pushed to the [ucc](https://github.com/ucc23/ucc) repository triggers an automatic build and
 deployment. **Check carefully before pushing.**
+~NOT ANMORE~
+
+5. Deploy the site using the Github workflow 'Build GitHub Page':
+
+https://github.com/ucc23/ucc/actions/workflows/jekyll-gh-pages.yml
+
