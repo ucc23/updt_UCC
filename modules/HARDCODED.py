@@ -7,7 +7,7 @@ md_folder = ucc_path + "_clusters/"
 # Path to the pages folder
 pages_folder = ucc_path + "_pages/"
 # Path to the tables folders
-tables_folder = pages_folder + "tables/"
+tables_folder = ucc_path + "_tables/"
 dbs_tables_folder = tables_folder + "dbs/"
 # Path to the ucc site images folder
 images_folder = ucc_path + "images/"
