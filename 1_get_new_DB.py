@@ -15,8 +15,8 @@ from modules.HARDCODED import (
 )
 from modules.utils import logger
 
-# NASA/ADS bibcode for the new DB
-ADS_bibcode = "2011A%26A...532A.131B"
+# NASA/ADS bibcode for the new DB, e.g.: 2018MNRAS.481.3902B
+ADS_bibcode = "xxxxxx"
 
 
 def main():
