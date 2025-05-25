@@ -100,15 +100,15 @@ def main():
         new_DB,
     ) = load_data(logging, ucc_file, temp_JSON_file, temp_database_folder)
 
-    # Check for required columns in the new DB
+    # 1. Check for required columns in the new DB
     check_new_DB_cols(logging, current_JSON, new_DB, df_new, newDB_json)
 
-    # Standardize and match the new DB with the UCC
+    # 2. Standardize and match the new DB with the UCC
     new_DB_fnames, db_matches = standardize_and_match(
         logging, new_DB, df_UCC_old, df_new, newDB_json
     )
 
-    # Check the entries in the new DB
+    # 3. Check the entries in the new DB
     check_new_DB(
         logging,
         df_GCs,
@@ -120,7 +120,7 @@ def main():
         db_matches,
     )
 
-    # Generate new UCC file with the new DB incorporated
+    # 4. Generate new UCC file with the new DB incorporated
     df_UCC_new = add_new_DB(
         logging, new_DB, newDB_json, df_UCC_old, df_new, new_DB_fnames, db_matches
     )
@@ -128,7 +128,7 @@ def main():
     if input("Move on? (y/n): ").lower() != "y":
         sys.exit()
 
-    # Check the entries with no C3 value are identified as new and processed with fastMP
+    # 5. Entries with no C3 value are identified as new and processed with fastMP
     N_new = (df_UCC_new2["C3"] == "nan").sum()
     if N_new > 0:
         logging.info(f"\nProcessing {N_new} new OCs in {new_DB} with fastMP...")
@@ -145,9 +145,10 @@ def main():
         logging.info("No new OCs to process")
         df_UCC_new4 = df_UCC_new2
 
-    # Save updated UCC to CSV file
+    # 6. Save updated UCC to CSV file
     save_final_UCC(logging, temp_zenodo_fold, new_ucc_file, df_UCC_new4)
 
+    # 7. Move temporary files to their final destination
     if input("\nMove files to their final destination? (y/n): ").lower() != "y":
         sys.exit()
     move_files(
@@ -162,7 +163,7 @@ def main():
         archived_UCC_file,
     )
 
-    # Check number of files
+    # 8. Final check of new UCC
     N_UCC = len(df_UCC_new4)
     file_checker(logging, N_UCC, root_UCC_path)
 
@@ -668,6 +669,8 @@ def diff_between_dfs(
     cols_exclude=None,
 ) -> pd.DataFrame:
     """
+    Order by (lon, lat) and change NaN as "nan".
+
     Compare two DataFrames, find non-matching rows while preserving order, and
     output these rows in two files.
 
