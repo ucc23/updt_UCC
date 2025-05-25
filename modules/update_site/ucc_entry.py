@@ -21,36 +21,20 @@ more_names = """<h3><span style="color: #808080;"><i>(cl_names_str)</i></span></
 
 aladin_snippet = r"""<div style="display: flex; justify-content: space-between; width:720px;height:250px">
 <div style="text-align: center;">
-<!-- WEBP image -->
-<img id="myImage" src="https://raw.githubusercontent.com/ucc23/QFOLD/main/plots/FNAME_aladin.webp" alt="Clickable Image" style="width:355px;height:250px; cursor: pointer;">
 
+<!-- Static image + data attributes for FOV and target -->
+<img id="aladin_img"
+     data-umami-event="aladin_load"
+     src="https://raw.githubusercontent.com/ucc23/QFOLD/main/plots/FNAME_aladin.webp"
+     alt="Click to load Aladin Lite" 
+     style="width:355px;height:250px; cursor: pointer;"
+     data-fov="FOV_VAL" 
+     data-target="RA_ICRS DE_ICRS"/>
 <!-- Div to contain Aladin Lite viewer -->
 <div id="aladin-lite-div" style="width:355px;height:250px;display:none;"></div>
-
 <!-- Aladin Lite script (will be loaded after the image is clicked) -->
-<script type="text/javascript">
-// Function to load Aladin Lite after image click and hide the image
-function loadAladinLiteAndHideImage() {
-    // Dynamically load the Aladin Lite script
-    let aladinScript = document.createElement('script');
-    aladinScript.src = "https://aladin.cds.unistra.fr/AladinLite/api/v3/latest/aladin.js";
-    aladinScript.charset = "utf-8";
-    aladinScript.onload = function () {
-        A.init.then(() => {
-            let aladin = A.aladin('#aladin-lite-div', {survey:"P/DSS2/color", fov:RAD_DEG, target: "RA_ICRS DE_ICRS"});
-            // Remove the image
-            document.getElementById('myImage').remove();
-            // Hide the image
-            //document.getElementById('myImage').style.visibility = "hidden";
-            // Show the Aladin Lite viewer
-            document.getElementById('aladin-lite-div').style.display = 'block';
-        });
-     };
-    document.head.appendChild(aladinScript);
-}
-// Event listener for image click
-document.getElementById('myImage').addEventListener('click', loadAladinLiteAndHideImage);
-</script>
+<script src="{{ site.baseurl }}/scripts/aladin_load.js"></script>
+
 </div>
 <!-- Left block -->
 """
@@ -148,11 +132,11 @@ def make(
     if len(cl_names) > 1:
         txt += more_names.replace("cl_names_str", "; ".join(cl_names[1:]))
 
-    rad_deg = round(2 * (UCC_cl["r_50"] / 60.0), 3)
+    fov = round(2 * (UCC_cl["r_50"] / 60.0), 3)
     txt += (
-        aladin_snippet.replace("QFOLD", str(Qfold).replace('/', ''))
+        aladin_snippet.replace("QFOLD", str(Qfold).replace("/", ""))
         .replace("FNAME", str(fname0))
-        .replace("RAD_DEG", str(rad_deg))
+        .replace("FOV_VAL", str(fov))
         .replace("RA_ICRS", str(UCC_cl["RA_ICRS_m"]))
         .replace("DE_ICRS", str(UCC_cl["DE_ICRS_m"]))
     )
@@ -193,7 +177,7 @@ def make(
 
     txt += cl_plot.format(img_cont)
 
-    txt += notebook_url.format(Qfold.replace('/', ''), fname0)
+    txt += notebook_url.format(Qfold.replace("/", ""), fname0)
 
     if fpars_table != "":
         txt += fpars_table_top
