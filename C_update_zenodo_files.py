@@ -12,19 +12,29 @@ from modules.utils import get_last_version_UCC, logger
 
 
 def main():
+    """Steps:
+
+    1. Read current UCC CSV file
+    2. Create a CSV file with the UCC data
+    3. Create a parquet file with the members data
+    4. Create a README file with the version number and number of clusters and members
+
+    All files are stored in the temporary folder.
+    """
     logging = logger()
 
     # Get the latest version of the UCC catalogue
     UCC_last_version = get_last_version_UCC(UCC_folder)
 
-    temp_zenodo_path = temp_fold + UCC_folder
-    if not os.path.exists(temp_zenodo_path):
-        os.makedirs(temp_zenodo_path)
-
     # Read current UCC csv file
     ucc_file_path = UCC_folder + UCC_last_version
     df_UCC = pd.read_csv(ucc_file_path)
     N_clusters = len(df_UCC)
+
+    # Create temp folder if it does not exist
+    temp_zenodo_path = temp_fold + UCC_folder
+    if not os.path.exists(temp_zenodo_path):
+        os.makedirs(temp_zenodo_path)
 
     upld_zenodo_file = temp_zenodo_path + "UCC_cat.csv"
     create_csv_UCC(upld_zenodo_file, df_UCC)
