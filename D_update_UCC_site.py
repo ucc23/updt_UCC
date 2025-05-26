@@ -20,6 +20,7 @@ from modules.HARDCODED import (
     pages_folder,
     plots_folder,
     tables_folder,
+    tables_md_path,
     temp_fold,
 )
 from modules.update_site import ucc_entry, ucc_plots
@@ -95,7 +96,7 @@ def main():
     logging.info(f"Total number of members extracted: {N_members_UCC}")
 
     # Load required files
-    df_UCC, df_tables, current_JSON, DBs_full_data, database_md = load_data(
+    df_UCC, df_tables, current_JSON, DBs_full_data, database_md, tables_md = load_data(
         logging, ucc_file_path, root_UCC_path
     )
 
@@ -124,6 +125,7 @@ def main():
             df_UCC,
             current_JSON,
             database_md,
+            tables_md,
             df_tables,
             N_members_UCC,
         )
@@ -220,11 +222,13 @@ def load_paths(
     )
 
 
-def load_data(logging, ucc_file: str, root_UCC_path: str):
+def load_data(
+    logging, ucc_file_path: str, root_UCC_path: str
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, dict, str, str]:
     """ """
 
-    df_UCC = pd.read_csv(ucc_file)
-    logging.info(f"UCC {ucc_file} loaded (N={len(df_UCC)})")
+    df_UCC = pd.read_csv(ucc_file_path)
+    logging.info(f"UCC {ucc_file_path} loaded (N={len(df_UCC)})")
 
     # Prepare df_UCC to be used in the updating of the table files
     df_tables = updt_UCC(df_UCC)
@@ -242,7 +246,11 @@ def load_data(logging, ucc_file: str, root_UCC_path: str):
     with open(root_UCC_path + databases_md_path) as file:
         database_md = file.read()
 
-    return df_UCC, df_tables, current_JSON, DBs_full_data, database_md
+    # Load TABLES.md file
+    with open(root_UCC_path + tables_md_path) as file:
+        tables_md = file.read()
+
+    return df_UCC, df_tables, current_JSON, DBs_full_data, database_md, tables_md
 
 
 def updt_UCC(df_UCC: pd.DataFrame) -> pd.DataFrame:
@@ -440,7 +448,12 @@ def make_plots(
     UCC_cl,
     fname0,
 ) -> str:
-    """ """
+    """
+    Make CMD and Aladin plots.
+
+    Only images that do not exist are generated, this script DOES NOT UPDATE
+    images that already exist.
+    """
     txt = ""
 
     # Make CMD plot
@@ -484,6 +497,7 @@ def updt_ucc_main_files(
     df_UCC,
     current_JSON,
     database_md,
+    tables_md,
     df_tables,
     N_members_UCC,
 ):
@@ -503,12 +517,13 @@ def updt_ucc_main_files(
     # Update site plots
     make_site_plots(logging, temp_image_path, df_UCC, OCs_per_class)
 
-    # Update DATABASE.md file (store in temp folder)
-    update_main_database_page(
+    # Update DATABASE.md and TABLES.md files (store in temp folder)
+    update_main_pages(
         logging,
         current_JSON,
         df_UCC,
         database_md,
+        tables_md,
         OCs_per_class,
         dups_msk,
         membs_msk,
@@ -549,41 +564,48 @@ def make_site_plots(logging, temp_image_path, df_UCC, OCs_per_class):
     logging.info("Plot generated: classification histogram")
 
 
-def update_main_database_page(
+def update_main_pages(
     logging,
     current_JSON,
     df_UCC,
     database_md,
+    tables_md,
     OCs_per_class,
     dups_msk,
     membs_msk,
     N_members_UCC,
 ):
-    """Update DATABASE.md file"""
-    # Update the total number of entries and databases in the UCC
+    """Update DATABASE.md and TABLES.md files"""
+
+    # Update the total number of entries, databases, and members in the UCC
     N_db_UCC, N_cl_UCC = len(current_JSON), len(df_UCC)
     database_md_updt = ucc_n_total_updt(
         logging, N_db_UCC, N_cl_UCC, N_members_UCC, database_md
     )
-
-    # Update the table with the catalogues used in the UCC
-    database_md_updt = updt_cats_used(logging, df_UCC, current_JSON, database_md_updt)
-
-    database_md_updt = updt_C3_classification(
-        logging, class_order, OCs_per_class, database_md_updt
-    )
-
-    database_md_updt = updt_OCs_per_quad(logging, df_UCC, database_md_updt)
-
-    database_md_updt = updt_dups_table(logging, dups_msk, database_md_updt)
-
-    database_md_updt = memb_number_table(logging, membs_msk, database_md_updt)
-
     # Save updated page (temp)
     if database_md != database_md_updt:
         with open(temp_fold + databases_md_path, "w") as file:
             file.write(database_md_updt)
         logging.info("DATABASE.md updated")
+
+    # Update the table with the catalogues used in the UCC
+    tables_md_updt = updt_cats_used(logging, df_UCC, current_JSON, tables_md)
+
+    tables_md_updt = updt_C3_classification(
+        logging, class_order, OCs_per_class, tables_md_updt
+    )
+
+    tables_md_updt = updt_OCs_per_quad(logging, df_UCC, tables_md_updt)
+
+    tables_md_updt = updt_dups_table(logging, dups_msk, tables_md_updt)
+
+    tables_md_updt = memb_number_table(logging, membs_msk, tables_md_updt)
+
+    # Save updated page (temp)
+    if database_md != tables_md_updt:
+        with open(temp_fold + tables_md_path, "w") as file:
+            file.write(tables_md_updt)
+        logging.info("TABLES.md updated")
 
 
 def general_table_update(
