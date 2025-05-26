@@ -690,6 +690,7 @@ def move_files(
     """ """
     logging.info("\nUpdate files:")
 
+    # Move all files inside 'temp_fold/ucc/', this includes the cluster.json.gz file
     temp_ucc_fold = temp_fold + "ucc/"
     for root, dirs, files in os.walk(temp_ucc_fold):
         for filename in files:
