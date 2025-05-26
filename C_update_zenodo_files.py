@@ -193,41 +193,41 @@ def updt_readme(
         f.write(dataf)
 
 
-def zenodo_upload():
-    """
+# def zenodo_upload():
+#     """
 
-    zenodo-client:
-    A tool for automated uploading and version management of scientific data to Zenodo
+#     zenodo-client:
+#     A tool for automated uploading and version management of scientific data to Zenodo
 
-    https://github.com/cthoyt/zenodo-client
-    """
-    from zenodo_client import Creator, Metadata, ensure_zenodo
+#     https://github.com/cthoyt/zenodo-client
+#     """
+#     from zenodo_client import Creator, Metadata, ensure_zenodo
 
-    # Define the metadata that will be used on initial upload
-    data = Metadata(
-        title="Test Upload 3",
-        upload_type="dataset",
-        description="test description",
-        creators=[
-            Creator(
-                name="Hoyt, Charles Tapley",
-                affiliation="Harvard Medical School",
-                orcid="0000-0003-4423-4370",
-            ),
-        ],
-    )
-    res = ensure_zenodo(
-        key="test3",  # this is a unique key you pick that will be used to store
-        # the numeric deposition ID on your local system's cache
-        data=data,
-        paths=[
-            "/Users/cthoyt/Desktop/test1.png",
-        ],
-        sandbox=True,  # remove this when you're ready to upload to real Zenodo
-    )
-    from pprint import pprint
+#     # Define the metadata that will be used on initial upload
+#     data = Metadata(
+#         title="Test Upload 3",
+#         upload_type="dataset",
+#         description="test description",
+#         creators=[
+#             Creator(
+#                 name="Hoyt, Charles Tapley",
+#                 affiliation="Harvard Medical School",
+#                 orcid="0000-0003-4423-4370",
+#             ),
+#         ],
+#     )
+#     res = ensure_zenodo(
+#         key="test3",  # this is a unique key you pick that will be used to store
+#         # the numeric deposition ID on your local system's cache
+#         data=data,
+#         paths=[
+#             "/Users/cthoyt/Desktop/test1.png",
+#         ],
+#         sandbox=True,  # remove this when you're ready to upload to real Zenodo
+#     )
+#     from pprint import pprint
 
-    pprint(res.json())
+#     pprint(res.json())
 
 
 if __name__ == "__main__":
