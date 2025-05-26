@@ -38,11 +38,11 @@ def main():
     """
     logging = logger()
 
-    # Load current JSON file
+    # 1. Load current JSON file
     with open(name_DBs_json) as f:
         current_JSON = json.load(f)
 
-    # Check if url is already listed in the current JSON file
+    # 2. Check if url is already listed in the current JSON file
     ADS_url = "https://ui.adsabs.harvard.edu/abs/" + ADS_bibcode
     for db, vals in current_JSON.items():
         if ADS_url == vals["ADS_url"]:
@@ -51,13 +51,16 @@ def main():
             )
             # logging.info(f"The URL {ADS_url}\nis already in the JSON file under: {db}")
 
+    # 3. Fetch publication authors and year from NASA/ADS
     logging.info("Fetching NASA/ADS data...")
     authors, year = get_ADS_data()
     logging.info(f"Extracted author ({authors}) and year ({year})")
 
+    # 4. Generate a new database name based on extracted metadata.
     DB_name = get_DB_name(current_JSON, authors, year)
     logging.info(f"New DB name obtained: {DB_name}")
 
+    # 5. Handle temporary database files and check for existing data.
     # Temporary databases/ folder
     temp_database_folder = temp_fold + dbs_folder
     # Create folder if it does not exist
@@ -67,6 +70,7 @@ def main():
     # Path to the new (temp) DB file
     temp_CSV_file = temp_database_folder + DB_name + ".csv"
 
+    # 6. Fetch Vizier data or allow manual input for Vizier IDs.
     vizier_url, quest = "N/A", "n"
     if Path(temp_CSV_file).is_file():
         quest = input("Load Vizier database from file (else download)? (y/n): ").lower()
@@ -84,10 +88,9 @@ def main():
                 f"https://vizier.cds.unistra.fr/viz-bin/VizieR?-source={ADS_bibcode}"
             )
 
-    # Extract the names, positions, parameters, and uncertainties column names from
+    # 7. Extract the names, positions, parameters, and uncertainties column names from
     # the current JSON
     names_dict, pos_dict, pars_dict, e_pars_dict = current_JSON_vals(current_JSON)
-
     # Extract the matches for each column in the new DB
     df_col_id = None
     if df_all is not None:
@@ -95,10 +98,9 @@ def main():
             logging, names_dict, pos_dict, pars_dict, e_pars_dict, df_all
         )
         logging.info("Column names for temp JSON file extracted")
-
     names, pos_dict, pars_dict, e_pars_dict = proper_json_struct(df_col_id)
 
-    # Create new temporary JSON
+    # 8. Update the JSON file and save the database as CSV.
     add_DB_to_JSON(
         ADS_url,
         vizier_url,
