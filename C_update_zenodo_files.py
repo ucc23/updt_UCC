@@ -40,8 +40,14 @@ def main():
     create_csv_UCC(upld_zenodo_file, df_UCC)
     logging.info("\nZenodo 'UCC_cat.csv' file generated")
 
+    # This assumes that the 'QXY' folders are located one directory above the
+    # current script <-- !! IMPORTANT !!
+    root_UCC_dir = ".."
+
     zenodo_members_file = temp_zenodo_path + "UCC_members.parquet"
-    N_members = create_membs_UCC(logging, members_folder, zenodo_members_file)
+    N_members = create_membs_UCC(
+        logging, root_UCC_dir, members_folder, zenodo_members_file
+    )
     logging.info("Zenodo 'UCC_members.parquet' file generated")
 
     zenodo_readme = temp_zenodo_path + "README.txt"
@@ -92,17 +98,15 @@ def create_csv_UCC(zenodo_file: str, df_UCC: pd.DataFrame) -> None:
     )
 
 
-def create_membs_UCC(logging, members_folder: str, zenodo_members_file: str) -> int:
+def create_membs_UCC(
+    logging, root_UCC_dir: str, members_folder: str, zenodo_members_file: str
+) -> int:
     """
     Generates a parquet file containing estimated members from the
     Unified Cluster Catalog (UCC) dataset, formatted for storage in the Zenodo
     repository.
     """
     logging.info("Reading member files...")
-
-    # This assumes that the 'QXY' folders are located one directory above the
-    # current script <-- !! IMPORTANT !!
-    root_UCC_dir = ".."
 
     # Initialize list for storing temporary DataFrames
     tmp = []
