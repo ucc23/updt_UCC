@@ -278,20 +278,29 @@ def load_data(
     with open(name_DBs_json) as f:
         current_JSON = json.load(f)
 
-    # Load new temp JSON file
-    with open(temp_JSON_file) as f:
-        temp_JSON = json.load(f)
+    try:
+        # Load new temp JSON file
+        with open(temp_JSON_file) as f:
+            temp_JSON = json.load(f)
 
-    # Extract new DB's name
-    new_DB = list(set(temp_JSON.keys()) - set(current_JSON.keys()))[0]
+        # Extract new DB's name
+        new_DB = list(set(temp_JSON.keys()) - set(current_JSON.keys()))[0]
 
-    # Load column data for the new catalogue
-    newDB_json = temp_JSON[new_DB]
+        # Load column data for the new catalogue
+        newDB_json = temp_JSON[new_DB]
 
-    # Load the new DB
-    new_DB_file = new_DB + ".csv"
-    df_new = pd.read_csv(temp_database_folder + new_DB_file)
-    logging.info(f"New DB {new_DB} loaded (N={len(df_new)})")
+        # Load the new DB
+        new_DB_file = new_DB + ".csv"
+        df_new = pd.read_csv(temp_database_folder + new_DB_file)
+        logging.info(f"New DB {new_DB} loaded (N={len(df_new)})")
+    except FileNotFoundError:
+        logging.info(
+            f"{temp_JSON_file} not found. Assuming calling from outside B script"
+        )
+        df_new = pd.DataFrame()
+        newDB_json = {}
+        new_DB_file = ""
+        new_DB = ""
 
     return (
         gaia_frames_data,
