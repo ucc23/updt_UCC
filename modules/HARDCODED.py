@@ -12,9 +12,11 @@ dbs_tables_folder = tables_folder + "dbs/"
 # Path to the ucc site images folder
 images_folder = ucc_path + "images/"
 # Path to the compressed JSON file with clusters data
-clusters_json_path = ucc_path + "clusters.json.gz"
-# Path to the md file with the tables
+clusters_json_path = ucc_path + "assets/clusters.json.gz"
+# Path to the md database file
 databases_md_path = pages_folder + "DATABASE.md"
+# Path to the md file with the tables
+tables_md_path = pages_folder + "TABLES.md"
 
 # Q folders paths
 #
