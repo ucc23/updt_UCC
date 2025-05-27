@@ -62,17 +62,17 @@ def run(
     Zp_RP, sigma_ZRP_2 = 24.7478955012, 0.00001428
 
     logging.info(
-        "cent = ({:.3f}, {:.3f}); Box size: {:.2f}, Plx min: {:.2f}".format(
+        "  cent=({:.3f}, {:.3f}); Box size: {:.2f}, Plx min: {:.2f}".format(
             c_ra, c_dec, box_s_eq, plx_min
         )
     )
 
     c_ra_l = [c_ra]
     if c_ra - box_s_eq < 0:
-        logging.info("Split frame, c_ra + 360")
+        logging.info("  Split frame, c_ra + 360")
         c_ra_l.append(c_ra + 360)
     if c_ra > box_s_eq > 360:
-        logging.info("Split frame, c_ra - 360")
+        logging.info("  Split frame, c_ra - 360")
         c_ra_l.append(c_ra - 360)
 
     dicts = []
@@ -285,7 +285,7 @@ def query(
 
         if msk.sum() == 0:
             continue
-        logging.info(f"N={msk.sum()} stars in {file}")
+        # logging.info(f"N={msk.sum()} stars in {file}")
 
         all_frames.append(data[msk])
     all_frames = pd.concat(all_frames)
@@ -295,7 +295,7 @@ def query(
     gal_cent = radec2lonlat(c_ra, c_dec)
 
     if all_frames["l"].max() - all_frames["l"].min() > 180:
-        logging.info("Frame wraps around 360 in longitude. Fixing..")
+        logging.info("  Fix frame that wraps around 360 in longitude")
 
         lon = np.array(all_frames["l"])
         if gal_cent[0] > 180:
@@ -337,7 +337,7 @@ def query(
         }
     )
 
-    logging.info(f"N_final={len(all_frames)}")
+    logging.info(f"  N_final={len(all_frames)}")
     return all_frames
 
 
