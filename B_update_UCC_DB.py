@@ -37,10 +37,12 @@ from modules.update_database.check_new_DB_funcs import (
 from modules.update_database.member_files_updt_funcs import (
     extract_cl_data,
     get_close_cls,
+    get_fastMP_membs,
     get_frame_limits,
-    process_new_OC,
+    get_gaia_frame,
     save_cl_datafile,
     split_membs_field,
+    updt_UCC_new_cl_data,
 )
 from modules.update_database.possible_duplicates_funcs import duplicate_probs
 from modules.update_database.standardize_and_match_funcs import (
@@ -589,24 +591,41 @@ def member_files_updt(
         if str(new_cl["C3"]) != "nan":
             continue
 
+        cl_ID, fnames, quad, ra_icrs, de_icrs, glon, glat, pmra, pmde, plx = (
+            new_cl["ID"],
+            new_cl["fnames"],
+            new_cl["quad"],
+            float(new_cl["RA_ICRS"]),
+            float(new_cl["DE_ICRS"]),
+            float(new_cl["GLON"]),
+            float(new_cl["GLAT"]),
+            float(new_cl["pmRA"]),
+            float(new_cl["pmDE"]),
+            float(new_cl["Plx"]),
+        )
+
+        logging.info(f"\n{N_cl} Processing {fnames} (idx={UCC_idx})")
+
         # Generate frame
-        box_s, plx_min = get_frame_limits(new_cl)
+        box_s, plx_min = get_frame_limits(cl_ID, plx)
 
         # Check for close clusters
         get_close_cls(
             logging,
             df_UCC,
             UCC_idx,
-            new_cl,
+            glon,
+            glat,
+            pmra,
+            pmde,
+            plx,
             tree,
             box_s,
             df_GCs,
         )
 
-        logging.info(
-            f"\n{N_cl} Processing {new_cl['fnames']} (idx={UCC_idx}) with fastMP"
-        )
-        gaia_frame, probs_all = process_new_OC(
+        # Request Gaia frame
+        gaia_frame = get_gaia_frame(
             logging,
             box_s,
             plx_min,
@@ -614,7 +633,14 @@ def member_files_updt(
             gaia_max_mag,
             gaia_frames_data,
             manual_pars,
-            new_cl,
+            fnames,
+            ra_icrs,
+            de_icrs,
+        )
+
+        # Extract fastMP probabilities
+        probs_all = get_fastMP_membs(
+            logging, ra_icrs, de_icrs, glon, glat, pmra, pmde, plx, gaia_frame
         )
 
         # Split into members and field stars according to the probability values
@@ -622,18 +648,18 @@ def member_files_updt(
         df_membs, df_field = split_membs_field(gaia_frame, probs_all)
 
         # Write selected member stars to file
-        save_cl_datafile(logging, temp_fold, members_folder, new_cl, df_membs)
+        save_cl_datafile(logging, temp_fold, members_folder, fnames, quad, df_membs)
 
         # Extract data to update the UCC
         dict_UCC_updt = extract_cl_data(df_membs, df_field)
 
-        #
-        df_UCC_updt["UCC_idx"].append(UCC_idx)
-        for key, val in dict_UCC_updt.items():
-            df_UCC_updt[key].append(val)
+        # Store data from this new entry used to update the UCC
+        df_UCC_updt = updt_UCC_new_cl_data(df_UCC_updt, UCC_idx, dict_UCC_updt)
 
         N_cl += 1
 
+    # This dataframe (and file) contains the data extracted from all the new entries,
+    # used to update the UCC
     df_UCC_updt = pd.DataFrame(df_UCC_updt)
     df_UCC_updt.to_csv(temp_fold + "df_UCC_updt.csv", index=False)
     logging.info("\nTemp file df_UCC_updt saved")
