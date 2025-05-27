@@ -145,10 +145,10 @@ need to be applied to update the site.
 - `ucc/assets/clusters.json.gz`: Updated JSON file with the latest UCC data
 - `ucc/images/catalogued_ocs.webp`: Updated image with the latest UCC data
 - `ucc/images/classif_bar.webp`: Updated image with the latest UCC data
-- `ucc/_pages/DATABSE.md`: 
-- `ucc/_pages/TABLES.md`: 
-- `ucc/_tables/*.md`: 
-- `ucc/_clusters/*.md`: Site files for each new or updated cluster
+- `ucc/_pages/DATABASE.md`: Update databases file for the site
+- `ucc/_pages/TABLES.md`: Updated tables file for the site
+- `ucc/_tables/*.md`: Updated tables for the site
+- `ucc/_clusters/*.md`: Updated or generated files for each cluster
 - `UCC/QXY/plots/*.webp`: CMD and Aladin plots, **only for new clusters**
 
 
