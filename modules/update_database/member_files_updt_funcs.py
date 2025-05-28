@@ -182,11 +182,17 @@ def get_close_cls(
             centers_ex.append(ex_cl_dict)
 
     if len(centers_ex) > 0:
-        logging.info(f"  WARNING: close OCs to {(glon, glat)}, {pmra, pmde}, {plx}")
+        logging.info(
+            f"  WARNING: {len(centers_ex)} close OCs to {(glon, glat)}, {pmra, pmde}, {plx}"
+        )
+        N_more = 0
+        if len(centers_ex) > 10:
+            N_more = len(centers_ex) - 10
+            centers_ex = centers_ex[:10]
         for clust in centers_ex:
             logging.info("    " + clust)
-
-    return centers_ex
+        if N_more > 0:
+            logging.info(f"({N_more} more)")
 
 
 def get_gaia_frame(
@@ -397,9 +403,7 @@ def run_fastMP(
     my_field.get_nmembers()
 
     if my_field.N_cluster == 1500:
-        logging.info(
-            f"  WARNING: N_cluster=1500, using radius={my_field.radius:.2f}"
-        )
+        logging.info(f"  WARNING: N_cluster=1500, using radius={my_field.radius:.2f}")
         my_field.get_nmembers("density")
         if my_field.N_cluster == 1500:
             my_field.N_cluster = 25
