@@ -11,10 +11,11 @@ from B_update_UCC_DB import (
 from modules.utils import logger
 
 """
-This code was used to address https://github.com/ucc23/ucc/issues/46 abd
+This code was used to address https://github.com/ucc23/ucc/issues/46 and
 update the members of 3531 entries.
 
-1. Read the file with the entries to be re-processed
+
+
 """
 
 
@@ -23,7 +24,6 @@ def main():
     logging = logger()
 
     df_entries = pd.read_csv("single_use_scripts/3500_entries.csv")
-    # df_entries = df_entries[:10]
 
     # Generate paths and check for required folders and files
     (
