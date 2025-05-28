@@ -1,5 +1,10 @@
 Some of these are intermediate versions of the UCC database that are not published.
 
+## 25052716
+
+- Re-processed the ~3500 entries mentioned in https://github.com/ucc23/ucc/issues/46
+
+
 ## 25020409
 
 - Added BORISSOVA2018
