@@ -51,8 +51,9 @@ from modules.update_database.standardize_and_match_funcs import (
 )
 from modules.utils import file_checker, get_last_version_UCC, logger
 
-# Paths to the Gaia DR3 files
+# Paths to the Gaia DR3 files in external drive
 root = "/media/gabriel/backup/gabriel/GaiaDR3/"
+# root = "/home/gperren.ifir/UCC/GaiaDR3/"
 path_gaia_frames = root + "datafiles_G20/"
 # Paths to the file that informs the sky area covered by each file
 path_gaia_frames_ranges = root + "files_G20/frame_ranges.txt"
@@ -296,9 +297,7 @@ def load_data(
         df_new = pd.read_csv(temp_database_folder + new_DB_file)
         logging.info(f"New DB {new_DB} loaded (N={len(df_new)})")
     except FileNotFoundError:
-        logging.info(
-            f"{temp_JSON_file} not found. Assuming calling from outside B script"
-        )
+        logging.info(f"{temp_JSON_file} not found. Assume call from outside B script")
         df_new = pd.DataFrame()
         newDB_json = {}
         new_DB_file = ""
