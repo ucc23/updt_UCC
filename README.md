@@ -98,6 +98,13 @@ the `B_update_UCC.py` script will:
 - `databases/NEW_DB.csv`: New database in CSV format
 - `zenodo/UCC_cat_XXYYZZHH.csv`: Updated UCC database; previous version is archived
 
+These files are also generated, for exploratory use only:
+
+- `temp_updt/df_UCC_updt.csv`: File with all the updated entries
+- `temp_updt/UCC_diff_new.csv`: Non-matching entries in the new database
+- `temp_updt/UCC_diff_old.csv`: Non-matching entries in the old database
+
+The last two files are meant to be viewed with a diff app (e.g.: Meld) side by side
 
 
 
