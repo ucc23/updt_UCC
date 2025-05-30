@@ -686,13 +686,16 @@ def member_files_updt(
 
 def update_UCC_membs_data(logging, df_UCC, df_UCC_updt, prob_cut: float = 0.25):
     """
+    Update the UCC database using the data extracted from the processed OCs'
+    members.
+
     prob_cut: Probability cutoff for identifying duplicates.
     """
     # Generate copy to not disturb the dataframe given to this function which is
     # later used to generate the diffs files
     df_inner = df_UCC.copy()
 
-    #
+    # Update 'df_inner' using 'df_UCC_updt' data
     for _, row in df_UCC_updt.iterrows():
         UCC_idx = row["UCC_idx"]
         for key, val in row.items():
@@ -700,7 +703,7 @@ def update_UCC_membs_data(logging, df_UCC, df_UCC_updt, prob_cut: float = 0.25):
                 continue
             df_inner.at[UCC_idx, key] = val
 
-    logging.info("Finding duplicates and their probabilities...")
+    logging.info("Finding duplicates and their probabilities")
     df_inner["dups_fnames_m"], df_inner["dups_probs_m"] = duplicate_probs(
         list(df_inner["fnames"]),
         np.array(df_inner["GLON_m"], dtype=float),
