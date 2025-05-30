@@ -247,67 +247,6 @@ def get_close_cls(
 
     return in_frame_all
 
-    # # Radius that contains the entire frame
-    # rad = np.sqrt(2 * (box_s / 2) ** 2)
-    # # Indexes to the closest clusters in XY
-    # ex_cls_idx = list(tree.query_ball_point([glon, glat], rad))
-    # # Remove self cluster
-    # del ex_cls_idx[ex_cls_idx.index(idx)]
-
-    # centers_ex = []
-    # for i in ex_cls_idx:
-    #     # If the cluster does not contain PM or Plx information, check its
-    #     # distance in (lon, lat) with the main cluster. If the distance locates
-    #     # this cluster within 0.75 of the frame's radius (i.e.: within the
-    #     # expected region of the main cluster), don't store it for removal.
-    #     #
-    #     # This prevents clusters with no PM|Plx data from disrupting
-    #     # neighboring clusters (e.g.: NGC 2516 disrupted by FSR 1479) and
-    #     # at the same time removes more distant clusters that disrupt the
-    #     # number of members estimation process in fastMP
-    #     if (df_UCC["pmRA"][i] == "nan") or (df_UCC["pmRA"][i] == "nan"):
-    #         xy_dist = np.sqrt(
-    #             (glon - float(df_UCC["GLON"][i])) ** 2
-    #             + (glat - float(df_UCC["GLAT"][i])) ** 2
-    #         )
-    #         if xy_dist < 0.75 * rad:
-    #             continue
-
-    #     ex_cl_dict = (
-    #         f"{df_UCC['ID'][i]}: ({df_UCC['GLON'][i]:.4f}, {df_UCC['GLAT'][i]:.4f})"
-    #     )
-    #     if df_UCC["pmRA"][i] != "nan":
-    #         ex_cl_dict += f", ({df_UCC['pmRA'][i]:.4f}, {df_UCC['pmDE'][i]:.4f})"
-    #     if df_UCC["Plx"][i] != "nan":
-    #         ex_cl_dict += f", {df_UCC['Plx'][i]:.4f}"
-
-    #     centers_ex.append(ex_cl_dict)
-
-    # # Add closest GCs
-    # gc_d = np.sqrt((glon - df_gcs["GLON"]) ** 2 + (glat - df_gcs["GLAT"]) ** 2)
-    # for i, gc_di in enumerate(gc_d):
-    #     if gc_di < rad:
-    #         ex_cl_dict = (
-    #             f"{df_gcs['Name'][i]}: ({df_gcs['GLON'][i]:.4f}, {df_gcs['GLAT'][i]:.4f})"
-    #             + f", ({df_gcs['pmRA'][i]:.4f}, {df_gcs['pmDE'][i]:.4f})"
-    #             + f", {df_gcs['plx'][i]:.4f}"
-    #         )
-    #         centers_ex.append(ex_cl_dict)
-
-    # # Print info to screen
-    # if len(centers_ex) > 0:
-    #     logging.info(
-    #         f"  WARNING: {len(centers_ex)} close OCs to {(glon, glat)}, {pmra, pmde}, {plx}"
-    #     )
-    #     N_more = 0
-    #     if len(centers_ex) > 10:
-    #         N_more = len(centers_ex) - 10
-    #         centers_ex = centers_ex[:10]
-    #     for clust in centers_ex:
-    #         logging.info("    " + clust)
-    #     if N_more > 0:
-    #         logging.info(f"({N_more} more)")
-
 
 def get_fastMP_membs(
     logging,
