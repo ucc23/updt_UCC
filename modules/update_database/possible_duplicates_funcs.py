@@ -4,8 +4,8 @@ from scipy.spatial.distance import cdist
 
 def duplicate_probs(
     fnames: list[str],
-    x: np.ndarray,
-    y: np.ndarray,
+    glon: np.ndarray,
+    glat: np.ndarray,
     plx: np.ndarray,
     pmRA: np.ndarray,
     pmDE: np.ndarray,
@@ -20,10 +20,10 @@ def duplicate_probs(
     ----------
     fnames :list[str]
         List of cluster names (filenames).
-    x : np.ndarray
-        Array of x-coordinates (e.g., GLON).
-    y : np.ndarray
-        Array of y-coordinates (e.g., GLAT).
+    glon : np.ndarray
+        Array of x-coordinates (GLON).
+    glat : np.ndarray
+        Array of y-coordinates (GLAT).
     plx : np.ndarray
         Array of parallax values.
     pmRA : np.ndarray
@@ -45,12 +45,12 @@ def duplicate_probs(
         - dups_probs: List of semicolon-separated probabilities of being duplicates for
           each cluster.
     """
-    # Find the (x, y) distances to all clusters, for all clusters
-    coords = np.array([x, y]).T
-    dist = cdist(coords, coords)
+    # Find the (glon, glat) distances to all clusters, for all clusters
+    coords = np.array([glon, glat]).T
+    gal_dist = cdist(coords, coords)
 
     dups_fnames, dups_probs = [], []
-    for i, dists_i in enumerate(dist):
+    for i, dists_i in enumerate(gal_dist):
         # Only process relatively close clusters
         rad_max = Nmax * max_coords_rad(plx[i])
         msk_rad = dists_i <= rad_max
@@ -64,7 +64,7 @@ def duplicate_probs(
                 continue
 
             # Fetch duplicate probability for the i,j clusters
-            dup_prob = dprob(x, y, pmRA, pmDE, plx, i, j)
+            dup_prob = dprob(glon, glat, pmRA, pmDE, plx, i, j)
             if dup_prob >= prob_cut:
                 # Store just the first fname
                 dups_fname_i.append(fnames[j].split(";")[0])
