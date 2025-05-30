@@ -14,7 +14,7 @@ from ..utils import radec2lonlat
 #     from utils import radec2lonlat
 
 
-def run(
+def query_run(
     logging,
     frames_path: str,
     fdata: pd.DataFrame,
@@ -53,7 +53,7 @@ def run(
 
     Returns
     -------
-    pd.DataFrame
+    gaia_frame: pd.DataFrame
         DataFrame containing the combined Gaia data.
     """
     # Gaia EDR3 zero points. Sigmas are already squared here.
@@ -113,9 +113,9 @@ def run(
     all_frames = uncertMags(
         Zp_G, Zp_BP, Zp_RP, sigma_ZG_2, sigma_ZBP_2, sigma_ZRP_2, all_frames
     )
-    all_frames = all_frames.drop(columns=["FG", "e_FG", "FBP", "e_FBP", "FRP", "e_FRP"])
+    gaia_frame = all_frames.drop(columns=["FG", "e_FG", "FBP", "e_FBP", "FRP", "e_FRP"])
 
-    return all_frames
+    return gaia_frame
 
 
 def findFrames(
