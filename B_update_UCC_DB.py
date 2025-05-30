@@ -134,7 +134,7 @@ def main():
     # 5. Entries with no C3 value are identified as new and processed with fastMP
     N_new = (df_UCC_new2["C3"] == "nan").sum()
     if N_new > 0:
-        logging.info(f"\nProcessing {N_new} new OCs in {new_DB} with fastMP...")
+        logging.info(f"\nProcessing {N_new} new OCs in '{new_DB}' with fastMP")
 
         # Generate member files for new OCs and obtain their data
         df_UCC_updt = member_files_updt(
@@ -223,7 +223,9 @@ def get_paths_check_paths(
     new_ucc_file = "UCC_cat_" + new_version + ".csv"
     # Check if file already exists
     if os.path.exists(temp_zenodo_fold + new_ucc_file):
-        logging.info(f"File {new_ucc_file} already exists. Moving on will re-write it")
+        logging.info(
+            f"File {temp_zenodo_fold + new_ucc_file} already exists. Moving on will re-write it"
+        )
         if input("Move on? (y/n): ").lower() != "y":
             sys.exit()
 
