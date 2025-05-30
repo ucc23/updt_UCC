@@ -7,7 +7,6 @@ import warnings
 
 import numpy as np
 import pandas as pd
-from scipy.spatial import KDTree
 
 from modules.HARDCODED import (
     GCs_cat,
@@ -34,12 +33,12 @@ from modules.update_database.check_new_DB_funcs import (
     prep_newDB,
     vdberg_check,
 )
+from modules.update_database.gaia_query_frames import query_run
 from modules.update_database.member_files_updt_funcs import (
     extract_cl_data,
     get_close_cls,
     get_fastMP_membs,
     get_frame_limits,
-    get_gaia_frame,
     save_cl_datafile,
     split_membs_field,
     updt_UCC_new_cl_data,
@@ -580,10 +579,6 @@ def member_files_updt(
             logging.info("\nTemp file df_UCC_updt loaded")
             return df_UCC_updt
 
-    # Parameters used to search for close-by clusters
-    xys = np.array([df_UCC["GLON"].values, df_UCC["GLAT"].values]).T
-    tree = KDTree(xys)
-
     # For each new OC
     df_UCC_updt = {
         "UCC_idx": [],
@@ -605,10 +600,10 @@ def member_files_updt(
     N_cl = 0
     for UCC_idx, new_cl in df_UCC.iterrows():
         # Check if this is a new OC that should be processed
-        if str(new_cl["C3"]) != "nan":
+        if str(new_cl["C3"]) != "nan" or "pismis8" not in str(new_cl["fnames"]):
             continue
 
-        cl_ID, fnames, quad, ra_icrs, de_icrs, glon, glat, pmra, pmde, plx = (
+        cl_ID, fnames, quad, ra_c, de_c, glon_c, glat_c, pmra_c, pmde_c, plx_c = (
             new_cl["ID"],
             new_cl["fnames"],
             new_cl["quad"],
@@ -621,43 +616,51 @@ def member_files_updt(
             float(new_cl["Plx"]),
         )
 
-        logging.info(f"\n{N_cl} Processing {fnames} (idx={UCC_idx})")
+        fname0 = str(fnames).split(";")[0]
+        logging.info(f"\n{N_cl} Processing {fname0} (idx={UCC_idx})")
 
         # Generate frame
-        box_s, plx_min = get_frame_limits(cl_ID, plx)
+        box_s, plx_min = get_frame_limits(logging, manual_pars, fname0, cl_ID, plx_c)
 
-        # Check for close clusters
+        # Request Gaia frame
+        gaia_frame = query_run(
+            logging,
+            path_gaia_frames,
+            gaia_frames_data,
+            box_s,
+            plx_min,
+            gaia_max_mag,
+            ra_c,
+            de_c,
+        )
+
+        # Check for clusters in the Gaia frame
         get_close_cls(
             logging,
             df_UCC,
-            UCC_idx,
-            glon,
-            glat,
-            pmra,
-            pmde,
-            plx,
-            tree,
-            box_s,
+            gaia_frame,
+            fname0,
+            glon_c,
+            glat_c,
+            pmra_c,
+            pmde_c,
+            plx_c,
             df_GCs,
-        )
-
-        # Request Gaia frame
-        gaia_frame = get_gaia_frame(
-            logging,
-            box_s,
-            plx_min,
-            path_gaia_frames,
-            gaia_max_mag,
-            gaia_frames_data,
-            manual_pars,
-            fnames,
-            ra_icrs,
-            de_icrs,
         )
 
         # Extract fastMP probabilities
         probs_all = get_fastMP_membs(
-            logging, ra_icrs, de_icrs, glon, glat, pmra, pmde, plx, gaia_frame
+            logging,
+            manual_pars,
+            fname0,
+            ra_c,
+            de_c,
+            glon_c,
+            glat_c,
+            pmra_c,
+            pmde_c,
+            plx_c,
+            gaia_frame,
         )
 
         # Split into members and field stars according to the probability values

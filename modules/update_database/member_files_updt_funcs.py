@@ -1,21 +1,29 @@
 import asteca
 import numpy as np
 import pandas as pd
-from scipy.spatial import KDTree
 from scipy.spatial.distance import cdist
+
+from modules.update_database.possible_duplicates_funcs import dprob
 
 from ..utils import check_centers
 from .classification import get_classif
-from .gaia_query_frames import run as query_run
 
 
-def get_frame_limits(cl_ID: str, plx: float) -> tuple[float, float]:
+def get_frame_limits(
+    logging, manual_pars: pd.DataFrame, fname0: str, cl_ID: str, plx: float
+) -> tuple[float, float]:
     """
     Determines the frame size and minimum parallax for data retrieval based on cluster
     properties.
 
     Parameters
     ----------
+    logging : logging.Logger
+        Logger object for outputting information.
+    manual_pars : pd.DataFrame
+        Manual parameters
+    fname0 : str
+        Cluster file name
     cl_ID : str
         Cluster name(s)
     plx: float | str
@@ -67,6 +75,16 @@ def get_frame_limits(cl_ID: str, plx: float) -> tuple[float, float]:
     if "Ryu" in cl_ID:
         box_s_eq = 10 / 60
 
+    # Attempt to extract manual value for this cluster
+    try:
+        idx = list(manual_pars["fname"]).index(fname0)
+        manual_box_s = float(manual_pars["box_s"].values[idx])
+        if not np.isnan(manual_box_s):
+            box_s_eq = manual_box_s
+            logging.info(f"Manual box size applied: {box_s_eq}")
+    except (ValueError, KeyError):
+        pass
+
     # Filter by parallax if possible
     plx_min = -2
     if c_plx is not None:
@@ -88,194 +106,222 @@ def get_frame_limits(cl_ID: str, plx: float) -> tuple[float, float]:
 def get_close_cls(
     logging,
     df_UCC,
-    idx: int,
-    glon: float,
-    glat: float,
-    pmra: float,
-    pmde: float,
-    plx: float,
-    tree: KDTree,
-    box_s: float,
+    gaia_frame,
+    fname0,
+    glon_c: float,
+    glat_c: float,
+    pmra_c: float,
+    pmde_c: float,
+    plx_c: float,
     df_gcs: pd.DataFrame,
-) -> list[str]:
+) -> pd.DataFrame:
     """
     Identifies clusters and globular clusters (GCs) close to the specified coordinates.
 
     Parameters
     ----------
-    df_UCC : pd.DataFrame
-        DataFrame of the UCC.
-    idx : int
-        Index of the cluster in the UCC.
-    glon : float
+    logging : logging.Logger
+        Logger object for outputting information.
+    gaia_frame : pd.DataFrame
+        Square frame with Gaia data to process
+    fname0 : str
+        Cluster file name
+    glon_c : float
         Galactic longitude of the cluster.
-    glat : float
+    glat_c : float
         Galactic latitude of the cluster.
-    pmra: float
-        RA proper motion value of the cluster
-    pmde: float
-        DE proper motion value of the cluster
-    plx: float | str
+    pmra_c : float
+        Proper motion in right ascension of the cluster.
+    pmde_c : float
+        Proper motion in declination of the cluster.
+    plx_c : float | str
         Parallax value of the cluster
-    tree : KDTree
-        KDTree for nearest neighbor searches in the UCC.
-    box_s : float
-        Size of the box to query (in degrees).
     df_gcs : pd.DataFrame
         DataFrame of globular clusters.
 
     Returns
     -------
-    list
+    pd.DataFrame
         A list of strings, each representing a nearby cluster or GC with its
         coordinates and properties.
     """
-    # Radius that contains the entire frame
-    rad = np.sqrt(2 * (box_s / 2) ** 2)
-    # Indexes to the closest clusters in XY
-    ex_cls_idx = list(tree.query_ball_point([glon, glat], rad))
-    # Remove self cluster
-    del ex_cls_idx[ex_cls_idx.index(idx)]
+    # Frame limits
+    l_min, l_max = gaia_frame["GLON"].min(), gaia_frame["GLON"].max()
+    b_min, b_max = gaia_frame["GLAT"].min(), gaia_frame["GLAT"].max()
+    plx_min = np.nanmin(gaia_frame["Plx"])
 
-    centers_ex = []
-    for i in ex_cls_idx:
-        # If the cluster does not contain PM or Plx information, check its
-        # distance in (lon, lat) with the main cluster. If the distance locates
-        # this cluster within 0.75 of the frame's radius (i.e.: within the
-        # expected region of the main cluster), don't store it for removal.
-        #
-        # This prevents clusters with no PM|Plx data from disrupting
-        # neighboring clusters (e.g.: NGC 2516 disrupted by FSR 1479) and
-        # at the same time removes more distant clusters that disrupt the
-        # number of members estimation process in fastMP
-        if (df_UCC["pmRA"][i] == "nan") or (df_UCC["pmRA"][i] == "nan"):
-            xy_dist = np.sqrt(
-                (glon - float(df_UCC["GLON"][i])) ** 2
-                + (glat - float(df_UCC["GLAT"][i])) ** 2
-            )
-            if xy_dist < 0.75 * rad:
-                continue
-
-        ex_cl_dict = (
-            f"{df_UCC['ID'][i]}: ({df_UCC['GLON'][i]:.4f}, {df_UCC['GLAT'][i]:.4f})"
-        )
-        if df_UCC["pmRA"][i] != "nan":
-            ex_cl_dict += f", ({df_UCC['pmRA'][i]:.4f}, {df_UCC['pmDE'][i]:.4f})"
-        if df_UCC["Plx"][i] != "nan":
-            ex_cl_dict += f", {df_UCC['Plx'][i]:.4f}"
-
-        centers_ex.append(ex_cl_dict)
-
-    # Add closest GC
-    ucc_glon, ucc_glat = df_UCC["GLON"][idx], df_UCC["GLAT"][idx]
-    gc_d = np.sqrt(
-        (ucc_glon - df_gcs["GLON"].values) ** 2
-        + (ucc_glat - df_gcs["GLAT"].values) ** 2
+    # Find OCs in frame. Use coordinates estimated using members
+    msk = (
+        (df_UCC["GLON_m"] > l_min)
+        & (df_UCC["GLON_m"] < l_max)
+        & (df_UCC["GLAT_m"] > b_min)
+        & (df_UCC["GLAT_m"] < b_max)
+        & (df_UCC["Plx_m"] > plx_min)
     )
-    for i, gc_di in enumerate(gc_d):
-        if gc_di < rad:
-            ex_cl_dict = (
-                f"{df_gcs['Name'][i]}: ({df_gcs['GLON'][i]:.4f}, {df_gcs['GLAT'][i]:.4f})"
-                + f", ({df_gcs['pmRA'][i]:.4f}, {df_gcs['pmDE'][i]:.4f})"
-                + f", {df_gcs['plx'][i]:.4f}"
-            )
-            centers_ex.append(ex_cl_dict)
+    in_frame = df_UCC[
+        ["ID", "fnames", "GLON_m", "GLAT_m", "Plx_m", "pmRA_m", "pmDE_m"]
+    ][msk]
+    # Remove this OC from the dataframe
+    msk = in_frame["fnames"].str.split(";").str[0] != fname0
+    # Drop columns
+    in_frame = in_frame[msk].drop("fnames", axis=1)
+    # Assign type of object
+    in_frame["Type"] = ["o"] * len(in_frame)
+    # Rename columns to match GCs
+    in_frame.rename(
+        columns={
+            "ID": "Name",
+            "GLON_m": "GLON",
+            "GLAT_m": "GLAT",
+            "Plx_m": "plx",
+            "pmRA_m": "pmRA",
+            "pmDE_m": "pmDE",
+        },
+        inplace=True,
+    )
 
-    if len(centers_ex) > 0:
+    # Find GCs in frame
+    msk = (
+        (df_gcs["GLON"] > l_min)
+        & (df_gcs["GLON"] < l_max)
+        & (df_gcs["GLAT"] > b_min)
+        & (df_gcs["GLAT"] < b_max)
+        & (df_gcs["plx"] > plx_min)
+    )
+    in_frame_gcs = df_gcs[["Name", "GLON", "GLAT", "plx", "pmRA", "pmDE"]][msk]
+    in_frame_gcs["Name"] = in_frame_gcs["Name"].str.strip()  # For prettier printing
+    in_frame_gcs["Type"] = ["g"] * len(in_frame_gcs)
+
+    # Combine DataFrames
+    in_frame_all = pd.concat([in_frame_gcs, in_frame], axis=0, ignore_index=True)
+
+    # Insert row at the top with the cluster under analysis
+    new_row = {
+        "Name": fname0,
+        "GLON": glon_c,
+        "GLAT": glat_c,
+        "plx": plx_c,
+        "pmRA": pmra_c,
+        "pmDE": pmde_c,
+    }
+    in_frame_all = pd.concat([pd.DataFrame([new_row]), in_frame_all], ignore_index=True)
+
+    # Estimate duplicate probabilities between the analyzed cluster and those in frame
+    rm_idx, j = [0], 1
+    for _, row in in_frame_all[1:].iterrows():
+        dup_prob = dprob(
+            np.array(in_frame_all["GLON"]),
+            np.array(in_frame_all["GLAT"]),
+            np.array(in_frame_all["pmRA"]),
+            np.array(in_frame_all["pmDE"]),
+            np.array(in_frame_all["plx"]),
+            0,  # Compare OCs in frame with self
+            j,
+        )
+        j += 1
+        # Remove OCs with a large duplicate probability of 90%
+        if dup_prob > 0.9:
+            rm_idx.append(j)
+    # Drop OCs that are identified as duplicates (and self)
+    in_frame_all = in_frame_all.drop(index=rm_idx)
+
+    # import matplotlib.pyplot as plt
+    # plt.scatter(glon_c, glat_c)
+    # plt.scatter(in_frame_all['GLON'], in_frame_all['GLAT'])
+    # plt.axhline(b_min)
+    # plt.axhline(b_max)
+    # plt.axvline(l_min)
+    # plt.axvline(l_max)
+    # plt.show()
+
+    # Print info to screen
+    if len(in_frame_all) > 0:
         logging.info(
-            f"  WARNING: {len(centers_ex)} close OCs to {(glon, glat)}, {pmra, pmde}, {plx}"
+            f"  WARNING: {len(in_frame_all)} extra OCs/GCs in frame: "
+            + f"[{glon_c:.3f}, {glat_c:.3f}], {plx_c:.3f}"
         )
-        N_more = 0
-        if len(centers_ex) > 10:
-            N_more = len(centers_ex) - 10
-            centers_ex = centers_ex[:10]
-        for clust in centers_ex:
-            logging.info("    " + clust)
-        if N_more > 0:
-            logging.info(f"({N_more} more)")
+        for row in in_frame_all.to_string(index=False).split("\n")[:11]:
+            logging.info("  " + row)
+        if len(in_frame_all) > 10:
+            logging.info(f"  ({len(in_frame_all) - 10} more)")
 
+    return in_frame_all
 
-def get_gaia_frame(
-    logging,
-    box_s,
-    plx_min: float,
-    frames_path: str,
-    max_mag: float,
-    frames_data: pd.DataFrame,
-    manual_pars: pd.DataFrame,
-    fnames: str,
-    ra_icrs: float,
-    de_icrs: float,
-) -> pd.DataFrame:
-    """
-    Request Gaia data for a given position.
+    # # Radius that contains the entire frame
+    # rad = np.sqrt(2 * (box_s / 2) ** 2)
+    # # Indexes to the closest clusters in XY
+    # ex_cls_idx = list(tree.query_ball_point([glon, glat], rad))
+    # # Remove self cluster
+    # del ex_cls_idx[ex_cls_idx.index(idx)]
 
-    Parameters
-    ----------
-    logging : logging.Logger
-        Logger object for outputting information.
-    box_s : float
-        Size of the square frame to request (in degrees)
-    plx_min : float
-        Minimum parallax value
-    frames_path : str
-        Path to the directory containing Gaia data frames.
-    max_mag : float
-        Maximum magnitude for Gaia data retrieval.
-    frames_data : pd.DataFrame
-        DataFrame containing information about Gaia data frames.
-    manual_pars : pd.DataFrame
-        DataFrame with manual parameters for specific clusters.
-    fnames : str
-        Names associated to this cluster
-    ra_icrs : float
-        Right Ascension in ICRS coordinates.
-    de_icrs : float
-        Declination in ICRS coordinates.
+    # centers_ex = []
+    # for i in ex_cls_idx:
+    #     # If the cluster does not contain PM or Plx information, check its
+    #     # distance in (lon, lat) with the main cluster. If the distance locates
+    #     # this cluster within 0.75 of the frame's radius (i.e.: within the
+    #     # expected region of the main cluster), don't store it for removal.
+    #     #
+    #     # This prevents clusters with no PM|Plx data from disrupting
+    #     # neighboring clusters (e.g.: NGC 2516 disrupted by FSR 1479) and
+    #     # at the same time removes more distant clusters that disrupt the
+    #     # number of members estimation process in fastMP
+    #     if (df_UCC["pmRA"][i] == "nan") or (df_UCC["pmRA"][i] == "nan"):
+    #         xy_dist = np.sqrt(
+    #             (glon - float(df_UCC["GLON"][i])) ** 2
+    #             + (glat - float(df_UCC["GLAT"][i])) ** 2
+    #         )
+    #         if xy_dist < 0.75 * rad:
+    #             continue
 
-    Returns
-    -------
-    - gaia_frame: DataFrame centered on cluster.
-    """
-    fname0 = str(fnames).split(";")[0]
+    #     ex_cl_dict = (
+    #         f"{df_UCC['ID'][i]}: ({df_UCC['GLON'][i]:.4f}, {df_UCC['GLAT'][i]:.4f})"
+    #     )
+    #     if df_UCC["pmRA"][i] != "nan":
+    #         ex_cl_dict += f", ({df_UCC['pmRA'][i]:.4f}, {df_UCC['pmDE'][i]:.4f})"
+    #     if df_UCC["Plx"][i] != "nan":
+    #         ex_cl_dict += f", {df_UCC['Plx'][i]:.4f}"
 
-    #
-    fix_N_clust = np.nan
-    for _, row_manual_p in manual_pars.iterrows():
-        if fname0 == row_manual_p["fname"]:
-            if row_manual_p["Nmembs"] != "nan":
-                fix_N_clust = int(row_manual_p["Nmembs"])
-                logging.info(f"Manual N_membs applied: {fix_N_clust}")
+    #     centers_ex.append(ex_cl_dict)
 
-            if row_manual_p["box_s"] != "nan":
-                box_s = float(row_manual_p["box_s"])
-                logging.info(f"Manual box size applied: {box_s}")
+    # # Add closest GCs
+    # gc_d = np.sqrt((glon - df_gcs["GLON"]) ** 2 + (glat - df_gcs["GLAT"]) ** 2)
+    # for i, gc_di in enumerate(gc_d):
+    #     if gc_di < rad:
+    #         ex_cl_dict = (
+    #             f"{df_gcs['Name'][i]}: ({df_gcs['GLON'][i]:.4f}, {df_gcs['GLAT'][i]:.4f})"
+    #             + f", ({df_gcs['pmRA'][i]:.4f}, {df_gcs['pmDE'][i]:.4f})"
+    #             + f", {df_gcs['plx'][i]:.4f}"
+    #         )
+    #         centers_ex.append(ex_cl_dict)
 
-    # Request data
-    gaia_frame = query_run(
-        logging,
-        frames_path,
-        frames_data,
-        box_s,
-        plx_min,
-        max_mag,
-        ra_icrs,
-        de_icrs,
-    )
-
-    return gaia_frame
+    # # Print info to screen
+    # if len(centers_ex) > 0:
+    #     logging.info(
+    #         f"  WARNING: {len(centers_ex)} close OCs to {(glon, glat)}, {pmra, pmde}, {plx}"
+    #     )
+    #     N_more = 0
+    #     if len(centers_ex) > 10:
+    #         N_more = len(centers_ex) - 10
+    #         centers_ex = centers_ex[:10]
+    #     for clust in centers_ex:
+    #         logging.info("    " + clust)
+    #     if N_more > 0:
+    #         logging.info(f"({N_more} more)")
 
 
 def get_fastMP_membs(
     logging,
-    ra_icrs: float,
-    de_icrs: float,
-    glon: float,
-    glat: float,
-    pmra: float,
-    pmde: float,
-    plx: float,
+    manual_pars: pd.DataFrame,
+    fname0: str,
+    ra_c: float,
+    de_c: float,
+    glon_c: float,
+    glat_c: float,
+    pmra_c: float,
+    pmde_c: float,
+    plx_c: float,
     gaia_frame: pd.DataFrame,
+    N_clust_max=1500,
 ) -> np.ndarray:
     """
     Runs fastMP for a given Gaia data frame.
@@ -284,8 +330,12 @@ def get_fastMP_membs(
     ----------
     logging : logging.Logger
         Logger object for outputting information.
-    new_cl : pd.Series
-        Series representing the new cluster.
+    manual_pars : pd.DataFrame
+        Manual parameters
+    fname0 : str
+        Cluster file name
+    ra_c, ..., plx_c : float
+        Center values
     gaia_frame : pd.DataFrame
         Square frame with Gaia data to process
 
@@ -294,54 +344,65 @@ def get_fastMP_membs(
     - probs_all: Array with probabilities
     """
 
+    # Attempt to extract manual value for this cluster
+    try:
+        idx = list(manual_pars["fname"]).index(fname0)
+        N_clust_manual = int(manual_pars["Nmembs"].values[idx])
+    except ValueError:
+        N_clust_manual = -1
+
     # Extract center coordinates from UCC
-    lonlat_c = (glon, glat)
-    vpd_c = (np.nan, np.nan)
-    if not np.isnan(pmra):
-        vpd_c = (pmra, pmde)
-    plx_c = np.nan
-    if not np.isnan(plx):
-        plx_c = float(plx)
+    lonlat_c = (glon_c, glat_c)
+    radec_c = (ra_c, de_c)
+    pms_c = (np.nan, np.nan)
+    if not np.isnan(pmra_c):
+        pms_c = (pmra_c, pmde_c)
 
     # If the cluster has no PM or Plx center values assigned, run fastMP with fixed
     # (lon, lat) centers
     fixed_centers = False
-    if np.isnan(vpd_c[0]) and np.isnan(plx_c):
+    if np.isnan(pms_c[0]) and np.isnan(plx_c):
         fixed_centers = True
 
     my_field = asteca.Cluster(
-        ra=gaia_frame["RA_ICRS"],
-        dec=gaia_frame["DE_ICRS"],
-        pmra=gaia_frame["pmRA"],
-        pmde=gaia_frame["pmDE"],
-        plx=gaia_frame["Plx"],
-        e_pmra=gaia_frame["e_pmRA"],
-        e_pmde=gaia_frame["e_pmDE"],
-        e_plx=gaia_frame["e_Plx"],
-        N_clust_max=1500,
+        ra=gaia_frame["RA_ICRS"].value,
+        dec=gaia_frame["DE_ICRS"].value,
+        pmra=gaia_frame["pmRA"].value,
+        pmde=gaia_frame["pmDE"].value,
+        plx=gaia_frame["Plx"].value,
+        e_pmra=gaia_frame["e_pmRA"].value,
+        e_pmde=gaia_frame["e_pmDE"].value,
+        e_plx=gaia_frame["e_Plx"].value,
+        N_clust_max=N_clust_max,
         verbose=0,
     )
     logging.info(f"  Setting N_clust_max={my_field.N_clust_max}")
     # Set radius as 10% of the frame's length, perhaps used in the number of members
     # estimation
-    my_field.radius = (
+    my_field.radius = float(
         np.mean([np.ptp(gaia_frame["GLON"]), np.ptp(gaia_frame["GLAT"])]) * 0.1
     )
 
     # Process with fastMP
     while True:
-        # logging.info(f"Fixed centers?: {fixed_centers}")
-        probs_all = run_fastMP(
+        set_cents(
             logging,
             my_field,
-            (ra_icrs, de_icrs),
-            vpd_c,
+            fixed_centers,
+            radec_c,
+            pms_c,
             plx_c,
+        )
+
+        set_Nmembs(logging, my_field, N_clust_max, N_clust_manual)
+
+        probs_all = run_fastMP(
+            my_field,
             fixed_centers,
         )
 
         xy_c_m, vpd_c_m, plx_c_m = extract_centers(gaia_frame, probs_all)
-        cent_flags = check_centers(xy_c_m, vpd_c_m, plx_c_m, lonlat_c, vpd_c, plx_c)
+        cent_flags = check_centers(xy_c_m, vpd_c_m, plx_c_m, lonlat_c, pms_c, plx_c)
         if cent_flags == "nnn" or fixed_centers is True:
             break
         else:
@@ -349,22 +410,22 @@ def get_fastMP_membs(
             fixed_centers = True
 
     xy_c_m, vpd_c_m, plx_c_m = extract_centers(gaia_frame, probs_all)
-    cent_flags = check_centers(xy_c_m, vpd_c_m, plx_c_m, lonlat_c, vpd_c, plx_c)
+    cent_flags = check_centers(xy_c_m, vpd_c_m, plx_c_m, lonlat_c, pms_c, plx_c)
     logging.info("  P>0.5={}, cents={}".format((probs_all > 0.5).sum(), cent_flags))
 
     return probs_all
 
 
-def run_fastMP(
+def set_cents(
     logging,
     my_field: asteca.Cluster,
-    radec_c: tuple[float, float],
-    pms_c: tuple[float, float],
-    plx_c: float,
     fixed_centers: bool,
-) -> np.ndarray:
+    radec_c: tuple,
+    pms_c: tuple,
+    plx_c: float,
+) -> None:
     """
-    Runs the fastMP algorithm to estimate membership probabilities.
+    Estimate the cluster's center coordinates
 
     Parameters
     ----------
@@ -372,21 +433,15 @@ def run_fastMP(
         Logger object for outputting information.
     my_field : asteca.Cluster
         Cluster object
+    fixed_centers : bool
+        Boolean indicating whether to use fixed centers.
     radec_c : tuple
         Center coordinates (RA, Dec) for fastMP.
     pms_c : tuple
         Center proper motion (pmRA, pmDE) for fastMP.
     plx_c : float
         Center parallax for fastMP.
-    fixed_centers : bool
-        Boolean indicating whether to use fixed centers.
-
-    Returns
-    -------
-    np.ndarray
-        Array of membership probabilities.
     """
-    # Estimate the cluster's center coordinates
     my_field.get_center(radec_c=radec_c)
     if fixed_centers:
         my_field.radec_c = radec_c
@@ -399,23 +454,75 @@ def run_fastMP(
         + f"({my_field.pms_c[0]:.4f}, {my_field.pms_c[1]:.4f}), {my_field.plx_c:.4f}"
     )
 
-    # Estimate the number of cluster members
+
+def set_Nmembs(
+    logging, my_field: asteca.Cluster, N_clust_max: int, N_clust_manual: int
+) -> None:
+    """
+    Estimate the number of cluster members
+
+    Parameters
+    ----------
+    logging : logging.Logger
+        Logger object for outputting information
+    my_field : asteca.Cluster
+        Cluster object
+    N_clust_max : int
+        Maximum number of cluster members to estimate
+    N_clust_manual : int
+        Manual number of cluster members
+    """
+
+    if N_clust_manual > 0:
+        my_field.N_cluster = N_clust_manual
+        logging.info(f"  Manual number of members applied: {N_clust_manual}")
+        return
+
+    # Use default ASteCA method
     my_field.get_nmembers()
 
-    if my_field.N_cluster == 1500:
-        logging.info(f"  WARNING: N_cluster=1500, using radius={my_field.radius:.2f}")
+    if my_field.N_cluster == N_clust_max:
+        # If the default method results in the max number, try the 'density' method
+        logging.info(
+            f"  WARNING: estimated N_cluster={N_clust_max}, "
+            + f"using radius={my_field.radius:.2f}"
+        )
         my_field.get_nmembers("density")
-        if my_field.N_cluster == 1500:
-            my_field.N_cluster = 25
-            logging.info("  WARNING: N_cluster=1500, setting value at: 25")
+
+        # If this method also estimates the max value, set the minimum
+        if my_field.N_cluster == N_clust_max:
+            my_field.N_cluster = my_field.N_clust_min
+            logging.info(
+                f"  WARNING: estimated N_cluster={N_clust_max}, "
+                + f"setting value at: {my_field.N_clust_min}"
+            )
         else:
             logging.info(f"  N_cluster={my_field.N_cluster}")
     else:
         logging.info(f"  N_cluster={my_field.N_cluster}")
 
+
+def run_fastMP(
+    my_field: asteca.Cluster,
+    fixed_centers: bool,
+) -> np.ndarray:
+    """
+    Runs the fastMP algorithm to estimate membership probabilities.
+
+    Parameters
+    ----------
+    my_field : asteca.Cluster
+        Cluster object
+    fixed_centers : bool
+        Boolean indicating whether to use fixed centers.
+
+    Returns
+    -------
+    np.ndarray
+        Array of membership probabilities.
+    """
     # Define a ``membership`` object
     memb = asteca.Membership(my_field, verbose=0)
-
     # Run ``fastmp`` method
     probs_fastmp = memb.fastmp(fixed_centers=fixed_centers)
 
