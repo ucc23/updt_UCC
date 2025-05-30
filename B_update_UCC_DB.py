@@ -60,12 +60,18 @@ path_gaia_frames_ranges = root + "files_G20/frame_ranges.txt"
 # Maximum magnitude to retrieve
 gaia_max_mag = 20
 
+# Select the mode used to run the script
+# run_mode = "new_DB"
+run_mode = "manual"
+
 
 def main():
     """
     Main function to update the UCC (Unified Cluster Catalogue) with a new database.
     """
     logging = logger()
+
+    logging.info(f"\n===Running in {run_mode} mode===\n")
 
     txt = ""
     # Check for Gaia files
@@ -103,33 +109,42 @@ def main():
         new_DB,
     ) = load_data(logging, ucc_file, temp_JSON_file, temp_database_folder)
 
-    # 1. Check for required columns in the new DB
-    check_new_DB_cols(logging, current_JSON, new_DB, df_new, newDB_json)
+    if run_mode == "new_DB":
+        # 1. Check for required columns in the new DB
+        check_new_DB_cols(logging, current_JSON, new_DB, df_new, newDB_json)
 
-    # 2. Standardize and match the new DB with the UCC
-    new_DB_fnames, db_matches = standardize_and_match(
-        logging, new_DB, df_UCC_old, df_new, newDB_json
-    )
+        # 2. Standardize and match the new DB with the UCC
+        new_DB_fnames, db_matches = standardize_and_match(
+            logging, new_DB, df_UCC_old, df_new, newDB_json
+        )
 
-    # 3. Check the entries in the new DB
-    check_new_DB(
-        logging,
-        df_GCs,
-        new_DB,
-        df_UCC_old,
-        df_new,
-        newDB_json,
-        new_DB_fnames,
-        db_matches,
-    )
+        # 3. Check the entries in the new DB
+        check_new_DB(
+            logging,
+            df_GCs,
+            new_DB,
+            df_UCC_old,
+            df_new,
+            newDB_json,
+            new_DB_fnames,
+            db_matches,
+        )
 
-    # 4. Generate new UCC file with the new DB incorporated
-    df_UCC_new = add_new_DB(
-        logging, new_DB, newDB_json, df_UCC_old, df_new, new_DB_fnames, db_matches
-    )
-    df_UCC_new2 = diff_between_dfs(logging, df_UCC_old, df_UCC_new)
-    if input("Move on? (y/n): ").lower() != "y":
-        sys.exit()
+        # 4. Generate new UCC file with the new DB incorporated
+        df_UCC_new = add_new_DB(
+            logging, new_DB, newDB_json, df_UCC_old, df_new, new_DB_fnames, db_matches
+        )
+        df_UCC_new2 = diff_between_dfs(logging, df_UCC_old, df_UCC_new)
+        if input("Move on? (y/n): ").lower() != "y":
+            sys.exit()
+    else:
+        fname_UCC = df_UCC_old["fnames"].str.split(";").str[0]
+        # Find matches between df1['name'] and df2['first_fnames']
+        matches = fname_UCC.isin(manual_pars["fname"])
+        # Update `C3` for matching rows
+        df_UCC_old.loc[matches, "C3"] = "nan"
+        #
+        df_UCC_new2 = df_UCC_old
 
     # 5. Entries with no C3 value are identified as new and processed with fastMP
     N_new = (df_UCC_new2["C3"] == "nan").sum()
@@ -273,9 +288,6 @@ def load_data(
     # Load GCs data
     df_GCs = pd.read_csv(GCs_cat)
 
-    # Read OCs manual parameters
-    manual_pars = pd.read_csv(manual_pars_file)
-
     df_UCC = pd.read_csv(ucc_file)
     logging.info(f"\nUCC version {ucc_file} loaded (N={len(df_UCC)})")
 
@@ -283,7 +295,7 @@ def load_data(
     with open(name_DBs_json) as f:
         current_JSON = json.load(f)
 
-    try:
+    if run_mode == "new_DB":
         # Load new temp JSON file
         with open(temp_JSON_file) as f:
             temp_JSON = json.load(f)
@@ -298,12 +310,16 @@ def load_data(
         new_DB_file = new_DB + ".csv"
         df_new = pd.read_csv(temp_database_folder + new_DB_file)
         logging.info(f"New DB {new_DB} loaded (N={len(df_new)})")
-    except FileNotFoundError:
-        logging.info(f"{temp_JSON_file} not found. Assume call from outside B script")
+        # Dummy
+        manual_pars = pd.DataFrame()
+    else:
+        # Read OCs manual parameters
+        manual_pars = pd.read_csv(manual_pars_file)
+        # Dummy
         df_new = pd.DataFrame()
         newDB_json = {}
         new_DB_file = ""
-        new_DB = ""
+        new_DB = "manual_pars"
 
     return (
         gaia_frames_data,
