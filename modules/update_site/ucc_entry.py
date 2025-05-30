@@ -67,7 +67,7 @@ table_right_col = """
 
 no_membs_50_warning = """
 <div style="text-align: center;">
-   <span style="color: #99180f; font-weight: bold;">Warning: </span><span>no stars with <i>P>0.5</i> were found</span>
+   <span style="color: #99180f; font-weight: bold;">Warning: </span><span>less than 25 stars with <i>P>0.5</i> were found</span>
 </div>
 """
 
@@ -150,7 +150,7 @@ def make(
         .replace("N_50_val", str(int(UCC_cl["N_50"])))
     )
 
-    if UCC_cl["N_50"] == 0:
+    if UCC_cl["N_50"] < 25:
         txt += no_membs_50_warning
 
     txt += nasa_simbad_url.replace("XXNASAXX", cl_names[0].replace(" ", "%20")).replace(
