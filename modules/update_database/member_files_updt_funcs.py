@@ -110,11 +110,9 @@ def get_close_cls(
     fname0,
     glon_c: float,
     glat_c: float,
-    pmra_c: float,
-    pmde_c: float,
     plx_c: float,
     df_gcs: pd.DataFrame,
-) -> pd.DataFrame:
+) -> None:
     """
     Identifies clusters and globular clusters (GCs) close to the specified coordinates.
 
@@ -139,11 +137,6 @@ def get_close_cls(
     df_gcs : pd.DataFrame
         DataFrame of globular clusters.
 
-    Returns
-    -------
-    pd.DataFrame
-        A list of strings, each representing a nearby cluster or GC with its
-        coordinates and properties.
     """
     # Frame limits
     l_min, l_max = gaia_frame["GLON"].min(), gaia_frame["GLON"].max()
@@ -193,46 +186,39 @@ def get_close_cls(
     in_frame_gcs["Type"] = ["g"] * len(in_frame_gcs)
 
     # Combine DataFrames
-    in_frame_all = pd.concat([in_frame_gcs, in_frame], axis=0, ignore_index=True)
+    in_frame_all = pd.concat(
+        [pd.DataFrame(in_frame_gcs), in_frame], axis=0, ignore_index=True
+    )
 
-    # Insert row at the top with the cluster under analysis
-    new_row = {
-        "Name": fname0,
-        "GLON": glon_c,
-        "GLAT": glat_c,
-        "plx": plx_c,
-        "pmRA": pmra_c,
-        "pmDE": pmde_c,
-    }
-    in_frame_all = pd.concat([pd.DataFrame([new_row]), in_frame_all], ignore_index=True)
+    # # Insert row at the top with the cluster under analysis
+    # new_row = {
+    #     "Name": fname0,
+    #     "GLON": glon_c,
+    #     "GLAT": glat_c,
+    #     "plx": plx_c,
+    #     "pmRA": pmra_c,
+    #     "pmDE": pmde_c,
+    # }
+    # in_frame_all = pd.concat([pd.DataFrame([new_row]), in_frame_all], ignore_index=True)
 
-    # Estimate duplicate probabilities between the analyzed cluster and those in frame
-    rm_idx, j = [0], 1
-    for _, row in in_frame_all[1:].iterrows():
-        dup_prob = dprob(
-            np.array(in_frame_all["GLON"]),
-            np.array(in_frame_all["GLAT"]),
-            np.array(in_frame_all["pmRA"]),
-            np.array(in_frame_all["pmDE"]),
-            np.array(in_frame_all["plx"]),
-            0,  # Compare OCs in frame with self
-            j,
-        )
-        j += 1
-        # Remove OCs with a large duplicate probability of 90%
-        if dup_prob > 0.9:
-            rm_idx.append(j)
-    # Drop OCs that are identified as duplicates (and self)
-    in_frame_all = in_frame_all.drop(index=rm_idx)
-
-    # import matplotlib.pyplot as plt
-    # plt.scatter(glon_c, glat_c)
-    # plt.scatter(in_frame_all['GLON'], in_frame_all['GLAT'])
-    # plt.axhline(b_min)
-    # plt.axhline(b_max)
-    # plt.axvline(l_min)
-    # plt.axvline(l_max)
-    # plt.show()
+    # # Estimate duplicate probabilities between the analyzed cluster and those in frame
+    # rm_idx, j = [0], 1
+    # for _, row in in_frame_all[1:].iterrows():
+    #     dup_prob = dprob(
+    #         np.array(in_frame_all["GLON"]),
+    #         np.array(in_frame_all["GLAT"]),
+    #         np.array(in_frame_all["pmRA"]),
+    #         np.array(in_frame_all["pmDE"]),
+    #         np.array(in_frame_all["plx"]),
+    #         0,  # Compare OCs in frame with self
+    #         j,
+    #     )
+    #     j += 1
+    #     # Remove OCs with a large duplicate probability of 90%
+    #     if dup_prob > 0.9:
+    #         rm_idx.append(j)
+    # # Drop OCs that are identified as duplicates (and self)
+    # in_frame_all = in_frame_all.drop(index=rm_idx)
 
     # Print info to screen
     if len(in_frame_all) > 0:
@@ -245,7 +231,7 @@ def get_close_cls(
         if len(in_frame_all) > 10:
             logging.info(f"  ({len(in_frame_all) - 10} more)")
 
-    return in_frame_all
+    # return in_frame_all
 
 
 def get_fastMP_membs(
