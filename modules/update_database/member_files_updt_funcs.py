@@ -250,6 +250,7 @@ def get_close_cls(
 
 def get_fastMP_membs(
     logging,
+    run_mode: str,
     manual_pars: pd.DataFrame,
     fname0: str,
     ra_c: float,
@@ -269,6 +270,8 @@ def get_fastMP_membs(
     ----------
     logging : logging.Logger
         Logger object for outputting information.
+    run_mode : str
+        Mode of the run, e.g., 'update' or 'new'.
     manual_pars : pd.DataFrame
         Manual parameters
     fname0 : str
@@ -283,12 +286,14 @@ def get_fastMP_membs(
     - probs_all: Array with probabilities
     """
 
-    # Attempt to extract manual value for this cluster
-    try:
-        idx = list(manual_pars["fname"]).index(fname0)
-        N_clust_manual = int(manual_pars["Nmembs"].values[idx])
-    except ValueError:
-        N_clust_manual = -1
+    N_clust_manual = -1
+    if run_mode == "manual":
+        # Attempt to extract manual value for this cluster
+        try:
+            idx = list(manual_pars["fname"]).index(fname0)
+            N_clust_manual = int(manual_pars["Nmembs"].values[idx])
+        except ValueError:
+            pass
 
     # Extract center coordinates from UCC
     lonlat_c = (glon_c, glat_c)
