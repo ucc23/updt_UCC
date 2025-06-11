@@ -3,29 +3,22 @@ import numpy as np
 import pandas as pd
 from scipy.spatial.distance import cdist
 
-from modules.update_database.possible_duplicates_funcs import dprob
-
+# from modules.update_database.possible_duplicates_funcs import dprob
 from ..utils import check_centers
 from .classification import get_classif
 
 
-def get_frame_limits(
-    logging, manual_pars: pd.DataFrame, fname0: str, cl_ID: str, plx: float
-) -> tuple[float, float]:
+def get_frame_limits(cl_ID: str, fname0: str, plx: float) -> tuple[float, float]:
     """
     Determines the frame size and minimum parallax for data retrieval based on cluster
     properties.
 
     Parameters
     ----------
-    logging : logging.Logger
-        Logger object for outputting information.
-    manual_pars : pd.DataFrame
-        Manual parameters
-    fname0 : str
-        Cluster file name
     cl_ID : str
         Cluster name(s)
+    fname0 : str
+        Cluster file name
     plx: float | str
         Parallax value of the cluster
 
@@ -75,15 +68,15 @@ def get_frame_limits(
     if "Ryu" in cl_ID:
         box_s_eq = 10 / 60
 
-    # Attempt to extract manual value for this cluster
-    try:
-        idx = list(manual_pars["fname"]).index(fname0)
-        manual_box_s = float(manual_pars["box_s"].values[idx])
-        if not np.isnan(manual_box_s):
-            box_s_eq = manual_box_s
-            logging.info(f"Manual box size applied: {box_s_eq}")
-    except (ValueError, KeyError):
-        pass
+    # # Attempt to extract manual value for this cluster
+    # try:
+    #     idx = list(manual_pars["fname"]).index(fname0)
+    #     manual_box_s = float(manual_pars["box_s"].values[idx])
+    #     if not np.isnan(manual_box_s):
+    #         box_s_eq = manual_box_s
+    #         logging.info(f"Manual box size applied: {box_s_eq}")
+    # except (ValueError, KeyError):
+    #     pass
 
     # Filter by parallax if possible
     plx_min = -2
