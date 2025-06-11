@@ -351,11 +351,11 @@ def check_new_DB_cols(
         df_new[col]
     logging.info(f"\nAll columns present in {new_DB}")
 
-    # Check for semi-colon and underscore present in name column
-    logging.info("\nPossible bad characters in names (';', '_')")
+    # Check for bad characters in name column
+    logging.info("\nPossible bad characters in names (;, *, .)")
     all_bad_names = []
     for new_cl in df_new[newDB_json["names"]]:
-        if ";" in new_cl or "_" in new_cl:
+        if bool(re.search(r"[;*\.]", new_cl)):
             all_bad_names.append(new_cl)
     if len(all_bad_names) == 0:
         logging.info("No bad-chars found in name(s) column")
