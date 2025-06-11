@@ -66,7 +66,6 @@ def combine_UCC_new_DB(
             new_db_dict = new_OC_not_in_UCC(
                 new_DB, new_db_dict, i_new_cl, new_cl, row_n, oc_names, newDB_json
             )
-            # logging.info(f"{i_new_cl} {','.join(new_cl)} is a new OC")
             N_new += 1
         else:
             # The cluster is already present in the UCC
@@ -76,9 +75,6 @@ def combine_UCC_new_DB(
             new_db_dict = OC_in_UCC(
                 new_DB, new_db_dict, i_new_cl, new_cl, oc_names, row
             )
-            # logging.info(
-            #     f"{i_new_cl} {','.join(new_cl)} is in the UCC: update DB indexes"
-            # )
             N_updt += 1
 
     logging.info(f"New entries: {N_new}, Updated entries: {N_updt}")
