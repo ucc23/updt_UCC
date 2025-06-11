@@ -1,5 +1,6 @@
 import csv
 import json
+import sys
 from pathlib import Path
 
 import Levenshtein
@@ -46,10 +47,9 @@ def main():
     ADS_url = "https://ui.adsabs.harvard.edu/abs/" + ADS_bibcode
     for db, vals in current_JSON.items():
         if ADS_url == vals["ADS_url"]:
-            raise ValueError(
-                f"The URL {ADS_url}\nis already in the JSON file under: {db}"
-            )
-            # logging.info(f"The URL {ADS_url}\nis already in the JSON file under: {db}")
+            logging.info(f"The URL {ADS_url}\nis already in the JSON file under: {db}")
+            if input("Move on? (y/n): ").lower() != "y":
+                sys.exit()
 
     # 3. Fetch publication authors and year from NASA/ADS
     logging.info("Fetching NASA/ADS data...")
