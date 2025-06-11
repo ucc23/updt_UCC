@@ -597,8 +597,8 @@ def flag_log(
     if bad_center[2] == "y":
         plx_p = (
             100
-            * abs(df_UCC["plx_m"][j] - new_db_info["plx"][i])
-            / (df_UCC["plx_m"][j] + 0.001)
+            * abs(df_UCC["Plx_m"][j] - new_db_info["Plx"][i])
+            / (df_UCC["Plx_m"][j] + 0.001)
         )
         txt += "{:.1f}".format(plx_p)
     else:
