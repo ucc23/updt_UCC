@@ -304,18 +304,18 @@ def get_fastMP_membs(
         fixed_centers = True
 
     my_field = asteca.Cluster(
-        ra=gaia_frame["RA_ICRS"].value,
-        dec=gaia_frame["DE_ICRS"].value,
-        pmra=gaia_frame["pmRA"].value,
-        pmde=gaia_frame["pmDE"].value,
-        plx=gaia_frame["Plx"].value,
-        e_pmra=gaia_frame["e_pmRA"].value,
-        e_pmde=gaia_frame["e_pmDE"].value,
-        e_plx=gaia_frame["e_Plx"].value,
+        ra=np.array(gaia_frame["RA_ICRS"]),
+        dec=np.array(gaia_frame["DE_ICRS"]),
+        pmra=np.array(gaia_frame["pmRA"]),
+        pmde=np.array(gaia_frame["pmDE"]),
+        plx=np.array(gaia_frame["Plx"]),
+        e_pmra=np.array(gaia_frame["e_pmRA"]),
+        e_pmde=np.array(gaia_frame["e_pmDE"]),
+        e_plx=np.array(gaia_frame["e_Plx"]),
         N_clust_max=N_clust_max,
         verbose=0,
     )
-    logging.info(f"  Setting N_clust_max={my_field.N_clust_max}")
+    logging.info(f"  N_clust_max={my_field.N_clust_max}")
     # Set radius as 10% of the frame's length, perhaps used in the number of members
     # estimation
     my_field.radius = float(
@@ -433,12 +433,12 @@ def set_Nmembs(
             my_field.N_cluster = my_field.N_clust_min
             logging.info(
                 f"  WARNING: estimated N_cluster={N_clust_max}, "
-                + f"setting value at: {my_field.N_clust_min}"
+                + f"setting N_cluster={my_field.N_clust_min}"
             )
         else:
-            logging.info(f"  N_cluster={my_field.N_cluster}")
+            logging.info(f"  Setting N_cluster={my_field.N_cluster}")
     else:
-        logging.info(f"  N_cluster={my_field.N_cluster}")
+        logging.info(f"  Setting N_cluster={my_field.N_cluster}")
 
 
 def run_fastMP(
