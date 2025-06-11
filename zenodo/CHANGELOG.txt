@@ -1,5 +1,10 @@
 Some of these are intermediate versions of the UCC database that are not published.
 
+## 25061115
+
+- Updated HE2022_1 database, issue #56
+
+
 ## 25061114
 
 - Removed "dups_fnames_m,dups_probs_m" columns
