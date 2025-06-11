@@ -109,7 +109,7 @@ def query_run(
     for col in gaia_frame.columns:
         gaia_frame[col] = gaia_frame[col].round(5)
 
-    return gaia_frame
+    return pd.DataFrame(gaia_frame)
 
 
 def findFrames(
