@@ -741,8 +741,9 @@ def diff_between_dfs(
     df_new = df_new_in.copy()
     df_new = df_new.sort_values(["GLON", "GLAT"])
     df_new = df_new.reset_index(drop=True)
-    # NaN as "nan"
-    df_new = df_new.infer_objects(copy=False).fillna("nan")
+
+    # NaN as "nan" in "C3" column (important to identify OCs to apply fastMP)
+    df_new["C3"] = df_new["C3"].fillna("nan")
 
     if cols_exclude is not None:
         logging.info(f"\n{cols_exclude} columns excluded")
