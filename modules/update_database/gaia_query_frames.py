@@ -105,6 +105,10 @@ def query_run(
     )
     gaia_frame = all_frames.drop(columns=["FG", "e_FG", "FBP", "e_FBP", "FRP", "e_FRP"])
 
+    # Round all values ('Source' can be included here since it is all ints)
+    for col in gaia_frame.columns:
+        gaia_frame[col] = gaia_frame[col].round(5)
+
     return gaia_frame
 
 
