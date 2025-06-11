@@ -600,7 +600,7 @@ def member_files_updt(
     N_cl = 0
     for UCC_idx, new_cl in df_UCC.iterrows():
         # Check if this is a new OC that should be processed
-        if str(new_cl["C3"]) != "nan" or "pismis8" not in str(new_cl["fnames"]):
+        if str(new_cl["C3"]) != "nan":
             continue
 
         cl_ID, fnames, quad, ra_c, de_c, glon_c, glat_c, pmra_c, pmde_c, plx_c = (
