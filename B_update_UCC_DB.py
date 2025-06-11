@@ -2,10 +2,10 @@ import csv
 import datetime
 import json
 import os
+import re
 import sys
 import warnings
 
-import numpy as np
 import pandas as pd
 
 from modules.HARDCODED import (
@@ -43,7 +43,8 @@ from modules.update_database.member_files_updt_funcs import (
     split_membs_field,
     updt_UCC_new_cl_data,
 )
-from modules.update_database.possible_duplicates_funcs import duplicate_probs
+
+# from modules.update_database.possible_duplicates_funcs import duplicate_probs
 from modules.update_database.standardize_and_match_funcs import (
     get_fnames_new_DB,
     get_matches_new_DB,
@@ -59,9 +60,20 @@ path_gaia_frames_ranges = root + "files_G20/frame_ranges.txt"
 # Maximum magnitude to retrieve
 gaia_max_mag = 20
 
+
+# =========================================================================
 # Select the mode used to run the script
+
+# # Add a new DB
 # run_mode = "new_DB"
-run_mode = "manual"
+
+# # Update the UCC for selected entries listed in the 'manual_pars' file
+# run_mode = "manual"
+
+# Update a database already included in the UCC
+run_mode = "updt_DB"
+updt_DB_name = "HE2022_1"
+# =========================================================================
 
 
 def main():
@@ -71,19 +83,6 @@ def main():
     logging = logger()
 
     logging.info(f"\n===Running in {run_mode} mode===\n")
-
-    txt = ""
-    # Check for Gaia files
-    if not os.path.isdir(path_gaia_frames):
-        # raise FileNotFoundError(f"Folder {path_gaia_frames} is not present")
-        txt += f"Folder {path_gaia_frames} is not present\n"
-    if not os.path.isfile(path_gaia_frames_ranges):
-        # raise FileNotFoundError(f"File {path_gaia_frames_ranges} is not present")
-        txt += f"File {path_gaia_frames_ranges} is not present"
-    if txt != "":
-        logging.info(txt)
-        if input("Move on? (y/n): ").lower() != "y":
-            sys.exit()
 
     # Generate paths and check for required folders and files
     (
@@ -108,9 +107,9 @@ def main():
         new_DB,
     ) = load_data(logging, ucc_file, temp_JSON_file, temp_database_folder)
 
-    if run_mode == "new_DB":
+    if run_mode == "new_DB" or run_mode == "updt_DB":
         # 1. Check for required columns in the new DB
-        check_new_DB_cols(logging, current_JSON, new_DB, df_new, newDB_json)
+        check_new_DB_cols(logging, run_mode, current_JSON, new_DB, df_new, newDB_json)
 
         # 2. Standardize and match the new DB with the UCC
         new_DB_fnames, db_matches = standardize_and_match(
@@ -131,12 +130,19 @@ def main():
 
         # 4. Generate new UCC file with the new DB incorporated
         df_UCC_new = add_new_DB(
-            logging, new_DB, newDB_json, df_UCC_old, df_new, new_DB_fnames, db_matches
+            logging,
+            run_mode,
+            new_DB,
+            newDB_json,
+            df_UCC_old,
+            df_new,
+            new_DB_fnames,
+            db_matches,
         )
         df_UCC_new2 = diff_between_dfs(logging, df_UCC_old, df_UCC_new)
-        if input("Move on? (y/n): ").lower() != "y":
+        if input("UCC updated. Move on to fastMP? (y/n): ").lower() != "y":
             sys.exit()
-    else:
+    else:  # run_mode == "manual"
         fname_UCC = df_UCC_old["fnames"].str.split(";").str[0]
         # Find matches between df1['name'] and df2['first_fnames']
         matches = fname_UCC.isin(manual_pars["fname"])
@@ -152,11 +158,12 @@ def main():
 
         # Generate member files for new OCs and obtain their data
         df_UCC_updt = member_files_updt(
-            logging, df_UCC_new2, gaia_frames_data, df_GCs, manual_pars
+            logging, run_mode, df_UCC_new2, gaia_frames_data, df_GCs, manual_pars
         )
 
-        # Update the UCC with the new OCs member's data
-        df_UCC_new3 = update_UCC_membs_data(logging, df_UCC_new2, df_UCC_updt)
+        # Update the UCC with the new OCs member's data. Obtain here the duplicate
+        # probabilities using the members data
+        df_UCC_new3 = update_UCC_membs_data(df_UCC_new2, df_UCC_updt)
         df_UCC_new4 = diff_between_dfs(logging, df_UCC_new2, df_UCC_new3)
     else:
         logging.info("No new OCs to process")
@@ -203,6 +210,19 @@ def get_paths_check_paths(
     str,
 ]:
     """ """
+    txt = ""
+    # Check for Gaia files
+    if not os.path.isdir(path_gaia_frames):
+        # raise FileNotFoundError(f"Folder {path_gaia_frames} is not present")
+        txt += f"Folder {path_gaia_frames} is not present\n"
+    if not os.path.isfile(path_gaia_frames_ranges):
+        # raise FileNotFoundError(f"File {path_gaia_frames_ranges} is not present")
+        txt += f"File {path_gaia_frames_ranges} is not present"
+    if txt != "":
+        logging.info(txt)
+        if input("Move on? (y/n): ").lower() != "y":
+            sys.exit()
+
     # Current root + main UCC folder
     root_current_folder = os.getcwd()
     # Go up one level
@@ -294,31 +314,37 @@ def load_data(
     with open(name_DBs_json) as f:
         current_JSON = json.load(f)
 
-    if run_mode == "new_DB":
+    # Dummy
+    manual_pars = pd.DataFrame()
+    df_new = pd.DataFrame()
+    newDB_json = {}
+    new_DB_file = ""
+    new_DB = "manual_pars"
+    if run_mode == "new_DB" or run_mode == "updt_DB":
         # Load new temp JSON file
         with open(temp_JSON_file) as f:
             temp_JSON = json.load(f)
 
         # Extract new DB's name
-        new_DB = list(set(temp_JSON.keys()) - set(current_JSON.keys()))[0]
+        if run_mode == "new_DB":
+            new_DB = list(set(temp_JSON.keys()) - set(current_JSON.keys()))[0]
+            read_from_fold = temp_database_folder
+        else:
+            new_DB = updt_DB_name
+            read_from_fold = dbs_folder
+
+        # Load the new DB
+        new_DB_file = new_DB + ".csv"
+        df_new = pd.read_csv(read_from_fold + new_DB_file)
 
         # Load column data for the new catalogue
         newDB_json = temp_JSON[new_DB]
 
-        # Load the new DB
-        new_DB_file = new_DB + ".csv"
-        df_new = pd.read_csv(temp_database_folder + new_DB_file)
         logging.info(f"New DB {new_DB} loaded (N={len(df_new)})")
-        # Dummy
-        manual_pars = pd.DataFrame()
-    else:
+
+    else:  # run_mode == "manual"
         # Read OCs manual parameters
         manual_pars = pd.read_csv(manual_pars_file)
-        # Dummy
-        df_new = pd.DataFrame()
-        newDB_json = {}
-        new_DB_file = ""
-        new_DB = "manual_pars"
 
     return (
         gaia_frames_data,
@@ -334,11 +360,11 @@ def load_data(
 
 
 def check_new_DB_cols(
-    logging, current_JSON, new_DB, df_new, newDB_json, show_entries=True
+    logging, run_mode, current_JSON, new_DB, df_new, newDB_json, show_entries=True
 ) -> None:
     """ """
     # Check that the new DB is not already present in the 'old' JSON file
-    if new_DB in current_JSON.keys():
+    if new_DB in current_JSON.keys() and run_mode != "updt_DB":
         raise ValueError(f"The DB '{new_DB}' is in the current JSON file")
 
     # Check for required columns
@@ -487,6 +513,7 @@ def check_new_DB(
 
 def add_new_DB(
     logging,
+    run_mode: str,
     new_DB: str,
     newDB_json: dict,
     df_UCC_old,
@@ -505,6 +532,7 @@ def add_new_DB(
 
     Args:
         logging (logging.Logger): Logger instance for logging messages.
+        run_mode (str): Running mode of the script
         pars_dict (dict): Dictionary containing parameters for the new database.
         df_UCC (pd.DataFrame): DataFrame containing the current UCC.
         df_new (pd.DataFrame): DataFrame containing the new database.
@@ -522,9 +550,10 @@ def add_new_DB(
         columns.
     """
 
-    logging.info(f"Adding new DB: {new_DB}")
+    logging.info(f"Adding DB: {new_DB}")
     new_db_dict = combine_UCC_new_DB(
         logging,
+        run_mode,
         new_DB,
         newDB_json,
         df_UCC_old,
@@ -565,7 +594,7 @@ def add_new_DB(
 
 
 def member_files_updt(
-    logging, df_UCC, gaia_frames_data, df_GCs, manual_pars
+    logging, run_mode, df_UCC, gaia_frames_data, df_GCs, manual_pars
 ) -> pd.DataFrame:
     """
     Updates the Unified Cluster Catalogue (UCC) with new open clusters (OCs).
@@ -642,8 +671,6 @@ def member_files_updt(
             fname0,
             glon_c,
             glat_c,
-            pmra_c,
-            pmde_c,
             plx_c,
             df_GCs,
         )
@@ -651,6 +678,7 @@ def member_files_updt(
         # Extract fastMP probabilities
         probs_all = get_fastMP_membs(
             logging,
+            run_mode,
             manual_pars,
             fname0,
             ra_c,
