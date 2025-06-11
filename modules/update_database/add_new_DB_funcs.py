@@ -8,6 +8,7 @@ from ..utils import date_order_DBs, radec2lonlat, rename_standard
 
 def combine_UCC_new_DB(
     logging,
+    run_mode: str,
     new_DB: str,
     newDB_json: dict,
     df_UCC: pd.DataFrame,
@@ -23,6 +24,8 @@ def combine_UCC_new_DB(
     ----------
     logging : logging.Logger
         Logger object for outputting information.
+    run_mode : str
+        Mode of the run
     new_DB : str
         Name of the new database.
     newDB_json : dict
@@ -73,7 +76,7 @@ def combine_UCC_new_DB(
             row = dict(df_UCC.iloc[db_matches[i_new_cl]])
             # Add to the new Db dictionary
             new_db_dict = OC_in_UCC(
-                new_DB, new_db_dict, i_new_cl, new_cl, oc_names, row
+                run_mode, new_DB, new_db_dict, i_new_cl, new_cl, oc_names, row
             )
             N_updt += 1
 
@@ -157,6 +160,7 @@ def new_OC_not_in_UCC(
 
 
 def OC_in_UCC(
+    run_mode: str,
     new_DB: str,
     new_db_dict: dict,
     i_new_cl: int,
@@ -169,6 +173,8 @@ def OC_in_UCC(
 
     Parameters
     ----------
+    run_mode : str
+        Mode of the run
     new_DB : str
         Name of the new database.
     new_db_dict : dict
@@ -187,8 +193,28 @@ def OC_in_UCC(
     dict
         Updated dictionary representing the database with the modified OC.
     """
-    DB_ID = row["DB"] + ";" + new_DB
-    DB_i = row["DB_i"] + ";" + str(i_new_cl)
+    DB_ID = row["DB"]
+    DB_i = row["DB_i"]
+
+    # Check if this is an 'update DB' run, i.e.: the DB is already in the UCC
+    if run_mode == "updt_DB":
+        if new_DB in DB_ID.split(";"):
+            # Do not add the DB_ID again, and update the index for this OC
+            # Find the position of this DB
+            idx = DB_ID.split(";").index(new_DB)
+            # Only update the index value of this entry
+            temp_lst = DB_i.split(";")
+            temp_lst[idx] = str(i_new_cl)
+            DB_i = ";".join(temp_lst)
+        else:
+            # This is a new entry for a DB already in the UCC
+            DB_ID += ";" + new_DB
+            DB_i += ";" + str(i_new_cl)
+    else:
+        # This is a new DB, add DB and its index
+        DB_ID += ";" + new_DB
+        DB_i += ";" + str(i_new_cl)
+
     # Order by years before storing
     DB_ID, DB_i = date_order_DBs(DB_ID, DB_i)
 
