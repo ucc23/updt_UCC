@@ -317,8 +317,6 @@ def updt_new_db_dict(
         "pmDE_m",
         "Rv_m",
         "N_Rv",
-        "dups_fnames_m",
-        "dups_probs_m",
     ):
         if row is None:
             new_db_dict[col].append(np.nan)
