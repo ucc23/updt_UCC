@@ -620,7 +620,7 @@ def member_files_updt(
         logging.info(f"\n{N_cl} Processing {fname0} (idx={UCC_idx})")
 
         # Generate frame
-        box_s, plx_min = get_frame_limits(logging, manual_pars, fname0, cl_ID, plx_c)
+        box_s, plx_min = get_frame_limits(cl_ID, fname0, plx_c)
 
         # Request Gaia frame
         gaia_frame = query_run(
