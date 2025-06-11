@@ -177,6 +177,7 @@ def main():
         sys.exit()
     move_files(
         logging,
+        run_mode,
         root_UCC_path,
         temp_JSON_file,
         new_DB_file,
@@ -321,24 +322,26 @@ def load_data(
     new_DB_file = ""
     new_DB = "manual_pars"
     if run_mode == "new_DB" or run_mode == "updt_DB":
-        # Load new temp JSON file
-        with open(temp_JSON_file) as f:
-            temp_JSON = json.load(f)
 
         # Extract new DB's name
         if run_mode == "new_DB":
+            # Load new temp JSON file
+            with open(temp_JSON_file) as f:
+                temp_JSON = json.load(f)
+
             new_DB = list(set(temp_JSON.keys()) - set(current_JSON.keys()))[0]
-            read_from_fold = temp_database_folder
+            # Load column data for the new catalogue
+            newDB_json = temp_JSON[new_DB]
+            read_dbs_folder = temp_database_folder
         else:
             new_DB = updt_DB_name
-            read_from_fold = dbs_folder
+            # Load column data for the catalogue
+            newDB_json = current_JSON[new_DB]
+            read_dbs_folder = dbs_folder
 
-        # Load the new DB
+        # Load the DB
         new_DB_file = new_DB + ".csv"
-        df_new = pd.read_csv(read_from_fold + new_DB_file)
-
-        # Load column data for the new catalogue
-        newDB_json = temp_JSON[new_DB]
+        df_new = pd.read_csv(read_dbs_folder + new_DB_file)
 
         logging.info(f"New DB {new_DB} loaded (N={len(df_new)})")
 
@@ -856,6 +859,7 @@ def fnames_checker(df_UCC: pd.DataFrame) -> None:
 
 def move_files(
     logging,
+    run_mode: str,
     root_UCC_path: str,
     temp_JSON_file: str,
     new_DB_file: str,
@@ -868,17 +872,18 @@ def move_files(
     """ """
     logging.info("\nUpdate files:")
 
-    # Move JSON file
-    json_stored = name_DBs_json
-    json_temp = temp_JSON_file
-    os.rename(json_temp, json_stored)
-    logging.info(json_temp + " --> " + json_stored)
+    if run_mode == "new_DB":
+        # Move JSON file
+        json_stored = name_DBs_json
+        json_temp = temp_JSON_file
+        os.rename(json_temp, json_stored)
+        logging.info(json_temp + " --> " + json_stored)
 
-    # Move new DB file
-    db_stored = dbs_folder + new_DB_file
-    db_temp = temp_database_folder + new_DB_file
-    os.rename(db_temp, db_stored)
-    logging.info(db_temp + " --> " + db_stored)
+        # Move new DB file
+        db_stored = dbs_folder + new_DB_file
+        db_temp = temp_database_folder + new_DB_file
+        os.rename(db_temp, db_stored)
+        logging.info(db_temp + " --> " + db_stored)
 
     # Generate '.gz' compressed file for the old UCC and archive it
     df = pd.read_csv(ucc_file)
