@@ -68,7 +68,7 @@ def query_run(
     dicts = []
     for c_ra in c_ra_l:
         data_in_files, xmin_cl, xmax_cl, ymin_cl, ymax_cl = findFrames(
-            logging, c_ra, c_dec, box_s_eq, fdata
+            c_ra, c_dec, box_s_eq, fdata
         )
 
         if len(data_in_files) == 0:
