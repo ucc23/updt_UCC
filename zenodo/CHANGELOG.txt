@@ -1,8 +1,8 @@
 Some of these are intermediate versions of the UCC database that are not published.
 
-## 250XXYYZZ
+## 25061114
 
-- xxxx
+- Removed "dups_fnames_m,dups_probs_m" columns
 
 
 ## 25020409
