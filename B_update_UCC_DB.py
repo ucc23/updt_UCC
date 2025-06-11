@@ -687,11 +687,12 @@ def member_files_updt(
     return df_UCC_updt
 
 
-def update_UCC_membs_data(logging, df_UCC, df_UCC_updt, prob_cut: float = 0.25):
+def update_UCC_membs_data(df_UCC, df_UCC_updt):
     """
     Update the UCC database using the data extracted from the processed OCs'
     members.
 
+    prob_cut: float = 0.25
     prob_cut: Probability cutoff for identifying duplicates.
     """
     # Generate copy to not disturb the dataframe given to this function which is
@@ -706,16 +707,16 @@ def update_UCC_membs_data(logging, df_UCC, df_UCC_updt, prob_cut: float = 0.25):
                 continue
             df_inner.at[UCC_idx, key] = val
 
-    logging.info("Finding duplicates and their probabilities")
-    df_inner["dups_fnames_m"], df_inner["dups_probs_m"] = duplicate_probs(
-        list(df_inner["fnames"]),
-        np.array(df_inner["GLON_m"], dtype=float),
-        np.array(df_inner["GLAT_m"], dtype=float),
-        np.array(df_inner["Plx_m"], dtype=float),
-        np.array(df_inner["pmRA_m"], dtype=float),
-        np.array(df_inner["pmDE_m"], dtype=float),
-        prob_cut,
-    )
+    # logging.info("Finding duplicates and their probabilities")
+    # df_inner["dups_fnames_m"], df_inner["dups_probs_m"] = duplicate_probs(
+    #     list(df_inner["fnames"]),
+    #     np.array(df_inner["GLON_m"], dtype=float),
+    #     np.array(df_inner["GLAT_m"], dtype=float),
+    #     np.array(df_inner["Plx_m"], dtype=float),
+    #     np.array(df_inner["pmRA_m"], dtype=float),
+    #     np.array(df_inner["pmDE_m"], dtype=float),
+    #     prob_cut,
+    # )
 
     return df_inner
 
