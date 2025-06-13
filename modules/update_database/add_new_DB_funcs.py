@@ -51,7 +51,7 @@ def combine_UCC_new_DB(
     N_new, N_updt = 0, 0
     new_db_dict = {_: [] for _ in df_UCC.keys()}
     # For each entry in the new DB
-    for i_new_cl, new_cl in enumerate(new_DB_fnames):
+    for i_new_cl, fnames_new_cl in enumerate(new_DB_fnames):
         row_n = dict(df_new.iloc[i_new_cl])
 
         # For each comma separated name for this OC in the new DB
@@ -67,7 +67,13 @@ def combine_UCC_new_DB(
         if db_matches[i_new_cl] is None:
             # The cluster is not present in the UCC, add to the new Db dictionary
             new_db_dict = new_OC_not_in_UCC(
-                new_DB, new_db_dict, i_new_cl, new_cl, row_n, oc_names, newDB_json
+                new_DB,
+                new_db_dict,
+                i_new_cl,
+                fnames_new_cl,
+                row_n,
+                oc_names,
+                newDB_json,
             )
             N_new += 1
         else:
@@ -76,7 +82,7 @@ def combine_UCC_new_DB(
             row = dict(df_UCC.iloc[db_matches[i_new_cl]])
             # Add to the new Db dictionary
             new_db_dict = OC_in_UCC(
-                run_mode, new_DB, new_db_dict, i_new_cl, new_cl, oc_names, row
+                run_mode, new_DB, new_db_dict, i_new_cl, fnames_new_cl, oc_names, row
             )
             N_updt += 1
 
