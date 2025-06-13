@@ -1,5 +1,51 @@
 Some of these are intermediate versions of the UCC database that are not published.
 
+## 25061311
+
+- Updated QIN2023 database, issue #49
+
+Combined "RefName" and "Name" columns
+Changed 'LP' in 2383, 2385, 2439, 2442 to 'FoF'
+Changed ChaI(north), ChaI(south) to ChaI_north, ChaI_south
+
+There are 223 OCs already in the literature classified as 2 and 3. The classification
+is as follows:
+
+1 =  f=0%, the new OCs in the OCSN catalog (101 entries, already in the UCC)
+2 =  f<50% and most of the common members are located on the outer part of the cluster
+in the OCSN catalog (25 entries)
+3 =  f>50% or most of the common members are located in the center part of the cluster
+in the OCSN catalog (198 entries)
+
+(where f is "the fraction between the common member stars to members in the OCSN
+catalog"). The issue with entries classified 2 and 3 is that they are often associated
+with more than one OC (or mg):
+
+OCSN 106 --> CWNU_375, CWNU_510, UPK_101
+
+(there are 32 such entries) or even multiple times to the same OC already listed in
+the UCC:
+
+OCSN 176 --> CWNU_1136
+OCSN 177 --> CWNU_1136
+OCSN 178 --> CWNU_1136
+
+OCSN 167 --> CWNU_1044
+OCSN 168 --> CWNU_1044
+
+To solve this I removed all the extra names for any entry with more than one other
+name associated to it (e.g: "OCSN 106,CWNU_375,CWNU_510,UPK_101" becomes "OCSN 106");
+which solves the first issue.
+
+For the second issue, I removed the repeated name (CWNU_1136, CWNU_1044) so that these
+become new entries.
+
+These changes result in 59 new entries added to the UCC out of the 223 being added by
+this DB updating process.
+
+
+
+
 ## 25061115
 
 - Updated HE2022_1 database, issue #56
