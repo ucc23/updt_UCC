@@ -10,6 +10,66 @@ from scipy.spatial.distance import cdist
 from ..utils import check_centers, radec2lonlat
 
 
+def dups_fnames_inner_check(
+    logging,
+    new_DB: str,
+    newDB_json,
+    df_new: pd.DataFrame,
+    new_DB_fnames: list[list[str]],
+) -> bool:
+    """
+    Checks for duplicate entries within a new database that also exist in the UCC.
+
+    Parameters
+    ----------
+    logging : logging.Logger
+        Logger object for outputting information.
+    new_DB : str
+        Name of the new database.
+    df_UCC : pd.DataFrame
+        DataFrame representing the UCC.
+    new_DB_fnames : list
+        List of lists, each containing standardized names for a
+        cluster in the new database.
+
+
+    Returns
+    -------
+    bool
+        True if duplicate entries are found that need to be combined, False otherwise.
+    """
+    # Extract first fname for entries in new DB
+    new_DB_fnames_0 = [fnames[0] for fnames in new_DB_fnames]
+
+    dup_fnames = list_duplicates(new_DB_fnames_0)
+    if len(dup_fnames) > 0:
+        logging.info(f"\nEntries in {new_DB} share 'fname' and must be combined:\n")
+        for i, fname0 in enumerate(new_DB_fnames_0):
+            if fname0 in dup_fnames:
+                logging.info(f"  {i}: {df_new[newDB_json['names']][i]} --> {fname0}")
+        return True
+
+    return False
+
+
+def list_duplicates(seq: list) -> list:
+    """
+    Identifies duplicate elements in a list.
+
+    Args:
+        seq: The input list.
+
+    Returns:
+        A list of duplicate elements.
+    """
+    seen = set()
+    seen_add = seen.add
+    # adds all elements it doesn't know yet to 'seen' and all other to 'seen_twice'
+    seen_twice = set(x for x in seq if x in seen or seen_add(x))
+    # turn the set into a list (as requested)
+    return list(seen_twice)
+
+
 def dups_check_newDB_UCC(
     logging,
     new_DB: str,
@@ -41,27 +101,10 @@ def dups_check_newDB_UCC(
         True if duplicate entries are found that need to be combined, False otherwise.
     """
 
-    def list_duplicates(seq: list) -> list:
-        """
-        Identifies duplicate elements in a list.
-
-        Args:
-            seq: The input list.
-
-        Returns:
-            A list of duplicate elements.
-        """
-        seen = set()
-        seen_add = seen.add
-        # adds all elements it doesn't know yet to 'seen' and all other to 'seen_twice'
-        seen_twice = set(x for x in seq if x in seen or seen_add(x))
-        # turn the set into a list (as requested)
-        return list(seen_twice)
-
     idxs_match = [_ for _ in db_matches if _ is not None]
     dup_idxs = list_duplicates(idxs_match)
     if len(dup_idxs) > 0:
-        logging.info(f"WARNING! Found entries in {new_DB} that must be combined")
+        logging.info(f"\nEntries in {new_DB} must be combined:")
         print("")
         for didx in dup_idxs:
             for i, db_idx in enumerate(db_matches):
