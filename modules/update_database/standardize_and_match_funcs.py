@@ -87,18 +87,21 @@ def get_matches_new_DB(
         If an entry in the new DB is not present in the UCC, the corresponding
         index in the list will be None.
     """
-
-    def match_fname(new_cl):
-        for name_new in new_cl:
-            for j, old_cl in enumerate(df_UCC["fnames"]):
-                for name_old in old_cl.split(";"):
-                    if name_new == name_old:
-                        return j
-        return None
-
     db_matches = []
-    for new_cl in new_DB_fnames:
-        # Check if this new fname is already in the UCC
-        db_matches.append(match_fname(new_cl))
+    # For each fname(s) for each entry in the new DB
+    for new_cl_fnames in new_DB_fnames:
+        found = None
+        # For each fname in this new DB entry
+        for new_cl_fname in new_cl_fnames:
+            # For each fname(s) for each entry in the UCC
+            for j, ucc_cl_fnames in enumerate(df_UCC["fnames"]):
+                # Check if the fname in the new DB is included in the UCC
+                if new_cl_fname in ucc_cl_fnames.split(";"):
+                    # If it is, return the UCC index
+                    found = j
+                    break
+            if found is not None:
+                break
+        db_matches.append(found)
 
     return db_matches
