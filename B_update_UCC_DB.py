@@ -29,6 +29,7 @@ from modules.update_database.check_new_DB_funcs import (
     close_OC_check,
     close_OC_UCC_check,
     dups_check_newDB_UCC,
+    dups_fnames_inner_check,
     positions_check,
     prep_newDB,
     vdberg_check,
