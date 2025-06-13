@@ -383,7 +383,7 @@ def check_new_DB_cols(
     logging.info("\nPossible bad characters in names (;, *, .)")
     all_bad_names = []
     for new_cl in df_new[newDB_json["names"]]:
-        if bool(re.search(r"[;*\.]", new_cl)):
+        if bool(re.search(r"[();*\.]", new_cl)):
             all_bad_names.append(new_cl)
     if len(all_bad_names) == 0:
         logging.info("No bad-chars found in name(s) column")
