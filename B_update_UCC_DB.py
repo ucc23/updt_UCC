@@ -466,13 +466,19 @@ def check_new_DB(
     6. Checks positions and flags for attention if required.
     """
 
-    # Duplicate check between entries in the new DB and the UCC
+    # Check first fname for all entries in the new DB
     logging.info(f"\nChecking for entries in {new_DB} that must be combined")
-    dup_flag = dups_check_newDB_UCC(logging, new_DB, df_UCC, new_DB_fnames, db_matches)
-    if dup_flag:
-        raise ValueError("Resolve the above issues before moving on.")
-    else:
-        logging.info("No issues found")
+    dup_flag_fnames = dups_fnames_inner_check(
+        logging, new_DB, newDB_json, df_new, new_DB_fnames
+    )
+    if dup_flag_fnames:
+        raise ValueError("\nResolve the above issues before moving on\n")
+
+    dup_flag_UCC = dups_check_newDB_UCC(
+        logging, new_DB, df_UCC, new_DB_fnames, db_matches
+    )
+    if dup_flag_UCC:
+        raise ValueError("\nResolve the above issues before moving on\n")
 
     # Check for GCs
     logging.info("\nClose GC check")
