@@ -322,7 +322,6 @@ def load_data(
     new_DB_file = ""
     new_DB = "manual_pars"
     if run_mode == "new_DB" or run_mode == "updt_DB":
-
         # Extract new DB's name
         if run_mode == "new_DB":
             # Load new temp JSON file
@@ -487,14 +486,14 @@ def check_new_DB(
         if input("Move on? (y/n): ").lower() != "y":
             sys.exit()
 
-    # Check for OCs very close to each other (possible duplicates)
+    # Check for OCs very close to each other in the new DB
     logging.info("\nProbable inner duplicates check")
     inner_flag = close_OC_check(logging, newDB_json, df_new, rad_dup)
     if inner_flag:
         if input("Move on? (y/n): ").lower() != "y":
             sys.exit()
 
-    # Check for OCs very close to each other (possible duplicates)
+    # Check for OCs very close to other OCs in the UCC
     logging.info("\nProbable UCC duplicates check")
     dups_flag = close_OC_UCC_check(
         logging, df_UCC, new_DB_fnames, db_matches, glon, glat, rad_dup
