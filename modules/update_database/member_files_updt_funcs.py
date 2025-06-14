@@ -325,7 +325,7 @@ def get_fastMP_membs(
         )
 
         xy_c_m, vpd_c_m, plx_c_m = extract_centers(gaia_frame, probs_all)
-        cent_flags = check_centers(xy_c_m, vpd_c_m, plx_c_m, lonlat_c, pms_c, plx_c)
+        cent_flags = check_centers(xy_c_m, vpd_c_m, plx_c_m, lonlat_c, pms_c, plx_c)[0]
         if cent_flags == "nnn" or fixed_centers is True:
             break
         else:
@@ -333,7 +333,7 @@ def get_fastMP_membs(
             fixed_centers = True
 
     xy_c_m, vpd_c_m, plx_c_m = extract_centers(gaia_frame, probs_all)
-    cent_flags = check_centers(xy_c_m, vpd_c_m, plx_c_m, lonlat_c, pms_c, plx_c)
+    cent_flags = check_centers(xy_c_m, vpd_c_m, plx_c_m, lonlat_c, pms_c, plx_c)[0]
     logging.info("  P>0.5={}, cents={}".format((probs_all > 0.5).sum(), cent_flags))
 
     return probs_all
