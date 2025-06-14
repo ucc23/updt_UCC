@@ -3,7 +3,7 @@ from string import ascii_lowercase
 import numpy as np
 import pandas as pd
 
-from ..utils import date_order_DBs, radec2lonlat, rename_standard
+from ..utils import date_order_DBs, list_duplicates, radec2lonlat, rename_standard
 
 
 def combine_UCC_new_DB(
@@ -477,23 +477,6 @@ def duplicates_check(logging, df_all: pd.DataFrame) -> bool:
     bool
         True if duplicates are found in any of the specified columns, False otherwise.
     """
-
-    def list_duplicates(seq: list) -> list:
-        """
-        Identifies duplicate elements in a list.
-
-        Args:
-            seq: The input list.
-
-        Returns:
-            A list of duplicate elements.
-        """
-        seen = set()
-        seen_add = seen.add
-        # adds all elements it doesn't know yet to seen and all other to seen_twice
-        seen_twice = set(x for x in seq if x in seen or seen_add(x))
-        # turn the set into a list (as requested)
-        return list(seen_twice)
 
     def dup_check(df_all: pd.DataFrame, col: str) -> bool:
         """

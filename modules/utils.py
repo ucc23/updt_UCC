@@ -385,3 +385,21 @@ def file_checker(
 
     if flag_error:
         raise ValueError("The file check was unsuccessful")
+
+
+def list_duplicates(seq: list) -> list:
+    """
+    Identifies duplicate elements in a list.
+
+    Args:
+        seq: The input list.
+
+    Returns:
+        A list of duplicate elements.
+    """
+    seen = set()
+    seen_add = seen.add
+    # adds all elements it doesn't know yet to 'seen' and all other to 'seen_twice'
+    seen_twice = set(x for x in seq if x in seen or seen_add(x))
+    # turn the set into a list (as requested)
+    return list(seen_twice)
