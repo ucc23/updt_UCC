@@ -7,7 +7,7 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord, angular_separation
 from scipy.spatial.distance import cdist
 
-from ..utils import check_centers, radec2lonlat
+from ..utils import check_centers, list_duplicates, radec2lonlat
 
 
 def dups_fnames_inner_check(
@@ -50,24 +50,6 @@ def dups_fnames_inner_check(
         return True
 
     return False
-
-
-def list_duplicates(seq: list) -> list:
-    """
-    Identifies duplicate elements in a list.
-
-    Args:
-        seq: The input list.
-
-    Returns:
-        A list of duplicate elements.
-    """
-    seen = set()
-    seen_add = seen.add
-    # adds all elements it doesn't know yet to 'seen' and all other to 'seen_twice'
-    seen_twice = set(x for x in seq if x in seen or seen_add(x))
-    # turn the set into a list (as requested)
-    return list(seen_twice)
 
 
 def dups_check_newDB_UCC(
@@ -547,9 +529,9 @@ def positions_check(
     ocs_attention = []
     for i, fnames in enumerate(new_db_info["fnames"]):
         j = new_db_info["UCC_idx"][i]
-        # If the OC is already present in the UCC
+        # Check centers if the OC is already present in the UCC
         if j is not None:
-            bad_center = check_centers(
+            bad_center, d_arcmin, pmra_p, pmde_p, plx_p = check_centers(
                 (df_UCC["GLON_m"].iloc[j], df_UCC["GLAT_m"].iloc[j]),
                 (df_UCC["pmRA_m"].iloc[j], df_UCC["pmDE_m"].iloc[j]),
                 df_UCC["Plx_m"].iloc[j],
@@ -562,20 +544,20 @@ def positions_check(
             if bad_center == "nnn":
                 continue
             # Store information on the OCs that require attention
-            ocs_attention.append([fnames, i, j, bad_center])
+            ocs_attention.append([fnames, bad_center, d_arcmin, pmra_p, pmde_p, plx_p])
 
     attention_flag = False
     if len(ocs_attention) > 0:
         attention_flag = True
         logging.info("\nOCs flagged for attention:")
         logging.info(
-            "{:<15} {:<5} {}".format(
+            "{:<25} {:<5} {}".format(
                 "name", "cent_flag", "[arcmin] [pmRA %] [pmDE %] [plx %]"
             )
         )
         for oc in ocs_attention:
-            fnames, i, j, bad_center = oc
-            flag_log(logging, df_UCC, new_db_info, bad_center, fnames, i, j)
+            fnames, bad_center, d_arcmin, pmra_p, pmde_p, plx_p = oc
+            flag_log(logging, bad_center, d_arcmin, pmra_p, pmde_p, plx_p, fnames)
     else:
         logging.info("\nNo OCs flagged for attention")
 
@@ -584,12 +566,12 @@ def positions_check(
 
 def flag_log(
     logging,
-    df_UCC: pd.DataFrame,
-    new_db_info: dict,
     bad_center: str,
+    d_arcmin: float,
+    pmra_p: float,
+    pmde_p: float,
+    plx_p: float,
     fnames: str,
-    i: int,
-    j: int,
 ) -> None:
     """
     Logs details about OCs flagged for attention based on center comparison.
@@ -598,56 +580,28 @@ def flag_log(
     ----------
     logging : logging.Logger
         Logger object for outputting information.
-    df_UCC : pd.DataFrame
-        DataFrame of the UCC.
-    new_db_info : dict
-        Dictionary with the information of the new database.
     bad_center : str
         String indicating the quality of the center comparison.
     fnames : str
         String of fnames for the cluster.
-    i : int
-        Index of the cluster in the new database.
-    j : int
-        Index of the cluster in the UCC.
     """
     txt = ""
     if bad_center[0] == "y":
-        d_arcmin = (
-            np.sqrt(
-                (df_UCC["GLON_m"][j] - new_db_info["GLON"][i]) ** 2
-                + (df_UCC["GLAT_m"][j] - new_db_info["GLAT"][i]) ** 2
-            )
-            * 60
-        )
         txt += "{:.1f} ".format(d_arcmin)
     else:
         txt += "-- "
 
     if bad_center[1] == "y":
-        pmra_p = 100 * abs(
-            (df_UCC["pmRA_m"][j] - new_db_info["pmRA"][i])
-            / (df_UCC["pmRA_m"][j] + 0.001)
-        )
-        pmde_p = 100 * abs(
-            (df_UCC["pmDE_m"][j] - new_db_info["pmDE"][i])
-            / (df_UCC["pmDE_m"][j] + 0.001)
-        )
         txt += "{:.1f} {:.1f} ".format(pmra_p, pmde_p)
     else:
         txt += "-- -- "
 
     if bad_center[2] == "y":
-        plx_p = (
-            100
-            * abs(df_UCC["Plx_m"][j] - new_db_info["Plx"][i])
-            / (df_UCC["Plx_m"][j] + 0.001)
-        )
         txt += "{:.1f}".format(plx_p)
     else:
         txt += "--"
 
     txt = txt.split()
     logging.info(
-        "{:<15} {:<5} {:>12} {:>8} {:>8} {:>7}".format(fnames, bad_center, *txt)
+        "{:<25} {:<5} {:>12} {:>8} {:>8} {:>7}".format(fnames[:24], bad_center, *txt)
     )
