@@ -80,7 +80,7 @@ def check_centers(
     vpd_c_n: tuple[float, float],
     plx_c_n: float,
     rad_dup: float = 5,
-) -> str:
+) -> tuple[str, float, float, float, float]:
     """
     Compares the centers of a cluster estimated from members with those from the
     literature.
@@ -109,6 +109,9 @@ def check_centers(
         - "nnn": Centers are in agreement.
         - "y": Indicates a significant difference in xy, pm, or plx,
         with each 'y' corresponding to a specific discrepancy.
+    floats
+        The distances estimated in arcmin, and the percentage differences
+        in proper motion and parallax.
     """
 
     bad_center_xy, bad_center_pm, bad_center_plx = "n", "n", "n"
@@ -119,6 +122,7 @@ def check_centers(
         bad_center_xy = "y"
 
     # Relative difference
+    pmra_p, pmde_p = np.nan, np.nan
     if not np.isnan(vpd_c_n[0]):
         pm_max = []
         for vpd_c_i in abs(np.array(vpd_c_m)):
@@ -138,6 +142,7 @@ def check_centers(
             bad_center_pm = "y"
 
     # Relative difference
+    plx_p = np.nan
     if not np.isnan(plx_c_n):
         if plx_c_m > 0.2:
             plx_max = 25
@@ -155,7 +160,7 @@ def check_centers(
 
     bad_center = bad_center_xy + bad_center_pm + bad_center_plx
 
-    return bad_center
+    return bad_center, d_arcmin, pmra_p, pmde_p, plx_p
 
 
 def rename_standard(name: str) -> str:
