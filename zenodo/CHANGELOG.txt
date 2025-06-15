@@ -1,5 +1,57 @@
 Some of these are intermediate versions of the UCC database that are not published.
 
+## 25061511
+
+- Updated CHI2023_1, issue #48
+
+
+
+## 25061510
+
+- Updated LIUPANG19 database, issue #59
+
+Combined "ID" and "Name" columns.
+
+There are two sets of two entries with repeated names in the UCC:
+
+fof380, fof2326 --> ruprecht26
+fof2223, fof2310 --> ascc77
+
+To solve this I removed the fof2326 and fof2310 entries and added them as
+secondary names to fof380 and fof2223
+
+
+HE2022_1 ([A blind all-sky search...](https://ui.adsabs.harvard.edu/abs/2022ApJS..262....7H/abstract))
+mistakenly listed an entry as LP_2389 when in reality it is LP_2379 (checked with
+the coordinates, PMs and plx in LIUPANG19). This is stored in the UCC and HE2022_1 as
+FoF_2389. Renamed it to 'fof2379' in the UCC and HE2022_1; also renamed the associated
+files
+
+
+
+## 25061410
+
+Found a few entries in the UCC with repeated names:
+
+7117 7662 teutsch5
+7554 7672 fsr0848
+11581 11609 huluwa2
+11581 11723 huluwa2
+11609 11723 huluwa2
+
+-teutsch5: this comes from Koposov (2008) assigning it as a secondary name for
+Koposov 52. This is incorrect given the coordinates of Teutsch 5. I removed it
+from KOPOSOV2008 and the list of names in Koposov 52 (i=7664)
+
+-fsr0848: this also comes from Koposov (2008) assigning it as a secondary name for
+Koposov 43. Removed it too from KOPOSOV2008 and the list of names in Koposov 43 (i=7556)
+
+-huluwa2: this comes from QIN2023 where 'huluwa2' is assigned to three entries:
+OCSN 197, OCSN 198, and OCSN 199. I removed the assiciation to 'huluwa2' from
+OCSN 198 and OCSN 199, so that only OCSN 197 has it as a secondary name.
+
+
+
 ## 25061311
 
 - Updated QIN2023 database, issue #49
