@@ -730,13 +730,13 @@
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2023RAA....23f5008C",
     "authors": "Chi et al.",
     "year": "2023",
-    "names": "name",
+    "names": "ID",
     "pos": {
-      "RA": "RA_ICRS",
-      "DEC": "DE_ICRS",
+      "RA": "_RA.icrs",
+      "DEC": "_DE.icrs",
       "plx": "plx",
-      "pmra": "pmra",
-      "pmde": "pmdec"
+      "pmra": "pmRA",
+      "pmde": "pmDE"
     },
     "pars": {
       "ext": "E(V-I)",
