@@ -23,6 +23,7 @@ from modules.update_database.add_new_DB_funcs import (
     assign_UCC_ids,
     combine_UCC_new_DB,
     duplicates_check,
+    duplicates_fnames_check,
 )
 from modules.update_database.check_new_DB_funcs import (
     GCs_check,
@@ -30,6 +31,7 @@ from modules.update_database.check_new_DB_funcs import (
     close_OC_UCC_check,
     dups_check_newDB_UCC,
     dups_fnames_inner_check,
+    fnames_check_UCC_new_DB,
     positions_check,
     prep_newDB,
     vdberg_check,
@@ -466,19 +468,17 @@ def check_new_DB(
     6. Checks positions and flags for attention if required.
     """
 
-    # Check first fname for all entries in the new DB
-    logging.info(f"\nChecking for entries in {new_DB} that must be combined")
-    dup_flag_fnames = dups_fnames_inner_check(
-        logging, new_DB, newDB_json, df_new, new_DB_fnames
-    )
-    if dup_flag_fnames:
-        raise ValueError("\nResolve the above issues before moving on\n")
+    # Check all fnames in the new DB against all fnames in the UCC
+    if fnames_check_UCC_new_DB(logging, df_UCC, new_DB_fnames):
+        raise ValueError("\nResolve the above issues before moving on")
 
-    dup_flag_UCC = dups_check_newDB_UCC(
-        logging, new_DB, df_UCC, new_DB_fnames, db_matches
-    )
-    if dup_flag_UCC:
-        raise ValueError("\nResolve the above issues before moving on\n")
+    # Check the first fname for all entries in the new DB
+    if dups_fnames_inner_check(logging, new_DB, newDB_json, df_new, new_DB_fnames):
+        raise ValueError("\nResolve the above issues before moving on")
+
+    # Check for duplicate entries in the new DB that also exist in the UCC
+    if dups_check_newDB_UCC(logging, new_DB, df_UCC, new_DB_fnames, db_matches):
+        raise ValueError("\nResolve the above issues before moving on")
 
     # Check for GCs
     logging.info("\nClose GC check")
@@ -593,11 +593,14 @@ def add_new_DB(
     )
 
     # Final duplicate check
-    dup_flag = duplicates_check(logging, df_UCC_new)
-    if dup_flag:
+    if duplicates_check(logging, df_UCC_new):
         raise ValueError(
             "Duplicated entries found in either 'ID, UCC_ID, fnames' column"
         )
+
+    # Check every individual fname for duplicates
+    if duplicates_fnames_check(logging, df_UCC_new):
+        raise ValueError("Duplicated entries found in 'fnames' column")
 
     return df_UCC_new
 
