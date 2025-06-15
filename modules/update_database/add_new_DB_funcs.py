@@ -461,7 +461,7 @@ def QXY_fold(UCC_ID: str) -> str:
     return Qfold
 
 
-def duplicates_check(logging, df_all: pd.DataFrame) -> bool:
+def duplicates_check(logging, df_UCC_new: pd.DataFrame) -> bool:
     """
     Checks for duplicate entries in specified columns of a DataFrame.
 
@@ -469,7 +469,7 @@ def duplicates_check(logging, df_all: pd.DataFrame) -> bool:
     ----------
     logging : logging.Logger
         Logger object for outputting information.
-    df_all : pd.DataFrame
+    df_UCC_new : pd.DataFrame
         DataFrame to check for duplicates.
 
     Returns
@@ -478,7 +478,7 @@ def duplicates_check(logging, df_all: pd.DataFrame) -> bool:
         True if duplicates are found in any of the specified columns, False otherwise.
     """
 
-    def dup_check(df_all: pd.DataFrame, col: str) -> bool:
+    def dup_check(df: pd.DataFrame, col: str) -> bool:
         """
         Checks for duplicates in a specific column of a DataFrame.
 
@@ -489,7 +489,7 @@ def duplicates_check(logging, df_all: pd.DataFrame) -> bool:
         Returns:
             True if duplicates are found, False otherwise.
         """
-        dups = list_duplicates(list(df_all[col]))
+        dups = list_duplicates(list(df[col]))
         if len(dups) > 0:
             logging.info(f"\nWARNING! N={len(dups)} duplicates found in '{col}':")
             for dup in dups:
@@ -500,8 +500,51 @@ def duplicates_check(logging, df_all: pd.DataFrame) -> bool:
             return False
 
     for col in ("ID", "UCC_ID", "fnames"):
-        dup_flag = dup_check(df_all, col)
+        dup_flag = dup_check(df_UCC_new, col)
         if dup_flag:
             return True
 
     return False
+
+
+def duplicates_fnames_check(logging, df_UCC_new: pd.DataFrame) -> bool:
+    """
+    Parameters
+    ----------
+    logging : logging.Logger
+        Logger object for outputting information.
+    df_UCC_new : pd.DataFrame
+        DataFrame to check for duplicates.
+
+    Returns
+    -------
+    bool
+        True if duplicates are found, False otherwise.
+    """
+    # Create a dictionary to map filenames to their corresponding row indices
+    filename_map = {}
+    # Populate the dictionary
+    for i, fnames in enumerate(df_UCC_new["fnames"]):
+        for fname in fnames.split(";"):
+            if fname not in filename_map:
+                filename_map[fname] = []
+            filename_map[fname].append(i)
+
+    # Track printed pairs
+    printed_pairs = set()
+
+    dup_flag = False
+    # Find and print matches
+    for fname, indices in filename_map.items():
+        if len(indices) > 1:  # Check if a filename appears in more than one row
+            for i in indices:
+                for j in indices:
+                    if i != j:
+                        dup_flag = True
+                        # Ensure consistent order for pairs
+                        pair = tuple(sorted((i, j)))
+                        if pair not in printed_pairs:
+                            logging.info(f"{i}, {j}, {fname}")
+                            printed_pairs.add(pair)
+
+    return dup_flag

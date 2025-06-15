@@ -10,6 +10,58 @@ from scipy.spatial.distance import cdist
 from ..utils import check_centers, list_duplicates, radec2lonlat
 
 
+def fnames_check_UCC_new_DB(
+    logging,
+    df_UCC: pd.DataFrame,
+    new_DB_fnames: list[list[str]],
+) -> bool:
+    """
+    Check that no fname associated to each entry in the new DB is listed in more than
+    one entry in the UCC.
+
+    Parameters
+    ----------
+    logging : logging.Logger
+        Logger object for outputting information.
+    df_UCC : pd.DataFrame
+        DataFrame representing the UCC.
+    new_DB_fnames : list
+        List of lists, each containing standardized names for a cluster in the new DB.
+
+    Returns
+    -------
+    bool
+        True if duplicate entries are found, False otherwise.
+    """
+    logging.info("\nChecking uniqueness of fnames")
+
+    # Create a dictionary to map filenames to their corresponding row indices
+    filename_map = {}
+    for i, fnames in enumerate(df_UCC["fnames"]):
+        for fname in fnames.split(";"):
+            if fname not in filename_map:
+                filename_map[fname] = []
+            filename_map[fname].append(i)
+
+    # Find and print matches between df_fnames and new_fnames
+    fnames_ucc_idxs = {}
+    for k, fnames in enumerate(new_DB_fnames):
+        fnames_ucc_idxs[k] = []
+        for fname in fnames:
+            if fname in filename_map:  # Check if the filename exists in df_fnames
+                # 'filename_map[fname]' will always contain a single element
+                fnames_ucc_idxs[k].append(filename_map[fname][0])
+
+    # Check if any new entry has more than one entry in the UCC associated to it
+    dup_flag = False
+    for k, v in fnames_ucc_idxs.items():
+        if len(v) > 1:
+            dup_flag = True
+            logging.info(f"{new_DB_fnames[k]} --> {v}")
+
+    return dup_flag
+
+
 def dups_fnames_inner_check(
     logging,
     new_DB: str,
@@ -18,7 +70,7 @@ def dups_fnames_inner_check(
     new_DB_fnames: list[list[str]],
 ) -> bool:
     """
-    Checks for duplicate entries within a new database that also exist in the UCC.
+    Checks for duplicate fnames in the new DB.
 
     Parameters
     ----------
@@ -32,12 +84,13 @@ def dups_fnames_inner_check(
         List of lists, each containing standardized names for a
         cluster in the new database.
 
-
     Returns
     -------
     bool
-        True if duplicate entries are found that need to be combined, False otherwise.
+        True if duplicate entries are found, False otherwise.
     """
+    logging.info("\nChecking for entries that must be combined")
+
     # Extract first fname for entries in new DB
     new_DB_fnames_0 = [fnames[0] for fnames in new_DB_fnames]
 
