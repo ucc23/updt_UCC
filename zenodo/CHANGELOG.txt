@@ -1,5 +1,12 @@
 Some of these are intermediate versions of the UCC database that are not published.
 
+
+## 25061610
+
+- Updated main name of 'Taurus moving cluster' to 'Hyades', issue #47
+
+
+
 ## 25061512
 
 - Updated 'Herbig 1' using N_memb=25, issue #51
