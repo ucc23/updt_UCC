@@ -11,8 +11,8 @@ tables_folder = ucc_path + "_tables/"
 dbs_tables_folder = tables_folder + "dbs/"
 # Path to the ucc site images folder
 images_folder = ucc_path + "images/"
-# Path to the compressed JSON file with clusters data
-clusters_json_path = ucc_path + "assets/clusters.json.gz"
+# Path to the compressed CSV file with clusters data
+clusters_csv_path = ucc_path + "assets/clusters.csv.gz"
 # Path to the md database file
 databases_md_path = pages_folder + "DATABASE.md"
 # Path to the md file with the tables
