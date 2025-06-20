@@ -1,3 +1,4 @@
+import re
 from difflib import SequenceMatcher
 
 import Levenshtein
@@ -407,8 +408,8 @@ def vdberg_check(logging, newDB_json: dict, df_new: pd.DataFrame) -> bool:
 
     Per CDS recommendation:
 
-    * VDBergh-Hagen --> VDBH
-    * VDBergh       --> VDB
+    * BH, VDBergh-Hagen --> VDBH
+    * VDBergh           --> VDB
 
     Parameters
     ----------
@@ -424,25 +425,41 @@ def vdberg_check(logging, newDB_json: dict, df_new: pd.DataFrame) -> bool:
     bool
         Boolean flag indicating if probable vdBergh-Hagen/vdBergh OCs were found.
     """
-    names_lst = ["vdBergh-Hagen", "vdBergh", "van den Bergh–Hagen", "van den Bergh"]
+    names_lst = [
+        "vdBergh-Hagen",
+        "vdBergh",
+        "van den Bergh–Hagen",
+        "van den Bergh",
+        "BH",
+        "VDB",
+        "VDBH",
+    ]
     names_lst = [_.lower().replace("-", "").replace(" ", "") for _ in names_lst]
 
-    vds_found = 0
+    vds_found = []
     for i, new_cl in enumerate(df_new[newDB_json["names"]]):
-        new_cl = (
-            new_cl.lower().strip().replace(" ", "").replace("-", "").replace("_", "")
+        new_cl_r = re.sub(r"\d", "", new_cl)  # Remove all numbers
+        new_cl_r = (
+            new_cl_r.lower().strip().replace(" ", "").replace("-", "").replace("_", "")
         )
+        if new_cl_r in names_lst:
+            continue
         for name_check in names_lst:
-            sm_ratio = SequenceMatcher(None, new_cl, name_check).ratio()
+            sm_ratio = SequenceMatcher(None, new_cl_r, name_check).ratio()
             if sm_ratio > 0.5:
-                vds_found += 1
-                logging.info(f"{i}, {new_cl} --> {name_check} (P={round(sm_ratio, 2)})")
+                vds_found.append([i, new_cl, name_check, round(sm_ratio, 2)])
                 break
 
-    vdb_flag = True
-    if vds_found == 0:
+    if len(vds_found) == 0:
         vdb_flag = False
-        logging.info("No probable vdBergh-Hagen/vdBergh OCs found")
+        logging.info("No vdBergh-Hagen/vdBergh found that need renaming")
+    else:
+        vdb_flag = True
+        logging.info(f"Found {len(vds_found)} entries that could need name editing")
+        logging.info("* BH ; vdBergh-Hagen --> VDBH")
+        logging.info("* vdBergh            --> VDB")
+        for i, new_cl, name_check, sm_ratio in vds_found:
+            logging.info(f"{i}, {new_cl} --> {name_check} (P={sm_ratio})")
 
     return vdb_flag
 
