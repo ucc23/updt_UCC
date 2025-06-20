@@ -206,6 +206,7 @@ def GCs_check(
                 [
                     idx,
                     df_new.iloc[idx][newDB_json["names"]],
+                    j1,
                     df_GCs["Name"][j1],
                     d_arcmin[j1],
                 ]
@@ -218,11 +219,11 @@ def GCs_check(
         gc_all = gc_all[:, i_sort].T
 
         gc_flag = True
-        logging.info(f"Found {GCs_found} probable GCs")
+        logging.info(f"Found {GCs_found} probable GCs:")
         for gc in gc_all:
-            idx, row_id, df_gcs_name, d_arcmin = gc
+            idx, row_id, idx_gc, df_gcs_name, d_arcmin = gc
             logging.info(
-                f"{idx:<10} {row_id:<15} --> {df_gcs_name.strip():<15}"
+                f"{idx:<6} {row_id:<15} --> {idx_gc:<6} {df_gcs_name.strip():<15}"
                 + f"d={round(float(d_arcmin), 2)}"
             )
     else:
