@@ -1,4 +1,3 @@
-from datetime import datetime
 from pathlib import Path
 
 import numpy as np
@@ -107,22 +106,42 @@ fpars_table_top = """\n
 | :---         |     :---:      |
 """
 
-close_table_top = """\n
-### Probable <a href="https://ucc.ar/faq#how-are-probable-duplicates-identified" title="See FAQ for definition of proximity">duplicates</a>
+cluster_region_plot = """\n
+### Cluster region
 
-| Cluster | P (%) | RA    | DEC   | Plx   | pmRA  | pmDE  | Rv    |
-| :---:   | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-"""
+<html lang="en">
+  <body>
+    <center>
+    <div id="plot-params"
+         data-oc-name="FOCNAME"
+         data-ra-center="RAICRS"
+         data-dec-center="DEICRS"
+         data-rad-deg="R50"
+         data-plx="PLX">
+    </div>
+    <div id="plot-container">
+        <div id="plot"></div>
+    </div>
+    <script defer type="module" src="{{ site.baseurl }}/scripts/radec_scatter.js"></script>
+    </center>
+  </body>
+</html>
 
-data_foot = """\n
 <br>
-<font color="b3b1b1"><i>Last modified: {}</i></font>
+Explore the region around OCNAME. Choose the distance range and the maximum number of
+clusters to plot using the sliders at the bottom.
+
+Click on any cluster to open its entry in a new page. Click on _View and edit_ at the
+bottom of the plot to explore the plotted data.
 """
 
+# data_foot = """\n
+# <br>
+# <font color="b3b1b1"><i>Last modified: {}</i></font>
+# """
 
-def make(
-    UCC_cl, fname0, Qfold, posit_table, img_cont, fpars_table, close_table, abcd_c
-):
+
+def make(UCC_cl, fname0, Qfold, posit_table, img_cont, fpars_table, abcd_c):
     """ """
     cl_names = UCC_cl["ID"].split(";")
 
@@ -183,11 +202,15 @@ def make(
         txt += fpars_table_top
         txt += fpars_table
 
-    if close_table != "":
-        txt += close_table_top
-        txt += close_table + "\n"
+    txt += (
+        cluster_region_plot.replace("FOCNAME", fname0)
+        .replace("RAICRS", str(round(UCC_cl["RA_ICRS"], 2)))
+        .replace("DEICRS", str(round(UCC_cl["DE_ICRS"], 2)))
+        .replace("R50", str(UCC_cl["r_50"]))
+        .replace("PLX", str(UCC_cl["Plx_m"]))
+        .replace("OCNAME", str(cl_names[0]))
+    )
 
-    txt += data_foot.format(datetime.today().strftime("%Y-%m-%d"))
     contents = "".join(txt)
 
     return contents
@@ -298,49 +321,49 @@ def carousel_div(root_UCC_path, plots_folder, cl_name, Qfold, fname0):
     return img_cont
 
 
-def close_cat_cluster(df_UCC, row):
-    """ """
-    close_table = ""
+# def close_cat_cluster(df_UCC, row):
+#     """ """
+#     close_table = ""
 
-    if str(row["dups_fnames_m"]) == "nan":
-        return close_table
+#     if str(row["dups_fnames_m"]) == "nan":
+#         return close_table
 
-    fnames0 = [_.split(";")[0] for _ in df_UCC["fnames"]]
+#     fnames0 = [_.split(";")[0] for _ in df_UCC["fnames"]]
 
-    dups_fnames = row["dups_fnames_m"].split(";")
-    dups_probs = row["dups_probs_m"].split(";")
+#     dups_fnames = row["dups_fnames_m"].split(";")
+#     dups_probs = row["dups_probs_m"].split(";")
 
-    for i, fname in enumerate(dups_fnames):
-        j = fnames0.index(fname)
-        name = df_UCC["ID"][j].split(";")[0]
+#     for i, fname in enumerate(dups_fnames):
+#         j = fnames0.index(fname)
+#         name = df_UCC["ID"][j].split(";")[0]
 
-        vals = []
-        for col in ("RA_ICRS_m", "DE_ICRS_m", "Plx_m", "pmRA_m", "pmDE_m", "Rv_m"):
-            val = round(float(df_UCC[col][j]), 3)
-            if np.isnan(val):
-                vals.append("--")
-            else:
-                vals.append(val)
-        val = round(float(dups_probs[i]), 3)
-        if np.isnan(val):
-            vals.append("--")
-        else:
-            vals.append(val)
+#         vals = []
+#         for col in ("RA_ICRS_m", "DE_ICRS_m", "Plx_m", "pmRA_m", "pmDE_m", "Rv_m"):
+#             val = round(float(df_UCC[col][j]), 3)
+#             if np.isnan(val):
+#                 vals.append("--")
+#             else:
+#                 vals.append(val)
+#         val = round(float(dups_probs[i]), 3)
+#         if np.isnan(val):
+#             vals.append("--")
+#         else:
+#             vals.append(val)
 
-        ra, dec, plx, pmRA, pmDE, Rv, prob = vals
+#         ra, dec, plx, pmRA, pmDE, Rv, prob = vals
 
-        close_table += f"|[{name}](/_clusters/{fname}/)| "
-        close_table += f"{int(100 * prob)} | "
-        close_table += f"{ra} | "
-        close_table += f"{dec} | "
-        close_table += f"{plx} | "
-        close_table += f"{pmRA} | "
-        close_table += f"{pmDE} | "
-        close_table += f"{Rv} |\n"
-    # Remove final new line
-    close_table = close_table[:-1]
+#         close_table += f"|[{name}](/_clusters/{fname}/)| "
+#         close_table += f"{int(100 * prob)} | "
+#         close_table += f"{ra} | "
+#         close_table += f"{dec} | "
+#         close_table += f"{plx} | "
+#         close_table += f"{pmRA} | "
+#         close_table += f"{pmDE} | "
+#         close_table += f"{Rv} |\n"
+#     # Remove final new line
+#     close_table = close_table[:-1]
 
-    return close_table
+#     return close_table
 
 
 def fpars_in_lit(
