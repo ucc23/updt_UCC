@@ -69,7 +69,7 @@ def radec2lonlat(ra: float | list, dec: float | list) -> tuple[float, float]:
     """
     gc = SkyCoord(ra=ra * u.degree, dec=dec * u.degree)  # pyright: ignore
     lb = gc.transform_to("galactic")
-    return lb.l.value, lb.b.value
+    return lb.l.value, lb.b.value  # pyright: ignore
 
 
 def check_centers(
