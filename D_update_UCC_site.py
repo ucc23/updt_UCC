@@ -1,4 +1,3 @@
-import gzip
 import json
 import os
 import re
@@ -9,7 +8,7 @@ import pandas as pd
 
 from modules.HARDCODED import (
     UCC_folder,
-    clusters_json_path,
+    clusters_csv_path,
     databases_md_path,
     dbs_folder,
     dbs_tables_folder,
@@ -19,26 +18,14 @@ from modules.HARDCODED import (
     name_DBs_json,
     pages_folder,
     plots_folder,
-    tables_folder,
     tables_md_path,
     temp_fold,
 )
 from modules.update_site import ucc_entry, ucc_plots
 from modules.update_site.main_files_updt import (
-    count_dups,
-    count_N50membs,
-    count_OCs_classes,
-    memb_number_table,
     ucc_n_total_updt,
-    updt_C3_classification,
-    updt_C3_tables,
     updt_cats_used,
     updt_DBs_tables,
-    updt_dups_table,
-    updt_dups_tables,
-    updt_n50members_tables,
-    updt_OCs_per_quad,
-    updt_quad_tables,
 )
 from modules.utils import file_checker, get_last_version_UCC, logger
 
@@ -74,10 +61,8 @@ def main():
     (
         ucc_file_path,
         root_UCC_path,
-        temp_gz_JSON_path,
-        ucc_gz_JSON_path,
-        temp_tables_path,
-        ucc_tables_path,
+        temp_gz_CSV_path,
+        ucc_gz_CSV_path,
         temp_dbs_tables_path,
         ucc_dbs_tables_path,
         temp_entries_path,
@@ -92,11 +77,15 @@ def main():
     with open(temp_zenodo_README, "r") as f:
         dataf = f.read()
         match = re.search(r"combined (\d+) members", dataf)
+        if match is None:
+            raise ValueError(
+                "Could not find the total number of members in the Zenodo README.txt file."
+            )
         N_members_UCC = int(match.group(1))
     logging.info(f"Total number of members extracted: {N_members_UCC}")
 
     # Load required files
-    df_UCC, df_tables, current_JSON, DBs_full_data, database_md, tables_md = load_data(
+    df_UCC, df_tables, current_JSON, DBs_full_data, database_md = load_data(
         logging, ucc_file_path, root_UCC_path
     )
 
@@ -118,21 +107,18 @@ def main():
         updt_ucc_main_files(
             logging,
             temp_image_path,
-            temp_tables_path,
-            ucc_tables_path,
             temp_dbs_tables_path,
             ucc_dbs_tables_path,
             df_UCC,
             current_JSON,
             database_md,
-            tables_md,
             df_tables,
             N_members_UCC,
         )
 
     # Update JSON file
     if input("\nUpdate JSON file? (y/n): ").lower() == "y":
-        updt_cls_JSON(logging, ucc_gz_JSON_path, temp_gz_JSON_path, df_tables)
+        updt_cls_JSON(logging, ucc_gz_CSV_path, temp_gz_CSV_path, df_tables)
 
     if input("\nMove files to their final destination? (y/n): ").lower() == "y":
         move_files(
@@ -162,8 +148,6 @@ def load_paths(
     str,
     str,
     str,
-    str,
-    str,
 ]:
     """ """
     # Full path to the current UCC csv file
@@ -173,20 +157,20 @@ def load_paths(
     root_UCC_path = os.path.dirname(os.getcwd()) + "/"
 
     # UCC and temp path to compressed JSON file
-    ucc_gz_JSON_path = root_UCC_path + clusters_json_path
-    temp_gz_JSON_path = temp_fold + clusters_json_path
+    ucc_gz_CSV_path = root_UCC_path + clusters_csv_path
+    temp_gz_CSV_path = temp_fold + clusters_csv_path
 
     # Temp path to the ucc pages
     temp_pages_path = temp_fold + pages_folder
     if not os.path.exists(temp_pages_path):
         os.makedirs(temp_pages_path)
 
-    # Temp path to the ucc table files
-    temp_tables_path = temp_fold + tables_folder
-    if not os.path.exists(temp_tables_path):
-        os.makedirs(temp_tables_path)
-    # Root path to the ucc table files
-    ucc_tables_path = root_UCC_path + tables_folder
+    # # Temp path to the ucc table files
+    # temp_tables_path = temp_fold + tables_folder
+    # if not os.path.exists(temp_tables_path):
+    #     os.makedirs(temp_tables_path)
+    # # Root path to the ucc table files
+    # ucc_tables_path = root_UCC_path + tables_folder
 
     # Temp path to the ucc table files for each DB
     temp_dbs_tables_path = temp_fold + dbs_tables_folder
@@ -210,10 +194,8 @@ def load_paths(
     return (
         ucc_file_path,
         root_UCC_path,
-        temp_gz_JSON_path,
-        ucc_gz_JSON_path,
-        temp_tables_path,
-        ucc_tables_path,
+        temp_gz_CSV_path,
+        ucc_gz_CSV_path,
         temp_dbs_tables_path,
         ucc_dbs_tables_path,
         temp_entries_path,
@@ -224,7 +206,7 @@ def load_paths(
 
 def load_data(
     logging, ucc_file_path: str, root_UCC_path: str
-) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, dict, str, str]:
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, dict, str]:
     """ """
 
     df_UCC = pd.read_csv(ucc_file_path)
@@ -246,11 +228,11 @@ def load_data(
     with open(root_UCC_path + databases_md_path) as file:
         database_md = file.read()
 
-    # Load TABLES.md file
-    with open(root_UCC_path + tables_md_path) as file:
-        tables_md = file.read()
+    # # Load TABLES.md file
+    # with open(root_UCC_path + tables_md_path) as file:
+    #     tables_md = file.read()
 
-    return df_UCC, df_tables, current_JSON, DBs_full_data, database_md, tables_md
+    return df_UCC, df_tables, current_JSON, DBs_full_data, database_md
 
 
 def updt_UCC(df_UCC: pd.DataFrame) -> pd.DataFrame:
@@ -387,8 +369,8 @@ def make_entry(
         current_JSON, DBs_full_data, UCC_cl["DB"], UCC_cl["DB_i"]
     )
 
-    # Generate table with close OCs
-    close_table = ucc_entry.close_cat_cluster(df_UCC, UCC_cl)
+    # # Generate table with close OCs
+    # close_table = ucc_entry.close_cat_cluster(df_UCC, UCC_cl)
 
     # Get colors used by the 'CX' classification
     abcd_c = ucc_entry.UCC_color(UCC_cl["C3"])
@@ -401,7 +383,6 @@ def make_entry(
         posit_table,
         img_cont,
         fpars_table,
-        close_table,
         abcd_c,
     )
 
@@ -490,14 +471,11 @@ def make_plots(
 def updt_ucc_main_files(
     logging,
     temp_image_path,
-    temp_tables_path,
-    ucc_tables_path,
     temp_dbs_tables_path,
     ucc_dbs_tables_path,
     df_UCC,
     current_JSON,
     database_md,
-    tables_md,
     df_tables,
     N_members_UCC,
 ):
@@ -508,27 +486,17 @@ def updt_ucc_main_files(
     # pc_rad = pc_radius(df_UCC["r_50"].values, df_UCC["Plx_m"].values)
 
     # Count number of OCs in each class
-    OCs_per_class = count_OCs_classes(df_UCC["C3"], class_order)
-    # Mask with duplicates
-    dups_msk = count_dups(df_UCC)
+    # OCs_per_class = count_OCs_classes(df_UCC["C3"], class_order)
+    # # Mask with duplicates
+    # dups_msk = count_dups(df_UCC)
     # Mask with N50 members
-    membs_msk = count_N50membs(df_UCC)
+    # membs_msk = count_N50membs(df_UCC)
 
     # Update site plots
-    make_site_plots(logging, temp_image_path, df_UCC, OCs_per_class)
+    make_site_plots(logging, temp_image_path, df_UCC)
 
-    # Update DATABASE.md and TABLES.md files (store in temp folder)
-    update_main_pages(
-        logging,
-        current_JSON,
-        df_UCC,
-        database_md,
-        tables_md,
-        OCs_per_class,
-        dups_msk,
-        membs_msk,
-        N_members_UCC,
-    )
+    # Update DATABASE.md
+    update_main_pages(logging, current_JSON, df_UCC, database_md, N_members_UCC)
 
     # Update pages for individual databases
     new_tables_dict = updt_DBs_tables(current_JSON, df_tables)
@@ -536,32 +504,32 @@ def updt_ucc_main_files(
         logging, ucc_dbs_tables_path, temp_dbs_tables_path, new_tables_dict
     )
 
-    # Update page with N members
-    new_tables_dict = updt_n50members_tables(df_tables, membs_msk)
-    general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
+    # # Update page with N members
+    # new_tables_dict = updt_n50members_tables(df_tables, membs_msk)
+    # general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
+
+    # #
+    # new_tables_dict = updt_C3_tables(df_tables, class_order)
+    # general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
 
     #
-    new_tables_dict = updt_C3_tables(df_tables, class_order)
-    general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
+    # new_tables_dict = updt_dups_tables(df_tables, dups_msk)
+    # general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
 
     #
-    new_tables_dict = updt_dups_tables(df_tables, dups_msk)
-    general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
-
-    #
-    new_tables_dict = updt_quad_tables(df_tables)
-    general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
+    # new_tables_dict = updt_quad_tables(df_tables)
+    # general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
 
 
-def make_site_plots(logging, temp_image_path, df_UCC, OCs_per_class):
+def make_site_plots(logging, temp_image_path, df_UCC):
     """ """
     ucc_plots.make_N_vs_year_plot(temp_image_path + "catalogued_ocs.webp", df_UCC)
     logging.info("Plot generated: number of OCs vs years")
 
-    ucc_plots.make_classif_plot(
-        temp_image_path + "classif_bar.webp", OCs_per_class, class_order
-    )
-    logging.info("Plot generated: classification histogram")
+    # ucc_plots.make_classif_plot(
+    #     temp_image_path + "classif_bar.webp", OCs_per_class, class_order
+    # )
+    # logging.info("Plot generated: classification histogram")
 
 
 def update_main_pages(
@@ -569,43 +537,40 @@ def update_main_pages(
     current_JSON,
     df_UCC,
     database_md,
-    tables_md,
-    OCs_per_class,
-    dups_msk,
-    membs_msk,
     N_members_UCC,
 ):
-    """Update DATABASE.md and TABLES.md files"""
+    """Update DATABASE.md"""
 
     # Update the total number of entries, databases, and members in the UCC
     N_db_UCC, N_cl_UCC = len(current_JSON), len(df_UCC)
     database_md_updt = ucc_n_total_updt(
         logging, N_db_UCC, N_cl_UCC, N_members_UCC, database_md
     )
+
+    # Update the table with the catalogues used in the UCC
+    database_md_updt = updt_cats_used(logging, df_UCC, current_JSON, database_md_updt)
+
     # Save updated page (temp)
     if database_md != database_md_updt:
         with open(temp_fold + databases_md_path, "w") as file:
             file.write(database_md_updt)
         logging.info("DATABASE.md updated")
 
-    # Update the table with the catalogues used in the UCC
-    tables_md_updt = updt_cats_used(logging, df_UCC, current_JSON, tables_md)
+    # tables_md_updt = updt_C3_classification(
+    #     logging, class_order, OCs_per_class, tables_md_updt
+    # )
 
-    tables_md_updt = updt_C3_classification(
-        logging, class_order, OCs_per_class, tables_md_updt
-    )
+    # tables_md_updt = updt_OCs_per_quad(logging, df_UCC, tables_md_updt)
 
-    tables_md_updt = updt_OCs_per_quad(logging, df_UCC, tables_md_updt)
+    # tables_md_updt = updt_dups_table(logging, dups_msk, tables_md_updt)
 
-    tables_md_updt = updt_dups_table(logging, dups_msk, tables_md_updt)
+    # tables_md_updt = memb_number_table(logging, membs_msk, tables_md_updt)
 
-    tables_md_updt = memb_number_table(logging, membs_msk, tables_md_updt)
-
-    # Save updated page (temp)
-    if database_md != tables_md_updt:
-        with open(temp_fold + tables_md_path, "w") as file:
-            file.write(tables_md_updt)
-        logging.info("TABLES.md updated")
+    # # Save updated page (temp)
+    # if database_md != tables_md_updt:
+    #     with open(temp_fold + tables_md_path, "w") as file:
+    #         file.write(tables_md_updt)
+    #     logging.info("TABLES.md updated")
 
 
 def general_table_update(
@@ -632,10 +597,10 @@ def general_table_update(
 
 
 def updt_cls_JSON(
-    logging, ucc_gz_JSON_path: str, temp_gz_JSON_path: str, df_tables: pd.DataFrame
+    logging, ucc_gz_CSV_path: str, temp_gz_CSV_path: str, df_tables: pd.DataFrame
 ) -> None:
     """
-    Update cluster.json file used by 'ucc.ar' search
+    Update cluster.csv file used by 'ucc.ar' search
     """
     df = pd.DataFrame(
         df_tables[
@@ -648,61 +613,71 @@ def updt_cls_JSON(
                 "GLAT",
                 "dist_pc",
                 "N_50",
+                "r_50",
             ]
         ]
     )
-    df = df.sort_values("ID")
+    df_new = df.sort_values("ID")
 
-    df.rename(
-        columns={
-            "ID": "N",
-            "fnames": "F",
-            "RA_ICRS": "R",
-            "DE_ICRS": "D",
-            "GLON": "L",
-            "GLAT": "B",
-            "dist_pc": "P",
-            "N_50": "M",
-        },
-        inplace=True,
-    )
-    json_new = df.to_dict(orient="records")
+    # df.rename(
+    #     columns={
+    #         "ID": "N",
+    #         "fnames": "F",
+    #         "RA_ICRS": "R",
+    #         "DE_ICRS": "D",
+    #         "GLON": "L",
+    #         "GLAT": "B",
+    #         "dist_pc": "P",
+    #         "N_50": "M",
+    #     },
+    #     inplace=True,
+    # )
+    # json_new = df.to_dict(orient="records")
 
     # Load the old JSON data
-    with gzip.open(ucc_gz_JSON_path, "rt", encoding="utf-8") as file:
-        json_old = json.load(file)
+    # with gzip.open(ucc_gz_JSON_path, "rt", encoding="utf-8") as file:
+    #     json_old = json.load(file)
+    df_old = pd.read_csv(ucc_gz_CSV_path, compression="gzip")
 
-    # Check if new JSON is equal to the old one
-    update_flag = False
-    if len(json_old) != len(json_new):
-        update_flag = True
-    else:
-        # True if JSONs are NOT equal
-        update_flag = not all(a == b for a, b in zip(json_old, json_new))
-        # Print differences to screen
-        for i, (dict1, dict2) in enumerate(zip(json_old, json_new)):
-            differing_keys = {
-                key
-                for key in dict1.keys() | dict2.keys()
-                if dict1.get(key) != dict2.get(key)
-            }
-            if differing_keys:
-                for key in differing_keys:
-                    logging.info(
-                        f"{i}, {key} --> OLD: {dict1.get(key)} | NEW: {dict2.get(key)}"
-                    )
+    # Check if the two DataFrames are equal
+    update_flag = not df_old.equals(df_new)
 
-    # Update JSON if required
+    # # Check if new JSON is equal to the old one
+    # update_flag = False
+    # if len(json_old) != len(df_new):
+    #     update_flag = True
+    # else:
+    #     # True if JSONs are NOT equal
+    #     update_flag = not all(a == b for a, b in zip(json_old, json_new))
+    #     # Print differences to screen
+    #     for i, (dict1, dict2) in enumerate(zip(json_old, json_new)):
+    #         differing_keys = {
+    #             key
+    #             for key in dict1.keys() | dict2.keys()
+    #             if dict1.get(key) != dict2.get(key)
+    #         }
+    #         if differing_keys:
+    #             for key in differing_keys:
+    #                 logging.info(
+    #                     f"{i}, {key} --> OLD: {dict1.get(key)} | NEW: {dict2.get(key)}"
+    #                 )
+
+    # Update CSV if required
     if update_flag is True:
-        df.to_json(
-            temp_gz_JSON_path,
-            orient="records",
-            indent=1,
+        # df.to_json(
+        #     temp_gz_JSON_path,
+        #     orient="records",
+        #     indent=1,
+        #     compression="gzip",
+        # )
+        df.to_csv(
+            temp_gz_CSV_path,
+            index=False,
             compression="gzip",
         )
-        logging.info("File 'clusters.json.gz' updated")
+        logging.info("File 'clusters.csv.gz' updated")
     else:
-        logging.info("File 'cluster.json.gz' not updated (no changes)")
+        logging.info("File 'cluster.csv.gz' not updated (no changes)")
 
 
 def move_files(
