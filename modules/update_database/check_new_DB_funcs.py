@@ -431,19 +431,21 @@ def vdberg_check(logging, newDB_json: dict, df_new: pd.DataFrame) -> bool:
         "van den Bergh–Hagen",
         "van den Bergh",
         "BH",
-        "VDB",
-        "VDBH",
     ]
     names_lst = [_.lower().replace("-", "").replace(" ", "") for _ in names_lst]
+    proper_names = ["VDBH", "VDB"]
 
     vds_found = []
     for i, new_cl in enumerate(df_new[newDB_json["names"]]):
         new_cl_r = re.sub(r"\d", "", new_cl)  # Remove all numbers
+
+        # If the root of the name is a proper name, skip check
+        if new_cl_r.split("_")[0].split(" ")[0] in proper_names:
+            continue
+
         new_cl_r = (
             new_cl_r.lower().strip().replace(" ", "").replace("-", "").replace("_", "")
         )
-        if new_cl_r in names_lst:
-            continue
         for name_check in names_lst:
             sm_ratio = SequenceMatcher(None, new_cl_r, name_check).ratio()
             if sm_ratio > 0.5:
