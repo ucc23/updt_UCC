@@ -27,7 +27,7 @@ from modules.update_database.add_new_DB_funcs import (
 )
 from modules.update_database.check_new_DB_funcs import (
     GCs_check,
-    close_OC_check,
+    close_OC_inner_check,
     close_OC_UCC_check,
     dups_check_newDB_UCC,
     dups_fnames_inner_check,
@@ -467,6 +467,19 @@ def check_new_DB(
     5. Checks for instances of 'vdBergh-Hagen' and 'vdBergh'.
     6. Checks positions and flags for attention if required.
     """
+    # Check for 'vdBergh-Hagen', 'vdBergh' OCs
+    logging.info("\nPossible vdBergh-Hagen/vdBergh check")
+    vdb_flag = vdberg_check(logging, newDB_json, df_new)
+    if vdb_flag:
+        if input("Move on? (y/n): ").lower() != "y":
+            sys.exit()
+
+    # Check for GCs
+    logging.info("\nClose GC check")
+    glon, glat, gc_flag = GCs_check(logging, df_GCs, newDB_json, df_new)
+    if gc_flag:
+        if input("Move on? (y/n): ").lower() != "y":
+            sys.exit()
 
     # Check all fnames in the new DB against all fnames in the UCC
     if fnames_check_UCC_new_DB(logging, df_UCC, new_DB_fnames):
@@ -480,33 +493,17 @@ def check_new_DB(
     if dups_check_newDB_UCC(logging, new_DB, df_UCC, new_DB_fnames, db_matches):
         raise ValueError("\nResolve the above issues before moving on")
 
-    # Check for GCs
-    logging.info("\nClose GC check")
-    glon, glat, gc_flag = GCs_check(logging, df_GCs, newDB_json, df_new)
-    if gc_flag:
-        if input("Move on? (y/n): ").lower() != "y":
-            sys.exit()
-
     # Check for OCs very close to each other in the new DB
     logging.info("\nProbable inner duplicates check")
-    inner_flag = close_OC_check(logging, newDB_json, df_new, rad_dup)
-    if inner_flag:
+    if close_OC_inner_check(logging, newDB_json, df_new, rad_dup):
         if input("Move on? (y/n): ").lower() != "y":
             sys.exit()
 
     # Check for OCs very close to other OCs in the UCC
     logging.info("\nProbable UCC duplicates check")
-    dups_flag = close_OC_UCC_check(
+    if close_OC_UCC_check(
         logging, df_UCC, new_DB_fnames, db_matches, glon, glat, rad_dup
-    )
-    if dups_flag:
-        if input("Move on? (y/n): ").lower() != "y":
-            sys.exit()
-
-    # Check for 'vdBergh-Hagen', 'vdBergh' OCs
-    logging.info("\nPossible vdBergh-Hagen/vdBergh check")
-    vdb_flag = vdberg_check(logging, newDB_json, df_new)
-    if vdb_flag:
+    ):
         if input("Move on? (y/n): ").lower() != "y":
             sys.exit()
 
