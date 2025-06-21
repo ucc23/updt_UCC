@@ -71,8 +71,6 @@ This script handles two cases:
 3. `run_mode="manual"`: Re-process entries already in the UCC. This requires a
    `manual_params.csv` file with the entries to re-process listed inside.
 
-
-
 When using the `new_DB` or `updt_DB` mode this script will:
 
 1. Check columns in the new DB

@@ -1,6 +1,12 @@
 Some of these are intermediate versions of the UCC database that are not published.
 
 
+## 25062111
+
+- Added DIAS2002
+
+
+
 ## 25061610
 
 - Updated main name of 'Taurus moving cluster' to 'Hyades', issue #47
@@ -44,7 +50,7 @@ files
 
 ## 25061410
 
-Found a few entries in the UCC with repeated names:
+Found entries in the UCC with repeated names:
 
 7117 7662 teutsch5
 7554 7672 fsr0848
@@ -107,7 +113,6 @@ become new entries.
 
 These changes result in 59 new entries added to the UCC out of the 223 being added by
 this DB updating process.
-
 
 
 
