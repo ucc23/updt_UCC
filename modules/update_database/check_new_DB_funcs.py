@@ -233,12 +233,13 @@ def GCs_check(
     return np.array(lb.l), np.array(lb.b), gc_flag
 
 
-def close_OC_check(
+def close_OC_inner_check(
     logging,
     newDB_json: dict,
     df_new: pd.DataFrame,
     rad_dup: float,
     leven_rad: float = 0.85,
+    sep: str = ",",
 ) -> bool:
     """
     Looks for OCs in the new DB that are close to other OCs in the new DB (RA, DEC)
@@ -273,52 +274,14 @@ def close_OC_check(
     msk = dist == 0.0
     dist[msk] = np.inf
 
-    idxs = np.arange(0, len(df_new))
-    all_dups, dups_list = [], []
-    for i, cl_d in enumerate(dist):
-        msk = cl_d < rad_dup
-        if msk.sum() == 0:
-            continue
+    col_1 = df_new[newDB_json["names"]]
+    col_2 = None
+    db_matches = None
+    ID_call = "inner"
 
-        cl_name = str(df_new[newDB_json["names"]][i]).strip()
-        if cl_name in dups_list:
-            # print(cl_name, "continue")
-            continue
-
-        N_inner_dups, dups, dist, L_ratios = 0, [], [], []
-        for j in idxs[msk]:
-            dup_name = str(df_new[newDB_json["names"]][j]).strip()
-
-            L_ratio = Levenshtein.ratio(cl_name, dup_name)
-            if L_ratio > leven_rad:
-                N_inner_dups += 1
-                dups_list.append(dup_name)
-                dups.append(dup_name)
-                dist.append(str(round(cl_d[j], 1)))
-                L_ratios.append(str(round(L_ratio, 2)))
-        if dups:
-            all_dups.append([i, cl_name, N_inner_dups, dups, dist, L_ratios])
-
-    inner_flag = False
-    dups_found = len(all_dups)
-    if dups_found > 0:
-        inner_flag = True
-        all_dists = []
-        for dup in all_dups:
-            all_dists.append(min([float(_) for _ in dup[-2]]))
-        i_sort = np.argsort(all_dists)
-
-        logging.info(f"Found {dups_found} probable inner duplicates")
-        for idx in i_sort:
-            i, cl_name, N_inner_dups, dups, dist, L_ratios = all_dups[idx]
-            logging.info(
-                f"{i:<10} {cl_name:<15} (N={N_inner_dups}) --> "
-                + f"{';'.join(dups):<15} d={';'.join(dist)}, L={';'.join(L_ratios)}"
-            )
-    else:
-        logging.info("No inner duplicates found")
-
-    return inner_flag
+    return close_OC_check(
+        logging, dist, db_matches, col_1, col_2, ID_call, rad_dup, leven_rad, sep
+    )
 
 
 def close_OC_UCC_check(
@@ -329,6 +292,8 @@ def close_OC_UCC_check(
     glon: np.ndarray,
     glat: np.ndarray,
     rad_dup: float,
+    leven_rad: float = 0.5,
+    sep: str = ";",
 ) -> bool:
     """
     Looks for OCs in the new DB that are close to OCs in the UCC (GLON, GLAT) but
@@ -358,46 +323,91 @@ def close_OC_UCC_check(
     bool
         Boolean flag indicating if probable UCC duplicates were found.
     """
-
     coords_new = np.array([glon, glat]).T
     coords_UCC = np.array([df_UCC["GLON"], df_UCC["GLAT"]]).T
     # Find the distances to all clusters, for all clusters (in arcmin)
     dist = cdist(coords_new, coords_UCC) * 60
 
-    idxs = np.arange(0, len(df_UCC))
-    dups_list, dups_found = [], []
+    col_1 = df_UCC["fnames"]
+    col_2 = new_DB_fnames
+    ID_call = "UCC"
+
+    return close_OC_check(
+        logging, dist, db_matches, col_1, col_2, ID_call, rad_dup, leven_rad, sep
+    )
+
+
+def close_OC_check(
+    logging,
+    dist,
+    db_matches,
+    col_1,
+    col_2,
+    ID_call: str,
+    rad_dup: float,
+    leven_rad: float,
+    sep: str,
+):
+    """ """
+    idxs = np.arange(0, len(col_1))
+    all_dups, dups_list = [], []
     for i, cl_d in enumerate(dist):
+        # If no OC is within rad_dup for this OC, continue with next
         msk = cl_d < rad_dup
         if msk.sum() == 0:
             continue
 
-        cl_name = ",".join(new_DB_fnames[i])
+        # Already in dups_list
+        if ID_call == "inner":
+            cl_name = str(col_1[i])
+        else:
+            cl_name = sep.join(col_2[i])
         if cl_name in dups_list:
             continue
 
-        if db_matches[i] is not None:
-            # cl_name is present in the UCC (df_UCC['fnames'][db_matches[i]])
-            continue
+        if ID_call == "UCC":
+            # If cl_name is present in the UCC (df_UCC['fnames'][db_matches[i]])
+            if db_matches[i] is not None:
+                continue
 
-        dups, dist = [], []
+        # For each OC within the rad_dup region
+        N_inner_dups, dups, dist, L_ratios = 0, [], [], []
         for j in idxs[msk]:
-            dup_name = df_UCC["fnames"][j]
-            dups_list.append(dup_name)
-            dups.append(dup_name)
-            dist.append(str(round(cl_d[j], 1)))
-        dups_found.append(
-            f"{i} {cl_name} (N={msk.sum()}) --> "
-            + f"{'|'.join(dups)}, d={'|'.join(dist)}"
-        )
+            dup_names = str(col_1[j]).split(sep)
 
-    dups_flag = True
-    if len(dups_found) > 0:
-        logging.info(f"Found {len(dups_found)} probable UCC duplicates")
-        for dup in dups_found:
-            logging.info(dup)
+            L_ratio = 0
+            for dup_name in dup_names:
+                L_ratio = max(L_ratio, Levenshtein.ratio(cl_name, dup_name.strip()))
+
+            if L_ratio > leven_rad:
+                N_inner_dups += 1
+                dups_list.append(sep.join(dup_names))
+                dups.append(sep.join(dup_names))
+                dist.append(str(round(cl_d[j], 1)))
+                L_ratios.append(str(round(L_ratio, 2)))
+        if dups:
+            all_dups.append([i, cl_name, N_inner_dups, dups, dist, L_ratios])
+
+    dups_flag = False
+    dups_found = len(all_dups)
+    if dups_found > 0:
+        dups_flag = True
+
+        # Extract indexes that sort by distance
+        all_dists = []
+        for dup in all_dups:
+            all_dists.append(min([float(_) for _ in dup[-2]]))
+        i_sort = np.argsort(all_dists)
+
+        logging.info(f"Found {dups_found} probable {ID_call} duplicates")
+        for idx in i_sort:
+            i, cl_name, N_inner_dups, dups, dist, L_ratios = all_dups[idx]
+            logging.info(
+                f"{i:<6} {cl_name:<15} (N={N_inner_dups}) --> "
+                + f"{';'.join(dups):<15} | d={';'.join(dist)}, L={';'.join(L_ratios)}"
+            )
     else:
-        dups_flag = False
-        logging.info("No UCC duplicates found")
+        logging.info("No {ID_call} duplicates found")
 
     return dups_flag
 
