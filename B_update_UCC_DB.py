@@ -52,7 +52,7 @@ from modules.update_database.standardize_and_match_funcs import (
     get_fnames_new_DB,
     get_matches_new_DB,
 )
-from modules.utils import file_checker, get_last_version_UCC, logger
+from modules.utils import file_checker, get_last_version_UCC, logger, radec2lonlat
 
 # Paths to the Gaia DR3 files in external drive
 root = "/media/gabriel/backup/gabriel/GaiaDR3/"
