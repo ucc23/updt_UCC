@@ -15,8 +15,8 @@ images_folder = ucc_path + "images/"
 clusters_csv_path = ucc_path + "assets/clusters.csv.gz"
 # Path to the md database file
 databases_md_path = pages_folder + "DATABASE.md"
-# Path to the md file with the tables
-tables_md_path = pages_folder + "TABLES.md"
+# # Path to the md file with the tables
+# tables_md_path = pages_folder + "TABLES.md"
 
 # Q folders paths
 #
