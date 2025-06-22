@@ -474,12 +474,18 @@ def check_new_DB(
         if input("Move on? (y/n): ").lower() != "y":
             sys.exit()
 
-    # Check for GCs
-    logging.info("\nClose GC check")
-    glon, glat, gc_flag = GCs_check(logging, df_GCs, newDB_json, df_new)
-    if gc_flag:
-        if input("Move on? (y/n): ").lower() != "y":
-            sys.exit()
+    ra_new, dec_new, lon_new, lat_new = None, None, None, None
+    if "RA" in newDB_json["pos"].keys() and "DEC" in newDB_json["pos"].keys():
+        ra_new = df_new[newDB_json["pos"]["RA"]].values
+        dec_new = df_new[newDB_json["pos"]["DEC"]].values
+        lon_new, lat_new = radec2lonlat(ra_new, dec_new)
+
+    if lon_new is not None:
+        # Check for GCs
+        logging.info("\nClose GC check")
+        if GCs_check(logging, df_GCs, newDB_json, df_new, lon_new, lat_new):
+            if input("Move on? (y/n): ").lower() != "y":
+                sys.exit()
 
     # Check all fnames in the new DB against all fnames in the UCC
     if fnames_check_UCC_new_DB(logging, df_UCC, new_DB_fnames):
@@ -493,19 +499,20 @@ def check_new_DB(
     if dups_check_newDB_UCC(logging, new_DB, df_UCC, new_DB_fnames, db_matches):
         raise ValueError("\nResolve the above issues before moving on")
 
-    # Check for OCs very close to each other in the new DB
-    logging.info("\nProbable inner duplicates check")
-    if close_OC_inner_check(logging, newDB_json, df_new, rad_dup):
-        if input("Move on? (y/n): ").lower() != "y":
-            sys.exit()
+    if ra_new is not None:
+        # Check for OCs very close to each other in the new DB
+        logging.info("\nProbable inner duplicates check")
+        if close_OC_inner_check(logging, newDB_json, df_new, ra_new, dec_new, rad_dup):
+            if input("Move on? (y/n): ").lower() != "y":
+                sys.exit()
 
-    # Check for OCs very close to other OCs in the UCC
-    logging.info("\nProbable UCC duplicates check")
-    if close_OC_UCC_check(
-        logging, df_UCC, new_DB_fnames, db_matches, glon, glat, rad_dup
-    ):
-        if input("Move on? (y/n): ").lower() != "y":
-            sys.exit()
+        # Check for OCs very close to other OCs in the UCC
+        logging.info("\nProbable UCC duplicates check")
+        if close_OC_UCC_check(
+            logging, df_UCC, new_DB_fnames, db_matches, lon_new, lat_new, rad_dup
+        ):
+            if input("Move on? (y/n): ").lower() != "y":
+                sys.exit()
 
     # Prepare information from a new database matched with the UCC
     new_db_info = prep_newDB(newDB_json, df_new, new_DB_fnames, db_matches)
