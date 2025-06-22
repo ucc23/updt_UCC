@@ -5,7 +5,7 @@ import Levenshtein
 import numpy as np
 import pandas as pd
 from astropy import units as u
-from astropy.coordinates import SkyCoord, angular_separation
+from astropy.coordinates import angular_separation
 from scipy.spatial.distance import cdist
 
 from ..utils import check_centers, list_duplicates, radec2lonlat
@@ -159,8 +159,10 @@ def GCs_check(
     df_GCs: pd.DataFrame,
     newDB_json: dict,
     df_new: pd.DataFrame,
+    glon,
+    glat,
     search_rad: float = 15,
-) -> tuple[np.ndarray, np.ndarray, bool]:
+) -> bool:
     """
     Check for nearby GCs for a new database
 
@@ -179,19 +181,10 @@ def GCs_check(
 
     Returns
     -------
-    tuple
-        A tuple containing:
-        - Array of galactic longitudes of the clusters in the new database.
-        - Array of galactic latitudes of the clusters in the new database.
-        - Boolean flag indicating if probable GCs were found.
+    bool
+        Flag indicating if probable GCs were found.
     """
-    # Equatorial to galactic
-    gc = SkyCoord(
-        ra=df_new[newDB_json["pos"]["RA"]].values * u.deg,  # pyright: ignore
-        dec=df_new[newDB_json["pos"]["DEC"]].values * u.deg,  # pyright: ignore
-    )
-    lb = gc.transform_to("galactic")
-    glon_glat = list(zip(*[lb.l, lb.b]))
+    glon_glat = list(zip(*[glon, glat]))
 
     # Read GCs DB
     l_gc, b_gc = df_GCs["GLON"].values * u.deg, df_GCs["GLAT"].values * u.deg  # pyright: ignore
@@ -230,13 +223,15 @@ def GCs_check(
     else:
         logging.info("No probable GCs found")
 
-    return np.array(lb.l), np.array(lb.b), gc_flag
+    return gc_flag
 
 
 def close_OC_inner_check(
     logging,
     newDB_json: dict,
     df_new: pd.DataFrame,
+    ra,
+    dec,
     rad_dup: float,
     leven_rad: float = 0.85,
     sep: str = ",",
@@ -263,11 +258,7 @@ def close_OC_inner_check(
     bool
         Boolean flag indicating if probable inner duplicates were found.
     """
-    x, y = (
-        df_new[newDB_json["pos"]["RA"]].values,
-        df_new[newDB_json["pos"]["DEC"]].values,
-    )
-    coords = np.array([x, y]).T
+    coords = np.array([ra, dec]).T
     # Find the distances to all clusters, for all clusters (in arcmin)
     dist = cdist(coords, coords) * 60
     # Change distance to itself from 0 to inf
@@ -289,8 +280,8 @@ def close_OC_UCC_check(
     df_UCC: pd.DataFrame,
     new_DB_fnames: list[list[str]],
     db_matches: list[int | None],
-    glon: np.ndarray,
-    glat: np.ndarray,
+    glon,
+    glat,
     rad_dup: float,
     leven_rad: float = 0.5,
     sep: str = ";",
@@ -530,8 +521,10 @@ def prep_newDB(
         row_n = df_new.iloc[i]
 
         # Coordinates for this cluster in the new DB
-        plx_n, pmra_n, pmde_n = np.nan, np.nan, np.nan
-        ra_n, dec_n = row_n[newDB_json["pos"]["RA"]], row_n[newDB_json["pos"]["DEC"]]
+        ra_n, dec_n, plx_n, pmra_n, pmde_n = np.nan, np.nan, np.nan, np.nan, np.nan
+        if "RA" in newDB_json["pos"]:
+            ra_n = row_n[newDB_json["pos"]["RA"]]
+            dec_n = row_n[newDB_json["pos"]["DEC"]]
         if "plx" in newDB_json["pos"]:
             plx_n = row_n[newDB_json["pos"]["plx"]]
         if "pmra" in newDB_json["pos"]:
