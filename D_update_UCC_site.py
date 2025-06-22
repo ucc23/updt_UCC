@@ -18,7 +18,6 @@ from modules.HARDCODED import (
     name_DBs_json,
     pages_folder,
     plots_folder,
-    tables_md_path,
     temp_fold,
 )
 from modules.update_site import ucc_entry, ucc_plots
