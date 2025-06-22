@@ -407,7 +407,7 @@ def close_OC_check(
                 + f"{';'.join(dups):<15} | d={';'.join(dist)}, L={';'.join(L_ratios)}"
             )
     else:
-        logging.info("No {ID_call} duplicates found")
+        logging.info(f"No {ID_call} duplicates found")
 
     return dups_flag
 
