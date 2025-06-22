@@ -756,6 +756,26 @@
     },
     "e_pars": {}
   },
+  "PIATTI2023": {
+    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2023MNRAS.518.6216P",
+    "vizier_url": "N/A",
+    "authors": "Piatti et al.",
+    "year": "2023",
+    "names": "Name",
+    "pos": {},
+    "pars": {
+      "age": "Log(t)",
+      "met": "[Fe/H]",
+      "mass": "Mass",
+      "bi_frac": "binar_fr"
+    },
+    "e_pars": {
+      "e_age": "e_Log(t)",
+      "e_met": "e_[Fe/H]",
+      "e_mass": "e_Mass",
+      "e_bi_frac": "e_binar_fr"
+    }
+  },
   "CHI2023": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/2023ApJS..265...20C",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2023ApJS..265...20C",
@@ -956,6 +976,27 @@
       "pmde": "pmdec"
     },
     "pars": {},
+    "e_pars": {}
+  },
+  "ALFONSO2024": {
+    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2024A%26A...689A..18A",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2024A%26A...689A..18A",
+    "authors": "Alfonso et al.",
+    "year": "2024",
+    "names": "Cluster",
+    "pos": {
+      "RA": "RA_ICRS",
+      "DEC": "DE_ICRS",
+      "plx": "Plx",
+      "pmra": "pmRA",
+      "pmde": "pmDE"
+    },
+    "pars": {
+      "ext": "AV",
+      "dist": "MOD",
+      "age": "logAge",
+      "met": "Z"
+    },
     "e_pars": {}
   },
   "CAVALLO2024": {
