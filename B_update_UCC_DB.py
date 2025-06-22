@@ -469,8 +469,7 @@ def check_new_DB(
     """
     # Check for 'vdBergh-Hagen', 'vdBergh' OCs
     logging.info("\nPossible vdBergh-Hagen/vdBergh check")
-    vdb_flag = vdberg_check(logging, newDB_json, df_new)
-    if vdb_flag:
+    if vdberg_check(logging, newDB_json, df_new):
         if input("Move on? (y/n): ").lower() != "y":
             sys.exit()
 
@@ -518,8 +517,7 @@ def check_new_DB(
     new_db_info = prep_newDB(newDB_json, df_new, new_DB_fnames, db_matches)
 
     # Check positions and flag for attention if required
-    attention_flag = positions_check(logging, df_UCC, new_db_info, rad_dup)
-    if attention_flag is True:
+    if positions_check(logging, df_UCC, new_db_info, rad_dup):
         if input("\nMove on? (y/n): ").lower() != "y":
             sys.exit()
 
