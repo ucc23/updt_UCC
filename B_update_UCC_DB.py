@@ -67,15 +67,15 @@ gaia_max_mag = 20
 # =========================================================================
 # Select the mode used to run the script
 
-# # Add a new DB
-# run_mode = "new_DB"
+# Add a new DB
+run_mode = "new_DB"
 
 # # Update the UCC for selected entries listed in the 'manual_pars' file
 # run_mode = "manual"
 
-# Update a database already included in the UCC
-run_mode = "updt_DB"
-updt_DB_name = "HE2022_1"
+# # Update a database already included in the UCC
+# run_mode = "updt_DB"
+# updt_DB_name = "CHI2023_1"
 # =========================================================================
 
 
