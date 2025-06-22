@@ -205,6 +205,33 @@
     "pars": {},
     "e_pars": {}
   },
+  "DIAS2019": {
+    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2019MNRAS.486.5726D",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2019MNRAS.486.5726D",
+    "authors": "Dias et al.",
+    "year": "2019",
+    "names": "Name",
+    "pos": {
+      "RA": "RAJ2000",
+      "DEC": "DEJ2000",
+      "plx": "plx",
+      "pmra": "pmRA",
+      "pmde": "pmDE",
+      "Rv": "RV"
+    },
+    "pars": {
+      "ext": "E(B-V)",
+      "dist": "Dist",
+      "age": "logAge",
+      "met": "Z"
+    },
+    "e_pars": {
+      "e_ext": "e_E(B-V)",
+      "e_dist": "e_Dist",
+      "e_age": "e_logAge",
+      "e_met": "e_Z"
+    }
+  },
   "BICA2019": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/2019AJ....157...12B",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2019AJ....157...12B",
