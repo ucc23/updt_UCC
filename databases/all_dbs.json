@@ -205,6 +205,27 @@
     "pars": {},
     "e_pars": {}
   },
+  "ANGELO2019": {
+    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2019A%26A...624A...8A",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2019A%26A...624A...8A",
+    "authors": "Angelo et al.",
+    "year": "2019",
+    "names": "Cluster",
+    "pos": {
+      "RA": "RAJ2000",
+      "DEC": "DEJ2000"
+    },
+    "pars": {
+      "dist": "dsun",
+      "age": "Age",
+      "mass": "Mphot"
+    },
+    "e_pars": {
+      "e_dist": "e_dsun",
+      "e_age": "e_Age",
+      "e_mass": "e_Mphot"
+    }
+  },
   "DIAS2019": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/2019MNRAS.486.5726D",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2019MNRAS.486.5726D",
