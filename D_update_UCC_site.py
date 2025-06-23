@@ -115,9 +115,9 @@ def main():
             N_members_UCC,
         )
 
-    # Update JSON file
-    if input("\nUpdate JSON file? (y/n): ").lower() == "y":
-        updt_cls_JSON(logging, ucc_gz_CSV_path, temp_gz_CSV_path, df_tables)
+    # Update CSV file
+    if input("\nUpdate clusters CSV file? (y/n): ").lower() == "y":
+        updt_cls_CSV(logging, ucc_gz_CSV_path, temp_gz_CSV_path, df_tables)
 
     if input("\nMove files to their final destination? (y/n): ").lower() == "y":
         move_files(
@@ -593,7 +593,7 @@ def general_table_update(
             logging.info(f"Table {table_name} {txt}")
 
 
-def updt_cls_JSON(
+def updt_cls_CSV(
     logging, ucc_gz_CSV_path: str, temp_gz_CSV_path: str, df_tables: pd.DataFrame
 ) -> None:
     """
