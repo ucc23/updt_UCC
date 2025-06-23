@@ -159,7 +159,10 @@ def load_paths(
     ucc_gz_CSV_path = root_UCC_path + clusters_csv_path
     temp_gz_CSV_path = temp_fold + clusters_csv_path
 
-    # Temp path to the ucc pages
+    # Temp path to the ucc assets and pages
+    temp_assets_path = temp_fold + assets_folder
+    if not os.path.exists(temp_assets_path):
+        os.makedirs(temp_assets_path)
     temp_pages_path = temp_fold + pages_folder
     if not os.path.exists(temp_pages_path):
         os.makedirs(temp_pages_path)
