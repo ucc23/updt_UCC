@@ -978,6 +978,27 @@
     "pars": {},
     "e_pars": {}
   },
+  "HUNT2024": {
+    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2024A%26A...686A..42H",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2024A%26A...686A..42H",
+    "authors": "Hunt & Reffert",
+    "year": "2024",
+    "names": "Name",
+    "pos": {
+      "RA": "RA_ICRS",
+      "DEC": "DE_ICRS",
+      "plx": "Plx",
+      "pmra": "pmRA",
+      "pmde": "pmDE",
+      "Rv": "RV"
+    },
+    "pars": {
+      "mass": "MassJ"
+    },
+    "e_pars": {
+      "e_mass": "e_MassJ"
+    }
+  },
   "ALFONSO2024": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/2024A%26A...689A..18A",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2024A%26A...689A..18A",
