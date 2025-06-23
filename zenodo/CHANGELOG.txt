@@ -1,6 +1,11 @@
 Some of these are intermediate versions of the UCC database that are not published.
 
 
+## 25062311
+
+- Added HUNT2024
+
+
 ## 25062211
 
 - Added PIATTI2023
