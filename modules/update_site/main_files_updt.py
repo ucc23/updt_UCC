@@ -1,5 +1,7 @@
+import os
 from itertools import islice
 
+import fastparquet
 import numpy as np
 
 from .ucc_entry import UCC_color
@@ -134,6 +136,44 @@ def replace_text_between(
             leading_text + delimiter_a + replacement_text + delimiter_b + trailing_text
         )
     return leading_text + delimiter_a + replacement_text
+
+
+def count_N_members_UCC(members_folder):
+    """ """
+    # Initialize total row count
+    N_members_UCC = 0
+    # Process all Q folders
+    for qN in range(1, 5):
+        for lat in ("P", "N"):
+            qfold = f"Q{qN}{lat}/"
+            qpath = f"../{qfold}{members_folder}"
+
+            # Pre-filter files directly from the directory listing
+            files = (
+                file
+                for file in os.listdir(qpath)
+                if "HUNT23" not in file and "CANTAT20" not in file
+            )
+
+            for file in files:
+                # Read Parquet metadata without loading full data
+                pf = fastparquet.ParquetFile(os.path.join(qpath, file))
+                N_members_UCC += pf.count()
+
+    # # Extract the total number of members from the "README.txt" stored in the
+    # # folder 'temp_updt/zenodo/' by the previous script. Run here to fail early if
+    # # something is wrong
+    # temp_zenodo_README = temp_fold + UCC_folder + "README.txt"
+    # with open(temp_zenodo_README, "r") as f:
+    #     dataf = f.read()
+    #     match = re.search(r"combined (\d+) members", dataf)
+    #     if match is None:
+    #         raise ValueError(
+    #             "Could not find the total number of members in the Zenodo README.txt file."
+    #         )
+    #     N_members_UCC = int(match.group(1))
+
+    return N_members_UCC
 
 
 def ucc_n_total_updt(logging, N_db_UCC, N_cl_UCC, N_members_UCC, database_md):
