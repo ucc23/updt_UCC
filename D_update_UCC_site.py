@@ -1,6 +1,5 @@
 import json
 import os
-import re
 from pathlib import Path
 
 import numpy as np
@@ -8,6 +7,7 @@ import pandas as pd
 
 from modules.HARDCODED import (
     UCC_folder,
+    assets_folder,
     clusters_csv_path,
     databases_md_path,
     dbs_folder,
@@ -22,6 +22,7 @@ from modules.HARDCODED import (
 )
 from modules.update_site import ucc_entry, ucc_plots
 from modules.update_site.main_files_updt import (
+    count_N_members_UCC,
     ucc_n_total_updt,
     updt_cats_used,
     updt_DBs_tables,
@@ -69,20 +70,6 @@ def main():
         temp_image_path,
     ) = load_paths(UCC_last_version)
 
-    # Extract the total number of members from the "README.txt" stored in the
-    # folder 'temp_updt/zenodo/' by the previous script. Run here to fail early if
-    # something is wrong
-    temp_zenodo_README = temp_fold + UCC_folder + "README.txt"
-    with open(temp_zenodo_README, "r") as f:
-        dataf = f.read()
-        match = re.search(r"combined (\d+) members", dataf)
-        if match is None:
-            raise ValueError(
-                "Could not find the total number of members in the Zenodo README.txt file."
-            )
-        N_members_UCC = int(match.group(1))
-    logging.info(f"Total number of members extracted: {N_members_UCC}")
-
     # Load required files
     df_UCC, df_tables, current_JSON, DBs_full_data, database_md = load_data(
         logging, ucc_file_path, root_UCC_path
@@ -112,7 +99,6 @@ def main():
             current_JSON,
             database_md,
             df_tables,
-            N_members_UCC,
         )
 
     # Update CSV file
@@ -477,7 +463,6 @@ def updt_ucc_main_files(
     current_JSON,
     database_md,
     df_tables,
-    N_members_UCC,
 ):
     """ """
     logging.info("\nUpdating ucc.ar files")
@@ -496,7 +481,7 @@ def updt_ucc_main_files(
     make_site_plots(logging, temp_image_path, df_UCC)
 
     # Update DATABASE.md
-    update_main_pages(logging, current_JSON, df_UCC, database_md, N_members_UCC)
+    update_main_pages(logging, current_JSON, df_UCC, database_md)
 
     # Update pages for individual databases
     new_tables_dict = updt_DBs_tables(current_JSON, df_tables)
@@ -537,9 +522,12 @@ def update_main_pages(
     current_JSON,
     df_UCC,
     database_md,
-    N_members_UCC,
 ):
     """Update DATABASE.md"""
+
+    logging.info("\nCounting total number of members")
+    N_members_UCC = count_N_members_UCC(members_folder)
+    logging.info(f"Total number of members extracted: {N_members_UCC}")
 
     # Update the total number of entries, databases, and members in the UCC
     N_db_UCC, N_cl_UCC = len(current_JSON), len(df_UCC)
