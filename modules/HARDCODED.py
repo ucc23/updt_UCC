@@ -11,8 +11,10 @@ tables_folder = ucc_path + "_tables/"
 dbs_tables_folder = tables_folder + "dbs/"
 # Path to the ucc site images folder
 images_folder = ucc_path + "images/"
+# Assets folder
+assets_folder = ucc_path + "assets/"
 # Path to the compressed CSV file with clusters data
-clusters_csv_path = ucc_path + "assets/clusters.csv.gz"
+clusters_csv_path = assets_folder + "clusters.csv.gz"
 # Path to the md database file
 databases_md_path = pages_folder + "DATABASE.md"
 # # Path to the md file with the tables
