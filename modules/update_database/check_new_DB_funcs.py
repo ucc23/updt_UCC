@@ -4,7 +4,6 @@ from difflib import SequenceMatcher
 import Levenshtein
 import numpy as np
 import pandas as pd
-from astropy import units as u
 from astropy.coordinates import angular_separation
 from scipy.spatial.distance import cdist
 
@@ -184,14 +183,14 @@ def GCs_check(
     bool
         Flag indicating if probable GCs were found.
     """
-    glon_glat = list(zip(*[glon, glat]))
+    glon_glat = np.array([glon, glat]).T
 
     # Read GCs DB
-    l_gc, b_gc = df_GCs["GLON"].values * u.deg, df_GCs["GLAT"].values * u.deg  # pyright: ignore
+    l_gc, b_gc = df_GCs["GLON"].values, df_GCs["GLAT"].values  # pyright: ignore
 
     gc_all, GCs_found = [], 0
     for idx, (glon_i, glat_i) in enumerate(glon_glat):
-        d_arcmin = angular_separation(glon_i, glat_i, l_gc, b_gc).to("deg").value * 60
+        d_arcmin = np.rad2deg(angular_separation(glon_i, glat_i, l_gc, b_gc)) * 60
         j1 = np.argmin(d_arcmin)
 
         if d_arcmin[j1] < search_rad:
