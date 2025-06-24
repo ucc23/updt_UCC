@@ -38,6 +38,7 @@ from modules.update_database.check_new_DB_funcs import (
 )
 from modules.update_database.gaia_query_frames import query_run
 from modules.update_database.member_files_updt_funcs import (
+    detect_close_OCs,
     extract_cl_data,
     get_close_cls,
     get_fastMP_membs,
@@ -46,8 +47,6 @@ from modules.update_database.member_files_updt_funcs import (
     split_membs_field,
     updt_UCC_new_cl_data,
 )
-
-# from modules.update_database.possible_duplicates_funcs import duplicate_probs
 from modules.update_database.standardize_and_match_funcs import (
     get_fnames_new_DB,
     get_matches_new_DB,
@@ -67,11 +66,11 @@ gaia_max_mag = 20
 # =========================================================================
 # Select the mode used to run the script
 
-# Add a new DB
-run_mode = "new_DB"
+# # Add a new DB
+# run_mode = "new_DB"
 
-# # Update the UCC for selected entries listed in the 'manual_pars' file
-# run_mode = "manual"
+# Update the UCC for selected entries listed in the 'manual_pars' file
+run_mode = "manual"
 
 # # Update a database already included in the UCC
 # run_mode = "updt_DB"
@@ -663,7 +662,7 @@ def member_files_updt(
         logging.info(f"\n{N_cl} Processing {fname0} (idx={UCC_idx})")
 
         # Generate frame
-        box_s, plx_min = get_frame_limits(cl_ID, fname0, plx_c)
+        box_s, plx_min = get_frame_limits(cl_ID, plx_c)
 
         # Request Gaia frame
         gaia_frame = query_run(
@@ -729,13 +728,10 @@ def member_files_updt(
     return df_UCC_updt
 
 
-def update_UCC_membs_data(df_UCC, df_UCC_updt):
+def update_UCC_membs_data(df_UCC, df_UCC_updt) -> pd.DataFrame:
     """
     Update the UCC database using the data extracted from the processed OCs'
     members.
-
-    prob_cut: float = 0.25
-    prob_cut: Probability cutoff for identifying duplicates.
     """
     # Generate copy to not disturb the dataframe given to this function which is
     # later used to generate the diffs files
@@ -748,17 +744,6 @@ def update_UCC_membs_data(df_UCC, df_UCC_updt):
             if key == "UCC_idx":
                 continue
             df_inner.at[UCC_idx, key] = val
-
-    # logging.info("Finding duplicates and their probabilities")
-    # df_inner["dups_fnames_m"], df_inner["dups_probs_m"] = duplicate_probs(
-    #     list(df_inner["fnames"]),
-    #     np.array(df_inner["GLON_m"], dtype=float),
-    #     np.array(df_inner["GLAT_m"], dtype=float),
-    #     np.array(df_inner["Plx_m"], dtype=float),
-    #     np.array(df_inner["pmRA_m"], dtype=float),
-    #     np.array(df_inner["pmDE_m"], dtype=float),
-    #     prob_cut,
-    # )
 
     return df_inner
 
@@ -833,8 +818,12 @@ def diff_between_dfs(
 
 def save_final_UCC(
     logging, temp_zenodo_fold: str, new_ucc_file: str, df_UCC: pd.DataFrame
-):
+) -> None:
     """ """
+
+    # Add column with close entries
+    df_UCC = detect_close_OCs(df_UCC)
+
     # Order by (lon, lat) first
     df_UCC = df_UCC.sort_values(["GLON", "GLAT"])
     df_UCC = df_UCC.reset_index(drop=True)
