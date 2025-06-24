@@ -1,6 +1,11 @@
 Some of these are intermediate versions of the UCC database that are not published.
 
 
+## 25062409
+
+- Added back the "duplicated" columns now as close OCs + re-processed King 13
+
+
 ## 25062314
 
 - Added ANGELO2019
