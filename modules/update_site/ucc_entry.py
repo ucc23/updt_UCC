@@ -103,7 +103,7 @@ fpars_table_top = """\n
 ### Fundamental parameters
 
 | Reference |  Values |
-| :---         |     :---:      |
+| :---      |  :---:  |
 """
 
 cluster_region_plot = """\n
@@ -126,13 +126,14 @@ cluster_region_plot = """\n
     </center>
   </body>
 </html>
-
 <br>
-Explore the region around OCNAME. Choose the distance range and the maximum number of
-clusters to plot using the sliders at the bottom.
+"""
 
-Click on any cluster to open its entry in a new page. Click on _View and edit_ at the
-bottom of the plot to explore the plotted data.
+close_OCs = """\n
+#### Objects with similar coordinates
+
+| Cluster | RA    | DEC   | Plx   | pmRA  | pmDE  | Rv    |
+| :---:   | :---: | :---: | :---: | :---: | :---: | :---: |
 """
 
 # data_foot = """\n
@@ -141,7 +142,9 @@ bottom of the plot to explore the plotted data.
 # """
 
 
-def make(UCC_cl, fname0, Qfold, posit_table, img_cont, fpars_table, abcd_c):
+def make(
+    UCC_cl, fname0, Qfold, posit_table, img_cont, fpars_table, abcd_c, close_table
+):
     """ """
     cl_names = UCC_cl["ID"].split(";")
 
@@ -210,6 +213,9 @@ def make(UCC_cl, fname0, Qfold, posit_table, img_cont, fpars_table, abcd_c):
         .replace("PLX", str(UCC_cl["Plx_m"]))
         .replace("OCNAME", str(cl_names[0]))
     )
+
+    if close_table != "":
+        txt += close_OCs + close_table
 
     contents = "".join(txt)
 
@@ -321,49 +327,49 @@ def carousel_div(root_UCC_path, plots_folder, cl_name, Qfold, fname0):
     return img_cont
 
 
-# def close_cat_cluster(df_UCC, row):
-#     """ """
-#     close_table = ""
+def close_cat_cluster(df_UCC, row):
+    """ """
+    close_table = ""
 
-#     if str(row["dups_fnames_m"]) == "nan":
-#         return close_table
+    if str(row["close_entries"]) == "nan":
+        return close_table
 
-#     fnames0 = [_.split(";")[0] for _ in df_UCC["fnames"]]
+    fnames0 = [_.split(";")[0] for _ in df_UCC["fnames"]]
 
-#     dups_fnames = row["dups_fnames_m"].split(";")
-#     dups_probs = row["dups_probs_m"].split(";")
+    dups_fnames = row["close_entries"].split(";")
+    # dups_probs = row["dups_probs_m"].split(";")
 
-#     for i, fname in enumerate(dups_fnames):
-#         j = fnames0.index(fname)
-#         name = df_UCC["ID"][j].split(";")[0]
+    for i, fname in enumerate(dups_fnames):
+        j = fnames0.index(fname)
+        name = df_UCC["ID"][j].split(";")[0]
 
-#         vals = []
-#         for col in ("RA_ICRS_m", "DE_ICRS_m", "Plx_m", "pmRA_m", "pmDE_m", "Rv_m"):
-#             val = round(float(df_UCC[col][j]), 3)
-#             if np.isnan(val):
-#                 vals.append("--")
-#             else:
-#                 vals.append(val)
-#         val = round(float(dups_probs[i]), 3)
-#         if np.isnan(val):
-#             vals.append("--")
-#         else:
-#             vals.append(val)
+        vals = []
+        for col in ("RA_ICRS_m", "DE_ICRS_m", "Plx_m", "pmRA_m", "pmDE_m", "Rv_m"):
+            val = round(float(df_UCC[col][j]), 3)
+            if np.isnan(val):
+                vals.append("--")
+            else:
+                vals.append(val)
+        # val = round(float(dups_probs[i]), 3)
+        # if np.isnan(val):
+        #     vals.append("--")
+        # else:
+        #     vals.append(val)
 
-#         ra, dec, plx, pmRA, pmDE, Rv, prob = vals
+        ra, dec, plx, pmRA, pmDE, Rv = vals
 
-#         close_table += f"|[{name}](/_clusters/{fname}/)| "
-#         close_table += f"{int(100 * prob)} | "
-#         close_table += f"{ra} | "
-#         close_table += f"{dec} | "
-#         close_table += f"{plx} | "
-#         close_table += f"{pmRA} | "
-#         close_table += f"{pmDE} | "
-#         close_table += f"{Rv} |\n"
-#     # Remove final new line
-#     close_table = close_table[:-1]
+        close_table += f"|[{name}](/_clusters/{fname}/)| "
+        # close_table += f"{int(100 * prob)} | "
+        close_table += f"{ra} | "
+        close_table += f"{dec} | "
+        close_table += f"{plx} | "
+        close_table += f"{pmRA} | "
+        close_table += f"{pmDE} | "
+        close_table += f"{Rv} |\n"
+    # Remove final new line
+    close_table = close_table[:-1]
 
-#     return close_table
+    return close_table
 
 
 def fpars_in_lit(

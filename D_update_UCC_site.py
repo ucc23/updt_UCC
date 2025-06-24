@@ -305,6 +305,7 @@ def updt_ucc_cluster_files(
             temp_entries_path,
             plots_folder,
             Qfold,
+            df_UCC,
             UCC_cl,
             current_JSON,
             DBs_full_data,
@@ -335,6 +336,7 @@ def make_entry(
     temp_entries_path,
     plots_folder,
     Qfold,
+    df_UCC,
     UCC_cl,
     current_JSON,
     DBs_full_data,
@@ -355,21 +357,15 @@ def make_entry(
         current_JSON, DBs_full_data, UCC_cl["DB"], UCC_cl["DB_i"]
     )
 
-    # # Generate table with close OCs
-    # close_table = ucc_entry.close_cat_cluster(df_UCC, UCC_cl)
+    # Generate table with close OCs
+    close_table = ucc_entry.close_cat_cluster(df_UCC, UCC_cl)
 
     # Get colors used by the 'CX' classification
     abcd_c = ucc_entry.UCC_color(UCC_cl["C3"])
 
     # Generate full entry
     new_md_entry = ucc_entry.make(
-        UCC_cl,
-        fname0,
-        Qfold,
-        posit_table,
-        img_cont,
-        fpars_table,
-        abcd_c,
+        UCC_cl, fname0, Qfold, posit_table, img_cont, fpars_table, abcd_c, close_table
     )
 
     # Compare old md file (if it exists) with the new md file, for this cluster
