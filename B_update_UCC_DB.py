@@ -16,6 +16,7 @@ from modules.HARDCODED import (
     manual_pars_file,
     members_folder,
     name_DBs_json,
+    parquet_dates,
     temp_fold,
 )
 from modules.update_database.add_new_DB_funcs import (
@@ -909,11 +910,26 @@ def move_files(
             # Check if folder exists
             qmembs_fold = temp_fold + qfold + members_folder
             if os.path.exists(qmembs_fold):
+                # Load JSON file with last updated date for this Q
+                fname_json = root_UCC_path + qfold + parquet_dates
+                with open(fname_json, "r") as file:
+                    json_data = json.load(file)
+
                 # For every file in this folder
                 for file in os.listdir(qmembs_fold):
                     parquet_temp = qmembs_fold + file
                     parquet_stored = root_UCC_path + qfold + members_folder + file
                     os.rename(parquet_temp, parquet_stored)
+
+                    # Update entry for this file
+                    fname0 = file.split("/")[-1].split(".")[0]
+                    json_data[fname0] = "updated " + datetime.datetime.now().strftime(
+                        "%Y-%m-%d %H:%M:%S"
+                    )
+
+                # Update JSON file
+                with open(fname_json, "w") as file:
+                    json.dump(json_data, file, indent=2)
 
     parquet_temp = temp_fold + "QXX/" + members_folder + "*.parquet"
     parquet_stored = root_UCC_path + "QXX/" + members_folder + "*.parquet"
