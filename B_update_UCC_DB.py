@@ -38,9 +38,9 @@ from modules.update_database.check_new_DB_funcs import (
 )
 from modules.update_database.gaia_query_frames import query_run
 from modules.update_database.member_files_updt_funcs import (
+    check_close_cls,
     detect_close_OCs,
     extract_cl_data,
-    get_close_cls,
     get_fastMP_membs,
     get_frame_limits,
     save_cl_datafile,
@@ -677,7 +677,7 @@ def member_files_updt(
         )
 
         # Check for clusters in the Gaia frame
-        get_close_cls(
+        check_close_cls(
             logging,
             df_UCC,
             gaia_frame,
