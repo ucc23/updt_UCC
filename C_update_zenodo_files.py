@@ -48,7 +48,7 @@ def main():
     N_members = create_membs_UCC(
         logging, root_UCC_dir, members_folder, zenodo_members_file
     )
-    logging.info("Zenodo 'UCC_members.parquet' file generated")
+    logging.info(f"Zenodo 'UCC_members.parquet' file generated ({N_members} stars)")
 
     zenodo_readme = temp_zenodo_path + "README.txt"
     updt_readme(UCC_folder, UCC_last_version, N_clusters, N_members, zenodo_readme)
