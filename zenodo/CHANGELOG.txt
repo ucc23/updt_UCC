@@ -32,11 +32,9 @@ Some of these are intermediate versions of the UCC database that are not publish
 - Added DIAS2019
 
 
-
 ## 25062111
 
 - Added DIAS2002
-
 
 
 ## 25061610
@@ -44,17 +42,14 @@ Some of these are intermediate versions of the UCC database that are not publish
 - Updated main name of 'Taurus moving cluster' to 'Hyades', issue #47
 
 
-
 ## 25061512
 
 - Updated 'Herbig 1' using N_memb=25, issue #51
 
 
-
 ## 25061511
 
 - Updated CHI2023_1, issue #48
-
 
 
 ## 25061510
@@ -79,7 +74,6 @@ FoF_2389. Renamed it to 'fof2379' in the UCC and HE2022_1; also renamed the asso
 files
 
 
-
 ## 25061410
 
 Found entries in the UCC with repeated names:
@@ -100,7 +94,6 @@ Koposov 43. Removed it too from KOPOSOV2008 and the list of names in Koposov 43 
 -huluwa2: this comes from QIN2023 where 'huluwa2' is assigned to three entries:
 OCSN 197, OCSN 198, and OCSN 199. I removed the assiciation to 'huluwa2' from
 OCSN 198 and OCSN 199, so that only OCSN 197 has it as a secondary name.
-
 
 
 ## 25061311
@@ -145,7 +138,6 @@ become new entries.
 
 These changes result in 59 new entries added to the UCC out of the 223 being added by
 this DB updating process.
-
 
 
 ## 25061115
