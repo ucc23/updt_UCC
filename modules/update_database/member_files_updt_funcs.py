@@ -94,7 +94,7 @@ def get_frame_limits(cl_ID: str, plx: float) -> tuple[float, float]:
     return box_s_eq, plx_min
 
 
-def get_close_cls(
+def check_close_cls(
     logging,
     df_UCC,
     gaia_frame,
@@ -173,7 +173,7 @@ def get_close_cls(
         & (df_gcs["plx"] > plx_min)
     )
     in_frame_gcs = df_gcs[["Name", "GLON", "GLAT", "plx", "pmRA", "pmDE"]][msk]
-    in_frame_gcs["Name"] = in_frame_gcs["Name"].str.strip()  # For prettier printing
+    in_frame_gcs["Name"] = str(in_frame_gcs["Name"]).strip()
     in_frame_gcs["Type"] = ["g"] * len(in_frame_gcs)
 
     # Combine DataFrames
@@ -678,7 +678,7 @@ def save_cl_datafile(
     df_membs: pd.DataFrame,
 ) -> None:
     """
-    Saves the cluster member data to a Parquet file.
+    Saves the cluster member data to a parquet file.
 
     Parameters
     ----------
