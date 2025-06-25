@@ -213,16 +213,14 @@ example, using a different `include` with fewer/different selected folders)
 
 ### 5.2 Live build
 
-1. Pull changes first to update arXiv data
-
-2. Push changes (if any) to each of the `QXY` repositories. To do this, position
+1. Push changes (if any) to each of the `QXY` repositories. To do this, position
    the command line in the `UCC/` folder and run (change `YYMMDD` with version number):
 
 ```
 for dir in Q*/; do (cd "$dir" && [ -d .git ] && git acp "version YYMMDD"); done
 ```
 
-3. Create a 'New version' in the [Zenodo repository](https://zenodo.org/doi/10.5281/zenodo.8250523) 
+2. Create a 'New version' in the [Zenodo repository](https://zenodo.org/doi/10.5281/zenodo.8250523) 
 
 3.0 Make sure that the version number in the README matches than in the CHANGELOG
 3.1 Upload the three files stored in the `temp_updt/zenodo/` folder
@@ -232,7 +230,9 @@ for dir in Q*/; do (cd "$dir" && [ -d .git ] && git acp "version YYMMDD"); done
 
 Publish new release and copy **its own url** (no the general repository url)
 
-4. Update the `CHANGELOG.md` file, use the Zenodo URL for **this** release
+3. Update the `CHANGELOG.md` file, use the Zenodo URL for **this** release
+
+4. Pull to update the new arXiv JSON file to the `ucc` repository <-- **IMPORTANT**
 
 5. Push the changes to the `ucc` repository
 
