@@ -20,12 +20,15 @@ databases_md_path = pages_folder + "DATABASE.md"
 # # Path to the md file with the tables
 # tables_md_path = pages_folder + "TABLES.md"
 
-# Q folders paths
+# Q folders paths and files
 #
 # Path to the .parquet member files
 members_folder = "datafiles/"
 # Path to the cluster's plots
 plots_folder = "plots/"
+# Files that store the dates and status of the parquet file
+parquet_dates = "data_dates.json"
+
 
 # updt_ucc paths
 #
