@@ -924,7 +924,7 @@ def move_files(
                     # Update entry for this file
                     fname0 = file.split("/")[-1].split(".")[0]
                     json_data[fname0] = "updated " + datetime.datetime.now().strftime(
-                        "%Y-%m-%d %H:%M:%S"
+                        "%y%m%d%H"
                     )
 
                 # Update JSON file

@@ -1,3 +1,4 @@
+import datetime
 import json
 import os
 from pathlib import Path
@@ -17,6 +18,7 @@ from modules.HARDCODED import (
     members_folder,
     name_DBs_json,
     pages_folder,
+    parquet_dates,
     plots_folder,
     temp_fold,
 )
@@ -420,10 +422,22 @@ def make_plots(
     txt = ""
 
     # Make CMD plot
+    make_CMD_plot = False
     # Path to original image (if it exists)
     orig_CMD_file = root_UCC_path + Qfold + plots_folder + fname0 + ".webp"
-    # If image files does not exist --> generate
     if Path(orig_CMD_file).is_file() is False:
+        # If image files does not exist --> generate
+        make_CMD_plot = True
+    else:
+        # Load JSON file with last updated date for this Q
+        fname_json = root_UCC_path + Qfold + parquet_dates
+        with open(fname_json, "r") as file:
+            json_data = json.load(file)
+        # This indicates that this is a new parquet file and the plot should be re-done
+        if "USED" not in json_data[fname0]:
+            make_CMD_plot = True
+
+    if make_CMD_plot:
         # Read members .parquet file
         parquet_path = root_UCC_path + Qfold + members_folder + fname0 + ".parquet"
         df_membs = pd.read_parquet(parquet_path)
@@ -692,11 +706,26 @@ def move_files(
             # Check if folder exists
             qplots_fold = temp_fold + qfold + plots_folder
             if os.path.exists(qplots_fold):
+                # Load JSON file with last updated date for this Q
+                fname_json = root_UCC_path + qfold + parquet_dates
+                with open(fname_json, "r") as file:
+                    json_data = json.load(file)
+
                 # For every file in this folder
                 for file in os.listdir(qplots_fold):
                     plot_temp = qplots_fold + file
                     plot_stored = root_UCC_path + qfold + plots_folder + file
                     os.rename(plot_temp, plot_stored)
+
+                    # Update entry for this file
+                    fname0 = file.split("/")[-1].split(".")[0]
+                    json_data[fname0] += (
+                        f"; USED ({datetime.datetime.now().strftime('%y%m%d%H')})"
+                    )
+
+                # Update JSON file
+                with open(fname_json, "w") as file:
+                    json.dump(json_data, file, indent=2)
 
     plot_temp = temp_fold + "QXX/" + plots_folder + "*.webp"
     plot_stored = root_UCC_path + "QXX/" + plots_folder + "*.webp"
