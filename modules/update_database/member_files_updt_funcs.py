@@ -239,7 +239,6 @@ def get_fastMP_membs(
     pmde_c: float,
     plx_c: float,
     gaia_frame: pd.DataFrame,
-    N_clust_max=1500,
 ) -> np.ndarray:
     """
     Runs fastMP for a given Gaia data frame.
@@ -280,9 +279,8 @@ def get_fastMP_membs(
     if not np.isnan(pmra_c):
         pms_c = (pmra_c, pmde_c)
 
-    # If the cluster has no PM or Plx center values assigned, run fastMP with fixed
-    # (lon, lat) centers
     fixed_centers = False
+    # If the cluster has no PM or Plx center values assigned, use fixed centers
     if np.isnan(pms_c[0]) and np.isnan(plx_c):
         fixed_centers = True
 
@@ -295,47 +293,78 @@ def get_fastMP_membs(
         e_pmra=np.array(gaia_frame["e_pmRA"]),
         e_pmde=np.array(gaia_frame["e_pmDE"]),
         e_plx=np.array(gaia_frame["e_Plx"]),
-        N_clust_max=N_clust_max,
+        # N_clust_max=3000,
         verbose=0,
     )
-    logging.info(f"  N_clust_max={my_field.N_clust_max}")
-    # Set radius as 10% of the frame's length, perhaps used in the number of members
-    # estimation
-    my_field.radius = float(
-        np.mean([np.ptp(gaia_frame["GLON"]), np.ptp(gaia_frame["GLAT"])]) * 0.1
-    )
+
+    # # Set radius as 10% of the frame's length, perhaps used in the number of members
+    # # estimation
+    # my_field.radius = float(
+    #     np.mean([np.ptp(gaia_frame["GLON"]), np.ptp(gaia_frame["GLAT"])]) * 0.1
+    # )
 
     # Process with fastMP
-    while True:
-        set_cents(
-            logging,
-            my_field,
-            fixed_centers,
-            radec_c,
-            pms_c,
-            plx_c,
-        )
+    probs_all = run_fastMP(
+        logging, my_field, radec_c, pms_c, plx_c, fixed_centers, N_clust_manual
+    )
 
-        set_Nmembs(logging, my_field, N_clust_max, N_clust_manual)
-
-        probs_all = run_fastMP(
-            my_field,
-            fixed_centers,
-        )
-
+    if fixed_centers is False:
+        # Check centers to see if re-run is required
         xy_c_m, vpd_c_m, plx_c_m = extract_centers(gaia_frame, probs_all)
         cent_flags = check_centers(xy_c_m, vpd_c_m, plx_c_m, lonlat_c, pms_c, plx_c)[0]
-        if cent_flags == "nnn" or fixed_centers is True:
-            break
-        else:
+        # 'nnn' means all centers are in agreement
+        if cent_flags != "nnn":
             # Re-run with fixed centers
             fixed_centers = True
-
-    xy_c_m, vpd_c_m, plx_c_m = extract_centers(gaia_frame, probs_all)
-    cent_flags = check_centers(xy_c_m, vpd_c_m, plx_c_m, lonlat_c, pms_c, plx_c)[0]
-    logging.info("  P>0.5={}, cents={}".format((probs_all > 0.5).sum(), cent_flags))
+            probs_all = run_fastMP(
+                logging, my_field, radec_c, pms_c, plx_c, fixed_centers, N_clust_manual
+            )
 
     return probs_all
+
+
+def run_fastMP(
+    logging,
+    my_field: asteca.Cluster,
+    radec_c: tuple,
+    pms_c: tuple,
+    plx_c: float,
+    fixed_centers: bool,
+    N_clust_manual: int,
+) -> np.ndarray:
+    """
+    Runs the fastMP algorithm to estimate membership probabilities.
+
+    Parameters
+    ----------
+    my_field : asteca.Cluster
+        Cluster object
+    fixed_centers : bool
+        Boolean indicating whether to use fixed centers.
+
+    Returns
+    -------
+    np.ndarray
+        Array of membership probabilities.
+    """
+    set_cents(
+        logging,
+        my_field,
+        fixed_centers,
+        radec_c,
+        pms_c,
+        plx_c,
+    )
+
+    set_Nmembs(logging, my_field, N_clust_manual)
+
+    # Define membership object
+    memb = asteca.Membership(my_field, verbose=0)
+
+    # Run fastMP
+    probs_fastmp = memb.fastmp(fixed_centers=fixed_centers)
+
+    return probs_fastmp
 
 
 def set_cents(
@@ -377,9 +406,7 @@ def set_cents(
     )
 
 
-def set_Nmembs(
-    logging, my_field: asteca.Cluster, N_clust_max: int, N_clust_manual: int
-) -> None:
+def set_Nmembs(logging, my_field: asteca.Cluster, N_clust_manual: int) -> None:
     """
     Estimate the number of cluster members
 
@@ -397,58 +424,37 @@ def set_Nmembs(
 
     if N_clust_manual > 0:
         my_field.N_cluster = N_clust_manual
-        logging.info(f"  Manual number of members applied: {N_clust_manual}")
+        logging.info(f"  Using number of members: {N_clust_manual}")
         return
 
     # Use default ASteCA method
     my_field.get_nmembers()
 
-    if my_field.N_cluster == N_clust_max:
-        # If the default method results in the max number, try the 'density' method
+    if my_field.N_cluster == my_field.N_clust_max:
         logging.info(
-            f"  WARNING: estimated N_cluster={N_clust_max}, "
-            + f"using radius={my_field.radius:.2f}"
+            f"  WARNING: N_cluster={my_field.N_clust_max}, "
+            + f"using N_cluster={my_field.N_clust_min}"
         )
-        my_field.get_nmembers("density")
+        my_field.N_cluster = my_field.N_clust_min
 
-        # If this method also estimates the max value, set the minimum
-        if my_field.N_cluster == N_clust_max:
-            my_field.N_cluster = my_field.N_clust_min
-            logging.info(
-                f"  WARNING: estimated N_cluster={N_clust_max}, "
-                + f"setting N_cluster={my_field.N_clust_min}"
-            )
-        else:
-            logging.info(f"  Setting N_cluster={my_field.N_cluster}")
+        # # If the default method results in the max number, try the 'density' method
+        # logging.info(
+        #     f"  WARNING: N_cluster={my_field.N_clust_max}, "
+        #     + f"using 'density' method with radius={my_field.radius:.2f}"
+        # )
+        # my_field.get_nmembers("density")
+
+        # # If this method also estimates the max value, use the minimum
+        # if my_field.N_cluster == my_field.N_clust_max:
+        #     my_field.N_cluster = my_field.N_clust_min
+        #     logging.info(
+        #         f"  WARNING: N_cluster={my_field.N_clust_max}, "
+        #         + f"using N_cluster={my_field.N_clust_min}"
+        #     )
+        # else:
+        #     logging.info(f"  Using N_cluster={my_field.N_cluster}")
     else:
-        logging.info(f"  Setting N_cluster={my_field.N_cluster}")
-
-
-def run_fastMP(
-    my_field: asteca.Cluster,
-    fixed_centers: bool,
-) -> np.ndarray:
-    """
-    Runs the fastMP algorithm to estimate membership probabilities.
-
-    Parameters
-    ----------
-    my_field : asteca.Cluster
-        Cluster object
-    fixed_centers : bool
-        Boolean indicating whether to use fixed centers.
-
-    Returns
-    -------
-    np.ndarray
-        Array of membership probabilities.
-    """
-    # Define a ``membership`` object
-    memb = asteca.Membership(my_field, verbose=0)
-    # Run ``fastmp`` method
-    probs_fastmp = memb.fastmp(fixed_centers=fixed_centers)
-
-    return probs_fastmp
+        logging.info(f"  Using N_cluster={my_field.N_cluster}")
 
 
 def extract_centers(
@@ -505,8 +511,8 @@ def split_membs_field(
     probs_all: np.ndarray,
     prob_cut: float = 0.5,
     N_membs_min: int = 25,
-    perc_cut: int = 95,
-    N_perc: int = 2,
+    # perc_cut: int = 95,
+    # N_perc: int = 2,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Splits the data into member and field star DataFrames based on membership
@@ -531,54 +537,69 @@ def split_membs_field(
     -------
     tuple
         A tuple containing:
-        - df_membs: DataFrame of cluster members.
-        - df_field: DataFrame of field stars.
+        - DataFrame of cluster members.
+        - DataFrame of field stars.
     """
-    # This first filter removes stars beyond 2 times the 95th percentile
-    # of the most likely members
+    # Stars with probabilities greater than zero
+    N_p_g_0 = (probs_all > 0.0).sum()
 
-    # Select most likely members
-    msk_membs = probs_all >= prob_cut
-    if msk_membs.sum() < N_membs_min:
-        # Select the 'N_membs_min' stars with the largest probabilities
+    # This should never happen but check anyhow
+    if N_p_g_0 == 0:
+        raise ValueError(
+            "No stars with P>0.0, cannot select members. "
+            + "Check the input data and parameters."
+        )
+
+    # Add probabilities to dataframe
+    data["probs"] = np.round(probs_all, 3)
+
+    if (probs_all >= prob_cut).sum() >= N_membs_min:
+        # Apply prob_cut
+        msk_membs = probs_all >= prob_cut
+    else:
+        # Select maximum number of stars with P>0 up to N_membs_min
+        N_membs_min = min(N_membs_min, N_p_g_0)
         idx = np.argsort(probs_all)[::-1][:N_membs_min]
+        # Select indexes
         msk_membs = np.full(len(probs_all), False)
         msk_membs[idx] = True
 
-    # Find xy filter
-    xy = np.array([data["GLON"].values, data["GLAT"].values]).T
-    xy_c = np.nanmedian(xy[msk_membs], 0)
-    xy_dists = cdist(xy, np.array([xy_c])).T[0]
-    x_dist = abs(xy[:, 0] - xy_c[0])
-    y_dist = abs(xy[:, 1] - xy_c[1])
-    # 2x95th percentile XY mask
-    xy_95 = np.percentile(xy_dists[msk_membs], perc_cut)
-    xy_rad = xy_95 * N_perc
-    msk_rad = (x_dist <= xy_rad) & (y_dist <= xy_rad)
+    return pd.DataFrame(data[msk_membs]), pd.DataFrame(data[~msk_membs])
 
-    # Add a minimum probability mask to ensure that all stars with P>prob_min
-    # are included
-    msk_pmin = probs_all >= prob_cut
+    # This first filter removes stars beyond 2 times the 95th percentile
+    # of the most likely members
+    # # Find xy filter
+    # xy = np.array([data["GLON"].values, data["GLAT"].values]).T
+    # xy_c = np.nanmedian(xy[msk_membs], 0)
+    # xy_dists = cdist(xy, np.array([xy_c])).T[0]
+    # x_dist = abs(xy[:, 0] - xy_c[0])
+    # y_dist = abs(xy[:, 1] - xy_c[1])
+    # # 2x95th percentile XY mask
+    # xy_95 = np.percentile(xy_dists[msk_membs], perc_cut)
+    # xy_rad = xy_95 * N_perc
+    # msk_rad = (x_dist <= xy_rad) & (y_dist <= xy_rad)
 
-    # Combine masks with logical OR
-    msk = msk_rad | msk_pmin
+    # # Add a minimum probability mask to ensure that all stars with P>prob_min
+    # # are included
+    # msk_pmin = probs_all >= prob_cut
 
-    # Generate filtered combined dataframe
-    data["probs"] = np.round(probs_all, 5)
-    # This dataframe contains both members and a selected portion of
-    # field stars
-    df_comb = data.loc[msk]
-    df_comb.reset_index(drop=True, inplace=True)
+    # # Combine masks with logical OR
+    # msk = msk_rad | msk_pmin
 
-    # Split into members and field, now using the filtered dataframe
-    msk_membs = df_comb["probs"] > prob_cut
-    if msk_membs.sum() < N_membs_min:
-        idx = np.argsort(df_comb["probs"].values)[::-1][:N_membs_min]
-        msk_membs = np.full(len(df_comb["probs"]), False)
-        msk_membs[idx] = True
-    df_membs, df_field = df_comb[msk_membs], df_comb[~msk_membs]
+    # # Generate filtered combined dataframe
+    # data["probs"] = np.round(probs_all, 5)
+    # # This dataframe contains both members and a selected portion of
+    # # field stars
+    # df_comb = data.loc[msk]
+    # df_comb.reset_index(drop=True, inplace=True)
 
-    return df_membs, df_field
+    # # Split into members and field, now using the filtered dataframe
+    # msk_membs = df_comb["probs"] > prob_cut
+    # if msk_membs.sum() < N_membs_min:
+    #     idx = np.argsort(df_comb["probs"].values)[::-1][:N_membs_min]
+    #     msk_membs = np.full(len(df_comb["probs"]), False)
+    #     msk_membs[idx] = True
+    # df_membs, df_field = df_comb[msk_membs], df_comb[~msk_membs]
 
 
 def extract_cl_data(
