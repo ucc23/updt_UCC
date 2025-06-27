@@ -101,6 +101,18 @@ will:
   c. Update the UCC with the processed OCs member's data 
 6. Save updated UCC (`temp_updt/zenodo/UCC_cat_XXYYZZHH.csv`)
 
+The selection process for UCC members is as follows:
+
+```
+if (P>0.0).sum()==0:
+  raise ERROR
+
+if (P>0.5).sum()>=25:
+  save members
+else:
+  save stars with the largest probabilities as members (max 25)
+```
+
 Finally, all the generated/updated files are moved to their final destination:
 
 7. Move temporary files to their final destination
