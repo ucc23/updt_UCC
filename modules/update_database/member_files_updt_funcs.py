@@ -702,7 +702,7 @@ def save_cl_datafile(
 
     out_fname = temp_fold + quad + members_folder + fname0 + ".parquet"
     df_membs.to_parquet(out_fname, index=False)
-    logging.info(f"  Saved file to: {out_fname}")
+    logging.info(f"  Saved file to: {out_fname} (N={len(df_membs)})")
 
 
 def detect_close_OCs(
