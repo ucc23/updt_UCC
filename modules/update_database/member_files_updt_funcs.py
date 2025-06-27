@@ -212,6 +212,7 @@ def check_close_cls(
     # in_frame_all = in_frame_all.drop(index=rm_idx)
 
     # Print info to screen
+    in_frame_all = in_frame_all[["Type", "GLON", "GLAT", "plx", "pmRA", "pmDE", "Name"]]
     if len(in_frame_all) > 0:
         logging.info(
             f"  WARNING: {len(in_frame_all)} extra OCs/GCs in frame: "
