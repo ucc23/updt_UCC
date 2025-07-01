@@ -42,10 +42,10 @@ from modules.update_database.member_files_updt_funcs import (
     check_close_cls,
     detect_close_OCs,
     extract_cl_data,
+    extract_members,
     get_fastMP_membs,
     get_frame_limits,
     save_cl_datafile,
-    split_membs_field,
     updt_UCC_new_cl_data,
 )
 from modules.update_database.standardize_and_match_funcs import (
@@ -149,13 +149,14 @@ def main():
         fname_UCC = df_UCC_old["fnames"].str.split(";").str[0]
         # Find matches between df1['name'] and df2['first_fnames']
         matches = fname_UCC.isin(manual_pars["fname"])
-        # Update `C3` for matching rows
-        df_UCC_old.loc[matches, "C3"] = "nan"
+        # Update `N_50` for matching rows
+        df_UCC_old.loc[matches, "N_50"] = "nan"
         #
         df_UCC_new2 = df_UCC_old
 
-    # 5. Entries with no C3 value are identified as new and processed with fastMP
-    N_new = (df_UCC_new2["C3"] == "nan").sum()
+    # 5. Entries with no 'N_50' value are identified as new and processed with fastMP
+    N_new = (df_UCC_new2["N_50"] == "nan").sum()
+
     if N_new > 0:
         logging.info(f"\nProcessing {N_new} new OCs in '{new_DB}' with fastMP")
 
@@ -625,9 +626,9 @@ def member_files_updt(
     # For each new OC
     df_UCC_updt = {
         "UCC_idx": [],
-        "C1": [],
-        "C2": [],
-        "C3": [],
+        # "C1": [],
+        # "C2": [],
+        # "C3": [],
         "GLON_m": [],
         "GLAT_m": [],
         "RA_ICRS_m": [],
@@ -643,7 +644,7 @@ def member_files_updt(
     N_cl = 0
     for UCC_idx, new_cl in df_UCC.iterrows():
         # Check if this is a new OC that should be processed
-        if str(new_cl["C3"]) != "nan":
+        if str(new_cl["N_50"]) != "nan":
             continue
 
         cl_ID, fnames, quad, ra_c, de_c, glon_c, glat_c, pmra_c, pmde_c, plx_c = (
@@ -707,13 +708,13 @@ def member_files_updt(
 
         # Split into members and field stars according to the probability values
         # assigned
-        df_membs, df_field = split_membs_field(gaia_frame, probs_all)
+        df_membs = extract_members(gaia_frame, probs_all)
 
         # Write selected member stars to file
         save_cl_datafile(logging, temp_fold, members_folder, fnames, quad, df_membs)
 
         # Extract data to update the UCC
-        dict_UCC_updt = extract_cl_data(df_membs, df_field)
+        dict_UCC_updt = extract_cl_data(df_membs)
 
         # Store data from this new entry used to update the UCC
         df_UCC_updt = updt_UCC_new_cl_data(df_UCC_updt, UCC_idx, dict_UCC_updt)
@@ -771,8 +772,8 @@ def diff_between_dfs(
     df_new = df_new.sort_values(["GLON", "GLAT"])
     df_new = df_new.reset_index(drop=True)
 
-    # NaN as "nan" in "C3" column (important to identify OCs to apply fastMP)
-    df_new["C3"] = df_new["C3"].fillna("nan")
+    # NaN as "nan" in "N_50" column (important to identify OCs to apply fastMP)
+    df_new["N_50"] = df_new["N_50"].fillna("nan")
 
     if cols_exclude is not None:
         logging.info(f"\n{cols_exclude} columns excluded")
