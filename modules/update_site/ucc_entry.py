@@ -39,29 +39,25 @@ aladin_snippet = r"""<div style="display: flex; justify-content: space-between; 
 """
 
 table_right_col = """
-<table style="text-align: center; width:355px;height:250px;">
+<table style="width:355px;height:250px;">
   <!-- Row 1 (title) -->
   <tr>
     <td colspan="5"><h3>UCC_ID</h3></td>
   </tr>
   <!-- Row 2 -->
   <tr>
-    <th><a href="https://ucc.ar/faq#what-are-the-c1-c2-and-c3-parameters" title="Photometric class">C1</a></th>
-    <th><a href="https://ucc.ar/faq#what-are-the-c1-c2-and-c3-parameters" title="Density class">C2</a></th>
-    <th><a href="https://ucc.ar/faq#what-are-the-c1-c2-and-c3-parameters" title="Combined class">C3</a></th>
     <th><div title="Stars with membership probability >50%">N_50</div></th>
     <th><div title="Radius that contains half the members [arcmin]">r_50</div></th>
+    <td colspan="2" style="text-align: center;"><div title="Search by name"><b>Search by name</b></div></td>
   </tr>
   <!-- Row 3 -->
   <tr>
-    <td>Class1</td>
-    <td>Class2</td>
-    <td>Class3</td>
-    <td>N_50_val</td>
-    <td>r_50_val</td>
+    <td style="text-align: center;">N_50_val</td>
+    <td style="text-align: center;">r_50_val</td>
+    <td><a data-umami-event="nasa_search" href="https://ui.adsabs.harvard.edu/search/q=%20collection%3Aastronomy%20body%3A%22XXNASAXX%22&sort=date%20desc%2C%20bibcode%20desc&p_=0" target="_blank">SAO ADS</a></td>
+    <td><a data-umami-event="simbad_search" href="https://simbad.cds.unistra.fr/simbad/sim-id-refs?Ident=XXSIMBADXX" target="_blank">Simbad</a></td>
   </tr>
 </table>
-</div>
 """
 
 no_membs_50_warning = """
@@ -70,9 +66,9 @@ no_membs_50_warning = """
 </div>
 """
 
-nasa_simbad_url = """
-> <p style="text-align:center; font-weight: bold; font-size:20px">Search object in <a data-umami-event="nasa_search" href="https://ui.adsabs.harvard.edu/search/q=%20collection%3Aastronomy%20body%3A%22XXNASAXX%22&sort=date%20desc%2C%20bibcode%20desc&p_=0" target="_blank">NASA/SAO ADS</a> | <a data-umami-event="simbad_search" href="https://simbad.cds.unistra.fr/simbad/sim-id-refs?Ident=XXSIMBADXX" target="_blank">Simbad</a></p>
-"""
+# nasa_simbad_url = """
+# > <p style="text-align:center; font-weight: bold; font-size:20px">Search object in <a data-umami-event="nasa_search" href="https://ui.adsabs.harvard.edu/search/q=%20collection%3Aastronomy%20body%3A%22XXNASAXX%22&sort=date%20desc%2C%20bibcode%20desc&p_=0" target="_blank">NASA/SAO ADS</a> | <a data-umami-event="simbad_search" href="https://simbad.cds.unistra.fr/simbad/sim-id-refs?Ident=XXSIMBADXX" target="_blank">Simbad</a></p>
+# """
 
 #  Mobile url
 # https://simbad.cds.unistra.fr/mobile/bib_list.html?ident=
@@ -142,9 +138,7 @@ close_OCs = """\n
 # """
 
 
-def make(
-    UCC_cl, fname0, Qfold, posit_table, img_cont, fpars_table, abcd_c, close_table
-):
+def make(UCC_cl, fname0, Qfold, posit_table, img_cont, fpars_table, close_table):
     """ """
     cl_names = UCC_cl["ID"].split(";")
 
@@ -165,19 +159,21 @@ def make(
 
     txt += (
         table_right_col.replace("UCC_ID", UCC_cl["UCC_ID"])
-        .replace("Class1", str(UCC_cl["C1"]))
-        .replace("Class2", str(UCC_cl["C2"]))
-        .replace("Class3", abcd_c)
+        # .replace("Class1", str(UCC_cl["C1"]))
+        # .replace("Class2", str(UCC_cl["C2"]))
+        # .replace("Class3", abcd_c)
         .replace("r_50_val", str(UCC_cl["r_50"]))
         .replace("N_50_val", str(int(UCC_cl["N_50"])))
+        .replace("XXNASAXX", cl_names[0].replace(" ", "%20"))
+        .replace("XXSIMBADXX", fname0)
     )
 
     if UCC_cl["N_50"] < 25:
         txt += no_membs_50_warning
 
-    txt += nasa_simbad_url.replace("XXNASAXX", cl_names[0].replace(" ", "%20")).replace(
-        "XXSIMBADXX", fname0
-    )
+    # txt += nasa_simbad_url.replace("XXNASAXX", cl_names[0].replace(" ", "%20")).replace(
+    #     "XXSIMBADXX", fname0
+    # )
 
     txt += posit_table_top
     txt += posit_table

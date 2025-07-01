@@ -31,25 +31,25 @@ from modules.update_site.main_files_updt import (
 )
 from modules.utils import file_checker, get_last_version_UCC, logger
 
-# Order used for the C3 classes
-class_order = [
-    "AA",
-    "AB",
-    "BA",
-    "AC",
-    "CA",
-    "BB",
-    "AD",
-    "DA",
-    "BC",
-    "CB",
-    "BD",
-    "DB",
-    "CC",
-    "CD",
-    "DC",
-    "DD",
-]
+# # Order used for the C3 classes
+# class_order = [
+#     "AA",
+#     "AB",
+#     "BA",
+#     "AC",
+#     "CA",
+#     "BB",
+#     "AD",
+#     "DA",
+#     "BC",
+#     "CB",
+#     "BD",
+#     "DB",
+#     "CC",
+#     "CD",
+#     "DC",
+#     "DD",
+# ]
 
 
 def main():
@@ -362,12 +362,12 @@ def make_entry(
     # Generate table with close OCs
     close_table = ucc_entry.close_cat_cluster(df_UCC, UCC_cl)
 
-    # Get colors used by the 'CX' classification
-    abcd_c = ucc_entry.UCC_color(UCC_cl["C3"])
+    # # Get colors used by the 'CX' classification
+    # abcd_c = ucc_entry.UCC_color(UCC_cl["C3"])
 
     # Generate full entry
     new_md_entry = ucc_entry.make(
-        UCC_cl, fname0, Qfold, posit_table, img_cont, fpars_table, abcd_c, close_table
+        UCC_cl, fname0, Qfold, posit_table, img_cont, fpars_table, close_table
     )
 
     # Compare old md file (if it exists) with the new md file, for this cluster
