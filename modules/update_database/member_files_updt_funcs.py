@@ -5,7 +5,8 @@ from scipy.spatial.distance import cdist
 
 # from modules.update_database.possible_duplicates_funcs import dprob
 from ..utils import check_centers
-from .classification import get_classif
+
+# from .classification import get_classif
 
 
 def get_frame_limits(cl_ID: str, plx: float) -> tuple[float, float]:
@@ -506,14 +507,14 @@ def extract_centers(
     return xy_c_m, vpd_c_m, plx_c_m  # pyright: ignore
 
 
-def split_membs_field(
+def extract_members(
     data: pd.DataFrame,
     probs_all: np.ndarray,
     prob_cut: float = 0.5,
     N_membs_min: int = 25,
     # perc_cut: int = 95,
     # N_perc: int = 2,
-) -> tuple[pd.DataFrame, pd.DataFrame]:
+) -> pd.DataFrame:
     """
     Splits the data into member and field star DataFrames based on membership
     probabilities.
@@ -535,10 +536,8 @@ def split_membs_field(
 
     Returns
     -------
-    tuple
-        A tuple containing:
-        - DataFrame of cluster members.
-        - DataFrame of field stars.
+    pd.DataFrame
+        DataFrame of cluster members
     """
     # Stars with probabilities greater than zero
     N_p_g_0 = (probs_all > 0.0).sum()
@@ -564,7 +563,7 @@ def split_membs_field(
         msk_membs = np.full(len(probs_all), False)
         msk_membs[idx] = True
 
-    return pd.DataFrame(data[msk_membs]), pd.DataFrame(data[~msk_membs])
+    return pd.DataFrame(data[msk_membs])
 
     # This first filter removes stars beyond 2 times the 95th percentile
     # of the most likely members
@@ -602,9 +601,7 @@ def split_membs_field(
     # df_membs, df_field = df_comb[msk_membs], df_comb[~msk_membs]
 
 
-def extract_cl_data(
-    df_membs: pd.DataFrame, df_field: pd.DataFrame, prob_cut: float = 0.5
-) -> dict:
+def extract_cl_data(df_membs: pd.DataFrame, prob_cut: float = 0.5) -> dict:
     """
     Extracts cluster parameters from the member DataFrame.
 
@@ -612,8 +609,6 @@ def extract_cl_data(
     ----------
     df_membs : pd.DataFrame
         DataFrame of cluster members.
-    df_field : pd.DataFrame
-        DataFrame of field stars.
     prob_cut : float, optional
         Probability threshold for calculating N_50. Default is 0.5.
 
@@ -657,13 +652,13 @@ def extract_cl_data(
     r_50 = float(round(r_50 * 60.0, 1))
 
     # Classification data
-    C1, C2, C3 = get_classif(df_membs, df_field)
+    # C1, C2, C3 = get_classif(df_membs, df_field)
 
     # Store data used to update the UCC
     dict_UCC_updt = {
-        "C1": C1,
-        "C2": C2,
-        "C3": C3,
+        # "C1": C1,
+        # "C2": C2,
+        # "C3": C3,
         "GLON_m": lon,
         "GLAT_m": lat,
         "RA_ICRS_m": ra,
