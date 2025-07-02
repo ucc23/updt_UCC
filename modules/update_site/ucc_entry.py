@@ -58,6 +58,7 @@ table_right_col = """
     <td><a data-umami-event="simbad_search" href="https://simbad.cds.unistra.fr/simbad/sim-id-refs?Ident=XXSIMBADXX" target="_blank">Simbad</a></td>
   </tr>
 </table>
+</div>
 """
 
 no_membs_50_warning = """
