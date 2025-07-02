@@ -647,8 +647,7 @@ def member_files_updt(
         if str(new_cl["N_50"]) != "nan":
             continue
 
-        cl_ID, fnames, quad, ra_c, de_c, glon_c, glat_c, pmra_c, pmde_c, plx_c = (
-            new_cl["ID"],
+        fnames, quad, ra_c, de_c, glon_c, glat_c, pmra_c, pmde_c, plx_c = (
             new_cl["fnames"],
             new_cl["quad"],
             float(new_cl["RA_ICRS"]),
@@ -664,7 +663,7 @@ def member_files_updt(
         logging.info(f"\n{N_cl} Processing {fname0} (idx={UCC_idx})")
 
         # Generate frame
-        box_s, plx_min = get_frame_limits(cl_ID, plx_c)
+        box_s, plx_min = get_frame_limits(fname0, plx_c)
 
         # Request Gaia frame
         gaia_frame = query_run(

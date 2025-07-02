@@ -9,15 +9,15 @@ from ..utils import check_centers
 # from .classification import get_classif
 
 
-def get_frame_limits(cl_ID: str, plx: float) -> tuple[float, float]:
+def get_frame_limits(fname: str, plx: float) -> tuple[float, float]:
     """
     Determines the frame size and minimum parallax for data retrieval based on cluster
     properties.
 
     Parameters
     ----------
-    cl_ID : str
-        Cluster name(s)
+    fname : str
+        Cluster file name
     plx: float | str
         Parallax value of the cluster
 
@@ -64,7 +64,7 @@ def get_frame_limits(cl_ID: str, plx: float) -> tuple[float, float]:
             box_s_eq = 0.25  # 15 arcmin
 
     # If the cluster is Ryu, use a fixed box size of 10 arcmin
-    if "Ryu" in cl_ID:
+    if fname.startswith("ryu"):
         box_s_eq = 10 / 60
 
     # # Attempt to extract manual value for this cluster
