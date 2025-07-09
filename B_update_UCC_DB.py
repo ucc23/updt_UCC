@@ -6,6 +6,10 @@ import re
 import sys
 import warnings
 
+# Add path for local version
+# sys.path.append("/home/gabriel/Github/ASteCA/ASteCA/asteca")
+import asteca
+import numpy as np
 import pandas as pd
 
 from modules.HARDCODED import (
@@ -41,18 +45,29 @@ from modules.update_database.gaia_query_frames import query_run
 from modules.update_database.member_files_updt_funcs import (
     check_close_cls,
     detect_close_OCs,
+    extract_centers,
     extract_cl_data,
     extract_members,
     get_fastMP_membs,
     get_frame_limits,
+    get_Nmembs,
     save_cl_datafile,
+    set_centers,
     updt_UCC_new_cl_data,
 )
 from modules.update_database.standardize_and_match_funcs import (
     get_fnames_new_DB,
     get_matches_new_DB,
 )
-from modules.utils import file_checker, get_last_version_UCC, logger, radec2lonlat
+from modules.utils import (
+    check_centers,
+    file_checker,
+    get_last_version_UCC,
+    logger,
+    radec2lonlat,
+)
+
+# print(asteca.__version__)
 
 # Paths to the Gaia DR3 files in external drive
 root = "/media/gabriel/backup/gabriel/GaiaDR3/"
@@ -150,12 +165,12 @@ def main():
         # Find matches between df1['name'] and df2['first_fnames']
         matches = fname_UCC.isin(manual_pars["fname"])
         # Update `N_50` for matching rows
-        df_UCC_old.loc[matches, "N_50"] = "nan"
+        df_UCC_old.loc[matches, "N_50"] = np.nan
         #
         df_UCC_new2 = df_UCC_old
 
     # 5. Entries with no 'N_50' value are identified as new and processed with fastMP
-    N_new = (df_UCC_new2["N_50"] == "nan").sum()
+    N_new = np.isnan(df_UCC_new2["N_50"]).sum()
 
     if N_new > 0:
         logging.info(f"\nProcessing {N_new} new OCs in '{new_DB}' with fastMP")
@@ -613,7 +628,6 @@ def member_files_updt(
 ) -> pd.DataFrame:
     """
     Updates the Unified Cluster Catalogue (UCC) with new open clusters (OCs).
-    This function performs the following steps:
     """
 
     # If file exists, read and return it
@@ -626,9 +640,9 @@ def member_files_updt(
     # For each new OC
     df_UCC_updt = {
         "UCC_idx": [],
-        # "C1": [],
-        # "C2": [],
-        # "C3": [],
+        "C1": [],
+        "C2": [],
+        "C3": [],
         "GLON_m": [],
         "GLAT_m": [],
         "RA_ICRS_m": [],
@@ -644,7 +658,7 @@ def member_files_updt(
     N_cl = 0
     for UCC_idx, new_cl in df_UCC.iterrows():
         # Check if this is a new OC that should be processed
-        if str(new_cl["N_50"]) != "nan":
+        if not np.isnan(new_cl["N_50"]):
             continue
 
         fnames, quad, ra_c, de_c, glon_c, glat_c, pmra_c, pmde_c, plx_c = (
@@ -654,15 +668,23 @@ def member_files_updt(
             float(new_cl["DE_ICRS"]),
             float(new_cl["GLON"]),
             float(new_cl["GLAT"]),
-            float(new_cl["pmRA"]),
-            float(new_cl["pmDE"]),
-            float(new_cl["Plx"]),
+            float(new_cl["pmRA"]),  # This can be nan
+            float(new_cl["pmDE"]),  # This can be nan
+            float(new_cl["Plx"]),  # This can be nan
         )
-
         fname0 = str(fnames).split(";")[0]
         logging.info(f"\n{N_cl} Processing {fname0} (idx={UCC_idx})")
 
-        # Generate frame
+        # If this is a 'manual' run, check if this OC is present in the file
+        N_clust_manual = None
+        if run_mode == "manual":
+            row = manual_pars[manual_pars["fname"].str.contains(fname0)]
+            if row.empty is False:
+                Nmembs = row["Nmembs"].iloc[0]
+                if not np.isnan(Nmembs):
+                    N_clust_manual = Nmembs
+
+        # Get frame limits
         box_s, plx_min = get_frame_limits(fname0, plx_c)
 
         # Request Gaia frame
@@ -677,8 +699,28 @@ def member_files_updt(
             de_c,
         )
 
-        # Check for clusters in the Gaia frame
-        check_close_cls(
+        my_field = asteca.Cluster(
+            ra=np.array(gaia_frame["RA_ICRS"]),
+            dec=np.array(gaia_frame["DE_ICRS"]),
+            pmra=np.array(gaia_frame["pmRA"]),
+            pmde=np.array(gaia_frame["pmDE"]),
+            plx=np.array(gaia_frame["Plx"]),
+            e_pmra=np.array(gaia_frame["e_pmRA"]),
+            e_pmde=np.array(gaia_frame["e_pmDE"]),
+            e_plx=np.array(gaia_frame["e_Plx"]),
+            verbose=0,
+        )
+
+        set_centers(my_field, ra_c, de_c, pmra_c, pmde_c, plx_c)
+        logging.info(
+            f"  Center used: ({my_field.radec_c[0]:.4f}, {my_field.radec_c[1]:.4f}), "
+            + f"({my_field.pms_c[0]:.4f}, {my_field.pms_c[1]:.4f}), {my_field.plx_c:.4f}"
+        )
+
+        get_Nmembs(logging, N_clust_manual, my_field)
+
+        # Check for entries in the frame
+        entries_in_frame = check_close_cls(
             logging,
             df_UCC,
             gaia_frame,
@@ -689,31 +731,30 @@ def member_files_updt(
             df_GCs,
         )
 
+        # if entries_in_frame.empty is False:
+        breakpoint()
+
         # Extract fastMP probabilities
-        probs_all = get_fastMP_membs(
-            logging,
-            run_mode,
-            manual_pars,
-            fname0,
-            ra_c,
-            de_c,
-            glon_c,
-            glat_c,
-            pmra_c,
-            pmde_c,
-            plx_c,
-            gaia_frame,
-        )
+        probs_all = get_fastMP_membs(my_field)
+
+        # Check initial versus members centers
+        xy_c_m, vpd_c_m, plx_c_m = extract_centers(my_field, probs_all)
+        cent_flags = check_centers(
+            xy_c_m, vpd_c_m, plx_c_m, (glon_c, glat_c), (pmra_c, pmde_c), plx_c
+        )[0]
+        # "nnn" --> Centers are in agreement
+        if cent_flags != "nnn":
+            logging.warning(f"  Centers flag: {cent_flags}")
 
         # Split into members and field stars according to the probability values
         # assigned
-        df_membs = extract_members(gaia_frame, probs_all)
+        df_field, df_membs = extract_members(gaia_frame, probs_all)
 
         # Write selected member stars to file
         save_cl_datafile(logging, temp_fold, members_folder, fnames, quad, df_membs)
 
         # Extract data to update the UCC
-        dict_UCC_updt = extract_cl_data(df_membs)
+        dict_UCC_updt = extract_cl_data(df_field, df_membs)
 
         # Store data from this new entry used to update the UCC
         df_UCC_updt = updt_UCC_new_cl_data(df_UCC_updt, UCC_idx, dict_UCC_updt)
@@ -772,7 +813,7 @@ def diff_between_dfs(
     df_new = df_new.reset_index(drop=True)
 
     # NaN as "nan" in "N_50" column (important to identify OCs to apply fastMP)
-    df_new["N_50"] = df_new["N_50"].fillna("nan")
+    df_new["N_50"] = df_new["N_50"].fillna(np.nan)
 
     if cols_exclude is not None:
         logging.info(f"\n{cols_exclude} columns excluded")
