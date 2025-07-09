@@ -51,7 +51,9 @@ def get_last_version_UCC(UCC_folder: str) -> str:
     return last_version
 
 
-def radec2lonlat(ra: float | list, dec: float | list) -> tuple[float, float]:
+def radec2lonlat(
+    ra: float | list, dec: float | list
+) -> tuple[float | np.ndarray, float | np.ndarray]:
     """
     Converts equatorial coordinates (RA, Dec) to galactic coordinates (lon, lat).
 
@@ -88,13 +90,13 @@ def check_centers(
     Parameters
     ----------
     xy_c_m : tuple
-        Center coordinates (lon, lat) from estimated members.
+        Center coordinates (lon, lat) or (ra, dec) from estimated members.
     vpd_c_m : tuple
         Center proper motion (pmRA, pmDE) from estimated members.
     plx_c_m : float
         Center parallax from estimated members.
     xy_c_n : tuple
-        Center coordinates (lon, lat) from the literature.
+        Center coordinates (lon, lat) or (ra, dec) from the literature.
     vpd_c_n : tuple
         Center proper motion (pmRA, pmDE) from the literature.
     plx_c_n : float
