@@ -1,16 +1,6 @@
 Some of these are intermediate versions of the UCC database that are not published.
 
 
-## 25063015
-
-- Remove C1,C2,C3 columns and associated code
-
-
-## 25062511
-
-- Updated auner1 with Nmembs=100
-
-
 ## 25062409
 
 - Added back the "duplicated" columns now as close OCs + re-processed King 13
