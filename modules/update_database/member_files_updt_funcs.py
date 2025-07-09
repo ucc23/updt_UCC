@@ -1,12 +1,13 @@
+# sys.path.append("/home/gabriel/Github/ASteCA/ASteCA/asteca")
 import asteca
+
+#
 import numpy as np
 import pandas as pd
 from scipy.spatial.distance import cdist
 
-# from modules.update_database.possible_duplicates_funcs import dprob
-from ..utils import check_centers
-
-# from .classification import get_classif
+from ..utils import radec2lonlat
+from .classification import get_classif
 
 
 def get_frame_limits(fname: str, plx: float) -> tuple[float, float]:
@@ -104,7 +105,7 @@ def check_close_cls(
     glat_c: float,
     plx_c: float,
     df_gcs: pd.DataFrame,
-) -> None:
+) -> pd.DataFrame:
     """
     Identifies clusters and globular clusters (GCs) close to the specified coordinates.
 
@@ -193,25 +194,6 @@ def check_close_cls(
     # }
     # in_frame_all = pd.concat([pd.DataFrame([new_row]), in_frame_all], ignore_index=True)
 
-    # # Estimate duplicate probabilities between the analyzed cluster and those in frame
-    # rm_idx, j = [0], 1
-    # for _, row in in_frame_all[1:].iterrows():
-    #     dup_prob = dprob(
-    #         np.array(in_frame_all["GLON"]),
-    #         np.array(in_frame_all["GLAT"]),
-    #         np.array(in_frame_all["pmRA"]),
-    #         np.array(in_frame_all["pmDE"]),
-    #         np.array(in_frame_all["plx"]),
-    #         0,  # Compare OCs in frame with self
-    #         j,
-    #     )
-    #     j += 1
-    #     # Remove OCs with a large duplicate probability of 90%
-    #     if dup_prob > 0.9:
-    #         rm_idx.append(j)
-    # # Drop OCs that are identified as duplicates (and self)
-    # in_frame_all = in_frame_all.drop(index=rm_idx)
-
     # Print info to screen
     in_frame_all = in_frame_all[["Type", "GLON", "GLAT", "plx", "pmRA", "pmDE", "Name"]]
     if len(in_frame_all) > 0:
@@ -224,115 +206,93 @@ def check_close_cls(
         if len(in_frame_all) > 10:
             logging.info(f"  ({len(in_frame_all) - 10} more)")
 
-    # return in_frame_all
+    return pd.DataFrame(in_frame_all)
 
 
-def get_fastMP_membs(
-    logging,
-    run_mode: str,
-    manual_pars: pd.DataFrame,
-    fname0: str,
+def set_centers(
+    my_field: asteca.Cluster,
     ra_c: float,
     de_c: float,
-    glon_c: float,
-    glat_c: float,
-    pmra_c: float,
-    pmde_c: float,
-    plx_c: float,
-    gaia_frame: pd.DataFrame,
-) -> np.ndarray:
+    pmra_c_in: float,
+    pmde_c_in: float,
+    plx_c_in: float,
+) -> None:
     """
-    Runs fastMP for a given Gaia data frame.
+    Estimate the cluster's center coordinates
 
     Parameters
     ----------
     logging : logging.Logger
         Logger object for outputting information.
-    run_mode : str
-        Mode of the run, e.g., 'update' or 'new'.
-    manual_pars : pd.DataFrame
-        Manual parameters
-    fname0 : str
-        Cluster file name
-    ra_c, ..., plx_c : float
-        Center values
-    gaia_frame : pd.DataFrame
-        Square frame with Gaia data to process
-
-    Returns
-    -------
-    - probs_all: Array with probabilities
+    my_field : asteca.Cluster
+        Cluster object
+    radec_c : tuple
+        Center coordinates (RA, Dec) for fastMP.
+    pms_c : tuple
+        Center proper motion (pmRA, pmDE) for fastMP.
+    plx_c : float
+        Center parallax for fastMP.
     """
-
-    N_clust_manual = -1
-    if run_mode == "manual":
-        # Attempt to extract manual value for this cluster
-        try:
-            idx = list(manual_pars["fname"]).index(fname0)
-            N_clust_manual = int(manual_pars["Nmembs"].values[idx])
-        except ValueError:
-            pass
-
-    # Extract center coordinates from UCC
-    lonlat_c = (glon_c, glat_c)
     radec_c = (ra_c, de_c)
-    pms_c = (np.nan, np.nan)
-    if not np.isnan(pmra_c):
-        pms_c = (pmra_c, pmde_c)
 
-    fixed_centers = False
-    # If the cluster has no PM or Plx center values assigned, use fixed centers
-    if np.isnan(pms_c[0]) and np.isnan(plx_c):
-        fixed_centers = True
+    pms_c, plx_c = None, None
+    if not np.isnan(pmra_c_in):
+        pms_c = (pmra_c_in, pmde_c_in)
+    if not np.isnan(plx_c_in):
+        plx_c = plx_c_in
 
-    my_field = asteca.Cluster(
-        ra=np.array(gaia_frame["RA_ICRS"]),
-        dec=np.array(gaia_frame["DE_ICRS"]),
-        pmra=np.array(gaia_frame["pmRA"]),
-        pmde=np.array(gaia_frame["pmDE"]),
-        plx=np.array(gaia_frame["Plx"]),
-        e_pmra=np.array(gaia_frame["e_pmRA"]),
-        e_pmde=np.array(gaia_frame["e_pmDE"]),
-        e_plx=np.array(gaia_frame["e_Plx"]),
-        # N_clust_max=3000,
-        verbose=0,
-    )
+    my_field.get_center(radec_c=radec_c, pms_c=pms_c, plx_c=plx_c)
 
-    # # Set radius as 10% of the frame's length, perhaps used in the number of members
-    # # estimation
-    # my_field.radius = float(
-    #     np.mean([np.ptp(gaia_frame["GLON"]), np.ptp(gaia_frame["GLAT"])]) * 0.1
-    # )
+    # If no PMs and plx are given initially, use fixed (RA, DEC) values to avoid
+    # wandering off the actual cluster
+    if np.isnan(pmra_c_in) and np.isnan(plx_c_in):
+        my_field.radec_c = radec_c
 
-    # Process with fastMP
-    probs_all = run_fastMP(
-        logging, my_field, radec_c, pms_c, plx_c, fixed_centers, N_clust_manual
-    )
-
-    if fixed_centers is False:
-        # Check centers to see if re-run is required
-        xy_c_m, vpd_c_m, plx_c_m = extract_centers(gaia_frame, probs_all)
-        cent_flags = check_centers(xy_c_m, vpd_c_m, plx_c_m, lonlat_c, pms_c, plx_c)[0]
-        # 'nnn' means all centers are in agreement
-        if cent_flags != "nnn":
-            # Re-run with fixed centers
-            fixed_centers = True
-            probs_all = run_fastMP(
-                logging, my_field, radec_c, pms_c, plx_c, fixed_centers, N_clust_manual
-            )
-
-    return probs_all
+    # If PMs or plx are given initially, re-write using initial values
+    if not np.isnan(pmra_c_in):
+        my_field.pms_c = (pmra_c_in, pmde_c_in)
+    if not np.isnan(plx_c_in):
+        my_field.plx_c = plx_c_in
 
 
-def run_fastMP(
+def get_Nmembs(
     logging,
+    N_clust_manual: int | None,
     my_field: asteca.Cluster,
-    radec_c: tuple,
-    pms_c: tuple,
-    plx_c: float,
-    fixed_centers: bool,
-    N_clust_manual: int,
-) -> np.ndarray:
+) -> int | None:
+    """
+    Estimate the number of cluster members
+
+    Parameters
+    ----------
+    logging : logging.Logger
+        Logger object for outputting information
+    my_field : asteca.Cluster
+        Cluster object
+    N_clust_max : int
+        Maximum number of cluster members to estimate
+    N_clust_manual : int
+        Manual number of cluster members
+    """
+    if N_clust_manual is not None:
+        my_field.N_cluster = N_clust_manual
+        logging.info(f"  Using manual N_cluster={N_clust_manual}")
+        return
+
+    # Use default ASteCA method
+    my_field.get_nmembers()
+
+    if my_field.N_cluster == my_field.N_clust_max:
+        logging.info(
+            f"  WARNING: N_cluster={my_field.N_clust_max}, "
+            + f"using N_cluster={my_field.N_clust_min}"
+        )
+        my_field.N_cluster = my_field.N_clust_min
+    else:
+        logging.info(f"  Estimated N_cluster={my_field.N_cluster}")
+
+
+def get_fastMP_membs(my_field: asteca.Cluster) -> np.ndarray:
     """
     Runs the fastMP algorithm to estimate membership probabilities.
 
@@ -348,118 +308,18 @@ def run_fastMP(
     np.ndarray
         Array of membership probabilities.
     """
-    set_cents(
-        logging,
-        my_field,
-        fixed_centers,
-        radec_c,
-        pms_c,
-        plx_c,
-    )
-
-    set_Nmembs(logging, my_field, N_clust_manual)
 
     # Define membership object
     memb = asteca.Membership(my_field, verbose=0)
 
     # Run fastMP
-    probs_fastmp = memb.fastmp(fixed_centers=fixed_centers)
+    probs_fastmp = memb.fastmp(fixed_centers=True)
 
     return probs_fastmp
 
 
-def set_cents(
-    logging,
-    my_field: asteca.Cluster,
-    fixed_centers: bool,
-    radec_c: tuple,
-    pms_c: tuple,
-    plx_c: float,
-) -> None:
-    """
-    Estimate the cluster's center coordinates
-
-    Parameters
-    ----------
-    logging : logging.Logger
-        Logger object for outputting information.
-    my_field : asteca.Cluster
-        Cluster object
-    fixed_centers : bool
-        Boolean indicating whether to use fixed centers.
-    radec_c : tuple
-        Center coordinates (RA, Dec) for fastMP.
-    pms_c : tuple
-        Center proper motion (pmRA, pmDE) for fastMP.
-    plx_c : float
-        Center parallax for fastMP.
-    """
-    my_field.get_center(radec_c=radec_c)
-    if fixed_centers:
-        my_field.radec_c = radec_c
-        if not np.isnan(pms_c[0]):
-            my_field.pms_c = pms_c
-        if not np.isnan(plx_c):
-            my_field.plx_c = plx_c
-    logging.info(
-        f"  Center used: ({my_field.radec_c[0]:.4f}, {my_field.radec_c[1]:.4f}), "
-        + f"({my_field.pms_c[0]:.4f}, {my_field.pms_c[1]:.4f}), {my_field.plx_c:.4f}"
-    )
-
-
-def set_Nmembs(logging, my_field: asteca.Cluster, N_clust_manual: int) -> None:
-    """
-    Estimate the number of cluster members
-
-    Parameters
-    ----------
-    logging : logging.Logger
-        Logger object for outputting information
-    my_field : asteca.Cluster
-        Cluster object
-    N_clust_max : int
-        Maximum number of cluster members to estimate
-    N_clust_manual : int
-        Manual number of cluster members
-    """
-
-    if N_clust_manual > 0:
-        my_field.N_cluster = N_clust_manual
-        logging.info(f"  Using number of members: {N_clust_manual}")
-        return
-
-    # Use default ASteCA method
-    my_field.get_nmembers()
-
-    if my_field.N_cluster == my_field.N_clust_max:
-        logging.info(
-            f"  WARNING: N_cluster={my_field.N_clust_max}, "
-            + f"using N_cluster={my_field.N_clust_min}"
-        )
-        my_field.N_cluster = my_field.N_clust_min
-
-        # # If the default method results in the max number, try the 'density' method
-        # logging.info(
-        #     f"  WARNING: N_cluster={my_field.N_clust_max}, "
-        #     + f"using 'density' method with radius={my_field.radius:.2f}"
-        # )
-        # my_field.get_nmembers("density")
-
-        # # If this method also estimates the max value, use the minimum
-        # if my_field.N_cluster == my_field.N_clust_max:
-        #     my_field.N_cluster = my_field.N_clust_min
-        #     logging.info(
-        #         f"  WARNING: N_cluster={my_field.N_clust_max}, "
-        #         + f"using N_cluster={my_field.N_clust_min}"
-        #     )
-        # else:
-        #     logging.info(f"  Using N_cluster={my_field.N_cluster}")
-    else:
-        logging.info(f"  Using N_cluster={my_field.N_cluster}")
-
-
 def extract_centers(
-    data: pd.DataFrame,
+    my_field: asteca.Cluster,
     probs_all: np.ndarray,
     N_membs_min: int = 25,
     prob_cut: float = 0.5,
@@ -496,12 +356,12 @@ def extract_centers(
         msk = np.full(len(probs_all), False)
         msk[idx] = True
 
+    glon, glat = radec2lonlat(my_field.ra, my_field.dec)
+
     # Centers of selected members
-    xy_c_m = np.nanmedian([np.array(data["GLON"])[msk], np.array(data["GLAT"])[msk]], 1)
-    vpd_c_m = np.nanmedian(
-        [np.array(data["pmRA"])[msk], np.array(data["pmDE"])[msk]], 1
-    )
-    plx_c_m = np.nanmedian(np.array(data["Plx"])[msk])
+    xy_c_m = np.nanmedian([np.array(glon)[msk], np.array(glat)[msk]], 1)
+    vpd_c_m = np.nanmedian([my_field.pmra[msk], my_field.pmde[msk]], 1)
+    plx_c_m = np.nanmedian(my_field.plx[msk])
 
     # pyright issue due to: https://github.com/numpy/numpy/issues/28076
     return xy_c_m, vpd_c_m, plx_c_m  # pyright: ignore
@@ -514,7 +374,7 @@ def extract_members(
     N_membs_min: int = 25,
     # perc_cut: int = 95,
     # N_perc: int = 2,
-) -> pd.DataFrame:
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Splits the data into member and field star DataFrames based on membership
     probabilities.
@@ -536,8 +396,8 @@ def extract_members(
 
     Returns
     -------
-    pd.DataFrame
-        DataFrame of cluster members
+    tuple[pd.DataFrame, pd.DataFrame]
+        DataFrames of field stars and cluster members
     """
     # Stars with probabilities greater than zero
     N_p_g_0 = (probs_all > 0.0).sum()
@@ -556,14 +416,14 @@ def extract_members(
         # Apply prob_cut
         msk_membs = probs_all >= prob_cut
     else:
-        # Select maximum number of stars with P>0 up to N_membs_min
+        # Select 'N_membs_min' maximum number of stars with P>0
         N_membs_min = min(N_membs_min, N_p_g_0)
         idx = np.argsort(probs_all)[::-1][:N_membs_min]
         # Select indexes
         msk_membs = np.full(len(probs_all), False)
         msk_membs[idx] = True
 
-    return pd.DataFrame(data[msk_membs])
+    return pd.DataFrame(data[~msk_membs]), pd.DataFrame(data[msk_membs])
 
     # This first filter removes stars beyond 2 times the 95th percentile
     # of the most likely members
@@ -601,12 +461,16 @@ def extract_members(
     # df_membs, df_field = df_comb[msk_membs], df_comb[~msk_membs]
 
 
-def extract_cl_data(df_membs: pd.DataFrame, prob_cut: float = 0.5) -> dict:
+def extract_cl_data(
+    df_field: pd.DataFrame, df_membs: pd.DataFrame, prob_cut: float = 0.5
+) -> dict:
     """
     Extracts cluster parameters from the member DataFrame.
 
     Parameters
     ----------
+    df_field : pd.DataFrame
+        DataFrame of field stars.
     df_membs : pd.DataFrame
         DataFrame of cluster members.
     prob_cut : float, optional
@@ -652,13 +516,13 @@ def extract_cl_data(df_membs: pd.DataFrame, prob_cut: float = 0.5) -> dict:
     r_50 = float(round(r_50 * 60.0, 1))
 
     # Classification data
-    # C1, C2, C3 = get_classif(df_membs, df_field)
+    C1, C2, C3 = get_classif(df_membs, df_field)
 
     # Store data used to update the UCC
     dict_UCC_updt = {
-        # "C1": C1,
-        # "C2": C2,
-        # "C3": C3,
+        "C1": C1,
+        "C2": C2,
+        "C3": C3,
         "GLON_m": lon,
         "GLAT_m": lat,
         "RA_ICRS_m": ra,
