@@ -6,9 +6,6 @@ import re
 import sys
 import warnings
 
-# Add path for local version
-# sys.path.append("/home/gabriel/Github/ASteCA/ASteCA/asteca")
-import asteca
 import numpy as np
 import pandas as pd
 
@@ -21,6 +18,8 @@ from modules.HARDCODED import (
     members_folder,
     name_DBs_json,
     parquet_dates,
+    path_gaia_frames,
+    path_gaia_frames_ranges,
     temp_fold,
 )
 from modules.update_database.add_new_DB_funcs import (
@@ -68,15 +67,6 @@ from modules.utils import (
 )
 
 # print(asteca.__version__)
-
-# Paths to the Gaia DR3 files in external drive
-root = "/media/gabriel/backup/gabriel/GaiaDR3/"
-# root = "/home/gperren.ifir/UCC/GaiaDR3/"
-path_gaia_frames = root + "datafiles_G20/"
-# Paths to the file that informs the sky area covered by each file
-path_gaia_frames_ranges = root + "files_G20/frame_ranges.txt"
-# Maximum magnitude to retrieve
-gaia_max_mag = 20
 
 
 # =========================================================================

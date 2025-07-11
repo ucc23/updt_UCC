@@ -1,14 +1,16 @@
-# sys.path.append("/home/gabriel/Github/ASteCA/ASteCA/asteca")
-import asteca
+import sys
 
-#
 import numpy as np
 import pandas as pd
 from scipy.spatial.distance import cdist
 
+from ..HARDCODED import gaia_max_mag, local_asteca_path, path_gaia_frames
 from ..utils import radec2lonlat
 from .classification import get_classif
 
+# Local version
+sys.path.append(local_asteca_path)
+import asteca
 
 def get_frame_limits(fname: str, plx: float) -> tuple[float, float]:
     """

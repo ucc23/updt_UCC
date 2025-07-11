@@ -46,3 +46,17 @@ temp_fold = "temp_updt/"
 UCC_folder = "zenodo/"
 # Path to the folder that stores the archived UCC versions
 UCC_archive = UCC_folder + "archived/"
+
+
+# Paths to the Gaia DR3 files in external drive
+root = "/media/gabriel/backup/gabriel/GaiaDR3/"
+# root = "/home/gperren.ifir/UCC/GaiaDR3/"
+path_gaia_frames = root + "datafiles_G20/"
+# Paths to the file that informs the sky area covered by each file
+path_gaia_frames_ranges = root + "files_G20/frame_ranges.txt"
+# Maximum magnitude to retrieve
+gaia_max_mag = 20
+
+
+# Path to local ASteCA version
+local_asteca_path = "/home/gabriel/Github/ASteCA/ASteCA/asteca"
