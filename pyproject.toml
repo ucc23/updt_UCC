@@ -5,7 +5,6 @@ description = "Scipts to perform a UCC update"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "asteca>=0.6.1",
     "astroquery>=0.4.9.post1",
     "fastparquet>=2024.11.0",
     "levenshtein>=0.26.1",
