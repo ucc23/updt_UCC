@@ -40,7 +40,6 @@ from modules.update_database.check_new_DB_funcs import (
     prep_newDB,
     vdberg_check,
 )
-from modules.update_database.gaia_query_frames import query_run
 from modules.update_database.member_files_updt_funcs import (
     check_close_cls,
     detect_close_OCs,
@@ -48,7 +47,7 @@ from modules.update_database.member_files_updt_funcs import (
     extract_cl_data,
     extract_members,
     get_fastMP_membs,
-    get_frame_limits,
+    get_gaia_frame,
     get_Nmembs,
     save_cl_datafile,
     set_centers,
@@ -65,9 +64,6 @@ from modules.utils import (
     logger,
     radec2lonlat,
 )
-
-# print(asteca.__version__)
-
 
 # =========================================================================
 # Select the mode used to run the script
@@ -90,7 +86,7 @@ def main():
     """
     logging = logger()
 
-    logging.info(f"\n===Running in {run_mode} mode===\n")
+    logging.info(f"\n=== Running in {run_mode} mode ===\n")
 
     # Generate paths and check for required folders and files
     (
@@ -651,7 +647,7 @@ def member_files_updt(
         if not np.isnan(new_cl["N_50"]):
             continue
 
-        fnames, quad, ra_c, de_c, glon_c, glat_c, pmra_c, pmde_c, plx_c = (
+        fnames, quad, ra_c, dec_c, glon_c, glat_c, pmra_c, pmde_c, plx_c = (
             new_cl["fnames"],
             new_cl["quad"],
             float(new_cl["RA_ICRS"]),
@@ -674,58 +670,38 @@ def member_files_updt(
                 if not np.isnan(Nmembs):
                     N_clust_manual = Nmembs
 
-        # Get frame limits
-        box_s, plx_min = get_frame_limits(fname0, plx_c)
-
-        # Request Gaia frame
-        gaia_frame = query_run(
-            logging,
-            path_gaia_frames,
-            gaia_frames_data,
-            box_s,
-            plx_min,
-            gaia_max_mag,
-            ra_c,
-            de_c,
+        gaia_frame = get_gaia_frame(
+            logging, gaia_frames_data, fname0, ra_c, dec_c, plx_c
         )
 
-        my_field = asteca.Cluster(
-            ra=np.array(gaia_frame["RA_ICRS"]),
-            dec=np.array(gaia_frame["DE_ICRS"]),
-            pmra=np.array(gaia_frame["pmRA"]),
-            pmde=np.array(gaia_frame["pmDE"]),
-            plx=np.array(gaia_frame["Plx"]),
-            e_pmra=np.array(gaia_frame["e_pmRA"]),
-            e_pmde=np.array(gaia_frame["e_pmDE"]),
-            e_plx=np.array(gaia_frame["e_Plx"]),
-            verbose=0,
-        )
-
-        set_centers(my_field, ra_c, de_c, pmra_c, pmde_c, plx_c)
+        my_field = set_centers(gaia_frame, ra_c, dec_c, pmra_c, pmde_c, plx_c)
         logging.info(
             f"  Center used: ({my_field.radec_c[0]:.4f}, {my_field.radec_c[1]:.4f}), "
             + f"({my_field.pms_c[0]:.4f}, {my_field.pms_c[1]:.4f}), {my_field.plx_c:.4f}"
         )
 
-        get_Nmembs(logging, N_clust_manual, my_field)
-
-        # Check for entries in the frame
-        entries_in_frame = check_close_cls(
-            logging,
-            df_UCC,
-            gaia_frame,
-            fname0,
-            glon_c,
-            glat_c,
-            plx_c,
-            df_GCs,
-        )
-
-        # if entries_in_frame.empty is False:
-        breakpoint()
+        # If 'N_clust_manual' was given, use it
+        if N_clust_manual is not None:
+            my_field.N_cluster = N_clust_manual
+            logging.info(f"  Using manual N_cluster={N_clust_manual}")
+        else:
+            get_Nmembs(logging, my_field)
+            # Only check if the number of members larger than the minimum value
+            if my_field.N_cluster > my_field.N_clust_min:
+                check_close_cls(
+                    logging,
+                    df_UCC,
+                    gaia_frame,
+                    fname0,
+                    glon_c,
+                    glat_c,
+                    plx_c,
+                    df_GCs,
+                )
 
         # Extract fastMP probabilities
         probs_all = get_fastMP_membs(my_field)
+        logging.warning(f"probs_all>0.5={(probs_all > 0.5).sum()}")
 
         # Check initial versus members centers
         xy_c_m, vpd_c_m, plx_c_m = extract_centers(my_field, probs_all)
@@ -733,7 +709,7 @@ def member_files_updt(
             xy_c_m, vpd_c_m, plx_c_m, (glon_c, glat_c), (pmra_c, pmde_c), plx_c
         )[0]
         # "nnn" --> Centers are in agreement
-        if cent_flags != "nnn":
+        if cent_flags[0] != "n":
             logging.warning(f"  Centers flag: {cent_flags}")
 
         # Split into members and field stars according to the probability values
