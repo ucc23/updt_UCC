@@ -7,12 +7,53 @@ from scipy.spatial.distance import cdist
 from ..HARDCODED import gaia_max_mag, local_asteca_path, path_gaia_frames
 from ..utils import radec2lonlat
 from .classification import get_classif
+from .gaia_query_frames import query_run
 
 # Local version
 sys.path.append(local_asteca_path)
 import asteca
 
-def get_frame_limits(fname: str, plx: float) -> tuple[float, float]:
+
+def get_gaia_frame(
+    logging,
+    gaia_frames_data,
+    fname0,
+    ra_c,
+    dec_c,
+    plx_c,
+    N_min_stars: int = 100,
+    box_length_add: float = 0.5,
+) -> pd.DataFrame:
+    """ """
+    # Make sure a minimum number of stars is present in the frame
+    extra_length = 0.0
+    while True:
+        # Get frame limits
+        box_s, plx_min = get_frame_limits(fname0, plx_c, extra_length)
+
+        # Request Gaia frame
+        gaia_frame = query_run(
+            logging,
+            path_gaia_frames,
+            gaia_frames_data,
+            box_s,
+            plx_min,
+            gaia_max_mag,
+            ra_c,
+            dec_c,
+        )
+
+        if len(gaia_frame) < N_min_stars:
+            extra_length += box_length_add
+        else:
+            break
+
+    return gaia_frame
+
+
+def get_frame_limits(
+    fname: str, plx: float, extra_length: float
+) -> tuple[float, float]:
     """
     Determines the frame size and minimum parallax for data retrieval based on cluster
     properties.
@@ -70,16 +111,6 @@ def get_frame_limits(fname: str, plx: float) -> tuple[float, float]:
     if fname.startswith("ryu"):
         box_s_eq = 10 / 60
 
-    # # Attempt to extract manual value for this cluster
-    # try:
-    #     idx = list(manual_pars["fname"]).index(fname0)
-    #     manual_box_s = float(manual_pars["box_s"].values[idx])
-    #     if not np.isnan(manual_box_s):
-    #         box_s_eq = manual_box_s
-    #         logging.info(f"Manual box size applied: {box_s_eq}")
-    # except (ValueError, KeyError):
-    #     pass
-
     # Filter by parallax if possible
     plx_min = -2
     if c_plx is not None:
@@ -95,6 +126,8 @@ def get_frame_limits(fname: str, plx: float) -> tuple[float, float]:
             plx_p = 0.6
         plx_min = c_plx - plx_p
 
+    box_s_eq += extra_length
+
     return box_s_eq, plx_min
 
 
@@ -107,7 +140,7 @@ def check_close_cls(
     glat_c: float,
     plx_c: float,
     df_gcs: pd.DataFrame,
-) -> pd.DataFrame:
+) -> None:
     """
     Identifies clusters and globular clusters (GCs) close to the specified coordinates.
 
@@ -208,17 +241,18 @@ def check_close_cls(
         if len(in_frame_all) > 10:
             logging.info(f"  ({len(in_frame_all) - 10} more)")
 
-    return pd.DataFrame(in_frame_all)
+    # return pd.DataFrame(in_frame_all)
 
 
 def set_centers(
-    my_field: asteca.Cluster,
+    gaia_frame: pd.DataFrame,
     ra_c: float,
     de_c: float,
     pmra_c_in: float,
     pmde_c_in: float,
     plx_c_in: float,
-) -> None:
+    max_dist_arcmin: int = 1,
+) -> asteca.Cluster:
     """
     Estimate the cluster's center coordinates
 
@@ -235,6 +269,18 @@ def set_centers(
     plx_c : float
         Center parallax for fastMP.
     """
+    my_field = asteca.Cluster(
+        ra=np.array(gaia_frame["RA_ICRS"]),
+        dec=np.array(gaia_frame["DE_ICRS"]),
+        pmra=np.array(gaia_frame["pmRA"]),
+        pmde=np.array(gaia_frame["pmDE"]),
+        plx=np.array(gaia_frame["Plx"]),
+        e_pmra=np.array(gaia_frame["e_pmRA"]),
+        e_pmde=np.array(gaia_frame["e_pmDE"]),
+        e_plx=np.array(gaia_frame["e_Plx"]),
+        verbose=0,
+    )
+
     radec_c = (ra_c, de_c)
 
     pms_c, plx_c = None, None
@@ -245,9 +291,10 @@ def set_centers(
 
     my_field.get_center(radec_c=radec_c, pms_c=pms_c, plx_c=plx_c)
 
-    # If no PMs and plx are given initially, use fixed (RA, DEC) values to avoid
-    # wandering off the actual cluster
-    if np.isnan(pmra_c_in) and np.isnan(plx_c_in):
+    # If no PMs and plx are given initially or the 'max_dist_arcmin' is exceeded,
+    # use the initial (ra, dec) values to avoid wandering off the actual cluster
+    d_arcmin = np.linalg.norm(np.array(my_field.radec_c) - np.array(radec_c)) * 60
+    if (np.isnan(pmra_c_in) and np.isnan(plx_c_in)) or (d_arcmin > max_dist_arcmin):
         my_field.radec_c = radec_c
 
     # If PMs or plx are given initially, re-write using initial values
@@ -256,10 +303,11 @@ def set_centers(
     if not np.isnan(plx_c_in):
         my_field.plx_c = plx_c_in
 
+    return my_field
+
 
 def get_Nmembs(
     logging,
-    N_clust_manual: int | None,
     my_field: asteca.Cluster,
 ) -> int | None:
     """
@@ -271,20 +319,11 @@ def get_Nmembs(
         Logger object for outputting information
     my_field : asteca.Cluster
         Cluster object
-    N_clust_max : int
-        Maximum number of cluster members to estimate
-    N_clust_manual : int
-        Manual number of cluster members
     """
-    if N_clust_manual is not None:
-        my_field.N_cluster = N_clust_manual
-        logging.info(f"  Using manual N_cluster={N_clust_manual}")
-        return
-
     # Use default ASteCA method
     my_field.get_nmembers()
 
-    if my_field.N_cluster == my_field.N_clust_max:
+    if my_field.N_cluster >= my_field.N_clust_max:
         logging.info(
             f"  WARNING: N_cluster={my_field.N_clust_max}, "
             + f"using N_cluster={my_field.N_clust_min}"
