@@ -695,6 +695,8 @@ def member_files_updt(
                     fname0,
                     glon_c,
                     glat_c,
+                    pmra_c,
+                    pmde_c,
                     plx_c,
                     df_GCs,
                 )

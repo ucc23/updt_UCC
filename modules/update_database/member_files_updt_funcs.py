@@ -138,6 +138,8 @@ def check_close_cls(
     fname0,
     glon_c: float,
     glat_c: float,
+    pmra_c: float,
+    pmde_c: float,
     plx_c: float,
     df_gcs: pd.DataFrame,
 ) -> None:
@@ -218,19 +220,47 @@ def check_close_cls(
         [pd.DataFrame(in_frame_gcs), in_frame], axis=0, ignore_index=True
     )
 
-    # # Insert row at the top with the cluster under analysis
-    # new_row = {
-    #     "Name": fname0,
-    #     "GLON": glon_c,
-    #     "GLAT": glat_c,
-    #     "plx": plx_c,
-    #     "pmRA": pmra_c,
-    #     "pmDE": pmde_c,
-    # }
-    # in_frame_all = pd.concat([pd.DataFrame([new_row]), in_frame_all], ignore_index=True)
+    # Insert row at the top with the cluster under analysis
+    new_row = {
+        "Name": fname0,
+        "GLON": glon_c,
+        "GLAT": glat_c,
+        "plx": plx_c,
+        "pmRA": pmra_c,
+        "pmDE": pmde_c,
+    }
+    in_frame_all = pd.concat([pd.DataFrame([new_row]), in_frame_all], ignore_index=True)
+
+    # Fetch duplicate probability
+    dups_prob_i = []
+    for j in range(1, len(in_frame_all)):
+        dups_prob_i.append(
+            dprob(
+                np.array(in_frame_all["GLON"]),
+                np.array(in_frame_all["GLAT"]),
+                np.array(in_frame_all["pmRA"]),
+                np.array(in_frame_all["pmDE"]),
+                np.array(in_frame_all["plx"]),
+                0,
+                j,
+            )
+        )
+
+    # Remove first row in dataframe
+    in_frame_all = in_frame_all.drop(0, axis=0).reset_index(drop=True)
+    # Add probabilities
+    in_frame_all["P_d"] = dups_prob_i
+    # Order by probability column
+    in_frame_all = in_frame_all.sort_values("P_d", ascending=False).reset_index(
+        drop=True
+    )
+
+    in_frame_all["Name"] = [_.split(";")[0] for _ in in_frame_all["Name"]]
 
     # Print info to screen
-    in_frame_all = in_frame_all[["Type", "GLON", "GLAT", "plx", "pmRA", "pmDE", "Name"]]
+    in_frame_all = in_frame_all[
+        ["Name", "P_d", "GLON", "GLAT", "plx", "pmRA", "pmDE", "Type"]
+    ]
     if len(in_frame_all) > 0:
         logging.info(
             f"  WARNING: {len(in_frame_all)} extra OCs/GCs in frame: "
@@ -686,13 +716,12 @@ def detect_close_OCs(
 
         if dups_fname_i:
             # Store list of probable duplicates respecting a given order
-            dups_fname_i, dups_prob_i = sort_by_float_desc_then_alpha(
-                dups_fname_i, dups_prob_i
-            )
+            dups_fname_i = sort_by_float_desc_then_alpha(dups_fname_i, dups_prob_i)
             dups_fname_i = ";".join(dups_fname_i)
-            dups_prob_i = ";".join(dups_prob_i)
+            # dups_prob_i = ";".join(dups_prob_i)
         else:
-            dups_fname_i, dups_prob_i = "nan", "nan"
+            dups_fname_i = "nan"
+            # dups_prob_i = "nan"
 
         dups_fnames.append(dups_fname_i)
         # dups_probs.append(dups_prob_i)
@@ -865,9 +894,7 @@ def max_coords_rad(plx_i: float) -> float:
     return rad
 
 
-def sort_by_float_desc_then_alpha(
-    strings: list[str], floats: list[float]
-) -> tuple[list[str], list[str]]:
+def sort_by_float_desc_then_alpha(strings: list[str], floats: list[float]) -> list[str]:
     """
     Sorts two parallel lists: one of strings and one of floats. The lists are sorted
     by the float values in descending order, and by the strings in ascending
@@ -884,10 +911,8 @@ def sort_by_float_desc_then_alpha(
 
     Returns
     -------
-    tuple
-        A tuple containing two lists:
-            - A list of strings sorted by the criteria.
-            - A list of floats as strings, sorted by the criteria.
+    list
+        A list of strings sorted by the criteria.
     """
     # Combine strings and floats into a list of tuples
     data = list(zip(strings, floats))
@@ -898,4 +923,4 @@ def sort_by_float_desc_then_alpha(
     # Unzip the sorted data back into two separate lists
     sorted_strings, sorted_floats = zip(*sorted_data)
 
-    return list(sorted_strings), [str(f) for f in sorted_floats]
+    return list(sorted_strings)  # , [str(f) for f in sorted_floats]
