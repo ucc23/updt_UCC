@@ -134,7 +134,7 @@ will:
 - `databases/NEW_DB.csv`: New database in CSV format
 - `zenodo/UCC_cat_XXYYZZHH.csv`: Updated UCC database; previous version is archived
 - `zenodo/UCC_members.parquet.temp`: Temporary file with all the members
-  **THIS FILE IS NOT TRACKED IN GITHUB BECSAUE IT IS LARGE**
+  **THIS FILE IS NOT TRACKED IN GITHUB BECAUSE IT IS LARGE**
 - `zenodo/data_dates.json`: Updated file
 
 These files are also generated, for exploratory use only:
