@@ -26,8 +26,6 @@ databases_md_path = pages_folder + "DATABASE.md"
 members_folder = "datafiles/"
 # Path to the cluster's plots
 plots_folder = "plots/"
-# Files that store the dates and status of the parquet file
-parquet_dates = "data_dates.json"
 
 
 # updt_ucc paths
@@ -42,17 +40,26 @@ GCs_cat = dbs_folder + "globulars.csv"
 manual_pars_file = "manual_params.csv"
 # Path to store temporarily all updated and new files
 temp_fold = "temp_updt/"
+
+# Zenodo paths and names
+#
 # Path to the folder that stores the latest UCC version
 UCC_folder = "zenodo/"
 # Path to the folder that stores the archived UCC versions
 UCC_archive = UCC_folder + "archived/"
+# Name of the  file that contains all of the members
+UCC_members_file = "UCC_members.parquet"
+# File that stores the dates and status of each member extraction
+parquet_dates = "data_dates.json"
 
 
 # Paths to the Gaia DR3 files in external drive
+#
+# Path to the folder that contains the raw data
 root = "/media/gabriel/backup/gabriel/GaiaDR3/"
 # root = "/home/gperren.ifir/UCC/GaiaDR3/"
 path_gaia_frames = root + "datafiles_G20/"
-# Paths to the file that informs the sky area covered by each file
+# Path to the file that informs the sky area covered by each raw data file
 path_gaia_frames_ranges = root + "files_G20/frame_ranges.txt"
 # Maximum magnitude to retrieve
 gaia_max_mag = 20
