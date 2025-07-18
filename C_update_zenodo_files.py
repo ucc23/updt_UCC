@@ -2,12 +2,10 @@ import csv
 import os
 
 import pandas as pd
+from fastparquet import ParquetFile
+from scipy.spatial.distance import cdist
 
-from modules.HARDCODED import (
-    UCC_folder,
-    members_folder,
-    temp_fold,
-)
+from modules.HARDCODED import UCC_folder, UCC_members_file
 from modules.utils import get_last_version_UCC, logger
 
 
@@ -23,6 +21,11 @@ def main():
     """
     logging = logger()
 
+    # # Create temp folder if it does not exist
+    # temp_zenodo_path = temp_fold + UCC_folder
+    # if not os.path.exists(temp_zenodo_path):
+    #     os.makedirs(temp_zenodo_path)
+
     # Get the latest version of the UCC catalogue
     UCC_last_version = get_last_version_UCC(UCC_folder)
 
@@ -31,42 +34,173 @@ def main():
     df_UCC = pd.read_csv(ucc_file_path)
     N_clusters = len(df_UCC)
 
-    # Create temp folder if it does not exist
-    temp_zenodo_path = temp_fold + UCC_folder
-    if not os.path.exists(temp_zenodo_path):
-        os.makedirs(temp_zenodo_path)
+    N_members, df_members = update_membs_UCC(logging)
+    logging.info(f"Zenodo '{UCC_members_file}' file updated ({N_members} stars)")
 
-    upld_zenodo_file = temp_zenodo_path + "UCC_cat.csv"
-    create_csv_UCC(upld_zenodo_file, df_UCC)
+    if df_members is not None:
+        df_UCC = find_shared_members(df_UCC, df_members)
+
+    create_csv_UCC(df_UCC)
     logging.info("\nZenodo 'UCC_cat.csv' file generated")
 
-    # This assumes that the 'QXY' folders are located one directory above the
-    # current script <-- !! IMPORTANT !!
-    root_UCC_dir = ".."
-
-    zenodo_members_file = temp_zenodo_path + "UCC_members.parquet"
-    N_members = create_membs_UCC(
-        logging, root_UCC_dir, members_folder, zenodo_members_file
-    )
-    logging.info(f"Zenodo 'UCC_members.parquet' file generated ({N_members} stars)")
-
-    zenodo_readme = temp_zenodo_path + "README.txt"
-    updt_readme(UCC_folder, UCC_last_version, N_clusters, N_members, zenodo_readme)
+    updt_readme(UCC_folder, UCC_last_version, N_clusters, N_members)
     logging.info("Zenodo README file generated")
 
-    logging.info(f"\nThe three files are stored in '{temp_zenodo_path}'")
+    logging.info(f"\nThe three files are stored in '{UCC_folder}'")
 
     # zenodo_upload()
 
 
-def create_csv_UCC(zenodo_file: str, df_UCC: pd.DataFrame) -> None:
+def update_membs_UCC(logging) -> tuple[int, pd.DataFrame | None]:
+    """
+    Update the parquet file containing estimated members from the
+    Unified Cluster Catalog (UCC) dataset, formatted for storage in the Zenodo
+    repository.
+    """
+    zenodo_members_file = UCC_folder + UCC_members_file
+    zenodo_members_file_temp = zenodo_members_file + ".temp"
+
+    # Check if the temp file exists
+    if not os.path.exists(zenodo_members_file_temp):
+        logging.info("No temporary members file found")
+        pf = ParquetFile(zenodo_members_file)
+        N_members = pf.count()
+        return N_members, None
+
+    logging.info("Reading member files...")
+    df_members = pd.read_parquet(zenodo_members_file)
+    df_temp = pd.read_parquet(zenodo_members_file_temp)
+
+    # Set index to 'name' for both DataFrames
+    df_m_indexed = df_members.set_index("name")
+    df_t_indexed = df_temp.set_index("name")
+
+    # Update df_members with df_temp where names match
+    df_m_indexed.update(df_t_indexed)
+
+    # Concatenate rows from df_temp that are not in df_members
+    missing = df_t_indexed[~df_t_indexed.index.isin(df_m_indexed.index)]
+    df_updated = pd.concat([df_m_indexed, missing])
+
+    # Reset index
+    df_updated = df_updated.reset_index()
+
+    # Update file
+    df_updated.to_parquet(zenodo_members_file, index=False)
+    logging.info(f"Members file '{zenodo_members_file}' updated")
+
+    # Remove temporary file
+    os.remove(zenodo_members_file_temp)
+    logging.info(f"Temporary file '{zenodo_members_file_temp}' removed")
+
+    N_members = len(df_updated)
+
+    return N_members, df_updated
+
+
+def find_shared_members(df_UCC, df_members):
+    """ """
+    intersection_map = find_intersections(df_UCC)
+
+    # Group by 'fname'
+    grouped = df_members.groupby("name")["Source"].apply(set)
+
+    results = []
+    # Compute shared elements and percentages
+    for fname, sources in grouped.items():
+        fnames_process = [_ for _ in intersection_map[fname].split(",")]
+
+        if fnames_process[0] == "nan":
+            continue
+
+        shared_info = []
+        percentage_info = []
+
+        for other_fname, other_sources in grouped.items():
+            # Only process intersecting OCs
+            if other_fname not in fnames_process:
+                continue
+
+            shared = sources & other_sources
+
+            if shared:
+                shared_info.append(other_fname)
+                percentage = len(shared) / len(sources) * 100
+                percentage_info.append(f"{percentage:.1f}")
+
+        if shared_info:
+            results.append(
+                {
+                    "fname": fname,
+                    "groups_shared": ",".join(shared_info),
+                    "groups_percentage": ",".join(percentage_info),
+                }
+            )
+        else:
+            results.append(
+                {"fname": fname, "groups_shared": "nan", "groups_percentage": "nan"}
+            )
+
+    # Convert to DataFrame
+    result_df = pd.DataFrame(results)
+
+    # Update UDD with this data
+    df_UCC = df_UCC.merge(
+        result_df, left_on="fname", right_on="fname", how="left", suffixes=("", "_y")
+    )
+
+    return df_UCC
+
+
+def find_intersections(df):
+    # Convert to NumPy arrays for fast computation
+    coords = df[["GLON_m", "GLAT_m"]].to_numpy()
+    names = df["fname"].to_numpy()
+
+    # The search region is two times the r_50 radius
+    radii = 2 * df["r_50"].to_numpy() / 60
+
+    # Compute pairwise distances
+    dists = cdist(coords, coords)
+
+    # Compute pairwise sum of radii
+    radii_sum = radii[:, None] + radii[None, :]
+
+    # Intersection condition: distance <= sum of radii, excluding self-comparisons
+    intersection_mask = (dists <= radii_sum) & (dists > 0)
+
+    # Extract intersecting names
+    results = []
+    for i, name in enumerate(names):
+        intersecting = names[intersection_mask[i]]
+        val = "nan"
+        if intersecting.size > 0:
+            val = ",".join(intersecting)
+        results.append({"name": name, "intersects_with": val})
+
+    intersections = pd.DataFrame(results)
+
+    intersection_map = intersections.set_index("name")["intersects_with"].to_dict()
+
+    return intersection_map
+
+
+def create_csv_UCC(df_UCC: pd.DataFrame) -> None:
     """
     Generates a CSV file containing a reduced Unified Cluster Catalog
     (UCC) dataset, which can be stored in the Zenodo repository.
     """
+
+    # Add 'fname' column
+    df = df_UCC.copy()
+    df["fname"] = df["fnames"].str.split(";").str[0]
+
     # Re-order columns
-    df = df_UCC[
+    df = df[
         [
+            "fname",
+            "GLON_m",
+            "GLAT_m",
             "ID",
             "RA_ICRS",
             "DE_ICRS",
@@ -83,12 +217,16 @@ def create_csv_UCC(zenodo_file: str, df_UCC: pd.DataFrame) -> None:
             "pmDE_m",
             "Rv_m",
             "N_Rv",
-            "C1",
-            "C2",
             "C3",
         ]
     ]
 
+    print("TODO: fix this file and the README that describes it")
+    # store a single set of coordinates, pms and plx
+    # order columns properly
+    # add info on clusters that share members
+
+    zenodo_file = UCC_folder + "UCC_cat.csv"
     # Store to csv file
     df.to_csv(
         zenodo_file,
@@ -98,90 +236,16 @@ def create_csv_UCC(zenodo_file: str, df_UCC: pd.DataFrame) -> None:
     )
 
 
-def create_membs_UCC(
-    logging, root_UCC_dir: str, members_folder: str, zenodo_members_file: str
-) -> int:
-    """
-    Generates a parquet file containing estimated members from the
-    Unified Cluster Catalog (UCC) dataset, formatted for storage in the Zenodo
-    repository.
-    """
-    logging.info("Reading member files...")
-
-    # Initialize list for storing temporary DataFrames
-    tmp = []
-    for quad in ("1", "2", "3", "4"):
-        for lat in ("P", "N"):
-            logging.info(f"Processing Q{quad}{lat}")
-            path = root_UCC_dir + "/Q" + quad + lat + f"/{members_folder}/"
-            for file in os.listdir(path):
-                # Ignore these dbs
-                if "HUNT23" in file or "CANTAT20" in file:
-                    continue
-                df = pd.read_parquet(path + file)
-
-                # Round before storing
-                df[["RA_ICRS", "DE_ICRS", "GLON", "GLAT"]] = df[
-                    ["RA_ICRS", "DE_ICRS", "GLON", "GLAT"]
-                ].round(6)
-                df[
-                    [
-                        "Plx",
-                        "e_Plx",
-                        "pmRA",
-                        "e_pmRA",
-                        "pmDE",
-                        "e_pmDE",
-                        "RV",
-                        "e_RV",
-                        "Gmag",
-                        "BP-RP",
-                        "e_Gmag",
-                        "e_BP-RP",
-                        "probs",
-                    ]
-                ] = df[
-                    [
-                        "Plx",
-                        "e_Plx",
-                        "pmRA",
-                        "e_pmRA",
-                        "pmDE",
-                        "e_pmDE",
-                        "RV",
-                        "e_RV",
-                        "Gmag",
-                        "BP-RP",
-                        "e_Gmag",
-                        "e_BP-RP",
-                        "probs",
-                    ]
-                ].round(4)
-
-                fname = file.replace(".parquet", "")
-                df.insert(loc=0, column="name", value=fname)
-                tmp.append(df)
-
-    # Concatenate all temporary DataFrames into one
-    df_comb = pd.concat(tmp, ignore_index=True)
-    df_comb.to_parquet(zenodo_members_file, index=False)
-
-    N_members = len(df_comb)
-
-    return N_members
-
-
 def updt_readme(
     UCC_folder: str,
     last_version: str,
     N_clusters: int,
     N_members: int,
-    zenodo_readme: str,
 ) -> None:
     """Update version number in README file uploaded to Zenodo"""
 
     # Load the main file
-    with open(UCC_folder + "README.txt", "r") as f:
+    with open(UCC_folder + "README.static.txt", "r") as f:
         dataf = f.read()
         # Update the version number. The [:-2] at the end removes the hour from the
         # version's name
@@ -192,6 +256,7 @@ def updt_readme(
         dataf = dataf.replace("YYYYYY", str(N_clusters))
         dataf = dataf.replace("ZZZZZZ", str(N_members))
 
+    zenodo_readme = UCC_folder + "README.txt"
     # Store updated file in the appropriate folder
     with open(zenodo_readme, "w") as f:
         f.write(dataf)
