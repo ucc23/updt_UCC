@@ -13,6 +13,7 @@ from modules.HARDCODED import (
     GCs_cat,
     UCC_archive,
     UCC_folder,
+    UCC_members_file,
     dbs_folder,
     manual_pars_file,
     members_folder,
@@ -42,9 +43,9 @@ from modules.update_database.check_new_DB_funcs import (
 )
 from modules.update_database.member_files_updt_funcs import (
     check_close_cls,
-    detect_close_OCs,
+    # detect_close_OCs,
     extract_centers,
-    extract_cl_data,
+    # extract_cl_data,
     extract_members,
     get_fastMP_membs,
     get_gaia_frame,
@@ -85,11 +86,10 @@ def main():
     """
     logging = logger()
 
-    logging.info(f"\n=== Running in {run_mode} mode ===\n")
+    logging.info(f"=== Running in {run_mode} mode ===\n")
 
     # Generate paths and check for required folders and files
     (
-        root_UCC_path,
         temp_database_folder,
         ucc_file,
         temp_zenodo_fold,
@@ -182,7 +182,6 @@ def main():
     move_files(
         logging,
         run_mode,
-        root_UCC_path,
         temp_JSON_file,
         new_DB_file,
         ucc_file,
@@ -212,7 +211,6 @@ def get_paths_check_paths(
     str,
     str,
     str,
-    str,
 ]:
     """ """
     txt = ""
@@ -228,10 +226,10 @@ def get_paths_check_paths(
         if input("Move on? (y/n): ").lower() != "y":
             sys.exit()
 
-    # Current root + main UCC folder
-    root_current_folder = os.getcwd()
-    # Go up one level
-    root_UCC_path = os.path.dirname(root_current_folder) + "/"
+    # # Current root + main UCC folder
+    # root_current_folder = os.getcwd()
+    # # Go up one level
+    # root_UCC_path = os.path.dirname(root_current_folder) + "/"
 
     # Temporary databases/ folder
     temp_database_folder = temp_fold + dbs_folder
@@ -239,13 +237,18 @@ def get_paths_check_paths(
     if not os.path.exists(temp_database_folder):
         os.makedirs(temp_database_folder)
 
-    # Create quadrant folders
-    for Nquad in range(1, 5):
-        for lat in ("P", "N"):
-            quad = "Q" + str(Nquad) + lat + "/"
-            out_path = temp_fold + quad + members_folder
-            if not os.path.exists(out_path):
-                os.makedirs(out_path)
+    # Create folder to store parquet member files
+    out_path = temp_fold + members_folder
+    if not os.path.exists(out_path):
+        os.makedirs(out_path)
+
+    # # Create quadrant folders
+    # for Nquad in range(1, 5):
+    #     for lat in ("P", "N"):
+    #         quad = "Q" + str(Nquad) + lat + "/"
+    #         out_path = temp_fold + quad + members_folder
+    #         if not os.path.exists(out_path):
+    #             os.makedirs(out_path)
 
     last_version = get_last_version_UCC(UCC_folder)
     # Path to the current UCC csv file
@@ -275,7 +278,6 @@ def get_paths_check_paths(
     archived_UCC_file = UCC_archive + last_version.replace(".csv", ".csv.gz")
 
     return (
-        root_UCC_path,
         temp_database_folder,
         ucc_file,
         temp_zenodo_fold,
@@ -625,8 +627,8 @@ def member_files_updt(
     # For each new OC
     df_UCC_updt = {
         "UCC_idx": [],
-        "C1": [],
-        "C2": [],
+        "N_clust, ": [],
+        "N_clust_max": [],
         "C3": [],
         "GLON_m": [],
         "GLAT_m": [],
@@ -646,9 +648,8 @@ def member_files_updt(
         if not np.isnan(new_cl["N_50"]):
             continue
 
-        fnames, quad, ra_c, dec_c, glon_c, glat_c, pmra_c, pmde_c, plx_c = (
+        fnames, ra_c, dec_c, glon_c, glat_c, pmra_c, pmde_c, plx_c = (
             new_cl["fnames"],
-            new_cl["quad"],
             float(new_cl["RA_ICRS"]),
             float(new_cl["DE_ICRS"]),
             float(new_cl["GLON"]),
@@ -660,15 +661,6 @@ def member_files_updt(
         fname0 = str(fnames).split(";")[0]
         logging.info(f"\n{N_cl} Processing {fname0} (idx={UCC_idx})")
 
-        # If this is a 'manual' run, check if this OC is present in the file
-        N_clust_manual = None
-        if run_mode == "manual":
-            row = manual_pars[manual_pars["fname"].str.contains(fname0)]
-            if row.empty is False:
-                Nmembs = row["Nmembs"].iloc[0]
-                if not np.isnan(Nmembs):
-                    N_clust_manual = Nmembs
-
         gaia_frame = get_gaia_frame(
             logging, gaia_frames_data, fname0, ra_c, dec_c, plx_c
         )
@@ -679,30 +671,27 @@ def member_files_updt(
             + f"({my_field.pms_c[0]:.4f}, {my_field.pms_c[1]:.4f}), {my_field.plx_c:.4f}"
         )
 
-        # If 'N_clust_manual' was given, use it
-        if N_clust_manual is not None:
-            my_field.N_cluster = N_clust_manual
-            logging.info(f"  Using manual N_cluster={N_clust_manual}")
-        else:
-            get_Nmembs(logging, my_field)
-            # Only check if the number of members larger than the minimum value
-            if my_field.N_cluster > my_field.N_clust_min:
-                check_close_cls(
-                    logging,
-                    df_UCC,
-                    gaia_frame,
-                    fname0,
-                    glon_c,
-                    glat_c,
-                    pmra_c,
-                    pmde_c,
-                    plx_c,
-                    df_GCs,
-                )
+        N_clust, N_clust_max = get_Nmembs(
+            logging, run_mode, manual_pars, fname0, my_field
+        )
+
+        # Only check if the number of members larger than the minimum value
+        if my_field.N_cluster > my_field.N_clust_min:
+            check_close_cls(
+                logging,
+                df_UCC,
+                gaia_frame,
+                fname0,
+                glon_c,
+                glat_c,
+                pmra_c,
+                pmde_c,
+                plx_c,
+                df_GCs,
+            )
 
         # Extract fastMP probabilities
-        probs_all = get_fastMP_membs(my_field)
-        logging.warning(f"probs_all>0.5={(probs_all > 0.5).sum()}")
+        probs_all = get_fastMP_membs(logging, my_field)
 
         # Check initial versus members centers
         xy_c_m, vpd_c_m, plx_c_m = extract_centers(my_field, probs_all)
@@ -718,20 +707,22 @@ def member_files_updt(
         df_field, df_membs = extract_members(gaia_frame, probs_all)
 
         # Write selected member stars to file
-        save_cl_datafile(logging, temp_fold, members_folder, fnames, quad, df_membs)
-
-        # Extract data to update the UCC
-        dict_UCC_updt = extract_cl_data(df_field, df_membs)
+        save_cl_datafile(logging, temp_fold, members_folder, fnames, df_membs)
 
         # Store data from this new entry used to update the UCC
-        df_UCC_updt = updt_UCC_new_cl_data(df_UCC_updt, UCC_idx, dict_UCC_updt)
+        df_UCC_updt = updt_UCC_new_cl_data(
+            df_UCC_updt, UCC_idx, df_field, df_membs, N_clust, N_clust_max
+        )
+
+        # Update file with information
+        df = pd.DataFrame(df_UCC_updt)
+        df.to_csv(temp_fold + "df_UCC_updt.csv", index=False)
 
         N_cl += 1
 
     # This dataframe (and file) contains the data extracted from all the new entries,
     # used to update the UCC
     df_UCC_updt = pd.DataFrame(df_UCC_updt)
-    df_UCC_updt.to_csv(temp_fold + "df_UCC_updt.csv", index=False)
     logging.info("\nTemp file df_UCC_updt saved")
 
     return df_UCC_updt
@@ -830,8 +821,8 @@ def save_final_UCC(
 ) -> None:
     """ """
 
-    # Add column with close entries
-    df_UCC = detect_close_OCs(df_UCC)
+    # # Add column with close entries
+    # df_UCC = detect_close_OCs(df_UCC)
 
     # Order by (lon, lat) first
     df_UCC = df_UCC.sort_values(["GLON", "GLAT"])
@@ -869,7 +860,6 @@ def fnames_checker(df_UCC: pd.DataFrame) -> None:
 def move_files(
     logging,
     run_mode: str,
-    root_UCC_path: str,
     temp_JSON_file: str,
     new_DB_file: str,
     ucc_file: str,
@@ -911,37 +901,87 @@ def move_files(
     os.rename(ucc_temp, ucc_stored)
     logging.info(ucc_temp + " --> " + ucc_stored)
 
-    # Move all .parquet member files
-    for qN in range(1, 5):
-        for lat in ("P", "N"):
-            qfold = "Q" + str(qN) + lat + "/"
-            # Check if folder exists
-            qmembs_fold = temp_fold + qfold + members_folder
-            if os.path.exists(qmembs_fold):
-                # Load JSON file with last updated date for this Q
-                fname_json = root_UCC_path + qfold + parquet_dates
-                with open(fname_json, "r") as file:
-                    json_data = json.load(file)
+    # Combine individual parquet files into a single one
+    path = temp_fold + members_folder
+    member_files = os.listdir(path)
+    if len(member_files) > 0:
+        process_member_files(logging, path, member_files)
+    else:
+        logging.info("No member files found in " + path)
 
-                # For every file in this folder
-                for file in os.listdir(qmembs_fold):
-                    parquet_temp = qmembs_fold + file
-                    parquet_stored = root_UCC_path + qfold + members_folder + file
-                    os.rename(parquet_temp, parquet_stored)
 
-                    # Update entry for this file
-                    fname0 = file.split("/")[-1].split(".")[0]
-                    json_data[fname0] = "updated " + datetime.datetime.now().strftime(
-                        "%y%m%d%H"
-                    )
+def process_member_files(logging, path, member_files):
+    """ """
+    # Load JSON file with last updated dates
+    fname_json = UCC_folder + parquet_dates
+    with open(fname_json, "r") as file:
+        json_data = json.load(file)
 
-                # Update JSON file
-                with open(fname_json, "w") as file:
-                    json.dump(json_data, file, indent=2)
+    # Combine individual parquet files into a single one
+    tmp = []
+    for file in member_files:
+        df = pd.read_parquet(path + file)
 
-    parquet_temp = temp_fold + "QXX/" + members_folder + "*.parquet"
-    parquet_stored = root_UCC_path + "QXX/" + members_folder + "*.parquet"
-    logging.info(parquet_temp + " --> " + parquet_stored)
+        # Round before storing
+        df[["RA_ICRS", "DE_ICRS", "GLON", "GLAT"]] = df[
+            ["RA_ICRS", "DE_ICRS", "GLON", "GLAT"]
+        ].round(6)
+        df[
+            [
+                "Plx",
+                "e_Plx",
+                "pmRA",
+                "e_pmRA",
+                "pmDE",
+                "e_pmDE",
+                "RV",
+                "e_RV",
+                "Gmag",
+                "BP-RP",
+                "e_Gmag",
+                "e_BP-RP",
+                "probs",
+            ]
+        ] = df[
+            [
+                "Plx",
+                "e_Plx",
+                "pmRA",
+                "e_pmRA",
+                "pmDE",
+                "e_pmDE",
+                "RV",
+                "e_RV",
+                "Gmag",
+                "BP-RP",
+                "e_Gmag",
+                "e_BP-RP",
+                "probs",
+            ]
+        ].round(4)
+
+        fname = file.replace(".parquet", "")
+        df.insert(loc=0, column="name", value=fname)
+        tmp.append(df)
+
+        # Update entry for this file
+        json_data[fname] = f"updated ({datetime.datetime.now().strftime('%y%m%d%H')})"
+
+    # Update JSON file
+    json_data = dict(sorted(json_data.items()))  # Sort
+    with open(fname_json, "w") as file:
+        json.dump(json_data, file, indent=2)
+    logging.info("JSON file with dates updated --> " + fname_json)
+
+    # Concatenate all temporary DataFrames into one
+    df_comb = pd.concat(tmp, ignore_index=True)
+
+    # Move the final combined parquet file to the 'zenodo/' folder
+    zenodo_members_file = UCC_folder + UCC_members_file + ".temp"
+    df_comb.to_parquet(zenodo_members_file, index=False)
+    logging.info("Temp file with members stored --> " + zenodo_members_file)
+
+    # Delete all individual parquet files?
 
 
 if __name__ == "__main__":

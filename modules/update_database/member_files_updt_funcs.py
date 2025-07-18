@@ -131,6 +131,136 @@ def get_frame_limits(
     return box_s_eq, plx_min
 
 
+def set_centers(
+    gaia_frame: pd.DataFrame,
+    ra_c: float,
+    de_c: float,
+    pmra_c_in: float,
+    pmde_c_in: float,
+    plx_c_in: float,
+    max_dist_arcmin: int = 1,
+) -> asteca.Cluster:
+    """
+    Estimate the cluster's center coordinates
+
+    Parameters
+    ----------
+    logging : logging.Logger
+        Logger object for outputting information.
+    my_field : asteca.Cluster
+        Cluster object
+    radec_c : tuple
+        Center coordinates (RA, Dec) for fastMP.
+    pms_c : tuple
+        Center proper motion (pmRA, pmDE) for fastMP.
+    plx_c : float
+        Center parallax for fastMP.
+    """
+    my_field = asteca.Cluster(
+        ra=np.array(gaia_frame["RA_ICRS"]),
+        dec=np.array(gaia_frame["DE_ICRS"]),
+        pmra=np.array(gaia_frame["pmRA"]),
+        pmde=np.array(gaia_frame["pmDE"]),
+        plx=np.array(gaia_frame["Plx"]),
+        e_pmra=np.array(gaia_frame["e_pmRA"]),
+        e_pmde=np.array(gaia_frame["e_pmDE"]),
+        e_plx=np.array(gaia_frame["e_Plx"]),
+        verbose=0,
+    )
+
+    radec_c = (ra_c, de_c)
+
+    pms_c, plx_c = None, None
+    if not np.isnan(pmra_c_in):
+        pms_c = (pmra_c_in, pmde_c_in)
+    if not np.isnan(plx_c_in):
+        plx_c = plx_c_in
+
+    my_field.get_center(radec_c=radec_c, pms_c=pms_c, plx_c=plx_c)
+
+    # If no PMs and plx are given initially or the 'max_dist_arcmin' is exceeded,
+    # use the initial (ra, dec) values to avoid wandering off the actual cluster
+    d_arcmin = np.linalg.norm(np.array(my_field.radec_c) - np.array(radec_c)) * 60
+    if (np.isnan(pmra_c_in) and np.isnan(plx_c_in)) or (d_arcmin > max_dist_arcmin):
+        my_field.radec_c = radec_c
+
+    # If PMs or plx are given initially, re-write using initial values
+    if not np.isnan(pmra_c_in):
+        my_field.pms_c = (pmra_c_in, pmde_c_in)
+    if not np.isnan(plx_c_in):
+        my_field.plx_c = plx_c_in
+
+    return my_field
+
+
+def get_Nmembs(
+    logging,
+    run_mode: str,
+    manual_pars: pd.DataFrame,
+    fname0: str,
+    my_field: asteca.Cluster,
+) -> tuple[int | float, int | float]:
+    """
+    Estimate the number of cluster members
+
+    Parameters
+    ----------
+    logging : logging.Logger
+        Logger object for outputting information
+    run_mode: str
+        Run mode
+    manual_pars: pd.DataFrame
+        DataFrame with manual parameters for clusters
+    fname0: str
+        Cluster file name
+    my_field : asteca.Cluster
+        ASteCA Cluster object
+    """
+
+    N_clust, N_clust_max = np.nan, np.nan
+    # If this is a 'manual' run, check if this OC is present in the file
+    if run_mode == "manual":
+        row = manual_pars[manual_pars["fname"].str.contains(fname0)].iloc[0]
+        if row.empty is False:
+            N_clust_t = row["N_clust"]
+            N_clust_max_t = row["N_clust_max"]
+            if not np.isnan(N_clust_t):
+                N_clust = int(N_clust_t)
+            if not np.isnan(N_clust_max_t):
+                N_clust_max = int(N_clust_max_t)
+
+    # If 'N_clust' was given, use it
+    if not np.isnan(N_clust):
+        my_field.N_cluster = N_clust
+        logging.info(f"  Using manual N_cluster={N_clust}")
+        return N_clust, N_clust_max
+
+    elif not np.isnan(N_clust_max):
+        my_field.N_clust_max = N_clust_max
+        logging.info(f"  Using manual N_clust_max={N_clust_max}")
+
+    # Use default ASteCA method
+    my_field.get_nmembers()
+
+    if my_field.N_cluster >= my_field.N_clust_max:
+        if not np.isnan(N_clust_max):
+            my_field.N_cluster = my_field.N_clust_max
+            logging.info(
+                f"  WARNING: N_cluster={my_field.N_clust_max}, "
+                + f"using N_cluster={N_clust_max}"
+            )
+        else:
+            logging.info(
+                f"  WARNING: N_cluster={my_field.N_clust_max}, "
+                + f"using N_cluster={my_field.N_clust_min}"
+            )
+            my_field.N_cluster = my_field.N_clust_min
+    else:
+        logging.info(f"  Estimated N_cluster={my_field.N_cluster}")
+
+    return N_clust, N_clust_max
+
+
 def check_close_cls(
     logging,
     df_UCC,
@@ -274,96 +404,7 @@ def check_close_cls(
     # return pd.DataFrame(in_frame_all)
 
 
-def set_centers(
-    gaia_frame: pd.DataFrame,
-    ra_c: float,
-    de_c: float,
-    pmra_c_in: float,
-    pmde_c_in: float,
-    plx_c_in: float,
-    max_dist_arcmin: int = 1,
-) -> asteca.Cluster:
-    """
-    Estimate the cluster's center coordinates
-
-    Parameters
-    ----------
-    logging : logging.Logger
-        Logger object for outputting information.
-    my_field : asteca.Cluster
-        Cluster object
-    radec_c : tuple
-        Center coordinates (RA, Dec) for fastMP.
-    pms_c : tuple
-        Center proper motion (pmRA, pmDE) for fastMP.
-    plx_c : float
-        Center parallax for fastMP.
-    """
-    my_field = asteca.Cluster(
-        ra=np.array(gaia_frame["RA_ICRS"]),
-        dec=np.array(gaia_frame["DE_ICRS"]),
-        pmra=np.array(gaia_frame["pmRA"]),
-        pmde=np.array(gaia_frame["pmDE"]),
-        plx=np.array(gaia_frame["Plx"]),
-        e_pmra=np.array(gaia_frame["e_pmRA"]),
-        e_pmde=np.array(gaia_frame["e_pmDE"]),
-        e_plx=np.array(gaia_frame["e_Plx"]),
-        verbose=0,
-    )
-
-    radec_c = (ra_c, de_c)
-
-    pms_c, plx_c = None, None
-    if not np.isnan(pmra_c_in):
-        pms_c = (pmra_c_in, pmde_c_in)
-    if not np.isnan(plx_c_in):
-        plx_c = plx_c_in
-
-    my_field.get_center(radec_c=radec_c, pms_c=pms_c, plx_c=plx_c)
-
-    # If no PMs and plx are given initially or the 'max_dist_arcmin' is exceeded,
-    # use the initial (ra, dec) values to avoid wandering off the actual cluster
-    d_arcmin = np.linalg.norm(np.array(my_field.radec_c) - np.array(radec_c)) * 60
-    if (np.isnan(pmra_c_in) and np.isnan(plx_c_in)) or (d_arcmin > max_dist_arcmin):
-        my_field.radec_c = radec_c
-
-    # If PMs or plx are given initially, re-write using initial values
-    if not np.isnan(pmra_c_in):
-        my_field.pms_c = (pmra_c_in, pmde_c_in)
-    if not np.isnan(plx_c_in):
-        my_field.plx_c = plx_c_in
-
-    return my_field
-
-
-def get_Nmembs(
-    logging,
-    my_field: asteca.Cluster,
-) -> int | None:
-    """
-    Estimate the number of cluster members
-
-    Parameters
-    ----------
-    logging : logging.Logger
-        Logger object for outputting information
-    my_field : asteca.Cluster
-        Cluster object
-    """
-    # Use default ASteCA method
-    my_field.get_nmembers()
-
-    if my_field.N_cluster >= my_field.N_clust_max:
-        logging.info(
-            f"  WARNING: N_cluster={my_field.N_clust_max}, "
-            + f"using N_cluster={my_field.N_clust_min}"
-        )
-        my_field.N_cluster = my_field.N_clust_min
-    else:
-        logging.info(f"  Estimated N_cluster={my_field.N_cluster}")
-
-
-def get_fastMP_membs(my_field: asteca.Cluster) -> np.ndarray:
+def get_fastMP_membs(logging, my_field: asteca.Cluster) -> np.ndarray:
     """
     Runs the fastMP algorithm to estimate membership probabilities.
 
@@ -385,6 +426,8 @@ def get_fastMP_membs(my_field: asteca.Cluster) -> np.ndarray:
 
     # Run fastMP
     probs_fastmp = memb.fastmp(fixed_centers=True)
+
+    logging.warning(f"probs_all>0.5={(probs_fastmp > 0.5).sum()}")
 
     return probs_fastmp
 
@@ -532,8 +575,14 @@ def extract_members(
     # df_membs, df_field = df_comb[msk_membs], df_comb[~msk_membs]
 
 
-def extract_cl_data(
-    df_field: pd.DataFrame, df_membs: pd.DataFrame, prob_cut: float = 0.5
+def updt_UCC_new_cl_data(
+    df_UCC_updt: dict,
+    UCC_idx: int,
+    df_field: pd.DataFrame,
+    df_membs: pd.DataFrame,
+    N_clust: int | float,
+    N_clust_max: int | float,
+    prob_cut: float = 0.5,
 ) -> dict:
     """
     Extracts cluster parameters from the member DataFrame.
@@ -549,19 +598,7 @@ def extract_cl_data(
 
     Returns
     -------
-    dict
-        A dictionary containing:
-        - lon: Median galactic longitude.
-        - lat: Median galactic latitude.
-        - ra: Median right ascension.
-        - dec: Median declination.
-        - plx: Median parallax.
-        - pmRA: Median proper motion in RA.
-        - pmDE: Median proper motion in DE.
-        - Rv: Median radial velocity.
-        - N_Rv: Number of stars with RV measurements.
-        - N_50: Number of stars with membership probability above prob_cut.
-        - r_50: Radius containing half the members.
+    pd.DataFrame
     """
     N_50 = int((df_membs["probs"] >= prob_cut).sum())
     lon, lat = np.nanmedian(df_membs["GLON"]), np.nanmedian(df_membs["GLAT"])
@@ -587,12 +624,13 @@ def extract_cl_data(
     r_50 = float(round(r_50 * 60.0, 1))
 
     # Classification data
-    C1, C2, C3 = get_classif(df_membs, df_field)
+    C3 = get_classif(df_membs, df_field)
 
-    # Store data used to update the UCC
+    # Temp dict used to update the UCC
     dict_UCC_updt = {
-        "C1": C1,
-        "C2": C2,
+        "UCC_idx": UCC_idx,
+        "N_clust": N_clust,
+        "N_clust_max": N_clust_max,
         "C3": C3,
         "GLON_m": lon,
         "GLAT_m": lat,
@@ -606,13 +644,10 @@ def extract_cl_data(
         "N_50": N_50,
         "r_50": r_50,
     }
-    return dict_UCC_updt
+    # return dict_UCC_updt
 
-
-def updt_UCC_new_cl_data(df_UCC_updt, UCC_idx, dict_UCC_updt):
-    """ """
-    # Add UCC idx for this new entry
-    df_UCC_updt["UCC_idx"].append(UCC_idx)
+    # # Add UCC idx for this new entry
+    # df_UCC_updt["UCC_idx"].append(UCC_idx)
 
     # Update 'df_UCC_updt' with 'dict_UCC_updt' values
     for key, val in dict_UCC_updt.items():
@@ -621,12 +656,23 @@ def updt_UCC_new_cl_data(df_UCC_updt, UCC_idx, dict_UCC_updt):
     return df_UCC_updt
 
 
+# def updt_UCC_new_cl_data(df_UCC_updt, UCC_idx, dict_UCC_updt):
+#     """ """
+#     # Add UCC idx for this new entry
+#     df_UCC_updt["UCC_idx"].append(UCC_idx)
+
+#     # Update 'df_UCC_updt' with 'dict_UCC_updt' values
+#     for key, val in dict_UCC_updt.items():
+#         df_UCC_updt[key].append(val)
+
+#     return df_UCC_updt
+
+
 def save_cl_datafile(
     logging,
     temp_fold: str,
     members_folder: str,
     fnames: str,
-    quad: str,
     df_membs: pd.DataFrame,
 ) -> None:
     """
@@ -642,93 +688,91 @@ def save_cl_datafile(
         Path to the temporary members folder.
     fnames : str
         Names associated with the cluster.
-    quad : str
-        Quadrant of the cluster.
     """
     fname0 = str(fnames).split(";")[0]
-    quad = quad + "/"
+    # quad = quad + "/"
 
     # Order by probabilities
     df_membs = df_membs.sort_values("probs", ascending=False)
 
-    out_fname = temp_fold + quad + members_folder + fname0 + ".parquet"
+    out_fname = temp_fold + members_folder + fname0 + ".parquet"
     df_membs.to_parquet(out_fname, index=False)
     logging.info(f"  Saved file to: {out_fname} (N={len(df_membs)})")
 
 
-def detect_close_OCs(
-    df,
-    prob_cut: float = 0.25,
-    Nmax: int = 3,
-) -> pd.DataFrame:
-    """
-    Identifies potential duplicate clusters based on proximity and similarity of
-    parameters.
+# def detect_close_OCs(
+#     df,
+#     prob_cut: float = 0.25,
+#     Nmax: int = 3,
+# ) -> pd.DataFrame:
+#     """
+#     Identifies potential duplicate clusters based on proximity and similarity of
+#     parameters.
 
-    Parameters
-    ----------
-    prob_cut : float
-        Probability threshold for considering a cluster a duplicate.
-    Nmax : int, optional
-        Maximum number of standard deviations for considering clusters close in
-        a dimension. Default is 3.
+#     Parameters
+#     ----------
+#     prob_cut : float
+#         Probability threshold for considering a cluster a duplicate.
+#     Nmax : int, optional
+#         Maximum number of standard deviations for considering clusters close in
+#         a dimension. Default is 3.
 
-    Returns
-    -------
-    list
-        List of semicolon-separated filenames of probable duplicates for
-        each cluster.
-    """
+#     Returns
+#     -------
+#     list
+#         List of semicolon-separated filenames of probable duplicates for
+#         each cluster.
+#     """
 
-    fnames = list(df["fnames"])
+#     fnames = list(df["fnames"])
 
-    # Use members coordinates
-    glon = np.array(df["GLON_m"], dtype=float)
-    glat = np.array(df["GLAT_m"], dtype=float)
-    plx = np.array(df["Plx_m"], dtype=float)
-    pmRA = np.array(df["pmRA_m"], dtype=float)
-    pmDE = np.array(df["pmDE_m"], dtype=float)
+#     # Use members coordinates
+#     glon = np.array(df["GLON_m"], dtype=float)
+#     glat = np.array(df["GLAT_m"], dtype=float)
+#     plx = np.array(df["Plx_m"], dtype=float)
+#     pmRA = np.array(df["pmRA_m"], dtype=float)
+#     pmDE = np.array(df["pmDE_m"], dtype=float)
 
-    # Find the (glon, glat) distances to all clusters, for all clusters
-    coords = np.array([glon, glat]).T
-    gal_dist = cdist(coords, coords)
+#     # Find the (glon, glat) distances to all clusters, for all clusters
+#     coords = np.array([glon, glat]).T
+#     gal_dist = cdist(coords, coords)
 
-    dups_fnames = []
-    for i, dists_i in enumerate(gal_dist):
-        # Only process relatively close clusters
-        rad_max = Nmax * max_coords_rad(plx[i])
-        msk_rad = dists_i <= rad_max
-        idx_j = np.arange(0, dists_i.size)
-        j_msk = idx_j[msk_rad]
+#     dups_fnames = []
+#     for i, dists_i in enumerate(gal_dist):
+#         # Only process relatively close clusters
+#         rad_max = Nmax * max_coords_rad(plx[i])
+#         msk_rad = dists_i <= rad_max
+#         idx_j = np.arange(0, dists_i.size)
+#         j_msk = idx_j[msk_rad]
 
-        dups_fname_i, dups_prob_i = [], []
-        for j in j_msk:
-            # Skip itself
-            if j == i:
-                continue
+#         dups_fname_i, dups_prob_i = [], []
+#         for j in j_msk:
+#             # Skip itself
+#             if j == i:
+#                 continue
 
-            # Fetch duplicate probability for the i,j clusters
-            dup_prob = dprob(glon, glat, pmRA, pmDE, plx, i, j)
-            if dup_prob >= prob_cut:
-                # Store just the first fname
-                dups_fname_i.append(fnames[j].split(";")[0])
-                dups_prob_i.append(dup_prob)
+#             # Fetch duplicate probability for the i,j clusters
+#             dup_prob = dprob(glon, glat, pmRA, pmDE, plx, i, j)
+#             if dup_prob >= prob_cut:
+#                 # Store just the first fname
+#                 dups_fname_i.append(fnames[j].split(";")[0])
+#                 dups_prob_i.append(dup_prob)
 
-        if dups_fname_i:
-            # Store list of probable duplicates respecting a given order
-            dups_fname_i = sort_by_float_desc_then_alpha(dups_fname_i, dups_prob_i)
-            dups_fname_i = ";".join(dups_fname_i)
-            # dups_prob_i = ";".join(dups_prob_i)
-        else:
-            dups_fname_i = "nan"
-            # dups_prob_i = "nan"
+#         if dups_fname_i:
+#             # Store list of probable duplicates respecting a given order
+#             dups_fname_i = sort_by_float_desc_then_alpha(dups_fname_i, dups_prob_i)
+#             dups_fname_i = ";".join(dups_fname_i)
+#             # dups_prob_i = ";".join(dups_prob_i)
+#         else:
+#             dups_fname_i = "nan"
+#             # dups_prob_i = "nan"
 
-        dups_fnames.append(dups_fname_i)
-        # dups_probs.append(dups_prob_i)
+#         dups_fnames.append(dups_fname_i)
+#         # dups_probs.append(dups_prob_i)
 
-    df["close_entries"] = dups_fnames
+#     df["close_entries"] = dups_fnames
 
-    return df
+#     return df
 
 
 def dprob(
@@ -857,70 +901,70 @@ def lin_relation(dist: float, d_max: float) -> float:
     return p
 
 
-def max_coords_rad(plx_i: float) -> float:
-    """
-    Defines a maximum coordinate radius based on parallax.
+# def max_coords_rad(plx_i: float) -> float:
+#     """
+#     Defines a maximum coordinate radius based on parallax.
 
-    Parameters
-    ----------
-    plx_i : float
-        Parallax value.
+#     Parameters
+#     ----------
+#     plx_i : float
+#         Parallax value.
 
-    Returns
-    -------
-    float
-        Maximum radius in degrees (parallax dependent).
-    """
-    if np.isnan(plx_i):
-        rad = 5
-    elif plx_i >= 4:
-        rad = 20
-    elif 3 <= plx_i < 4:
-        rad = 15
-    elif 2 <= plx_i < 3:
-        rad = 10
-    elif 1.5 <= plx_i < 2:
-        rad = 7.5
-    elif 1 <= plx_i < 1.5:
-        rad = 5
-    elif 0.5 <= plx_i < 1:
-        rad = 2.5
-    elif plx_i < 0.5:
-        rad = 1.5
-    else:
-        raise ValueError("Could not define 'rad' values, plx_i is out of bounds")
+#     Returns
+#     -------
+#     float
+#         Maximum radius in degrees (parallax dependent).
+#     """
+#     if np.isnan(plx_i):
+#         rad = 5
+#     elif plx_i >= 4:
+#         rad = 20
+#     elif 3 <= plx_i < 4:
+#         rad = 15
+#     elif 2 <= plx_i < 3:
+#         rad = 10
+#     elif 1.5 <= plx_i < 2:
+#         rad = 7.5
+#     elif 1 <= plx_i < 1.5:
+#         rad = 5
+#     elif 0.5 <= plx_i < 1:
+#         rad = 2.5
+#     elif plx_i < 0.5:
+#         rad = 1.5
+#     else:
+#         raise ValueError("Could not define 'rad' values, plx_i is out of bounds")
 
-    rad = rad / 60  # To degrees
-    return rad
+#     rad = rad / 60  # To degrees
+#     return rad
 
 
-def sort_by_float_desc_then_alpha(strings: list[str], floats: list[float]) -> list[str]:
-    """
-    Sorts two parallel lists: one of strings and one of floats. The lists are sorted
-    by the float values in descending order, and by the strings in ascending
-    alphabetical order if float values are the same. Returns two lists:
-    one with the sorted strings and another with the sorted floats as strings.
+# def sort_by_float_desc_then_alpha(strings: list[str], floats: list[float]) -> list[str]:
+#     """
+#     Sorts two parallel lists: one of strings and one of floats. The lists are sorted
+#     by the float values in descending order, and by the strings in ascending
+#     alphabetical order if float values are the same. Returns two lists:
+#     one with the sorted strings and another with the sorted floats as strings.
 
-    Parameters
-    ----------
-    strings : list
-        A list of strings to be sorted alphabetically when float
-        values are equal.
-    floats : list
-        A list of float values to be sorted in descending order.
+#     Parameters
+#     ----------
+#     strings : list
+#         A list of strings to be sorted alphabetically when float
+#         values are equal.
+#     floats : list
+#         A list of float values to be sorted in descending order.
 
-    Returns
-    -------
-    list
-        A list of strings sorted by the criteria.
-    """
-    # Combine strings and floats into a list of tuples
-    data = list(zip(strings, floats))
+#     Returns
+#     -------
+#     list
+#         A list of strings sorted by the criteria.
+#     """
+#     # Combine strings and floats into a list of tuples
+#     data = list(zip(strings, floats))
 
-    # Sort by float in descending order and string alphabetically in ascending order
-    sorted_data = sorted(data, key=lambda x: (-x[1], x[0].lower()))
+#     # Sort by float in descending order and string alphabetically in ascending order
+#     sorted_data = sorted(data, key=lambda x: (-x[1], x[0].lower()))
 
-    # Unzip the sorted data back into two separate lists
-    sorted_strings, sorted_floats = zip(*sorted_data)
+#     # Unzip the sorted data back into two separate lists
+#     sorted_strings, sorted_floats = zip(*sorted_data)
 
-    return list(sorted_strings)  # , [str(f) for f in sorted_floats]
+#     return list(sorted_strings)  # , [str(f) for f in sorted_floats]
