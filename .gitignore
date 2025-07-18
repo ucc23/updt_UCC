@@ -168,3 +168,5 @@ NASA_API_TOKEN
 
 *.vscode
 *.code-workspace
+
+zenodo/UCC_members.parquet
