@@ -116,9 +116,7 @@ def main():
 
     # Check number of files
     N_UCC = len(df_UCC)
-    file_checker(
-        logging, N_UCC, root_UCC_path, datafiles_only=False, md_folder=md_folder
-    )
+    file_checker(logging, N_UCC, root_UCC_path)
 
     logging.info("\nAll done!")
 

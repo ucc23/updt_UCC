@@ -59,7 +59,6 @@ from modules.update_database.standardize_and_match_funcs import (
 )
 from modules.utils import (
     check_centers,
-    file_checker,
     get_last_version_UCC,
     logger,
     radec2lonlat,
@@ -193,9 +192,9 @@ def main():
         archived_UCC_file,
     )
 
-    # 8. Final check of new UCC
-    N_UCC = len(df_UCC_new4)
-    file_checker(logging, N_UCC, root_UCC_path)
+    # # 8. Final check of new UCC
+    # N_UCC = len(df_UCC_new4)
+    # file_checker(logging, N_UCC, root_UCC_path)
 
     # if input("\nRemove temporary files and folders? (y/n): ").lower() == "y":
     #     # shutil.rmtree(temp_fold)
