@@ -197,7 +197,7 @@ def get_Nmembs(
     logging,
     run_mode: str,
     manual_pars: pd.DataFrame,
-    fname0: str,
+    fname: str,
     my_field: asteca.Cluster,
 ) -> tuple[int | float, int | float]:
     """
@@ -211,7 +211,7 @@ def get_Nmembs(
         Run mode
     manual_pars: pd.DataFrame
         DataFrame with manual parameters for clusters
-    fname0: str
+    fname: str
         Cluster file name
     my_field : asteca.Cluster
         ASteCA Cluster object
@@ -220,7 +220,7 @@ def get_Nmembs(
     N_clust, N_clust_max = np.nan, np.nan
     # If this is a 'manual' run, check if this OC is present in the file
     if run_mode == "manual":
-        row = manual_pars[manual_pars["fname"].str.contains(fname0)].iloc[0]
+        row = manual_pars[manual_pars["fname"].str.contains(fname)].iloc[0]
         if row.empty is False:
             N_clust_t = row["N_clust"]
             N_clust_max_t = row["N_clust_max"]
@@ -265,7 +265,7 @@ def check_close_cls(
     logging,
     df_UCC,
     gaia_frame,
-    fname0,
+    fname,
     glon_c: float,
     glat_c: float,
     pmra_c: float,
@@ -282,7 +282,7 @@ def check_close_cls(
         Logger object for outputting information.
     gaia_frame : pd.DataFrame
         Square frame with Gaia data to process
-    fname0 : str
+    fname : str
         Cluster file name
     glon_c : float
         Galactic longitude of the cluster.
@@ -315,7 +315,7 @@ def check_close_cls(
         ["ID", "fnames", "GLON_m", "GLAT_m", "Plx_m", "pmRA_m", "pmDE_m"]
     ][msk]
     # Remove this OC from the dataframe
-    msk = in_frame["fnames"].str.split(";").str[0] != fname0
+    msk = in_frame["fnames"].str.split(";").str[0] != fname
     # Drop columns
     in_frame = in_frame[msk].drop("fnames", axis=1)
     # Assign type of object
@@ -352,7 +352,7 @@ def check_close_cls(
 
     # Insert row at the top with the cluster under analysis
     new_row = {
-        "Name": fname0,
+        "Name": fname,
         "GLON": glon_c,
         "GLAT": glat_c,
         "plx": plx_c,
