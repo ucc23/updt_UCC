@@ -627,7 +627,7 @@ def member_files_updt(
     # For each new OC
     df_UCC_updt = {
         "UCC_idx": [],
-        "N_clust, ": [],
+        "N_clust": [],
         "N_clust_max": [],
         "C3": [],
         "GLON_m": [],
