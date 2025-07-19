@@ -293,11 +293,9 @@ def query(
 
         lon = np.array(all_frames["l"])
         if gal_cent[0] > 180:
-            msk = lon < 180
-            lon[msk] += 360
+            lon[lon < 180] += 360
         else:
-            msk = lon > 180
-            lon[msk] -= 360
+            lon[lon > 180] -= 360
         all_frames["l"] = lon
 
     xmin_cl, xmax_cl = gal_cent[0] - box_s_h, gal_cent[0] + box_s_h
