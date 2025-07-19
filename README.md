@@ -115,7 +115,6 @@ will:
 6. Save updated UCC (`temp_updt/zenodo/UCC_cat_XXYYZZHH.csv`)
 7. Move temporary files to their final destination
 
-
 ### Input
 
 - `Gaia data files`: Gaia data files for a given release
@@ -134,7 +133,6 @@ will:
 - `databases/NEW_DB.csv`: New database in CSV format
 - `zenodo/UCC_cat_XXYYZZHH.csv`: Updated UCC database; previous version is archived
 - `zenodo/UCC_members.parquet.temp`: Temporary file with all the members
-  **THIS FILE IS NOT TRACKED IN GITHUB BECAUSE IT IS LARGE**
 - `zenodo/data_dates.json`: Updated file
 
 These files are also generated, for exploratory use only:
@@ -165,6 +163,7 @@ Zenodo release.
 - `zenodo/README.txt`: New README file with the latest UCC information
 - `zenodo/UCC_cat.csv`: New UCC database
 - `zenodo/UCC_members.parquet`: New file with all the members
+  **THIS FILE IS NOT TRACKED IN GITHUB BECAUSE IT IS LARGE**
 
 
 
