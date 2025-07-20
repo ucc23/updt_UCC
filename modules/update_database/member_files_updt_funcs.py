@@ -234,7 +234,7 @@ def get_Nmembs(
         my_field.N_cluster = N_clust
         logging.info(f"  Using manual N_cluster={N_clust}")
         return N_clust, N_clust_max
-
+    # Else, if 'N_clust_max' was given use it to cap the maximum number of members
     elif not np.isnan(N_clust_max):
         my_field.N_clust_max = N_clust_max
         logging.info(f"  Using manual N_clust_max={N_clust_max}")
