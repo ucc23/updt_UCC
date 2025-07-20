@@ -1,5 +1,12 @@
 Some of these are intermediate versions of the UCC database that are not published.
 
+
+## 25071809
+
+- Removed the 'close_entries' column. Replaced it by two columns showing the 
+percentage of members shared with other entries (produced by the C script)
+
+
 ## 25071809
 
 - Added columns 'N_clust, N_clust_max' filled with 'nan' values
