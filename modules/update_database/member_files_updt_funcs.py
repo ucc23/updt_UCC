@@ -424,7 +424,7 @@ def get_fastMP_membs(logging, my_field: asteca.Cluster) -> np.ndarray:
     # Define membership object
     memb = asteca.Membership(my_field, verbose=0)
 
-    # Run fastMP
+    # Run fastMP with fixed centers
     probs_fastmp = memb.fastmp(fixed_centers=True)
 
     logging.warning(f"probs_all>0.5={(probs_fastmp > 0.5).sum()}")

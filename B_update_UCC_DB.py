@@ -720,6 +720,13 @@ def member_files_updt(
 
         N_cl += 1
 
+        # import matplotlib.pyplot as plt
+        # plt.title(f"{fname0}, N={len(df_membs)}")
+        # plt.scatter(df_membs["BP-RP"], df_membs["Gmag"], c=df_membs["probs"], alpha=.2, s=7)
+        # plt.gca().invert_yaxis()
+        # plt.savefig(f"temp/{fname0}.png", dpi=150)
+        # plt.close()
+
     # This dataframe (and file) contains the data extracted from all the new entries,
     # used to update the UCC
     df_UCC_updt = pd.DataFrame(df_UCC_updt)
