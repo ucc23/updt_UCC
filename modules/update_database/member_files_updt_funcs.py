@@ -483,34 +483,6 @@ def check_close_cls(
         if len(in_frame_all) > 10:
             logging.info(f"  ({len(in_frame_all) - 10} more)")
 
-    # return pd.DataFrame(in_frame_all)
-
-
-# def get_fastMP_membs(logging, my_field: asteca.Cluster) -> np.ndarray:
-#     """
-#     Runs the fastMP algorithm to estimate membership probabilities.
-
-#     Parameters
-#     ----------
-#     my_field : asteca.Cluster
-#         Cluster object
-
-#     Returns
-#     -------
-#     np.ndarray
-#         Array of membership probabilities.
-#     """
-
-#     # Define membership object
-#     memb = asteca.Membership(my_field, verbose=0)
-
-#     # Run fastMP
-#     probs_fastmp = memb.fastmp()
-
-#     logging.warning(f"probs_all>0.5={(probs_fastmp > 0.5).sum()}")
-
-#     return probs_fastmp
-
 
 def extract_centers(
     my_field: asteca.Cluster,
@@ -619,41 +591,6 @@ def extract_members(
 
     return pd.DataFrame(data[~msk_membs]), pd.DataFrame(data[msk_membs])
 
-    # This first filter removes stars beyond 2 times the 95th percentile
-    # of the most likely members
-    # # Find xy filter
-    # xy = np.array([data["GLON"].values, data["GLAT"].values]).T
-    # xy_c = np.nanmedian(xy[msk_membs], 0)
-    # xy_dists = cdist(xy, np.array([xy_c])).T[0]
-    # x_dist = abs(xy[:, 0] - xy_c[0])
-    # y_dist = abs(xy[:, 1] - xy_c[1])
-    # # 2x95th percentile XY mask
-    # xy_95 = np.percentile(xy_dists[msk_membs], perc_cut)
-    # xy_rad = xy_95 * N_perc
-    # msk_rad = (x_dist <= xy_rad) & (y_dist <= xy_rad)
-
-    # # Add a minimum probability mask to ensure that all stars with P>prob_min
-    # # are included
-    # msk_pmin = probs_all >= prob_cut
-
-    # # Combine masks with logical OR
-    # msk = msk_rad | msk_pmin
-
-    # # Generate filtered combined dataframe
-    # data["probs"] = np.round(probs_all, 5)
-    # # This dataframe contains both members and a selected portion of
-    # # field stars
-    # df_comb = data.loc[msk]
-    # df_comb.reset_index(drop=True, inplace=True)
-
-    # # Split into members and field, now using the filtered dataframe
-    # msk_membs = df_comb["probs"] > prob_cut
-    # if msk_membs.sum() < N_membs_min:
-    #     idx = np.argsort(df_comb["probs"].values)[::-1][:N_membs_min]
-    #     msk_membs = np.full(len(df_comb["probs"]), False)
-    #     msk_membs[idx] = True
-    # df_membs, df_field = df_comb[msk_membs], df_comb[~msk_membs]
-
 
 def updt_UCC_new_cl_data(
     df_UCC_updt: dict,
@@ -760,81 +697,6 @@ def save_cl_datafile(
     out_fname = temp_fold + members_folder + fname0 + ".parquet"
     df_membs.to_parquet(out_fname, index=False)
     logging.info(f"  Saved file to: {out_fname} (N={len(df_membs)})")
-
-
-# def detect_close_OCs(
-#     df,
-#     prob_cut: float = 0.25,
-#     Nmax: int = 3,
-# ) -> pd.DataFrame:
-#     """
-#     Identifies potential duplicate clusters based on proximity and similarity of
-#     parameters.
-
-#     Parameters
-#     ----------
-#     prob_cut : float
-#         Probability threshold for considering a cluster a duplicate.
-#     Nmax : int, optional
-#         Maximum number of standard deviations for considering clusters close in
-#         a dimension. Default is 3.
-
-#     Returns
-#     -------
-#     list
-#         List of semicolon-separated filenames of probable duplicates for
-#         each cluster.
-#     """
-
-#     fnames = list(df["fnames"])
-
-#     # Use members coordinates
-#     glon = np.array(df["GLON_m"], dtype=float)
-#     glat = np.array(df["GLAT_m"], dtype=float)
-#     plx = np.array(df["Plx_m"], dtype=float)
-#     pmRA = np.array(df["pmRA_m"], dtype=float)
-#     pmDE = np.array(df["pmDE_m"], dtype=float)
-
-#     # Find the (glon, glat) distances to all clusters, for all clusters
-#     coords = np.array([glon, glat]).T
-#     gal_dist = cdist(coords, coords)
-
-#     dups_fnames = []
-#     for i, dists_i in enumerate(gal_dist):
-#         # Only process relatively close clusters
-#         rad_max = Nmax * max_coords_rad(plx[i])
-#         msk_rad = dists_i <= rad_max
-#         idx_j = np.arange(0, dists_i.size)
-#         j_msk = idx_j[msk_rad]
-
-#         dups_fname_i, dups_prob_i = [], []
-#         for j in j_msk:
-#             # Skip itself
-#             if j == i:
-#                 continue
-
-#             # Fetch duplicate probability for the i,j clusters
-#             dup_prob = dprob(glon, glat, pmRA, pmDE, plx, i, j)
-#             if dup_prob >= prob_cut:
-#                 # Store just the first fname
-#                 dups_fname_i.append(fnames[j].split(";")[0])
-#                 dups_prob_i.append(dup_prob)
-
-#         if dups_fname_i:
-#             # Store list of probable duplicates respecting a given order
-#             dups_fname_i = sort_by_float_desc_then_alpha(dups_fname_i, dups_prob_i)
-#             dups_fname_i = ";".join(dups_fname_i)
-#             # dups_prob_i = ";".join(dups_prob_i)
-#         else:
-#             dups_fname_i = "nan"
-#             # dups_prob_i = "nan"
-
-#         dups_fnames.append(dups_fname_i)
-#         # dups_probs.append(dups_prob_i)
-
-#     df["close_entries"] = dups_fnames
-
-#     return df
 
 
 def dprob(
@@ -961,72 +823,3 @@ def lin_relation(dist: float, d_max: float) -> float:
     if p < 0:  # np.isnan(p) or
         return 0
     return p
-
-
-# def max_coords_rad(plx_i: float) -> float:
-#     """
-#     Defines a maximum coordinate radius based on parallax.
-
-#     Parameters
-#     ----------
-#     plx_i : float
-#         Parallax value.
-
-#     Returns
-#     -------
-#     float
-#         Maximum radius in degrees (parallax dependent).
-#     """
-#     if np.isnan(plx_i):
-#         rad = 5
-#     elif plx_i >= 4:
-#         rad = 20
-#     elif 3 <= plx_i < 4:
-#         rad = 15
-#     elif 2 <= plx_i < 3:
-#         rad = 10
-#     elif 1.5 <= plx_i < 2:
-#         rad = 7.5
-#     elif 1 <= plx_i < 1.5:
-#         rad = 5
-#     elif 0.5 <= plx_i < 1:
-#         rad = 2.5
-#     elif plx_i < 0.5:
-#         rad = 1.5
-#     else:
-#         raise ValueError("Could not define 'rad' values, plx_i is out of bounds")
-
-#     rad = rad / 60  # To degrees
-#     return rad
-
-
-# def sort_by_float_desc_then_alpha(strings: list[str], floats: list[float]) -> list[str]:
-#     """
-#     Sorts two parallel lists: one of strings and one of floats. The lists are sorted
-#     by the float values in descending order, and by the strings in ascending
-#     alphabetical order if float values are the same. Returns two lists:
-#     one with the sorted strings and another with the sorted floats as strings.
-
-#     Parameters
-#     ----------
-#     strings : list
-#         A list of strings to be sorted alphabetically when float
-#         values are equal.
-#     floats : list
-#         A list of float values to be sorted in descending order.
-
-#     Returns
-#     -------
-#     list
-#         A list of strings sorted by the criteria.
-#     """
-#     # Combine strings and floats into a list of tuples
-#     data = list(zip(strings, floats))
-
-#     # Sort by float in descending order and string alphabetically in ascending order
-#     sorted_data = sorted(data, key=lambda x: (-x[1], x[0].lower()))
-
-#     # Unzip the sorted data back into two separate lists
-#     sorted_strings, sorted_floats = zip(*sorted_data)
-
-#     return list(sorted_strings)  # , [str(f) for f in sorted_floats]
