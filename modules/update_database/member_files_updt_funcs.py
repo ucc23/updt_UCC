@@ -324,19 +324,14 @@ def get_Nmembs(
     # Use default ASteCA method
     my_field.get_nmembers()
 
-    if my_field.N_cluster >= my_field.N_clust_max:
+    if my_field.N_cluster > my_field.N_clust_max:
         if not np.isnan(N_clust_max):
             my_field.N_cluster = my_field.N_clust_max
-            logging.info(
-                f"  WARNING: N_cluster={my_field.N_clust_max}, "
-                + f"using N_cluster={N_clust_max}"
-            )
+            txt = f", using N_cluster={N_clust_max}"
         else:
-            logging.info(
-                f"  WARNING: N_cluster={my_field.N_clust_max}, "
-                + f"using N_cluster={my_field.N_clust_min}"
-            )
+            txt = f", using N_cluster={my_field.N_clust_min}"
             my_field.N_cluster = my_field.N_clust_min
+        logging.info(f"  WARNING: {my_field.N_cluster} > {my_field.N_clust_max}" + txt)
     else:
         logging.info(f"  Estimated N_cluster={my_field.N_cluster}")
 
