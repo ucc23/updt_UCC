@@ -795,7 +795,7 @@ def save_final_UCC(
         index=False,
         quoting=csv.QUOTE_NONNUMERIC,
     )
-    logging.info(f"UCC updated (N={len(df_UCC)})")
+    logging.info(f"UCC updated: {temp_zenodo_fold + new_ucc_file} (N={len(df_UCC)})")
 
 
 def fnames_checker(df_UCC: pd.DataFrame) -> None:
