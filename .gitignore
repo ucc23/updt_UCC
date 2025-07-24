@@ -159,14 +159,12 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-*sublime*
-OLD/*
-params.ini.default
-temp/*
-temp_updt/*
-NASA_API_TOKEN
-
 *.vscode
 *.code-workspace
 
+*sublime*
+logs/*
+OLD/*
+temp_updt/*
+NASA_API_TOKEN
 zenodo/UCC_members.parquet
