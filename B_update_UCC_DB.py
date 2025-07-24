@@ -147,6 +147,9 @@ def main():
     if N_new > 0:
         logging.info(f"\nProcessing {N_new} new OCs in '{new_DB}' with fastMP")
 
+        # # Load file if it already exists and the .parquet files were generated
+        # df_UCC_updt = pd.read_csv(temp_fold + "df_UCC_updt.csv")
+
         # Generate member files for new OCs and obtain their data
         df_UCC_updt = member_files_updt(
             logging, run_mode, df_UCC_new2, gaia_frames_data, df_GCs, manual_pars
@@ -213,10 +216,13 @@ def get_paths_check_paths(
         if input("Move on? (y/n): ").lower() != "y":
             sys.exit()
 
-    # # Current root + main UCC folder
-    # root_current_folder = os.getcwd()
-    # # Go up one level
-    # root_UCC_path = os.path.dirname(root_current_folder) + "/"
+    # If file exists, read and return it
+    if os.path.isfile(temp_fold + "df_UCC_updt.csv"):
+        logging.warning(
+            "WARNING: file 'df_UCC_updt.csv' exists. Moving on will re-write it"
+        )
+        if input("Move on? (y/n): ").lower() != "y":
+            sys.exit()
 
     # Temporary databases/ folder
     temp_database_folder = temp_fold + dbs_folder
@@ -228,14 +234,14 @@ def get_paths_check_paths(
     out_path = temp_fold + members_folder
     if not os.path.exists(out_path):
         os.makedirs(out_path)
-
-    # # Create quadrant folders
-    # for Nquad in range(1, 5):
-    #     for lat in ("P", "N"):
-    #         quad = "Q" + str(Nquad) + lat + "/"
-    #         out_path = temp_fold + quad + members_folder
-    #         if not os.path.exists(out_path):
-    #             os.makedirs(out_path)
+    else:
+        if len(os.listdir(out_path)) > 0:
+            logging.warning(
+                f"WARNING: There are .parquet files in '{out_path}'"
+                + "\nIf left there, they will be used when the script ends"
+            )
+            if input("Move on? (y/n): ").lower() != "y":
+                sys.exit()
 
     last_version = get_last_version_UCC(UCC_folder)
     # Path to the current UCC csv file
@@ -603,14 +609,6 @@ def member_files_updt(
     """
     Updates the Unified Cluster Catalogue (UCC) with new open clusters (OCs).
     """
-
-    # If file exists, read and return it
-    if os.path.isfile(temp_fold + "df_UCC_updt.csv"):
-        if input("\nTemp file df_UCC_updt exists. Load it? (y/n): ").lower() == "y":
-            df_UCC_updt = pd.read_csv(temp_fold + "df_UCC_updt.csv")
-            logging.info("\nTemp file df_UCC_updt loaded")
-            return df_UCC_updt
-
     # For each new OC
     df_UCC_updt = {
         "UCC_idx": [],
@@ -673,13 +671,6 @@ def member_files_updt(
         df.to_csv(temp_fold + "df_UCC_updt.csv", index=False, na_rep="nan")
 
         N_cl += 1
-
-        # import matplotlib.pyplot as plt
-        # plt.title(f"{fname0}, N={len(df_membs)}")
-        # plt.scatter(df_membs["BP-RP"], df_membs["Gmag"], c=df_membs["probs"], alpha=.2, s=7)
-        # plt.gca().invert_yaxis()
-        # plt.savefig(f"temp/{fname0}.png", dpi=150)
-        # plt.close()
 
     # This dataframe (and file) contains the data extracted from all the new entries,
     # used to update the UCC
@@ -781,9 +772,6 @@ def save_final_UCC(
     logging, temp_zenodo_fold: str, new_ucc_file: str, df_UCC: pd.DataFrame
 ) -> None:
     """ """
-
-    # # Add column with close entries
-    # df_UCC = detect_close_OCs(df_UCC)
 
     # Order by (lon, lat) first
     df_UCC = df_UCC.sort_values(["GLON", "GLAT"])
