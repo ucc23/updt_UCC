@@ -291,7 +291,7 @@ def dens_ratio(
     perc: int = 95,
     N_neigh: int = 10,
     N_max: int = 1000,
-    norm_v: int = 5,
+    norm_v: float = 5,
 ) -> float:
     """
     Calculates the density ratio (C2) for cluster classification.
@@ -345,6 +345,6 @@ def dens_ratio(
     dists = np.array(tree.query(arr, min(arr.shape[0], N_neigh))[0])
     med_d_field = np.median(dists[:, 1:])
 
-    d_ratio = min(med_d_field / med_d_membs, norm_v) / norm_v
+    d_ratio = min(float(med_d_field / med_d_membs), norm_v) / norm_v
 
     return d_ratio
