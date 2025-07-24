@@ -4,14 +4,96 @@ import numpy as np
 import pandas as pd
 from scipy.spatial.distance import cdist
 
-from ..HARDCODED import gaia_max_mag, local_asteca_path, path_gaia_frames
-from ..utils import radec2lonlat
+from ..HARDCODED import (
+    gaia_max_mag,
+    local_asteca_path,
+    members_folder,
+    path_gaia_frames,
+    temp_fold,
+)
+from ..utils import check_centers, radec2lonlat
 from .classification import get_classif
 from .gaia_query_frames import query_run
 
 # Local version
 sys.path.append(local_asteca_path)
 import asteca
+
+
+def get_fastMP_membs(
+    logging,
+    run_mode: str,
+    manual_pars: pd.DataFrame,
+    df_UCC: pd.DataFrame,
+    df_GCs: pd.DataFrame,
+    gaia_frames_data,
+    UCC_idx: int,
+    ra_c: float,
+    dec_c: float,
+    glon_c: float,
+    glat_c: float,
+    pmra_c: float,
+    pmde_c: float,
+    plx_c: float,
+    fname0: str,
+    df_UCC_updt: dict,
+) -> dict:
+    """ """
+    # Obtain the full Gaia frame
+    gaia_frame = get_gaia_frame(logging, gaia_frames_data, fname0, ra_c, dec_c, plx_c)
+
+    my_field = set_centers(gaia_frame, ra_c, dec_c, pmra_c, pmde_c, plx_c)
+    logging.info(
+        f"  Center used: ({my_field.radec_c[0]:.4f}, {my_field.radec_c[1]:.4f}), "
+        + f"({my_field.pms_c[0]:.4f}, {my_field.pms_c[1]:.4f}), {my_field.plx_c:.4f}"
+    )
+
+    N_clust, N_clust_max = get_Nmembs(logging, run_mode, manual_pars, fname0, my_field)
+
+    # Only check if the number of members larger than the minimum value
+    if my_field.N_cluster > my_field.N_clust_min:
+        check_close_cls(
+            logging,
+            df_UCC,
+            gaia_frame,
+            fname0,
+            glon_c,
+            glat_c,
+            pmra_c,
+            pmde_c,
+            plx_c,
+            df_GCs,
+        )
+
+    # Define membership object
+    memb = asteca.Membership(my_field, verbose=0)
+
+    # Run fastMP
+    probs_fastmp = memb.fastmp()
+    logging.warning(f"probs_all>0.5={(probs_fastmp > 0.5).sum()}")
+
+    # Check initial versus members centers
+    xy_c_m, vpd_c_m, plx_c_m = extract_centers(my_field, probs_fastmp)
+    cent_flags = check_centers(
+        xy_c_m, vpd_c_m, plx_c_m, (glon_c, glat_c), (pmra_c, pmde_c), plx_c
+    )[0]
+    # "nnn" --> Centers are in agreement
+    if cent_flags[0] != "n":
+        logging.warning(f"  Centers flag: {cent_flags}")
+
+    # Split into members and field stars according to the probability values
+    # assigned
+    df_field, df_membs = extract_members(gaia_frame, probs_fastmp)
+
+    # Write selected member stars to file
+    save_cl_datafile(logging, temp_fold, members_folder, fname0, df_membs)
+
+    # Store data from this new entry used to update the UCC
+    df_UCC_updt = updt_UCC_new_cl_data(
+        df_UCC_updt, UCC_idx, df_field, df_membs, N_clust, N_clust_max
+    )
+
+    return df_UCC_updt
 
 
 def get_gaia_frame(
@@ -404,32 +486,30 @@ def check_close_cls(
     # return pd.DataFrame(in_frame_all)
 
 
-def get_fastMP_membs(logging, my_field: asteca.Cluster) -> np.ndarray:
-    """
-    Runs the fastMP algorithm to estimate membership probabilities.
+# def get_fastMP_membs(logging, my_field: asteca.Cluster) -> np.ndarray:
+#     """
+#     Runs the fastMP algorithm to estimate membership probabilities.
 
-    Parameters
-    ----------
-    my_field : asteca.Cluster
-        Cluster object
-    fixed_centers : bool
-        Boolean indicating whether to use fixed centers.
+#     Parameters
+#     ----------
+#     my_field : asteca.Cluster
+#         Cluster object
 
-    Returns
-    -------
-    np.ndarray
-        Array of membership probabilities.
-    """
+#     Returns
+#     -------
+#     np.ndarray
+#         Array of membership probabilities.
+#     """
 
-    # Define membership object
-    memb = asteca.Membership(my_field, verbose=0)
+#     # Define membership object
+#     memb = asteca.Membership(my_field, verbose=0)
 
-    # Run fastMP with fixed centers
-    probs_fastmp = memb.fastmp(fixed_centers=True)
+#     # Run fastMP
+#     probs_fastmp = memb.fastmp()
 
-    logging.warning(f"probs_all>0.5={(probs_fastmp > 0.5).sum()}")
+#     logging.warning(f"probs_all>0.5={(probs_fastmp > 0.5).sum()}")
 
-    return probs_fastmp
+#     return probs_fastmp
 
 
 def extract_centers(
@@ -644,10 +724,6 @@ def updt_UCC_new_cl_data(
         "N_50": N_50,
         "r_50": r_50,
     }
-    # return dict_UCC_updt
-
-    # # Add UCC idx for this new entry
-    # df_UCC_updt["UCC_idx"].append(UCC_idx)
 
     # Update 'df_UCC_updt' with 'dict_UCC_updt' values
     for key, val in dict_UCC_updt.items():
@@ -656,23 +732,11 @@ def updt_UCC_new_cl_data(
     return df_UCC_updt
 
 
-# def updt_UCC_new_cl_data(df_UCC_updt, UCC_idx, dict_UCC_updt):
-#     """ """
-#     # Add UCC idx for this new entry
-#     df_UCC_updt["UCC_idx"].append(UCC_idx)
-
-#     # Update 'df_UCC_updt' with 'dict_UCC_updt' values
-#     for key, val in dict_UCC_updt.items():
-#         df_UCC_updt[key].append(val)
-
-#     return df_UCC_updt
-
-
 def save_cl_datafile(
     logging,
     temp_fold: str,
     members_folder: str,
-    fnames: str,
+    fname0: str,
     df_membs: pd.DataFrame,
 ) -> None:
     """
@@ -687,10 +751,8 @@ def save_cl_datafile(
     members_folder : str
         Path to the temporary members folder.
     fnames : str
-        Names associated with the cluster.
+        Name associated with the cluster file.
     """
-    fname0 = str(fnames).split(";")[0]
-    # quad = quad + "/"
 
     # Order by probabilities
     df_membs = df_membs.sort_values("probs", ascending=False)

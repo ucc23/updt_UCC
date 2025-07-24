@@ -41,25 +41,12 @@ from modules.update_database.check_new_DB_funcs import (
     prep_newDB,
     vdberg_check,
 )
-from modules.update_database.member_files_updt_funcs import (
-    check_close_cls,
-    # detect_close_OCs,
-    extract_centers,
-    # extract_cl_data,
-    extract_members,
-    get_fastMP_membs,
-    get_gaia_frame,
-    get_Nmembs,
-    save_cl_datafile,
-    set_centers,
-    updt_UCC_new_cl_data,
-)
+from modules.update_database.member_files_updt_funcs import get_fastMP_membs
 from modules.update_database.standardize_and_match_funcs import (
     get_fnames_new_DB,
     get_matches_new_DB,
 )
 from modules.utils import (
-    check_centers,
     get_last_version_UCC,
     logger,
     radec2lonlat,
@@ -661,62 +648,29 @@ def member_files_updt(
         fname0 = str(fnames).split(";")[0]
         logging.info(f"\n{N_cl} Processing {fname0} (idx={UCC_idx})")
 
-        gaia_frame = get_gaia_frame(
-            logging, gaia_frames_data, fname0, ra_c, dec_c, plx_c
+        df_UCC_updt = get_fastMP_membs(
+            logging,
+            run_mode,
+            manual_pars,
+            df_UCC,
+            df_GCs,
+            gaia_frames_data,
+            UCC_idx,
+            ra_c,
+            dec_c,
+            glon_c,
+            glat_c,
+            pmra_c,
+            pmde_c,
+            plx_c,
+            fname0,
+            df_UCC_updt,
         )
 
-        my_field = set_centers(gaia_frame, ra_c, dec_c, pmra_c, pmde_c, plx_c)
-        logging.info(
-            f"  Center used: ({my_field.radec_c[0]:.4f}, {my_field.radec_c[1]:.4f}), "
-            + f"({my_field.pms_c[0]:.4f}, {my_field.pms_c[1]:.4f}), {my_field.plx_c:.4f}"
-        )
-
-        N_clust, N_clust_max = get_Nmembs(
-            logging, run_mode, manual_pars, fname0, my_field
-        )
-
-        # Only check if the number of members larger than the minimum value
-        if my_field.N_cluster > my_field.N_clust_min:
-            check_close_cls(
-                logging,
-                df_UCC,
-                gaia_frame,
-                fname0,
-                glon_c,
-                glat_c,
-                pmra_c,
-                pmde_c,
-                plx_c,
-                df_GCs,
-            )
-
-        # Extract fastMP probabilities
-        probs_all = get_fastMP_membs(logging, my_field)
-
-        # Check initial versus members centers
-        xy_c_m, vpd_c_m, plx_c_m = extract_centers(my_field, probs_all)
-        cent_flags = check_centers(
-            xy_c_m, vpd_c_m, plx_c_m, (glon_c, glat_c), (pmra_c, pmde_c), plx_c
-        )[0]
-        # "nnn" --> Centers are in agreement
-        if cent_flags[0] != "n":
-            logging.warning(f"  Centers flag: {cent_flags}")
-
-        # Split into members and field stars according to the probability values
-        # assigned
-        df_field, df_membs = extract_members(gaia_frame, probs_all)
-
-        # Write selected member stars to file
-        save_cl_datafile(logging, temp_fold, members_folder, fnames, df_membs)
-
-        # Store data from this new entry used to update the UCC
-        df_UCC_updt = updt_UCC_new_cl_data(
-            df_UCC_updt, UCC_idx, df_field, df_membs, N_clust, N_clust_max
-        )
-
-        # Update file with information
+        # Update file with information. Do this for each iteration to avoid
+        # losing data if something goes wrong with any cluster
         df = pd.DataFrame(df_UCC_updt)
-        df.to_csv(temp_fold + "df_UCC_updt.csv", index=False)
+        df.to_csv(temp_fold + "df_UCC_updt.csv", index=False, na_rep="nan")
 
         N_cl += 1
 
