@@ -424,7 +424,7 @@ def check_close_cls(
         & (df_gcs["plx"] > plx_min)
     )
     in_frame_gcs = df_gcs[["Name", "GLON", "GLAT", "plx", "pmRA", "pmDE"]][msk]
-    in_frame_gcs["Name"] = str(in_frame_gcs["Name"]).strip()
+    in_frame_gcs["Name"] = in_frame_gcs["Name"].str.strip()
     in_frame_gcs["Type"] = ["g"] * len(in_frame_gcs)
 
     # Combine DataFrames
