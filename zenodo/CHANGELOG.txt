@@ -1,6 +1,12 @@
 Some of these are intermediate versions of the UCC database that are not published.
 
 
+## 25072814
+
+- Re-processed the entire dabatase using manual values for the maximum number of
+members for the "new" OCs (issue #62).
+
+
 ## 25071809
 
 - Removed the 'close_entries' column. Replaced it by two columns showing the 
