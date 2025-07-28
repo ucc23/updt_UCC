@@ -1,8 +1,7 @@
 # The Unified Cluster Catalogue (UCC)
 
-These files correspond to the XXXXXX version of the UCC database (https://ucc.ar),
-composed of YYYYYY clusters with a combined ZZZZZZ members.
-
+These files correspond to the 250728 version of the UCC database (https://ucc.ar),
+composed of 16588 clusters with a combined 1110235 members.
 
 ## Referencing
 
@@ -45,25 +44,22 @@ paper:
 Columns listed in the `UCC_cat.csv` file:
 
 ```
-ID        : Name(s) associated to the OC
-RA_ICRS   : Median RA from the databases this OC is present
-DE_ICRS   : Median DEC from the databases this OC is present
-Plx       : Median parallax from the databases this OC is present
-pmRA      : Median RA proper motion from the databases this OC is present
-pmDE      : Median DEC proper motion from the databases this OC is present
-UCC_ID    : Internal UCC naming
-N_50      : Number of estimated members with P>0.5
-r_50      : Radius that contains half the members (in arcmin)
-RA_ICRS_m : Median RA estimated using the selected members
-DE_ICRS_m : Median DEC estimated using the selected members
-Plx_m     : Median parallax estimated using the selected members
-pmRA_m    : Median RA proper motion estimated using the selected members
-pmDE_m    : Median DEC proper motion estimated using the selected members
-Rv_m      : Median radial velocity estimated using the selected members
-N_Rv      : Number of members with Rv data
-C1        : C_phot quality class
-C2        : C_dens quality class
-C3        : C_phot,C_dens, combined quality class
+UCC_ID              : Internal UCC naming
+ID                  : Name(s) associated to the OC
+RA_ICRS             : Median right ascension
+DE_ICRS             : Median declination
+GLON                : Medan galactic longitude
+GLAT                : Median galactic latitude
+Plx                 : Median parallax
+pmRA                : Median right ascension proper motion
+pmDE                : Median declination proper motion
+Rv                  : Median radial velocity
+N_Rv                : Number of members used to estimate the radial velocity
+N_50                : Number of estimated members with P>0.5
+r_50                : Radius that contains half the members (in arcmin)
+C3                  : Combined quality class
+shared_members      : Names of clusters with shared members
+shared_members_perc : Percentage of shared members for each cluster
 ```
 
 Columns listed in the `UCC_members.parquet` file:
