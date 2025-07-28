@@ -22,7 +22,6 @@ import asteca
 
 def get_fastMP_membs(
     logging,
-    run_mode: str,
     manual_pars: pd.DataFrame,
     df_UCC: pd.DataFrame,
     df_GCs: pd.DataFrame,
@@ -48,7 +47,7 @@ def get_fastMP_membs(
         + f"({my_field.pms_c[0]:.4f}, {my_field.pms_c[1]:.4f}), {my_field.plx_c:.4f}"
     )
 
-    N_clust, N_clust_max = get_Nmembs(logging, run_mode, manual_pars, fname0, my_field)
+    N_clust, N_clust_max = get_Nmembs(logging, manual_pars, fname0, my_field)
 
     # Only check if the number of members larger than the minimum value
     if my_field.N_cluster > my_field.N_clust_min:
@@ -277,7 +276,6 @@ def set_centers(
 
 def get_Nmembs(
     logging,
-    run_mode: str,
     manual_pars: pd.DataFrame,
     fname: str,
     my_field: asteca.Cluster,
@@ -289,8 +287,6 @@ def get_Nmembs(
     ----------
     logging : logging.Logger
         Logger object for outputting information
-    run_mode: str
-        Run mode
     manual_pars: pd.DataFrame
         DataFrame with manual parameters for clusters
     fname: str
@@ -301,7 +297,7 @@ def get_Nmembs(
 
     N_clust, N_clust_max = np.nan, np.nan
     # If this is a 'manual' run, check if this OC is present in the file
-    if run_mode == "manual":
+    if manual_pars.empty is False:
         row = manual_pars[manual_pars["fname"].str.contains(fname)].iloc[0]
         if row.empty is False:
             N_clust_t = row["N_clust"]
