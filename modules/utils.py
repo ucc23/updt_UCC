@@ -1,3 +1,4 @@
+import csv
 import datetime
 import logging
 import os
@@ -5,10 +6,11 @@ from os.path import join
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from modules.HARDCODED import md_folder
+from modules.HARDCODED import md_folder, temp_fold
 
 
 def logger():
@@ -408,3 +410,84 @@ def list_duplicates(seq: list) -> list:
     seen_twice = set(x for x in seq if x in seen or seen_add(x))
     # turn the set into a list (as requested)
     return list(seen_twice)
+
+
+def diff_between_dfs(
+    logging,
+    df_old: pd.DataFrame,
+    df_new_in: pd.DataFrame,
+    cols_exclude=None,
+) -> pd.DataFrame:
+    """
+    Order by (lon, lat) and change NaN as "nan".
+
+    Compare two DataFrames, find non-matching rows while preserving order, and
+    output these rows in two files.
+
+    Args:
+        df_old (pd.DataFrame): First DataFrame to compare.
+        df_new (pd.DataFrame): Second DataFrame to compare.
+        cols_exclude (list | None): List of columns to exclude from the diff
+    """
+    df_new = df_new_in.copy()
+    # Order by (lon, lat)
+    df_new = df_new.sort_values(["GLON", "GLAT"])
+    df_new = df_new.reset_index(drop=True)
+
+    if cols_exclude is not None:
+        logging.info(f"\n{cols_exclude} columns excluded")
+        for col in cols_exclude:
+            if col in df_old.keys():
+                df_old = df_old.drop(columns=(col))
+            if col in df_new.keys():
+                df_new = df_new.drop(columns=(col))
+    else:
+        logging.info("\nNo columns excluded")
+    df1 = df_old
+    df2 = df_new
+
+    # Convert DataFrames to lists of tuples (rows) for comparison
+    rows1 = [[str(_) for _ in row] for row in df1.values]
+    rows2 = [[str(_) for _ in row] for row in df2.values]
+
+    # Convert lists to sets for quick comparison
+    set1, set2 = set(map(tuple, rows1)), set(map(tuple, rows2))
+
+    # Get non-matching rows in original order
+    non_matching1 = [row for row in rows1 if tuple(row) not in set2]
+    non_matching2 = [row for row in rows2 if tuple(row) not in set1]
+
+    if len(non_matching1) == 0 and len(non_matching2) == 0:
+        logging.info("No differences found\n")
+        return df_new
+
+    if len(non_matching1) > 0:
+        # Write intertwined lines to the output file
+        with open(temp_fold + "UCC_diff_old.csv", "w", newline="") as out:
+            writer = csv.writer(out)
+            for row in non_matching1:
+                writer.writerow(row)
+    if len(non_matching2) > 0:
+        with open(temp_fold + "UCC_diff_new.csv", "w", newline="") as out:
+            writer = csv.writer(out)
+            for row in non_matching2:
+                writer.writerow(row)
+
+    logging.info("Files 'UCC_diff_xxx.csv' saved\n")
+    return df_new
+
+
+def save_df_UCC(logging, df_UCC: pd.DataFrame, file_path: str) -> None:
+    """ """
+
+    # Order by (lon, lat) first
+    df_UCC = df_UCC.sort_values(["GLON", "GLAT"])
+    df_UCC = df_UCC.reset_index(drop=True)
+    # Save UCC to CSV file
+    df_UCC.to_csv(
+        file_path,
+        na_rep="nan",
+        index=False,
+        quoting=csv.QUOTE_NONNUMERIC,
+    )
+    logging.info(f"UCC databse stored: {file_path} (N={len(df_UCC)})")
