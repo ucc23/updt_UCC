@@ -132,6 +132,9 @@ def main():
         #
         df_UCC_new = df_UCC_old
 
+    N_new = np.isnan(df_UCC_new["N_50"]).sum()
+    logging.info(f"Entries marked for re-processing: {N_new}")
+
     move_files(
         logging,
         run_mode,
