@@ -125,6 +125,19 @@ file with all the identified members and also generates the required files for
 uploading to the Zenodo repository. These files need to be manually uploaded to a new
 Zenodo release.
 
+This script accepts a `manual_params.csv` file in the `manual` mode. This file contains
+the following information:
+
+```
+-fname: file name of the entry for identification
+-N_clust: Fixed number of cluster members (has precedence over N_clust_max)
+-N_clust_max: Maximum number of cluster members
+-N_box: Multiplier value for the box size used to search for members
+-frame_limit: A string in the format "x_111.1,y_222.2" where "x" and "y" are one of the
+characters 'b' (bottom), 't' (top), 'l' (left), 'r' (right), and the numbers are the 
+limiting values for each frame border in (GLON, GLAT) coordinates.
+```
+
 1. Generate member files for processed OCs using fastMP (those with `N_50==nan`)
 The selection process for UCC members is as follows:
   
