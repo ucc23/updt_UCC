@@ -1,3 +1,4 @@
+import re
 import csv
 import datetime
 import logging
@@ -44,13 +45,16 @@ def logger():
 
 def get_last_version_UCC(UCC_folder: str) -> str:
     """Path to the latest version of the UCC catalogue"""
-    last_version = None
-    for file in os.listdir(UCC_folder):
-        if file.endswith("csv"):
-            last_version = file
-            break
-    if last_version is None:
+
+    pattern = re.compile(r"UCC_cat_\d{8}\.csv")
+    ucc_file = [f for f in os.listdir(UCC_folder) if pattern.fullmatch(f)]
+
+    if len(ucc_file) == 0:
         raise ValueError(f"UCC file not found in {UCC_folder}")
+    elif len(ucc_file) > 1:
+        raise ValueError(f"More than one UCC file found in {UCC_folder}")
+
+    last_version = ucc_file[0]
 
     return last_version
 
