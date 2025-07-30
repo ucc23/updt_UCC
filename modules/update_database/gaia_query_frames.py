@@ -13,6 +13,7 @@ def query_run(
     max_mag: float,
     c_ra: float,
     c_dec: float,
+    frame_lims: list,
 ) -> pd.DataFrame:
     """
     Queries Gaia data frames based on specified parameters and returns a combined
@@ -51,10 +52,16 @@ def query_run(
     Zp_BP, sigma_ZBP_2 = 25.3385422158, 0.000007785
     Zp_RP, sigma_ZRP_2 = 24.7478955012, 0.00001428
 
+    txt_flim = ""
+    if frame_lims:
+        txt_flim = "; "
+        for fl, v in frame_lims:
+            txt_flim += f"{fl}: {v}, "
+        txt_flim = txt_flim[:-2]
+
     logging.info(
-        "  cent=({:.3f}, {:.3f}); Box size: {:.2f}, Plx min: {:.2f}".format(
-            c_ra, c_dec, box_s_eq, plx_min
-        )
+        f"  cent=({c_ra:.3f}, {c_dec:.3f}); Box size: {box_s_eq:.2f}, "
+        + f"Plx min: {plx_min:.2f}{txt_flim}"
     )
 
     c_ra_l = [c_ra]
@@ -99,6 +106,23 @@ def query_run(
         )
     else:
         all_frames = dicts[0]
+
+    # Apply manual frame limits if any
+    if frame_lims:
+        for fm in frame_lims:
+            if fm[0] == 'b':
+                msk = all_frames['GLAT'] > fm[1]
+                all_frames = all_frames[msk]
+            elif fm[0] == 't':
+                msk = all_frames['GLAT'] < fm[1]
+                all_frames = all_frames[msk]
+            elif fm[0] == 'l':
+                msk = all_frames['GLON'] > fm[1]
+                all_frames = all_frames[msk]
+            elif fm[0] == 'r':
+                msk = all_frames['GLON'] < fm[1]
+                all_frames = all_frames[msk]
+        all_frames = pd.DataFrame(all_frames)
 
     all_frames = uncertMags(
         Zp_G, Zp_BP, Zp_RP, sigma_ZG_2, sigma_ZBP_2, sigma_ZRP_2, all_frames

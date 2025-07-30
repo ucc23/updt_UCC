@@ -38,8 +38,19 @@ def get_fastMP_membs(
     df_UCC_updt: dict,
 ) -> dict:
     """ """
+    # If this is a 'manual' run, check if this OC is present in the file
+    N_clust, N_clust_max, Nbox, frame_limit = np.nan, np.nan, np.nan, np.nan
+    if manual_pars.empty is False:
+        row = manual_pars[manual_pars["fname"].str.contains(fname0)].iloc[0]
+        if row.empty is False:
+            _, N_clust, N_clust_max, Nbox, frame_limit = row.to_numpy()
+    if isinstance(frame_limit, float):
+        frame_limit = ""
+
     # Obtain the full Gaia frame
-    gaia_frame = get_gaia_frame(logging, gaia_frames_data, fname0, ra_c, dec_c, plx_c)
+    gaia_frame = get_gaia_frame(
+        logging, gaia_frames_data, fname0, ra_c, dec_c, plx_c, Nbox, frame_limit
+    )
 
     my_field = set_centers(gaia_frame, ra_c, dec_c, pmra_c, pmde_c, plx_c)
     logging.info(
@@ -47,7 +58,7 @@ def get_fastMP_membs(
         + f"({my_field.pms_c[0]:.4f}, {my_field.pms_c[1]:.4f}), {my_field.plx_c:.4f}"
     )
 
-    N_clust, N_clust_max = get_Nmembs(logging, manual_pars, fname0, my_field)
+    N_clust, N_clust_max = get_Nmembs(logging, N_clust, N_clust_max, my_field)
 
     # Only check if the number of members larger than the minimum value
     if my_field.N_cluster > my_field.N_clust_min:
@@ -102,15 +113,30 @@ def get_gaia_frame(
     ra_c,
     dec_c,
     plx_c,
+    Nbox: float,
+    frame_limit: str,
     N_min_stars: int = 100,
     box_length_add: float = 0.5,
 ) -> pd.DataFrame:
     """ """
+    # Extract possible manual frame limits
+    frame_lims = []
+    if frame_limit != "":
+        for fm in frame_limit.split(","):
+            vals = fm.split("_")
+            if vals[0] not in ("b", "t", "l", "r"):
+                raise ValueError(
+                    f"Unknown frame limit '{vals[0]}', must be one of: b, t, l, r"
+                )
+            frame_lims.append([vals[0], float(vals[1])])
+
     # Make sure a minimum number of stars is present in the frame
     extra_length = 0.0
     while True:
         # Get frame limits
         box_s, plx_min = get_frame_limits(fname0, plx_c, extra_length)
+        if not np.isnan(Nbox):
+            box_s = box_s * Nbox
 
         # Request Gaia frame
         gaia_frame = query_run(
@@ -122,6 +148,7 @@ def get_gaia_frame(
             gaia_max_mag,
             ra_c,
             dec_c,
+            frame_lims,
         )
 
         if len(gaia_frame) < N_min_stars:
@@ -276,8 +303,8 @@ def set_centers(
 
 def get_Nmembs(
     logging,
-    manual_pars: pd.DataFrame,
-    fname: str,
+    N_clust: float,
+    N_clust_max: float,
     my_field: asteca.Cluster,
 ) -> tuple[int | float, int | float]:
     """
@@ -287,35 +314,23 @@ def get_Nmembs(
     ----------
     logging : logging.Logger
         Logger object for outputting information
-    manual_pars: pd.DataFrame
-        DataFrame with manual parameters for clusters
-    fname: str
-        Cluster file name
+    N_clust: float
+        Manual value for the fixed number of members
+    N_clust_max: float
+        Manual value for the maximum number of members
     my_field : asteca.Cluster
         ASteCA Cluster object
     """
 
-    N_clust, N_clust_max = np.nan, np.nan
-    # If this is a 'manual' run, check if this OC is present in the file
-    if manual_pars.empty is False:
-        row = manual_pars[manual_pars["fname"].str.contains(fname)].iloc[0]
-        if row.empty is False:
-            N_clust_t = row["N_clust"]
-            N_clust_max_t = row["N_clust_max"]
-            if not np.isnan(N_clust_t):
-                N_clust = int(N_clust_t)
-            if not np.isnan(N_clust_max_t):
-                N_clust_max = int(N_clust_max_t)
-
     # If 'N_clust' was given, use it
     if not np.isnan(N_clust):
-        my_field.N_cluster = N_clust
-        logging.info(f"  Using manual N_cluster={N_clust}")
+        my_field.N_cluster = int(N_clust)
+        logging.info(f"  Using manual N_cluster={int(N_clust)}")
         return N_clust, N_clust_max
     # Else, if 'N_clust_max' was given use it to cap the maximum number of members
     elif not np.isnan(N_clust_max):
-        my_field.N_clust_max = N_clust_max
-        logging.info(f"  Using manual N_clust_max={N_clust_max}")
+        my_field.N_clust_max = int(N_clust_max)
+        logging.info(f"  Using manual N_clust_max={int(N_clust_max)}")
 
     # Use default ASteCA method
     my_field.get_nmembers()
