@@ -524,16 +524,12 @@ def update_files(
     # Save updated UCC to temporary CSV file
     ucc_temp = temp_zenodo_fold + new_ucc_file
     save_df_UCC(logging, df_UCC_final, ucc_temp)
-    # logging.info(f"\nFull UCC database '{ucc_temp}' updated")
 
     file_path = temp_zenodo_fold + "UCC_cat.csv"
-    updt_zenodo_csv(df_UCC_final, file_path)
-    logging.info(f"Zenodo 'UCC_cat.csv' file '{file_path}' generated")
+    updt_zenodo_csv(logging, df_UCC_final, file_path)
 
     N_clusters = len(df_UCC_final)
-    file_path = temp_zenodo_fold + "README.txt"
-    updt_readme(UCC_new_version, N_clusters, N_members, file_path)
-    logging.info(f"Zenodo README file '{file_path}' updated")
+    updt_readme(logging, UCC_new_version, N_clusters, N_members, temp_zenodo_fold)
 
     if df_members is not None:
         # Update JSON dates file
@@ -547,14 +543,14 @@ def update_files(
         fname_json_temp = temp_zenodo_fold + parquet_dates
         with open(fname_json_temp, "w") as f:
             json.dump(json_data, f, indent=2)
-        logging.info(f"JSON file with dates '{fname_json_temp}' updated")
+        logging.info(f"JSON file with dates updated: '{fname_json_temp}'")
 
         zenodo_members_file_temp = temp_zenodo_fold + UCC_members_file
         df_members.to_parquet(zenodo_members_file_temp, index=False)
-        logging.info(f"Members file '{zenodo_members_file_temp}' updated")
+        logging.info(f"Members file updated: '{zenodo_members_file_temp}'")
 
 
-def updt_zenodo_csv(df_UCC: pd.DataFrame, file_path: str) -> None:
+def updt_zenodo_csv(logging, df_UCC: pd.DataFrame, file_path: str) -> None:
     """
     Generates a CSV file containing a reduced Unified Cluster Catalog
     (UCC) dataset, which can be stored in the Zenodo repository.
@@ -609,11 +605,13 @@ def updt_zenodo_csv(df_UCC: pd.DataFrame, file_path: str) -> None:
         quoting=csv.QUOTE_NONNUMERIC,
     )
 
+    logging.info(f"Zenodo '.csv' file generated: '{file_path}'")
+
 
 def updt_readme(
-    new_version: str, N_clusters: int, N_members: int, file_path: str
+    logging, new_version: str, N_clusters: int, N_members: int, temp_zenodo_fold: str
 ) -> None:
-    """Update version number in README file uploaded to Zenodo"""
+    """Update info number in README file uploaded to Zenodo"""
 
     XXXX = str(new_version[:-2])
     YYYY = str(N_clusters)
@@ -624,14 +622,18 @@ def updt_readme(
     ]
 
     # Load the main file
-    with open(file_path, "r") as f:
+    in_file_path = UCC_folder + "README.txt"
+    with open(in_file_path, "r") as f:
         dataf = f.readlines()
         # Replace lines
         dataf[2:4] = txt
 
     # Store updated file
-    with open(file_path, "w") as f:
+    out_file_path = temp_zenodo_fold + "README.txt"
+    with open(out_file_path, "w") as f:
         f.writelines(dataf)
+
+    logging.info(f"Zenodo README file updated: '{out_file_path}'")
 
 
 def move_files(

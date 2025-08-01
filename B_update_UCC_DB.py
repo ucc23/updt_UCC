@@ -506,7 +506,7 @@ def move_files(
     temp_database_folder: str,
 ) -> None:
     """ """
-    logging.info("\nUpdate files:")
+    logging.info("\nUpdate files...")
 
     # Update JSON file with all the DBs and store the new DB in place
     if run_mode == "new_DB":
