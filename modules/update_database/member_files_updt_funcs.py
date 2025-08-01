@@ -39,7 +39,7 @@ def get_fastMP_membs(
 ) -> dict:
     """ """
     # If this is a 'manual' run, check if this OC is present in the file
-    N_clust, N_clust_max, Nbox, frame_limit = np.nan, np.nan, np.nan, np.nan
+    N_clust, N_clust_max, Nbox, frame_limit = np.nan, np.nan, np.nan, ""
     if manual_pars.empty is False:
         row = manual_pars[manual_pars["fname"].str.contains(fname0)].iloc[0]
         if row.empty is False:
@@ -124,10 +124,19 @@ def get_gaia_frame(
     if frame_limit != "":
         for fm in frame_limit.split(","):
             vals = fm.split("_")
-            if vals[0] not in ("b", "t", "l", "r"):
-                raise ValueError(
-                    f"Unknown frame limit '{vals[0]}', must be one of: b, t, l, r"
-                )
+            if vals[0] not in (
+                "b",
+                "t",
+                "l",
+                "r",
+                "plxl",
+                "plxr",
+                "pmb",
+                "pmt",
+                "pml",
+                "pmr",
+            ):
+                raise ValueError(f"Unknown frame limit '{vals[0]}'")
             frame_lims.append([vals[0], float(vals[1])])
 
     # Make sure a minimum number of stars is present in the frame

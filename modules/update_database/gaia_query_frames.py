@@ -122,6 +122,30 @@ def query_run(
             elif fm[0] == 'r':
                 msk = all_frames['GLON'] < fm[1]
                 all_frames = all_frames[msk]
+
+            elif fm[0] == 'plxl':
+                msk = all_frames['Plx'] > fm[1]
+                all_frames = all_frames[msk]
+            elif fm[0] == 'plxr':
+                msk = all_frames['Plx'] < fm[1]
+                all_frames = all_frames[msk]
+
+            elif fm[0] == 'pmb':
+                msk = all_frames['pmDE'] > fm[1]
+                all_frames = all_frames[msk]
+            elif fm[0] == 'pmt':
+                msk = all_frames['pmDE'] < fm[1]
+                all_frames = all_frames[msk]
+            elif fm[0] == 'pml':
+                msk = all_frames['pmRA'] > fm[1]
+                all_frames = all_frames[msk]
+            elif fm[0] == 'pmr':
+                msk = all_frames['pmRA'] < fm[1]
+                all_frames = all_frames[msk]
+
+            else:
+                raise ValueError("Unknown frame limit: " + str(fm[0]))
+
         all_frames = pd.DataFrame(all_frames)
 
     all_frames = uncertMags(
