@@ -404,6 +404,8 @@ def update_membs_file(logging, df_comb) -> pd.DataFrame:
     # Concatenate df_comb with the extra df_members groups
     df_updated = pd.concat([df_comb, df1_extra], ignore_index=True)
 
+    logging.info(f"N_membs={len(df_members)} --> N_membs={len(df_updated)}")
+
     return pd.DataFrame(df_updated)
 
 
@@ -411,15 +413,28 @@ def find_shared_members(logging, df_UCC, df_members):
     """ """
     logging.info("Finding shared members...")
 
+    # Find OCs that intersect. This helps to speed up the process
     intersection_map = find_intersections(df_UCC)
+
+    # Find OCs that contain duplicated element in any other OC, also to speed up
+    source_counts = df_members["Source"].value_counts()
+    shared_sources = source_counts[source_counts > 1].index
+    ocs_w_shared_sources = df_members[df_members["Source"].isin(shared_sources)][
+        "name"
+    ].unique()
 
     # Group members by 'fname'
     grouped = df_members.groupby("name")["Source"].apply(set)
+    N_total = len(grouped)
 
     results = []
     # Compute shared elements and percentages
     for fname, sources in grouped.items():
-        if intersection_map[fname] == "nan":
+        # Print progress every 10%
+        if len(results) % (N_total // 20) == 0:
+            logging.info(f"{(len(results) / N_total) * 100:.0f}%")
+
+        if intersection_map[fname] == "nan" or fname not in ocs_w_shared_sources:
             results.append(
                 {"fname": fname, "shared_members": "nan", "shared_members_p": "nan"}
             )
@@ -434,7 +449,10 @@ def find_shared_members(logging, df_UCC, df_members):
         shared_info, percentage_info = [], []
         for other_fname, other_sources in grouped.items():
             # Only process intersecting OCs
-            if other_fname not in fnames_process:
+            if (
+                other_fname not in fnames_process
+                or other_fname not in ocs_w_shared_sources
+            ):
                 continue
 
             shared = sources & other_sources
