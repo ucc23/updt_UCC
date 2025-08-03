@@ -88,7 +88,7 @@ def main():
         # Generate final updated members file
         df_members = update_membs_file(logging, df_comb)
         N_members = len(df_members)
-        logging.info(f"Zenodo '{UCC_members_file}' file updated ({N_members} stars)")
+        logging.info(f"Zenodo '{UCC_members_file}' file updated")
 
         # Find shared members between OCs
         df_UCC_final = find_shared_members(logging, df_UCC_new, df_members)
