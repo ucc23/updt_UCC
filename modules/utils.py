@@ -1,8 +1,8 @@
-import re
 import csv
 import datetime
 import logging
 import os
+import re
 from os.path import join
 from pathlib import Path
 
@@ -494,4 +494,4 @@ def save_df_UCC(logging, df_UCC: pd.DataFrame, file_path: str) -> None:
         index=False,
         quoting=csv.QUOTE_NONNUMERIC,
     )
-    logging.info(f"UCC databse stored: {file_path} (N={len(df_UCC)})")
+    logging.info(f"UCC databse (N={len(df_UCC)}) stored: '{file_path}'")
