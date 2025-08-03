@@ -1,9 +1,14 @@
 Some of these are intermediate versions of the UCC database that are not published.
 
 
+## 25080310
+
+- Second re-processing of 227 entries that needed some adjusting
+
+
 ## 25072814
 
-- Re-processed the entire dabatase using manual values for the maximum number of
+- Re-processed the entire database using manual values for the maximum number of
 members for the "new" OCs (issue #62).
 
 
