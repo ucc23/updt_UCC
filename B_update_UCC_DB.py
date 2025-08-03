@@ -237,6 +237,13 @@ def load_data(
     else:  # run_mode == "manual"
         # Read OCs manual parameters
         manual_pars = pd.read_csv(manual_pars_file)
+        # Find repeated entries in 'fname' column
+        msk = manual_pars["fname"].duplicated()
+        if msk.sum() > 0:
+            rep_fnames = ", ".join([_ for _ in manual_pars[msk]["fname"]])
+            raise ValueError(
+                f"Repeated entries in {manual_pars_file} file:\n{rep_fnames}"
+            )
         # Dummy data
         new_DB, new_DB_file, df_new, newDB_json = "", "", pd.DataFrame(), {}
 
