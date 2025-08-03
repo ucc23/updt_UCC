@@ -104,9 +104,9 @@ re-process.
 
 ### Output
 
-- `databases/all_dbs.json`: Updated UCC database JSON file (if `run_mode == "new_DB"`)
-- `databases/NEW_DB.csv`: New database in CSV format (if `run_mode == "new_DB"`)
 - `temp_updt/df_UCC_B_updt.csv`: Updated UCC database
+- `databases/all_dbs.json`: Updated UCC database JSON file (if mode is `new_DB`)
+- `databases/NEW_DB.csv`: New database in CSV format (if mode is `new_DB`)
 
 These files are also generated, for exploratory use only:
 
@@ -171,7 +171,7 @@ then steps 1-5 are skipped and the UCC is updated using the output from the B sc
 
 - `Gaia data files`: Gaia data files for a given release
 - `databases/globulars.csv`: Globular clusters data file
-- `manual_params.csv`: Manual member values (if `run_mode = "manual"`)
+- `manual_params.csv`: Manual member values (if mode is `manual`)
 
 - `zenodo/UCC_cat_XXYYZZHH.csv`: Latest UCC database
 - `zenodo/data_dates.json`: File with dates of updating for each OC
