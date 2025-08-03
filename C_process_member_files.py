@@ -396,10 +396,10 @@ def update_membs_file(logging, df_comb) -> pd.DataFrame:
     names_df2 = set(df_comb["name"])
 
     # Identify names in df_members not in df_comb
-    extra_names = pd.DataFrame(names_df1 - names_df2)
+    extra_names = names_df1 - names_df2
 
     # Filter df_members for those extra groups
-    df1_extra = df_members[df_members["name"].isin(extra_names)]
+    df1_extra = df_members[df_members["name"].isin(extra_names)]  # pyright: ignore
 
     # Concatenate df_comb with the extra df_members groups
     df_updated = pd.concat([df_comb, df1_extra], ignore_index=True)
