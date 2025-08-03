@@ -164,10 +164,12 @@ def get_paths_check_paths(
             sys.exit()
 
     # Temporary databases/ folder
-    temp_database_folder = temp_fold + dbs_folder
-    # Create if required
-    if not os.path.exists(temp_database_folder):
-        os.makedirs(temp_database_folder)
+    temp_database_folder = ""
+    if run_mode == "new_DB":
+        temp_database_folder = temp_fold + dbs_folder
+        # Create if required
+        if not os.path.exists(temp_database_folder):
+            os.makedirs(temp_database_folder)
 
     last_version = get_last_version_UCC(UCC_folder)
     # Path to the current UCC csv file
