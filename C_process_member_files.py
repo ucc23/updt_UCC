@@ -424,7 +424,7 @@ def find_shared_members(logging, df_UCC, df_members):
     # Compute shared elements and percentages
     for fname, sources in grouped.items():
         # Print progress every 10%
-        if len(results) % (N_total // 20) == 0:
+        if len(results) % (N_total // 10) == 0:
             logging.info(f"{(len(results) / N_total) * 100:.0f}%")
 
         if fname not in intersection_map:
@@ -435,26 +435,25 @@ def find_shared_members(logging, df_UCC, df_members):
 
         fnames_process = [_ for _ in intersection_map[fname].split(",")]
 
-        # shared_info, percentage_info = [], []
-        # for other_fname in fnames_process:
-        #     other_sources = set(df_members[df_members['name']==other_fname]["Source"])
-
-        shared_info, percentage_info = [], []
+        shared_info, percentage_info, percentage_vals = [], [], []
         for other_fname, other_sources in grouped.items():
             # Only process intersecting OCs
-            if (
-                other_fname not in fnames_process
-                or other_fname not in ocs_w_shared_sources
-            ):
+            if other_fname not in fnames_process:
                 continue
 
             shared = sources & other_sources
             if shared:
                 shared_info.append(other_fname)
                 percentage = len(shared) / len(sources) * 100
+                percentage_vals.append(percentage)
                 percentage_info.append(f"{percentage:.1f}")
 
         if shared_info:
+            if len(shared_info) > 1:
+                # Sort by max values
+                i_sort = np.argsort(percentage_vals)[::-1]
+                shared_info = [shared_info[i] for i in i_sort]
+                percentage_info = [percentage_info[i] for i in i_sort]
             results.append(
                 {
                     "fname": fname,
