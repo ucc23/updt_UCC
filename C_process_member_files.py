@@ -414,14 +414,7 @@ def find_shared_members(logging, df_UCC, df_members):
     logging.info("Finding shared members...")
 
     # Find OCs that intersect. This helps to speed up the process
-    intersection_map = find_intersections(df_UCC)
-
-    # Find OCs that contain duplicated element in any other OC, also to speed up
-    source_counts = df_members["Source"].value_counts()
-    shared_sources = source_counts[source_counts > 1].index
-    ocs_w_shared_sources = df_members[df_members["Source"].isin(shared_sources)][
-        "name"
-    ].unique()
+    intersection_map = find_intersections(df_UCC, df_members)
 
     # Group members by 'fname'
     grouped = df_members.groupby("name")["Source"].apply(set)
@@ -434,7 +427,7 @@ def find_shared_members(logging, df_UCC, df_members):
         if len(results) % (N_total // 20) == 0:
             logging.info(f"{(len(results) / N_total) * 100:.0f}%")
 
-        if intersection_map[fname] == "nan" or fname not in ocs_w_shared_sources:
+        if fname not in intersection_map:
             results.append(
                 {"fname": fname, "shared_members": "nan", "shared_members_p": "nan"}
             )
@@ -492,13 +485,28 @@ def find_shared_members(logging, df_UCC, df_members):
     return df_UCC
 
 
-def find_intersections(df):
-    # Convert to NumPy arrays for fast computation
-    coords = df[["GLON_m", "GLAT_m"]].to_numpy()
+def find_intersections(df, df_members):
+    """ """
+
+    # Find OCs that contain duplicated element in any other OC, also to speed up
+    source_counts = df_members["Source"].value_counts()
+    shared_sources = source_counts[source_counts > 1].index
+    ocs_w_shared_sources = df_members[df_members["Source"].isin(shared_sources)][
+        "name"
+    ].unique()
+
+    # Filter UCC df to only include OCs with shared sources
     names = np.array([_.split(";")[0] for _ in df["fnames"]])
+    arr2_set = set(ocs_w_shared_sources)
+    msk = np.fromiter((x in arr2_set for x in names), dtype=bool)
+    df_msk = df[msk]
+
+    # Convert to NumPy arrays for fast computation
+    coords = df_msk[["GLON_m", "GLAT_m"]].to_numpy()
+    names = np.array([_.split(";")[0] for _ in df_msk["fnames"]])
 
     # The search region is two times the r_50 radius
-    radii = 2 * df["r_50"].to_numpy() / 60
+    radii = 2 * df_msk["r_50"].to_numpy() / 60
 
     # Compute pairwise distances
     dists = cdist(coords, coords)
