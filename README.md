@@ -205,10 +205,10 @@ need to be applied to update the site.
 
 ### Input
 
-- `temp_updt/zenodo/README.txt`: Used to extract the total number of members
 - `zenodo/UCC_cat_XXYYZZHH.csv`: Latest UCC database
 - `databases/all_dbs.json`: Latest UCC database JSON file
 - `ucc/_pages/DATABASE.md`: Current databases file for the site
+- `temp_updt/zenodo/README.txt`: Used to extract the total number of members
 
 ### Output
 
@@ -219,7 +219,7 @@ need to be applied to update the site.
 - `ucc/_pages/TABLES.md`: Updated tables file for the site
 - `ucc/_tables/*.md`: Updated tables for the site
 - `ucc/_clusters/*.md`: Updated or generated files for each cluster
-- `UCC/QXY/plots/*.webp`: CMD and Aladin plots, **only for new clusters**
+- `UCC/QXY/plots/*/*.webp`: CMD and Aladin plots
 
 
 
