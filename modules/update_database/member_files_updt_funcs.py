@@ -19,6 +19,8 @@ from .gaia_query_frames import query_run
 sys.path.append(local_asteca_path)
 import asteca
 
+print(f"ASteCA version: {asteca.__version__}")
+
 
 def get_fastMP_membs(
     logging,
@@ -51,6 +53,8 @@ def get_fastMP_membs(
     gaia_frame = get_gaia_frame(
         logging, gaia_frames_data, fname0, ra_c, dec_c, plx_c, Nbox, frame_limit
     )
+    # gaia_frame.to_csv("temp_clust.csv", index=False)
+    # breakpoint()
 
     my_field = set_centers(gaia_frame, ra_c, dec_c, pmra_c, pmde_c, plx_c)
     logging.info(
