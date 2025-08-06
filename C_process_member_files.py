@@ -429,27 +429,20 @@ def find_shared_members(logging, df_UCC, df_members):
     # Group members by 'fname'
     grouped = df_members.groupby("name")["Source"].apply(set)
     N_total = len(grouped)
+    results = {
+        "fname": grouped.keys().tolist(),
+        "shared_members": ["nan"] * N_total,
+        "shared_members_p": ["nan"] * N_total,
+    }
 
-    results = []
     # Compute shared elements and percentages
-    for fname, sources in grouped.items():
-        # Print progress every 10%
-        if len(results) % (N_total // 10) == 0:
-            logging.info(f"{(len(results) / N_total) * 100:.0f}%")
-
+    for idx, (fname, sources) in enumerate(grouped.items()):
         if fname not in intersection_map:
-            results.append(
-                {"fname": fname, "shared_members": "nan", "shared_members_p": "nan"}
-            )
             continue
 
-        fnames_process = [_ for _ in intersection_map[fname].split(",")]
-
         shared_info, percentage_info, percentage_vals = [], [], []
-        for other_fname, other_sources in grouped.items():
-            # Only process intersecting OCs
-            if other_fname not in fnames_process:
-                continue
+        for other_fname in intersection_map[fname]:
+            other_sources = grouped[other_fname]
 
             shared = sources & other_sources
             if shared:
@@ -464,17 +457,8 @@ def find_shared_members(logging, df_UCC, df_members):
                 i_sort = np.argsort(percentage_vals)[::-1]
                 shared_info = [shared_info[i] for i in i_sort]
                 percentage_info = [percentage_info[i] for i in i_sort]
-            results.append(
-                {
-                    "fname": fname,
-                    "shared_members": ";".join(shared_info),
-                    "shared_members_p": ";".join(percentage_info),
-                }
-            )
-        else:
-            results.append(
-                {"fname": fname, "shared_members": "nan", "shared_members_p": "nan"}
-            )
+            results["shared_members"][idx] = ";".join(shared_info)
+            results["shared_members_p"][idx] = ";".join(percentage_info)
 
     # Convert to DataFrame
     result_df = pd.DataFrame(results)
@@ -530,9 +514,9 @@ def find_intersections(df, df_members):
     results = []
     for i, name in enumerate(names):
         intersecting = names[intersection_mask[i]]
-        val = "nan"
+        val = {}  # Empty set
         if intersecting.size > 0:
-            val = ",".join(intersecting)
+            val = set(intersecting)
         results.append({"name": name, "intersects_with": val})
 
     intersections = pd.DataFrame(results)
