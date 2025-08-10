@@ -55,16 +55,6 @@ def main():
         manual_pars,
     ) = load_data(logging)
 
-    # zenodo_members_file = UCC_folder + UCC_members_file
-    # df_members = pd.read_parquet(zenodo_members_file)
-    # df_UCC_final = find_shared_members(logging, df_UCC_B, df_members)
-    # # Save updated UCC to temporary CSV file
-    # ucc_temp = temp_zenodo_fold + new_ucc_file
-    # save_df_UCC(logging, df_UCC_final, ucc_temp)
-    # file_path = temp_zenodo_fold + "UCC_cat.csv"
-    # updt_zenodo_csv(logging, df_UCC_final, file_path)
-    # breakpoint()
-
     # Entries with no 'N_50' value are identified as new and processed with fastMP
     N_new = np.isnan(df_UCC_B["N_50"]).sum()
 
