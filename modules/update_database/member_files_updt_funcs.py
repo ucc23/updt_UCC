@@ -46,7 +46,7 @@ def get_fastMP_membs(
         row = manual_pars[manual_pars["fname"].str.contains(fname0)].iloc[0]
         if row.empty is False:
             _, N_clust, N_clust_max, Nbox, frame_limit = row.to_numpy()
-    if isinstance(frame_limit, float):
+    if isinstance(frame_limit, float) or frame_limit == "nan":
         frame_limit = ""
 
     # Obtain the full Gaia frame
