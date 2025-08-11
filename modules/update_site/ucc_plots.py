@@ -4,7 +4,6 @@ from urllib.parse import urlencode
 import matplotlib.pyplot as plt
 import numpy as np
 from astropy.io import fits
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 from scipy import ndimage
 
 
@@ -21,7 +20,7 @@ def plot_CMD(
     plt.style.use("modules/update_site/science2.mplstyle")
 
     # Sort by probabilities
-    df_membs.sort_values("probs", inplace=True, kind="stable")
+    df_membs = df_membs.sort_values("probs", kind="stable")
 
     pr = df_membs["probs"]
     vmin, vmax = min(pr), max(pr)
@@ -70,18 +69,22 @@ def plot_CMD(
 
     xmin, xmax = np.nanmin(df_membs["GLON"]), np.nanmax(df_membs["GLON"])
     ymin, ymax = np.nanmin(df_membs["GLAT"]), np.nanmax(df_membs["GLAT"])
-    xr = (xmax - xmin) * 0.1
-    yr = (ymax - ymin) * 0.1
+    xr = (xmax - xmin) * 0.15
+    yr = (ymax - ymin) * 0.15
     xmin, xmax = xmin - xr, xmax + xr
     ymin, ymax = ymin - yr, ymax + yr
-    if xmax - xmin < 0.1:
-        xmin, xmax = xmin - 0.05, xmax + 0.05
-    if ymax - ymin < 0.1:
-        ymin, ymax = ymin - 0.05, ymax + 0.05
     ax1.set_xlim(xmin, xmax)
     ax1.set_ylim(ymin, ymax)
 
     ax1.tick_params(axis="both", which="major", labelsize=fs)
+    # Get and set font size of the offset text
+    offset_text = ax1.xaxis.get_offset_text()
+    offset_text.set_fontsize(fs)
+
+    # Set a maximum of 5 xticks
+    Nxt = len("".join([label.get_text() for label in ax1.get_xticklabels()]))
+    if Nxt > 5:
+        ax1.locator_params(axis="x", nbins=5)
 
     im2 = ax2.scatter(
         df_membs["pmRA"],
@@ -174,12 +177,12 @@ def plot_CMD(
     plt.close(fig)
 
 
-def colorbar(mappable):
-    ax = mappable.axes
-    fig = ax.figure
-    divider = make_axes_locatable(ax)
-    cax = divider.append_axes("right", size="5%", pad=0.05)
-    return fig.colorbar(mappable, cax=cax)
+# def colorbar(mappable):
+#     ax = mappable.axes
+#     fig = ax.figure
+#     divider = make_axes_locatable(ax)
+#     cax = divider.append_axes("right", size="5%", pad=0.05)
+#     return fig.colorbar(mappable, cax=cax)
 
 
 def diag_limits(phot_x, phot_y):
