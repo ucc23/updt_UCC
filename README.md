@@ -105,8 +105,11 @@ re-process.
 ### Output
 
 - `temp_updt/df_UCC_B_updt.csv`: Updated UCC database
-- `databases/all_dbs.json`: Updated UCC database JSON file (if mode is `new_DB`)
-- `databases/NEW_DB.csv`: New database in CSV format (if mode is `new_DB`)
+
+If mode is `new_DB`:
+
+- `databases/all_dbs.json`: Updated UCC database JSON file
+- `databases/NEW_DB.csv`: New database in CSV format
 
 These files are also generated, for exploratory use only:
 
@@ -206,9 +209,11 @@ need to be applied to update the site.
 ### Input
 
 - `zenodo/UCC_cat_XXYYZZHH.csv`: Latest UCC database
+- `zenodo/UCC_members.parquet`: Latest members file
+- `zenodo/data_dates.json`: Dates of latest updating for each OC
 - `databases/all_dbs.json`: Latest UCC database JSON file
 - `ucc/_pages/DATABASE.md`: Current databases file for the site
-- `temp_updt/zenodo/README.txt`: Used to extract the total number of members
+
 
 ### Output
 
