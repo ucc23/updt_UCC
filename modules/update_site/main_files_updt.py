@@ -1,19 +1,18 @@
-import os
-from itertools import islice
-
-import fastparquet
 import numpy as np
+import pandas as pd
 
 from .ucc_entry import UCC_color
 
-#     """Count the number of OCs per C3 class"""
-#     C3_classif, C3_count = np.unique(C3, return_counts=True)
-#     C3_classif = list(C3_classif)
-#     OCs_per_class = []
-#     for c in class_order:
-#         i = C3_classif.index(c)
-#         OCs_per_class.append(C3_count[i])
-#     return OCs_per_class
+
+def count_OCs_classes(C3, class_order):
+    """Count the number of OCs per C3 class"""
+    C3_classif, C3_count = np.unique(C3, return_counts=True)
+    C3_classif = list(C3_classif)
+    OCs_per_class = []
+    for c in class_order:
+        i = C3_classif.index(c)
+        OCs_per_class.append(C3_count[i])
+    return OCs_per_class
 
 
 # def count_dups(df_UCC: pd.DataFrame) -> list:
@@ -54,21 +53,21 @@ from .ucc_entry import UCC_color
 #     return dups_msk
 
 
-# def count_N50membs(df_UCC: pd.DataFrame) -> list:
-#     """ """
+def count_N50membs(df_UCC: pd.DataFrame) -> list:
+    """ """
 
-#     membs_msk = [df_UCC["N_50"] == 0]
+    membs_msk = [df_UCC["N_50"] == 0]
 
-#     N_limi = 0
-#     for i, N_limf in enumerate((25, 50, 75, 100, 250, 500, 1000, 2000)):
-#         N50_r = (df_UCC["N_50"] > N_limi) & (df_UCC["N_50"] <= N_limf)
-#         membs_msk.append(N50_r)
-#         N_limi = N_limf
+    N_limi = 0
+    for i, N_limf in enumerate((25, 50, 75, 100, 250, 500, 1000, 2000)):
+        N50_r = (df_UCC["N_50"] > N_limi) & (df_UCC["N_50"] <= N_limf)
+        membs_msk.append(N50_r)
+        N_limi = N_limf
 
-#     Ninf = df_UCC["N_50"] > 2000
-#     membs_msk.append(Ninf)
+    Ninf = df_UCC["N_50"] > 2000
+    membs_msk.append(Ninf)
 
-#     return membs_msk
+    return membs_msk
 
 
 # def pc_radius(
@@ -98,13 +97,6 @@ from .ucc_entry import UCC_color
 #     radius_pc = distance_pc * angular_radius_rad  # Radius in parsecs
 
 #     return radius_pc
-
-
-def chunks(data, SIZE=2):
-    """Split dictionary into chunks"""
-    it = iter(data)
-    for i in range(0, len(data), SIZE):
-        yield {k: data[k] for k in islice(it, SIZE)}
 
 
 def replace_text_between(
@@ -138,42 +130,42 @@ def replace_text_between(
     return leading_text + delimiter_a + replacement_text
 
 
-def count_N_members_UCC(members_folder):
-    """ """
-    # Initialize total row count
-    N_members_UCC = 0
-    # Process all Q folders
-    for qN in range(1, 5):
-        for lat in ("P", "N"):
-            qfold = f"Q{qN}{lat}/"
-            qpath = f"../{qfold}{members_folder}"
+# def count_N_members_UCC(members_folder):
+#     """ """
+#     # Initialize total row count
+#     N_members_UCC = 0
+#     # Process all Q folders
+#     for qN in range(1, 5):
+#         for lat in ("P", "N"):
+#             qfold = f"Q{qN}{lat}/"
+#             qpath = f"../{qfold}{members_folder}"
 
-            # Pre-filter files directly from the directory listing
-            files = (
-                file
-                for file in os.listdir(qpath)
-                if "HUNT23" not in file and "CANTAT20" not in file
-            )
+#             # Pre-filter files directly from the directory listing
+#             files = (
+#                 file
+#                 for file in os.listdir(qpath)
+#                 if "HUNT23" not in file and "CANTAT20" not in file
+#             )
 
-            for file in files:
-                # Read Parquet metadata without loading full data
-                pf = fastparquet.ParquetFile(os.path.join(qpath, file))
-                N_members_UCC += pf.count()
+#             for file in files:
+#                 # Read Parquet metadata without loading full data
+#                 pf = fastparquet.ParquetFile(os.path.join(qpath, file))
+#                 N_members_UCC += pf.count()
 
-    # # Extract the total number of members from the "README.txt" stored in the
-    # # folder 'temp_updt/zenodo/' by the previous script. Run here to fail early if
-    # # something is wrong
-    # temp_zenodo_README = temp_fold + UCC_folder + "README.txt"
-    # with open(temp_zenodo_README, "r") as f:
-    #     dataf = f.read()
-    #     match = re.search(r"combined (\d+) members", dataf)
-    #     if match is None:
-    #         raise ValueError(
-    #             "Could not find the total number of members in the Zenodo README.txt file."
-    #         )
-    #     N_members_UCC = int(match.group(1))
+#     # # Extract the total number of members from the "README.txt" stored in the
+#     # # folder 'temp_updt/zenodo/' by the previous script. Run here to fail early if
+#     # # something is wrong
+#     # temp_zenodo_README = temp_fold + UCC_folder + "README.txt"
+#     # with open(temp_zenodo_README, "r") as f:
+#     #     dataf = f.read()
+#     #     match = re.search(r"combined (\d+) members", dataf)
+#     #     if match is None:
+#     #         raise ValueError(
+#     #             "Could not find the total number of members in the Zenodo README.txt file."
+#     #         )
+#     #     N_members_UCC = int(match.group(1))
 
-    return N_members_UCC
+#     return N_members_UCC
 
 
 def ucc_n_total_updt(logging, N_db_UCC, N_cl_UCC, N_members_UCC, database_md):
@@ -205,7 +197,14 @@ def ucc_n_total_updt(logging, N_db_UCC, N_cl_UCC, N_members_UCC, database_md):
     return database_md_updt
 
 
-def updt_cats_used(logging, df_UCC, current_JSON, database_md_in):
+# def chunks(data, SIZE=2):
+#     """Split dictionary into chunks"""
+#     it = iter(data)
+#     for i in range(0, len(data), SIZE):
+#         yield {k: data[k] for k in islice(it, SIZE)}
+
+
+def updt_cats_used(df_UCC, current_JSON, database_md_in):
     """Update the table with the catalogues used in the UCC"""
     # Count DB occurrences in UCC
     N_in_DB = {_: 0 for _ in current_JSON.keys()}
@@ -214,18 +213,16 @@ def updt_cats_used(logging, df_UCC, current_JSON, database_md_in):
             N_in_DB[DB] += 1
 
     # md_table = "\n| Name | N | Name | N |\n"
-    md_table = "\n| ADS | Vizier |  N  | ADS  | Vizier |  N  |\n"
-    md_table += "| ---- | :----: | :-: | ---- | :----: | :-: |\n"
-    for dict_chunk in chunks(current_JSON):
+    md_table = "\n| Author(s) | Year | Vizier | Entries in UCC  |\n"
+    md_table += "| ---- | :--: | :----: | :-: |\n"
+    for DB, DB_data in current_JSON.items():
         row = ""
-        for DB, DB_data in dict_chunk.items():
-            ref_url = (
-                f"[{DB_data['authors']} ({DB_data['year']})]({DB_data['ADS_url']})"
-            )
-            viz_url = f"""<a href="{DB_data["vizier_url"]}" target="_blank"> <img src="/images/vizier.png " alt="Vizier url"></a>"""
-            if DB_data["vizier_url"] == "N/A":
-                viz_url = "N/A"
-            row += f"| {ref_url} | {viz_url} | [{N_in_DB[DB]}](/tables/dbs/{DB}_table) "
+        # for DB, DB_data in dict_chunk.items():
+        ref_url = f"[{DB_data['authors']}]({DB_data['ADS_url']})"
+        viz_url = f"""<a href="{DB_data["vizier_url"]}" target="_blank"> <img src="/images/vizier.png " alt="Vizier url"></a>"""
+        if DB_data["vizier_url"] == "N/A":
+            viz_url = "N/A"
+        row += f"| {ref_url} | {DB_data['year']} | {viz_url} | [{N_in_DB[DB]}](/tables/dbs/{DB}_table) "
         md_table += row + "|\n"
     md_table += "\n"
 
@@ -235,81 +232,81 @@ def updt_cats_used(logging, df_UCC, current_JSON, database_md_in):
         database_md_in, md_table, delimeterA, delimeterB
     )
 
-    if database_md_updt != database_md_in:
-        logging.info("Table: catalogues used in the UCC updated")
+    # if database_md_updt != database_md_in:
+    #     logging.info("Table: articles used in the UCC updated")
 
     return database_md_updt
 
 
-# def updt_C3_classification(logging, class_order, OCs_per_class, database_md_in):
-#     """ """
-#     C3_table = "\n| C3 |  N  | C3 |  N  | C3 |  N  | C3 |  N  |\n"
-#     C3_table += "|----| :-: |----| :-: |----| :-: |----| :-: |\n"
-#     classes_colors = []
-#     for C3 in class_order:
-#         col_row = UCC_color(C3)
-#         classes_colors.append(col_row)
+def updt_C3_classification(logging, class_order, OCs_per_class, database_md_in):
+    """ """
+    C3_table = "\n| C3 |  N  | C3 |  N  | C3 |  N  | C3 |  N  |\n"
+    C3_table += "|----| :-: |----| :-: |----| :-: |----| :-: |\n"
+    classes_colors = []
+    for C3 in class_order:
+        col_row = UCC_color(C3)
+        classes_colors.append(col_row)
 
-#     idx = -1
-#     for r in range(4):
-#         row = ""
-#         for c in range(4):
-#             idx += 1
-#             row += "| {} | [{}](/tables/{}_table) ".format(
-#                 classes_colors[idx], OCs_per_class[idx], class_order[idx]
-#             )
-#         C3_table += row + "|\n"
-#     C3_table += "\n"
+    idx = -1
+    for r in range(4):
+        row = ""
+        for c in range(4):
+            idx += 1
+            row += "| {} | [{}](/tables/{}_table) ".format(
+                classes_colors[idx], OCs_per_class[idx], class_order[idx]
+            )
+        C3_table += row + "|\n"
+    C3_table += "\n"
 
-#     delimeterA = "<!-- Begin table 2 -->\n"
-#     delimeterB = "<!-- End table 2 -->\n"
-#     database_md_updt = replace_text_between(
-#         database_md_in, C3_table, delimeterA, delimeterB
-#     )
+    delimeterA = "<!-- Begin table 2 -->\n"
+    delimeterB = "<!-- End table 2 -->\n"
+    database_md_updt = replace_text_between(
+        database_md_in, C3_table, delimeterA, delimeterB
+    )
 
-#     if database_md_updt != database_md_in:
-#         logging.info("Table: C3 classification updated")
+    if database_md_updt != database_md_in:
+        logging.info("Table: C3 classification updated")
 
-#     return database_md_updt
+    return database_md_updt
 
 
-# def updt_OCs_per_quad(logging, df_UCC, database_md_in):
-#     """Update table of OCs per quadrants"""
-#     quad_table = "\n| Region  | lon range  | lat range  |   N |\n"
-#     quad_table += "|---------|------------|------------| :-: |\n"
-#     quad_lines = (
-#         "| Q1P: 1st quadrant, positive latitude | [0, 90)    | [0, 90]    |",
-#         "| Q1N: 1st quadrant, negative latitude | [0, 90)    | (0, -90]   |",
-#         "| Q2P: 2nd quadrant, positive latitude | [90, 180)  | [0, 90]    |",
-#         "| Q2N: 2nd quadrant, negative latitude | [90, 180)  | (0, -90]   |",
-#         "| Q3P: 3rd quadrant, positive latitude | [180, 270) | [0, 90]    |",
-#         "| Q3N: 3rd quadrant, negative latitude | [180, 270) | (0, -90]   |",
-#         "| Q4P: 4th quadrant, positive latitude | [270, 360) | [0, 90]    |",
-#         "| Q4N: 4th quadrant, negative latitude | [270, 360) | (0, -90]   |",
-#     )
+def updt_OCs_per_quad(logging, df_UCC, database_md_in):
+    """Update table of OCs per quadrants"""
+    quad_table = "\n| Region  | lon range  | lat range  |   N |\n"
+    quad_table += "|---------|------------|------------| :-: |\n"
+    quad_lines = (
+        "| Q1P: 1st quadrant, positive latitude | [0, 90)    | [0, 90]    |",
+        "| Q1N: 1st quadrant, negative latitude | [0, 90)    | (0, -90]   |",
+        "| Q2P: 2nd quadrant, positive latitude | [90, 180)  | [0, 90]    |",
+        "| Q2N: 2nd quadrant, negative latitude | [90, 180)  | (0, -90]   |",
+        "| Q3P: 3rd quadrant, positive latitude | [180, 270) | [0, 90]    |",
+        "| Q3N: 3rd quadrant, negative latitude | [180, 270) | (0, -90]   |",
+        "| Q4P: 4th quadrant, positive latitude | [270, 360) | [0, 90]    |",
+        "| Q4N: 4th quadrant, negative latitude | [270, 360) | (0, -90]   |",
+    )
 
-#     df = df_UCC["quad"].values
-#     i = 0
-#     for quad_N in range(1, 5):
-#         for quad_s in ("P", "N"):
-#             i += 1
-#             quad = "Q" + str(quad_N) + quad_s
-#             msk = df == quad
-#             quad_table += (
-#                 quad_lines[i - 1] + f" [{msk.sum()}](/tables/{quad}_table) |\n"
-#             )
-#     quad_table += "\n"
+    df = df_UCC["quad"].values
+    i = 0
+    for quad_N in range(1, 5):
+        for quad_s in ("P", "N"):
+            i += 1
+            quad = "Q" + str(quad_N) + quad_s
+            msk = df == quad
+            quad_table += (
+                quad_lines[i - 1] + f" [{msk.sum()}](/tables/{quad}_table) |\n"
+            )
+    quad_table += "\n"
 
-#     delimeterA = "<!-- Begin table 3 -->\n"
-#     delimeterB = "<!-- End table 3 -->\n"
-#     database_md_updt = replace_text_between(
-#         database_md_in, quad_table, delimeterA, delimeterB
-#     )
+    delimeterA = "<!-- Begin table 3 -->\n"
+    delimeterB = "<!-- End table 3 -->\n"
+    database_md_updt = replace_text_between(
+        database_md_in, quad_table, delimeterA, delimeterB
+    )
 
-#     if database_md_updt != database_md_in:
-#         logging.info("Table: OCs per quadrant updated")
+    if database_md_updt != database_md_in:
+        logging.info("Table: OCs per quadrant updated")
 
-#     return database_md_updt
+    return database_md_updt
 
 
 # def updt_dups_table(logging, dups_msk: list, database_md_in: str) -> str:
@@ -350,48 +347,48 @@ def updt_cats_used(logging, df_UCC, current_JSON, database_md_in):
 #     return database_md_updt
 
 
-# def memb_number_table(logging, membs_msk, database_md_in):
-#     """
-#     Updates a Markdown string with a summary table categorized by the number of
-#     N_50 members.
+def memb_number_table(logging, membs_msk, database_md_in):
+    """
+    Updates a Markdown string with a summary table categorized by the number of
+    N_50 members.
 
-#     Args:
-#         membs_msk (list): List of boolean masks, where each mask identifies a range
-#         of N50 members.
-#         database_md_in (str): The Markdown string to be updated with the duplicates
-#         table.
+    Args:
+        membs_msk (list): List of boolean masks, where each mask identifies a range
+        of N50 members.
+        database_md_in (str): The Markdown string to be updated with the duplicates
+        table.
 
-#     Returns:
-#         str: The updated Markdown string with the table inserted.
-#     """
+    Returns:
+        str: The updated Markdown string with the table inserted.
+    """
 
-#     dups_table = "\n| N_50 |   N  | N_50 |   N  |\n"
-#     dups_table += "| :--: | :--: | :--: | :--: |\n"
+    dups_table = "\n| N_50 |   N  | N_50 |   N  |\n"
+    dups_table += "| :--: | :--: | :--: | :--: |\n"
 
-#     dups_table += f"| == 0 | [{membs_msk[0].sum()}](/tables/N50_0_table) "
+    dups_table += f"| == 0 | [{membs_msk[0].sum()}](/tables/N50_0_table) "
 
-#     N_limi = 0
-#     for i, N_limf in enumerate((25, 50, 75, 100, 250, 500, 1000, 2000)):
-#         dups_table += f"| ({N_limi}, {N_limf}] | [{membs_msk[i + 1].sum()}](/tables/N50_{N_limf}_table)"
-#         if i % 2 == 0:
-#             dups_table += " |\n"
-#         else:
-#             dups_table += " "
-#         N_limi = N_limf
+    N_limi = 0
+    for i, N_limf in enumerate((25, 50, 75, 100, 250, 500, 1000, 2000)):
+        dups_table += f"| ({N_limi}, {N_limf}] | [{membs_msk[i + 1].sum()}](/tables/N50_{N_limf}_table)"
+        if i % 2 == 0:
+            dups_table += " |\n"
+        else:
+            dups_table += " "
+        N_limi = N_limf
 
-#     dups_table += f"| > 2000 | [{membs_msk[-1].sum()}](/tables/N50_inf_table) |\n"
-#     dups_table += "\n"
+    dups_table += f"| > 2000 | [{membs_msk[-1].sum()}](/tables/N50_inf_table) |\n"
+    dups_table += "\n"
 
-#     delimeterA = "<!-- Begin table 5 -->\n"
-#     delimeterB = "<!-- End table 5 -->\n"
-#     database_md_updt = replace_text_between(
-#         database_md_in, dups_table, delimeterA, delimeterB
-#     )
+    delimeterA = "<!-- Begin table 5 -->\n"
+    delimeterB = "<!-- End table 5 -->\n"
+    database_md_updt = replace_text_between(
+        database_md_in, dups_table, delimeterA, delimeterB
+    )
 
-#     if database_md_updt != database_md_in:
-#         logging.info("Table: number of members updated")
+    if database_md_updt != database_md_in:
+        logging.info("Table: number of members updated")
 
-#     return database_md_updt
+    return database_md_updt
 
 
 def updt_DBs_tables(dbs_used, df_updt) -> dict:
@@ -424,58 +421,58 @@ def updt_DBs_tables(dbs_used, df_updt) -> dict:
     return new_tables_dict
 
 
-# def updt_n50members_tables(df_updt, membs_msk) -> dict:
-#     """Update the duplicates table files"""
-#     header = (
-#         """---\nlayout: page\ntitle: nmembs_title\n"""
-#         + """permalink: /tables/nmembs_link_table/\n---\n\n"""
-#     )
+def updt_n50members_tables(df_updt, membs_msk) -> dict:
+    """Update the duplicates table files"""
+    header = (
+        """---\nlayout: page\ntitle: nmembs_title\n"""
+        + """permalink: /tables/nmembs_link_table/\n---\n\n"""
+    )
 
-#     # N==0 table
-#     md_table = header.replace("nmembs_title", "N50 members (==0)").replace(
-#         "nmembs_link", "N50_0"
-#     )
-#     md_table = generate_table(df_updt[membs_msk[0]], md_table)
-#     new_tables_dict = {"N50_0": md_table}
+    # N==0 table
+    md_table = header.replace("nmembs_title", "N50 members (==0)").replace(
+        "nmembs_link", "N50_0"
+    )
+    md_table = generate_table(df_updt[membs_msk[0]], md_table)
+    new_tables_dict = {"N50_0": md_table}
 
-#     Ni = 0
-#     for i, Nf in enumerate((25, 50, 75, 100, 250, 500, 1000, 2000)):
-#         title = f"N50 members ({Ni}, {Nf}]"
-#         Nmembs = f"N50_{Nf}"
-#         md_table = header.replace("nmembs_title", title).replace("nmembs_link", Nmembs)
-#         md_table = generate_table(df_updt[membs_msk[i + 1]], md_table)
-#         Ni = Nf
-#         new_tables_dict[Nmembs] = md_table
+    Ni = 0
+    for i, Nf in enumerate((25, 50, 75, 100, 250, 500, 1000, 2000)):
+        title = f"N50 members ({Ni}, {Nf}]"
+        Nmembs = f"N50_{Nf}"
+        md_table = header.replace("nmembs_title", title).replace("nmembs_link", Nmembs)
+        md_table = generate_table(df_updt[membs_msk[i + 1]], md_table)
+        Ni = Nf
+        new_tables_dict[Nmembs] = md_table
 
-#     # N>2000 table
-#     md_table = header.replace("nmembs_title", "N50 members (>2000)").replace(
-#         "nmembs_link", "N50_inf"
-#     )
-#     md_table = generate_table(df_updt[membs_msk[-1]], md_table)
-#     new_tables_dict["N50_inf"] = md_table
+    # N>2000 table
+    md_table = header.replace("nmembs_title", "N50 members (>2000)").replace(
+        "nmembs_link", "N50_inf"
+    )
+    md_table = generate_table(df_updt[membs_msk[-1]], md_table)
+    new_tables_dict["N50_inf"] = md_table
 
-#     return new_tables_dict
+    return new_tables_dict
 
 
-# def updt_C3_tables(df_updt, class_order: list) -> dict:
-#     """Update the C3 classification table files"""
-#     header = (
-#         """---\nlayout: page\ntitle: C3_title\n"""
-#         + """permalink: /tables/C3_link_table/\n---\n\n"""
-#     )
+def updt_C3_tables(df_updt, class_order: list) -> dict:
+    """Update the C3 classification table files"""
+    header = (
+        """---\nlayout: page\ntitle: C3_title\n"""
+        + """permalink: /tables/C3_link_table/\n---\n\n"""
+    )
 
-#     new_tables_dict = {}
-#     for C3_N in range(16):
-#         title = f"{class_order[C3_N]} classification"
-#         md_table = header.replace("C3_title", title).replace(
-#             "C3_link", class_order[C3_N]
-#         )
-#         msk = df_updt["C3"] == class_order[C3_N]
-#         md_table = generate_table(df_updt[msk], md_table)
+    new_tables_dict = {}
+    for C3_N in range(16):
+        title = f"{class_order[C3_N]} classification"
+        md_table = header.replace("C3_title", title).replace(
+            "C3_link", class_order[C3_N]
+        )
+        msk = df_updt["C3"] == class_order[C3_N]
+        md_table = generate_table(df_updt[msk], md_table)
 
-#         new_tables_dict[class_order[C3_N]] = md_table
+        new_tables_dict[class_order[C3_N]] = md_table
 
-#     return new_tables_dict
+    return new_tables_dict
 
 
 # def updt_dups_tables(df_updt, dups_msk) -> dict:
@@ -497,34 +494,34 @@ def updt_DBs_tables(dbs_used, df_updt) -> dict:
 #     return new_tables_dict
 
 
-# def updt_quad_tables(df_updt):
-#     """Update the per-quadrant table files"""
-#     header = (
-#         """---\nlayout: page\ntitle: quad_title\n"""
-#         + """permalink: /tables/quad_link_table/\n---\n\n"""
-#     )
+def updt_quad_tables(df_updt):
+    """Update the per-quadrant table files"""
+    header = (
+        """---\nlayout: page\ntitle: quad_title\n"""
+        + """permalink: /tables/quad_link_table/\n---\n\n"""
+    )
 
-#     title_dict = {
-#         1: "1st",
-#         2: "2nd",
-#         3: "3rd",
-#         4: "4th",
-#         "P": "positive",
-#         "N": "negative",
-#     }
+    title_dict = {
+        1: "1st",
+        2: "2nd",
+        3: "3rd",
+        4: "4th",
+        "P": "positive",
+        "N": "negative",
+    }
 
-#     new_tables_dict = {}
-#     for quad_N in range(1, 5):
-#         for quad_s in ("P", "N"):
-#             quad = "Q" + str(quad_N) + quad_s
+    new_tables_dict = {}
+    for quad_N in range(1, 5):
+        for quad_s in ("P", "N"):
+            quad = "Q" + str(quad_N) + quad_s
 
-#             title = f"{title_dict[quad_N]} quadrant, {title_dict[quad_s]} latitude"
-#             md_table = header.replace("quad_title", title).replace("quad_link", quad)
-#             msk = df_updt["quad"] == quad
-#             md_table = generate_table(df_updt[msk], md_table)
-#             new_tables_dict[quad] = md_table
+            title = f"{title_dict[quad_N]} quadrant, {title_dict[quad_s]} latitude"
+            md_table = header.replace("quad_title", title).replace("quad_link", quad)
+            msk = df_updt["quad"] == quad
+            md_table = generate_table(df_updt[msk], md_table)
+            new_tables_dict[quad] = md_table
 
-#     return new_tables_dict
+    return new_tables_dict
 
 
 def generate_table(df_m, md_table):

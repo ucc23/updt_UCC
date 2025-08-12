@@ -8,48 +8,40 @@ import pandas as pd
 
 from modules.HARDCODED import (
     UCC_folder,
+    UCC_members_file,
+    articles_md_path,
     assets_folder,
+    class_order,
     clusters_csv_path,
     databases_md_path,
     dbs_folder,
     dbs_tables_folder,
+    tables_folder,
     images_folder,
     md_folder,
-    members_folder,
     name_DBs_json,
     pages_folder,
     parquet_dates,
     plots_folder,
+    plots_sub_folders,
+    tables_md_path,
     temp_fold,
 )
 from modules.update_site import ucc_entry, ucc_plots
 from modules.update_site.main_files_updt import (
-    count_N_members_UCC,
+    count_N50membs,
+    count_OCs_classes,
+    memb_number_table,
     ucc_n_total_updt,
+    updt_C3_classification,
     updt_cats_used,
     updt_DBs_tables,
+    updt_OCs_per_quad,
+    updt_n50members_tables,
+    updt_C3_tables,
+    updt_quad_tables
 )
-from modules.utils import file_checker, get_last_version_UCC, logger
-
-# # Order used for the C3 classes
-# class_order = [
-#     "AA",
-#     "AB",
-#     "BA",
-#     "AC",
-#     "CA",
-#     "BB",
-#     "AD",
-#     "DA",
-#     "BC",
-#     "CB",
-#     "BD",
-#     "DB",
-#     "CC",
-#     "CD",
-#     "DC",
-#     "DD",
-# ]
+from modules.utils import get_last_version_UCC, logger
 
 
 def main():
@@ -67,19 +59,30 @@ def main():
         ucc_gz_CSV_path,
         temp_dbs_tables_path,
         ucc_dbs_tables_path,
+        ucc_tables_path,
+        temp_tables_path,
         temp_entries_path,
         ucc_entries_path,
         temp_image_path,
+        temp_data_date_path,
     ) = load_paths(UCC_last_version)
 
     # Load required files
-    df_UCC, df_tables, current_JSON, DBs_full_data, database_md = load_data(
-        logging, ucc_file_path, root_UCC_path
-    )
+    (
+        df_UCC,
+        df_tables,
+        current_JSON,
+        DBs_full_data,
+        database_md,
+        articles_md,
+        tables_md,
+        df_members,
+        data_dates_json,
+    ) = load_data(logging, ucc_file_path, root_UCC_path)
 
     # Update per cluster md and webp files. If no changes are expected, this step
     # can be skipped to save time
-    if input("\nUpdate OCs files? (y/n): ").lower() == "y":
+    if input("\nUpdate md files? (y/n): ").lower() == "y":
         updt_ucc_cluster_files(
             logging,
             root_UCC_path,
@@ -89,6 +92,15 @@ def main():
             df_UCC,
             current_JSON,
         )
+    if input("\nUpdate plots? (y/n): ").lower() == "y":
+        updt_ucc_cluster_plots(
+            logging,
+            root_UCC_path,
+            df_UCC,
+            df_members,
+            data_dates_json,
+            temp_data_date_path,
+        )
 
     # Update the main ucc site files
     if input("\nUpdate UCC site files? (y/n): ").lower() == "y":
@@ -97,9 +109,14 @@ def main():
             temp_image_path,
             temp_dbs_tables_path,
             ucc_dbs_tables_path,
+            ucc_tables_path,
+            temp_tables_path,
             df_UCC,
+            len(df_members),
             current_JSON,
             database_md,
+            articles_md,
+            tables_md,
             df_tables,
         )
 
@@ -108,10 +125,7 @@ def main():
         updt_cls_CSV(logging, ucc_gz_CSV_path, temp_gz_CSV_path, df_tables)
 
     if input("\nMove files to their final destination? (y/n): ").lower() == "y":
-        move_files(
-            logging,
-            root_UCC_path,
-        )
+        move_files(logging, root_UCC_path, temp_data_date_path)
         logging.info("All files moved into place")
 
     # Check number of files
@@ -124,6 +138,9 @@ def main():
 def load_paths(
     UCC_last_version: str,
 ) -> tuple[
+    str,
+    str,
+    str,
     str,
     str,
     str,
@@ -153,19 +170,15 @@ def load_paths(
     if not os.path.exists(temp_pages_path):
         os.makedirs(temp_pages_path)
 
-    # # Temp path to the ucc table files
-    # temp_tables_path = temp_fold + tables_folder
-    # if not os.path.exists(temp_tables_path):
-    #     os.makedirs(temp_tables_path)
-    # # Root path to the ucc table files
-    # ucc_tables_path = root_UCC_path + tables_folder
-
     # Temp path to the ucc table files for each DB
     temp_dbs_tables_path = temp_fold + dbs_tables_folder
     if not os.path.exists(temp_dbs_tables_path):
         os.makedirs(temp_dbs_tables_path)
     # Root path to the ucc table files for each DB
     ucc_dbs_tables_path = root_UCC_path + dbs_tables_folder
+
+    ucc_tables_path = root_UCC_path + tables_folder
+    temp_tables_path = temp_fold + tables_folder
 
     # Temp path to the ucc cluster folder where each md entry is stored
     temp_entries_path = temp_fold + md_folder
@@ -179,6 +192,20 @@ def load_paths(
     if not os.path.exists(temp_image_path):
         os.makedirs(temp_image_path)
 
+    # Create temp quadrant folders for the plots
+    for Nquad in range(1, 5):
+        for lat in ("P", "N"):
+            quad = "Q" + str(Nquad) + lat + "/"
+            for fold in plots_sub_folders:
+                out_path = temp_fold + quad + plots_folder + fold
+                if not os.path.exists(out_path):
+                    os.makedirs(out_path)
+
+    if not os.path.exists(temp_fold + UCC_folder):
+        os.makedirs(temp_fold + UCC_folder)
+    # Temporary path for updated data dates file
+    temp_data_date_path = temp_fold + UCC_folder + parquet_dates
+
     return (
         ucc_file_path,
         root_UCC_path,
@@ -186,17 +213,23 @@ def load_paths(
         ucc_gz_CSV_path,
         temp_dbs_tables_path,
         ucc_dbs_tables_path,
+        ucc_tables_path,
+        temp_tables_path,
         temp_entries_path,
         ucc_entries_path,
         temp_image_path,
+        temp_data_date_path,
     )
 
 
 def load_data(
     logging, ucc_file_path: str, root_UCC_path: str
-) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, dict, str]:
+) -> tuple[
+    pd.DataFrame, pd.DataFrame, pd.DataFrame, dict, str, str, str, pd.DataFrame, dict
+]:
     """ """
 
+    # Current UCC catalogue
     df_UCC = pd.read_csv(ucc_file_path)
     logging.info(f"UCC {ucc_file_path} loaded (N={len(df_UCC)})")
 
@@ -216,11 +249,34 @@ def load_data(
     with open(root_UCC_path + databases_md_path) as file:
         database_md = file.read()
 
-    # # Load TABLES.md file
-    # with open(root_UCC_path + tables_md_path) as file:
-    #     tables_md = file.read()
+    # Load ARTICLES.md file
+    with open(root_UCC_path + articles_md_path) as file:
+        articles_md = file.read()
 
-    return df_UCC, df_tables, current_JSON, DBs_full_data, database_md
+    # Load TABLES.md file
+    with open(root_UCC_path + tables_md_path) as file:
+        tables_md = file.read()
+
+    # Load current members file
+    zenodo_members_file = UCC_folder + UCC_members_file
+    df_members = pd.read_parquet(zenodo_members_file)
+
+    # Load JSON file with last updated dates
+    fname_json = UCC_folder + parquet_dates
+    with open(fname_json, "r") as file:
+        data_dates_json = json.load(file)
+
+    return (
+        df_UCC,
+        df_tables,
+        current_JSON,
+        DBs_full_data,
+        database_md,
+        articles_md,
+        tables_md,
+        df_members,
+        data_dates_json,
+    )
 
 
 def updt_UCC(df_UCC: pd.DataFrame) -> pd.DataFrame:
@@ -281,19 +337,15 @@ def updt_ucc_cluster_files(
     current_JSON,
 ):
     """ """
-    # Create temp quadrant folders
-    for Nquad in range(1, 5):
-        for lat in ("P", "N"):
-            quad = "Q" + str(Nquad) + lat + "/"
-            out_path = temp_fold + quad + plots_folder
-            if not os.path.exists(out_path):
-                os.makedirs(out_path)
+    logging.info("\nGenerating md files")
 
-    logging.info("\nGenerating md and plot files")
+    fnames_all = [_.split(";")[0] for _ in df_UCC["fnames"]]
+
     N_total = 0
     # Iterate trough each entry in the UCC database
     for i_ucc, UCC_cl in df_UCC.iterrows():
         fname0 = str(UCC_cl["fnames"]).split(";")[0]
+
         Qfold = UCC_cl["quad"] + "/"
 
         txt = f"{Qfold}{fname0}: "
@@ -306,26 +358,16 @@ def updt_ucc_cluster_files(
             plots_folder,
             Qfold,
             df_UCC,
+            fnames_all,
             UCC_cl,
             current_JSON,
             DBs_full_data,
             fname0,
         )
 
-        # Make plots
-        txt_p = make_plots(
-            root_UCC_path,
-            temp_fold,
-            Qfold,
-            members_folder,
-            plots_folder,
-            UCC_cl,
-            fname0,
-        )
-
-        if txt_e != "" or txt_p != "":
+        if txt_e != "":
             N_total += 1
-            logging.info(f"{N_total} -> " + txt + txt_e + txt_p + f" ({i_ucc})")
+            logging.info(f"{N_total} -> " + txt + txt_e + f" ({i_ucc})")
 
     logging.info(f"\nN={N_total} OCs processed")
 
@@ -337,6 +379,7 @@ def make_entry(
     plots_folder,
     Qfold,
     df_UCC,
+    fnames_all,
     UCC_cl,
     current_JSON,
     DBs_full_data,
@@ -357,15 +400,15 @@ def make_entry(
         current_JSON, DBs_full_data, UCC_cl["DB"], UCC_cl["DB_i"]
     )
 
-    # Generate table with close OCs
-    close_table = ucc_entry.close_cat_cluster(df_UCC, UCC_cl)
+    # Generate table with OCs that share members with this one
+    shared_table = ucc_entry.table_shared_members(df_UCC, fnames_all, UCC_cl)
 
     # Get colors used by the 'CX' classification
     abcd_c = ucc_entry.UCC_color(UCC_cl["C3"])
 
     # Generate full entry
     new_md_entry = ucc_entry.make(
-        UCC_cl, fname0, Qfold, posit_table, img_cont, abcd_c, fpars_table, close_table
+        UCC_cl, fname0, Qfold, posit_table, img_cont, abcd_c, fpars_table, shared_table
     )
 
     # Compare old md file (if it exists) with the new md file, for this cluster
@@ -374,12 +417,8 @@ def make_entry(
         with open(ucc_entries_path + fname0 + ".md", "r") as f:
             old_md_entry = f.read()
 
-        # If this is an OC that already has an entry
-        # Remove dates before comparing
-        new_md_entry_no_date = new_md_entry.split("Last modified")[0]
-        old_md_entry_no_date = old_md_entry.split("Last modified")[0]
         # Check if entry needs updating
-        if new_md_entry_no_date != old_md_entry_no_date:
+        if new_md_entry != old_md_entry:
             txt = "md updated |"
             # with open("OLD.md", "w") as f:
             #     f.write(old_md_entry_no_date)
@@ -402,55 +441,66 @@ def make_entry(
     return txt
 
 
+def updt_ucc_cluster_plots(
+    logging, root_UCC_path, df_UCC, df_members, data_dates_json, temp_data_date_path
+):
+    """ """
+    logging.info("\nGenerating plot files")
+    N_total = 0
+    # Iterate trough each entry in the UCC database
+    for i_ucc, UCC_cl in df_UCC.iterrows():
+        fname0 = str(UCC_cl["fnames"]).split(";")[0]
+
+        Qfold = UCC_cl["quad"] + "/"
+
+        txt = f"{Qfold}{fname0}: "
+
+        # Make plots
+        txt_p, data_dates_json = make_plots(
+            root_UCC_path,
+            temp_fold,
+            Qfold,
+            plots_folder,
+            UCC_cl,
+            fname0,
+            df_members,
+            data_dates_json,
+        )
+
+        if txt_p != "":
+            N_total += 1
+            logging.info(f"{N_total} -> " + txt + txt_p + f" ({i_ucc})")
+
+    # Save temp file with updated dates to temp folder
+    with open(temp_data_date_path, "w") as file:
+        json.dump(data_dates_json, file, indent=2)
+
+    logging.info(f"\nN={N_total} OCs processed")
+
+
 def make_plots(
     root_UCC_path,
     temp_fold,
     Qfold,
-    members_folder,
     plots_folder,
     UCC_cl,
     fname0,
-) -> str:
+    df_members,
+    data_dates_json,
+) -> tuple[str, dict]:
     """
     Make CMD and Aladin plots.
-
-    Only images that do not exist are generated, this script DOES NOT UPDATE
-    images that already exist.
     """
     txt = ""
 
-    # Make CMD plot
-    make_CMD_plot = False
+    # Make Aladin plot if image files does not exist. These images are not updated
     # Path to original image (if it exists)
-    orig_CMD_file = root_UCC_path + Qfold + plots_folder + fname0 + ".webp"
-    if Path(orig_CMD_file).is_file() is False:
-        # If image files does not exist --> generate
-        make_CMD_plot = True
-    else:
-        # Load JSON file with last updated date for this Q
-        fname_json = root_UCC_path + Qfold + parquet_dates
-        with open(fname_json, "r") as file:
-            json_data = json.load(file)
-        # This indicates that this is a new parquet file and the plot should be re-done
-        if "USED" not in json_data[fname0]:
-            make_CMD_plot = True
-
-    if make_CMD_plot:
-        # Read members .parquet file
-        parquet_path = root_UCC_path + Qfold + members_folder + fname0 + ".parquet"
-        df_membs = pd.read_parquet(parquet_path)
-        # Path were new image will be stored
-        save_plot_file = temp_fold + Qfold + plots_folder + fname0 + ".webp"
-        ucc_plots.plot_CMD(save_plot_file, df_membs)
-        txt += " CMD plot generated |"
-
-    # Make Aladin plot
-    # Path to original image (if it exists)
-    orig_aladin_path = root_UCC_path + Qfold + plots_folder + fname0 + "_aladin.webp"
-    # If image files does not exist --> generate
+    orig_aladin_path = (
+        root_UCC_path + Qfold + plots_folder + "aladin/" + fname0 + ".webp"
+    )
     if Path(orig_aladin_path).is_file() is False:
         # Path were new image will be stored
-        save_plot_file = temp_fold + Qfold + plots_folder + fname0 + "_aladin.webp"
+        save_plot_file = temp_fold + Qfold + plots_folder + "aladin/" + fname0 + ".webp"
         ucc_plots.plot_aladin(
             UCC_cl["RA_ICRS_m"],
             UCC_cl["DE_ICRS_m"],
@@ -459,7 +509,21 @@ def make_plots(
         )
         txt += " Aladin plot generated |"
 
-    return txt
+    # Make CMD plot
+    # Check if the data for this OC new and the plot should be updated
+    if "USED" not in data_dates_json[fname0]:
+        # Read members
+        df_membs = df_members[df_members["name"] == fname0]
+        # Temp path were the image will be stored
+        temp_plot_file = temp_fold + Qfold + plots_folder + "UCC/" + fname0 + ".webp"
+        ucc_plots.plot_CMD(temp_plot_file, df_membs)
+        txt += " CMD plot generated |"
+        # Update file with current date of usage
+        data_dates_json[fname0] = (
+            f"USED ({datetime.datetime.now().strftime('%y%m%d%H')})"
+        )
+
+    return txt, data_dates_json
 
 
 def updt_ucc_main_files(
@@ -467,9 +531,14 @@ def updt_ucc_main_files(
     temp_image_path,
     temp_dbs_tables_path,
     ucc_dbs_tables_path,
+    ucc_tables_path,
+    temp_tables_path,
     df_UCC,
+    N_members_UCC,
     current_JSON,
     database_md,
+    articles_md,
+    tables_md,
     df_tables,
 ):
     """ """
@@ -478,18 +547,30 @@ def updt_ucc_main_files(
     # # TODO: radius in parsec, unused yet (24/12/04)
     # pc_rad = pc_radius(df_UCC["r_50"].values, df_UCC["Plx_m"].values)
 
-    # Count number of OCs in each class
-    # OCs_per_class = count_OCs_classes(df_UCC["C3"], class_order)
     # # Mask with duplicates
     # dups_msk = count_dups(df_UCC)
-    # Mask with N50 members
-    # membs_msk = count_N50membs(df_UCC)
+
+    # Count number of OCs in each class
+    OCs_per_class = count_OCs_classes(df_UCC["C3"], class_order)
 
     # Update site plots
-    make_site_plots(logging, temp_image_path, df_UCC)
+    make_site_plots(logging, temp_image_path, df_UCC, OCs_per_class)
+
+    # Mask with N50 members
+    membs_msk = count_N50membs(df_UCC)
 
     # Update DATABASE.md
-    update_main_pages(logging, current_JSON, df_UCC, database_md)
+    update_main_pages(
+        logging,
+        N_members_UCC,
+        current_JSON,
+        df_UCC,
+        database_md,
+        articles_md,
+        tables_md,
+        OCs_per_class,
+        membs_msk,
+    )
 
     # Update pages for individual databases
     new_tables_dict = updt_DBs_tables(current_JSON, df_tables)
@@ -497,45 +578,50 @@ def updt_ucc_main_files(
         logging, ucc_dbs_tables_path, temp_dbs_tables_path, new_tables_dict
     )
 
-    # # Update page with N members
-    # new_tables_dict = updt_n50members_tables(df_tables, membs_msk)
-    # general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
+    # Update page with N members
+    new_tables_dict = updt_n50members_tables(df_tables, membs_msk)
+    general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
 
-    # #
-    # new_tables_dict = updt_C3_tables(df_tables, class_order)
-    # general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
+    #
+    new_tables_dict = updt_C3_tables(df_tables, class_order)
+    general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
 
     #
     # new_tables_dict = updt_dups_tables(df_tables, dups_msk)
     # general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
 
     #
-    # new_tables_dict = updt_quad_tables(df_tables)
-    # general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
+    new_tables_dict = updt_quad_tables(df_tables)
+    general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
 
 
-def make_site_plots(logging, temp_image_path, df_UCC):
+def make_site_plots(logging, temp_image_path, df_UCC, OCs_per_class):
     """ """
     ucc_plots.make_N_vs_year_plot(temp_image_path + "catalogued_ocs.webp", df_UCC)
     logging.info("Plot generated: number of OCs vs years")
 
-    # ucc_plots.make_classif_plot(
-    #     temp_image_path + "classif_bar.webp", OCs_per_class, class_order
-    # )
-    # logging.info("Plot generated: classification histogram")
+    ucc_plots.make_classif_plot(
+        temp_image_path + "classif_bar.webp", OCs_per_class, class_order
+    )
+    logging.info("Plot generated: classification histogram")
 
 
 def update_main_pages(
     logging,
+    N_members_UCC,
     current_JSON,
     df_UCC,
     database_md,
+    articles_md,
+    tables_md,
+    OCs_per_class,
+    membs_msk,
 ):
-    """Update DATABASE.md"""
+    """Update DATABASE, TABLES, ARTCILES .md files"""
 
-    logging.info("\nCounting total number of members")
-    N_members_UCC = count_N_members_UCC(members_folder)
-    logging.info(f"Total number of members extracted: {N_members_UCC}")
+    # logging.info("\nCounting total number of members")
+    # N_members_UCC = count_N_members_UCC(members_folder)
+    # logging.info(f"Total number of members extracted: {N_members_UCC}")
 
     # Update the total number of entries, databases, and members in the UCC
     N_db_UCC, N_cl_UCC = len(current_JSON), len(df_UCC)
@@ -543,30 +629,34 @@ def update_main_pages(
         logging, N_db_UCC, N_cl_UCC, N_members_UCC, database_md
     )
 
-    # Update the table with the catalogues used in the UCC
-    database_md_updt = updt_cats_used(logging, df_UCC, current_JSON, database_md_updt)
+    # Save updated page (temp)
+    # if database_md != database_md_updt:
+    with open(temp_fold + databases_md_path, "w") as file:
+        file.write(database_md_updt)
+    logging.info("DATABASE.md updated")
+
+    #
+    tables_md_updt = updt_C3_classification(
+        logging, class_order, OCs_per_class, tables_md
+    )
+    tables_md_updt = updt_OCs_per_quad(logging, df_UCC, tables_md_updt)
+    # tables_md_updt = updt_dups_table(logging, dups_msk, tables_md_updt)
+    tables_md_updt = memb_number_table(logging, membs_msk, tables_md_updt)
 
     # Save updated page (temp)
-    if database_md != database_md_updt:
-        with open(temp_fold + databases_md_path, "w") as file:
-            file.write(database_md_updt)
-        logging.info("DATABASE.md updated")
+    # if articles_md != articles_md_updt:
+    with open(temp_fold + tables_md_path, "w") as file:
+        file.write(tables_md_updt)
+    logging.info("TABLES.md updated")
 
-    # tables_md_updt = updt_C3_classification(
-    #     logging, class_order, OCs_per_class, tables_md_updt
-    # )
+    # Update the table with the catalogues used in the UCC
+    articles_md_updt = updt_cats_used(df_UCC, current_JSON, articles_md)
 
-    # tables_md_updt = updt_OCs_per_quad(logging, df_UCC, tables_md_updt)
-
-    # tables_md_updt = updt_dups_table(logging, dups_msk, tables_md_updt)
-
-    # tables_md_updt = memb_number_table(logging, membs_msk, tables_md_updt)
-
-    # # Save updated page (temp)
-    # if database_md != tables_md_updt:
-    #     with open(temp_fold + tables_md_path, "w") as file:
-    #         file.write(tables_md_updt)
-    #     logging.info("TABLES.md updated")
+    # Save updated page (temp)
+    # if articles_md != articles_md_updt:
+    with open(temp_fold + articles_md_path, "w") as file:
+        file.write(articles_md_updt)
+    logging.info("ARTICLES.md updated")
 
 
 def general_table_update(
@@ -596,7 +686,7 @@ def updt_cls_CSV(
     logging, ucc_gz_CSV_path: str, temp_gz_CSV_path: str, df_tables: pd.DataFrame
 ) -> None:
     """
-    Update cluster.csv file used by 'ucc.ar' search
+    Update compressed cluster.csv file used by 'ucc.ar' search
     """
     df = pd.DataFrame(
         df_tables[
@@ -610,62 +700,17 @@ def updt_cls_CSV(
                 "dist_pc",
                 "N_50",
                 "r_50",
+                "C3",
             ]
         ]
     )
     df_new = df.sort_values("ID")
 
-    # df.rename(
-    #     columns={
-    #         "ID": "N",
-    #         "fnames": "F",
-    #         "RA_ICRS": "R",
-    #         "DE_ICRS": "D",
-    #         "GLON": "L",
-    #         "GLAT": "B",
-    #         "dist_pc": "P",
-    #         "N_50": "M",
-    #     },
-    #     inplace=True,
-    # )
-    # json_new = df.to_dict(orient="records")
-
-    # Load the old JSON data
-    # with gzip.open(ucc_gz_JSON_path, "rt", encoding="utf-8") as file:
-    #     json_old = json.load(file)
+    # Load the current compressed CSV file
     df_old = pd.read_csv(ucc_gz_CSV_path, compression="gzip")
 
-    # Check if the two DataFrames are equal
-    update_flag = not df_old.equals(df_new)
-
-    # # Check if new JSON is equal to the old one
-    # update_flag = False
-    # if len(json_old) != len(df_new):
-    #     update_flag = True
-    # else:
-    #     # True if JSONs are NOT equal
-    #     update_flag = not all(a == b for a, b in zip(json_old, json_new))
-    #     # Print differences to screen
-    #     for i, (dict1, dict2) in enumerate(zip(json_old, json_new)):
-    #         differing_keys = {
-    #             key
-    #             for key in dict1.keys() | dict2.keys()
-    #             if dict1.get(key) != dict2.get(key)
-    #         }
-    #         if differing_keys:
-    #             for key in differing_keys:
-    #                 logging.info(
-    #                     f"{i}, {key} --> OLD: {dict1.get(key)} | NEW: {dict2.get(key)}"
-    #                 )
-
     # Update CSV if required
-    if update_flag is True:
-        # df.to_json(
-        #     temp_gz_JSON_path,
-        #     orient="records",
-        #     indent=1,
-        #     compression="gzip",
-        # )
+    if not df_old.equals(df_new):
         df.to_csv(
             temp_gz_CSV_path,
             index=False,
@@ -679,11 +724,12 @@ def updt_cls_CSV(
 def move_files(
     logging,
     root_UCC_path,
+    temp_data_date_path,
 ) -> None:
     """ """
     logging.info("\nUpdate files:")
 
-    # Move all files inside 'temp_fold/ucc/', this includes the cluster.json.gz file
+    # Move all files inside 'temp_fold/ucc/'
     temp_ucc_fold = temp_fold + "ucc/"
     for root, dirs, files in os.walk(temp_ucc_fold):
         for filename in files:
@@ -696,38 +742,92 @@ def move_files(
             file_path = root + "/*.md"
             file_ucc = file_path.replace(temp_fold, root_UCC_path)
             logging.info(file_path + " --> " + file_ucc)
+    logging.info("")
 
-    # Move all CMD and Aladin plots in Q folders
+    # Move the 'temp_fold/zenodo/data_dates.json' file
+    if os.path.exists(temp_data_date_path):
+        os.rename(temp_data_date_path, UCC_folder + parquet_dates)
+        logging.info(temp_data_date_path + " --> " + UCC_folder + parquet_dates)
+        logging.info("")
+
+    # Move all plots
+    all_plot_folds = [[], []]
     for qN in range(1, 5):
         for lat in ("P", "N"):
             qfold = "Q" + str(qN) + lat + "/"
-            # Check if folder exists
-            qplots_fold = temp_fold + qfold + plots_folder
-            if os.path.exists(qplots_fold):
-                # Load JSON file with last updated date for this Q
-                fname_json = root_UCC_path + qfold + parquet_dates
-                with open(fname_json, "r") as file:
-                    json_data = json.load(file)
+            qplots_fold = qfold + plots_folder
+            for fold in plots_sub_folders:
+                temp_fpath = temp_fold + qplots_fold + fold + "/"
+                fpath = root_UCC_path + qplots_fold + fold + "/"
+                # Check if folder exists
+                if os.path.exists(temp_fpath):
+                    # For every file in this folder
+                    for file in os.listdir(temp_fpath):
+                        plot_temp = temp_fpath + file
+                        plot_stored = fpath + file
+                        all_plot_folds[0].append(temp_fpath)
+                        all_plot_folds[1].append(fpath)
+                        os.rename(plot_temp, plot_stored)
+    all_plot_folds[0] = list(set(all_plot_folds[0]))
+    all_plot_folds[1] = list(set(all_plot_folds[1]))
 
-                # For every file in this folder
-                for file in os.listdir(qplots_fold):
-                    plot_temp = qplots_fold + file
-                    plot_stored = root_UCC_path + qfold + plots_folder + file
-                    os.rename(plot_temp, plot_stored)
+    for i, plot_temp in enumerate(all_plot_folds[0]):
+        plot_stored = all_plot_folds[1][i]
+        logging.info(plot_temp + "/*.webp" + " --> " + plot_stored + "/*.webp")
 
-                    # Update entry for this file
-                    fname0 = file.split("/")[-1].split(".")[0]
-                    json_data[fname0] += (
-                        f"; USED ({datetime.datetime.now().strftime('%y%m%d%H')})"
-                    )
 
-                # Update JSON file
-                with open(fname_json, "w") as file:
-                    json.dump(json_data, file, indent=2)
+def file_checker(
+    logging,
+    N_UCC: int,
+    root_UCC_fold: str,
+) -> None:
+    """Check the number and types of files in directories for consistency.
 
-    plot_temp = temp_fold + "QXX/" + plots_folder + "*.webp"
-    plot_stored = root_UCC_path + "QXX/" + plots_folder + "*.webp"
-    logging.info(plot_temp + " --> " + plot_stored)
+    Parameters:
+    - logging: Logger instance for recording messages.
+
+    Returns:
+    - None
+    """
+    logging.info(f"\nChecking number of files against N_UCC={N_UCC}\n")
+    flag_error = False
+
+    N_all = {}
+    for qN in range(1, 5):
+        for lat in ("P", "N"):
+            qfold = "Q" + str(qN) + lat + "/"
+            N_all[qfold], N_extra = {}, 0
+            for fold in plots_sub_folders:
+                qplots_fold = root_UCC_fold + qfold + plots_folder + fold
+                N_all[qfold][fold] = len(os.listdir(qplots_fold))
+                N_extra += sum(not f.endswith(".webp") for f in os.listdir(qplots_fold))
+            N_all[qfold]["extra"] = N_extra
+
+    Ntot = {_: 0 for _ in plots_sub_folders}
+    Ntot["extra"] = 0
+    for qf, vals in N_all.items():
+        mark = "V"
+        txt = f"{qf} --> " + "; ".join(f"{k}: {v}" for k, v in vals.items())
+        if vals["extra"] > 0 or len(set(vals[_] for _ in plots_sub_folders)) > 1:
+            mark, flag_error = "X", True
+        logging.info(f"{txt} <-- {mark}")
+        Ntot["extra"] += vals["extra"]
+        for k, v in vals.items():
+            Ntot[k] += v
+    logging.info("\nTotal  --> " + "; ".join(f"{k}: {v}" for k, v in Ntot.items()))
+
+    # Check .md files
+    clusters_md_fold = root_UCC_fold + md_folder
+    NT_md = len(os.listdir(clusters_md_fold))
+    NT_extra = NT_md - N_UCC
+    mark = "V" if (NT_extra == 0) else "X"
+    logging.info("\nN_UCC   md      extra")
+    logging.info(f"{N_UCC}   {NT_md}   {NT_extra}     <-- {mark}")
+    if mark == "X":
+        flag_error = True
+
+    if flag_error:
+        raise ValueError("The file check was unsuccessful")
 
 
 if __name__ == "__main__":

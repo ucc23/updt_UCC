@@ -46,13 +46,13 @@ table_right_col = """
   </tr>
   <!-- Row 2 -->
   <tr>
-    <th><a href="https://ucc.ar/faq#what-is-the-c3-parameter" title="Combined class">C3</a></th>
-    <th><div title="Stars with membership probability >50%">N_50</div></th>
-    <th><div title="Radius that contains half the members [arcmin]">r_50</div></th>
+    <th style="text-align: center;"><a href="https://ucc.ar/faq#what-is-the-c3-parameter" title="Combined class">C3</a></th>
+    <th style="text-align: center;"><div title="Stars with membership probability >50%">N_50</div></th>
+    <th style="text-align: center;"><div title="Radius that contains half the members [arcmin]">r_50</div></th>
   </tr>
   <!-- Row 3 -->
   <tr>
-    <td>Class3</td>
+    <td style="text-align: center;">Class3</td>
     <td style="text-align: center;">N_50_val</td>
     <td style="text-align: center;">r_50_val</td>
   </tr>
@@ -102,6 +102,10 @@ fpars_table_top = """\n
 | :---      |  :---:  |
 """
 
+bayestar_url = """\n
+> <p style="text-align:center; font-weight: bold; font-size:20px">Search coordinates in <a data-umami-event="bayestar" href="http://argonaut.skymaps.info/query?lon=XXGLONXX%20&lat=XXGLATXX&coordsys=gal&mapname=bayestar2019" target="_blank">Bayestar19</a></p>
+"""
+
 cluster_region_plot = """\n
 ### Cluster region
 
@@ -125,11 +129,11 @@ cluster_region_plot = """\n
 <br>
 """
 
-close_OCs = """\n
-#### Objects with similar coordinates
+shared_OCs = """\n
+#### Objects with shared members
 
-| Cluster | RA    | DEC   | Plx   | pmRA  | pmDE  | Rv    |
-| :---:   | :---: | :---: | :---: | :---: | :---: | :---: |
+| Cluster | <span title="Percentage of members that this OC shares with the ones listed">%</span>   | RA   | DEC   | Plx   | pmRA  | pmDE  | Rv    |
+| :---:   | :-: |:---: | :---: | :---: | :---: | :---: | :---: |
 """
 
 # data_foot = """\n
@@ -139,7 +143,7 @@ close_OCs = """\n
 
 
 def make(
-    UCC_cl, fname0, Qfold, posit_table, img_cont, abcd_c, fpars_table, close_table
+    UCC_cl, fname0, Qfold, posit_table, img_cont, abcd_c, fpars_table, shared_table
 ):
     """ """
     cl_names = UCC_cl["ID"].split(";")
@@ -201,6 +205,10 @@ def make(
         txt += fpars_table_top
         txt += fpars_table
 
+    txt += bayestar_url.replace("XXGLONXX", str(UCC_cl["GLON_m"])).replace(
+        "XXGLATXX", str(UCC_cl["GLAT_m"])
+    )
+
     txt += (
         cluster_region_plot.replace("FOCNAME", fname0)
         .replace("RAICRS", str(round(UCC_cl["RA_ICRS"], 2)))
@@ -210,8 +218,8 @@ def make(
         .replace("OCNAME", str(cl_names[0]))
     )
 
-    if close_table != "":
-        txt += close_OCs + close_table
+    if shared_table != "":
+        txt += shared_OCs + shared_table
 
     contents = "".join(txt)
 
@@ -273,72 +281,72 @@ def carousel_div(root_UCC_path, plots_folder, cl_name, Qfold, fname0):
     one plot for a cluster.
     """
 
+    def slider_content(_db):
+        slide_cont = (
+            f"""<a href="https://raw.githubusercontent.com/ucc23/{Qfold}"""
+            + f"""main/{plots_folder}{_db}{fname0}.webp" target="_blank">\n"""
+        )
+        slide_cont += f"""<img src="https://raw.githubusercontent.com/ucc23/{Qfold}"""
+        slide_cont += f"""main/{plots_folder}{_db}{fname0}.webp" alt="{cl_name} {_db[:-1]}">\n</a>\n"""
+        return slide_cont
+
     # Check present plots. The order here determines the order in which plots will be
     # shown: UCC --> HUNT23 --> CANTAT20
-    dbs_plots = []
-    for _db in ("HUNT23", "CANTAT20"):
-        plot_fpath = Path(
-            root_UCC_path + Qfold + plots_folder + fname0 + f"_{_db}.webp"
-        )
+    cmd_plots = []
+    for _db in ("UCC/", "HUNT23/", "CANTAT20/"):
+        plot_fpath = Path(root_UCC_path + Qfold + plots_folder + _db + fname0 + ".webp")
         if plot_fpath.is_file() is True:
-            dbs_plots.append(_db)
+            cmd_plots.append(_db)
 
-    if len(dbs_plots) == 0:
-        img_cont = (
-            f"![{cl_name}](https://raw.githubusercontent.com/ucc23/{Qfold}"
-            + f"main/plots/{fname0}.webp)"
-        )
-    else:
-        img_cont = """<div class="carousel">\n"""
-        img_cont += """<input type="radio" name="radio-btn" id="slide1" checked>\n"""
-        for _ in range(len(dbs_plots)):
-            img_cont += f"""<input type="radio" name="radio-btn" id="slide{_ + 2}">\n"""
-        img_cont += """<div class="slides">\n"""
+    # Only UCC CMD is present
+    if len(cmd_plots) == 1:
+        img_cont = slider_content(cmd_plots[0])
+        return img_cont
+
+    # Initiate carousel
+    img_cont = """<div class="carousel">\n"""
+    img_cont += """<input type="radio" name="radio-btn" id="slide1" checked>\n"""
+
+    # Buttons
+    for _ in range(len(cmd_plots)):
+        img_cont += f"""<input type="radio" name="radio-btn" id="slide{_ + 1}">\n"""
+
+    # Slider
+    img_cont += """<div class="slides">\n"""
+    for _db in cmd_plots:
         img_cont += """<div class="slide">\n"""
-        img_cont += (
-            f"""<a href="https://raw.githubusercontent.com/ucc23/{Qfold}"""
-            + f"""main/plots/{fname0}.webp" target="_blank">\n"""
-        )
-        img_cont += f"""<img src="https://raw.githubusercontent.com/ucc23/{Qfold}"""
-        img_cont += (
-            f"""main/plots/{fname0}.webp" alt="{cl_name} UCC">\n</a>\n</div>\n"""
-        )
-        for _db in dbs_plots:
-            img_cont += """<div class="slide">\n"""
-            img_cont += (
-                f"""<a href="https://raw.githubusercontent.com/ucc23/{Qfold}"""
-                + f"""main/plots/{fname0}_{_db}.webp" target="_blank">\n"""
-            )
-            img_cont += f"""<img src="https://raw.githubusercontent.com/ucc23/{Qfold}"""
-            img_cont += f"""main/plots/{fname0}_{_db}.webp" alt="{cl_name} {_db}">\n</a>\n</div>\n"""
-        img_cont += """</div>\n<div class="indicators">\n"""
-        img_cont += """<label for="slide1">1</label>\n"""
-        for _ in range(len(dbs_plots)):
-            img_cont += f"""<label for="slide{_ + 2}">{_ + 2}</label>\n"""
-        img_cont += """</div>\n</div>"""
+        img_cont += slider_content(_db)
+        img_cont += """</div>\n"""
 
-    with open("/home/gabriel/Descargas/imag_cont.txt", "w") as text_file:
-        text_file.write(img_cont)
+    # Button labels
+    img_cont += """</div>\n<div class="indicators">\n"""
+    for _ in range(len(cmd_plots)):
+        img_cont += f"""<label for="slide{_ + 1}">{_ + 1}</label>\n"""
+
+    img_cont += """</div>\n</div>"""
+
+    # with open("temp_imag_cont.txt", "w") as text_file:
+    #     text_file.write(img_cont)
+    # breakpoint()
 
     return img_cont
 
 
-def close_cat_cluster(df_UCC, row):
+def table_shared_members(df_UCC, fnames_all, row):
     """ """
-    close_table = ""
+    shared_members_tab = ""
 
-    if str(row["close_entries"]) == "nan":
-        return close_table
+    if str(row["shared_members"]) == "nan":
+        return shared_members_tab
 
-    fnames0 = [_.split(";")[0] for _ in df_UCC["fnames"]]
+    shared_fnames = row["shared_members"].split(";")
+    shared_percents = row["shared_members_p"].split(";")
 
-    dups_fnames = row["close_entries"].split(";")
-    # dups_probs = row["dups_probs_m"].split(";")
+    for i, fname in enumerate(shared_fnames):
+        # Locate OC with shared members in the UCC
+        j = fnames_all.index(fname)
 
-    for i, fname in enumerate(dups_fnames):
-        j = fnames0.index(fname)
         name = df_UCC["ID"][j].split(";")[0]
-
         vals = []
         for col in ("RA_ICRS_m", "DE_ICRS_m", "Plx_m", "pmRA_m", "pmDE_m", "Rv_m"):
             val = round(float(df_UCC[col][j]), 3)
@@ -346,26 +354,27 @@ def close_cat_cluster(df_UCC, row):
                 vals.append("--")
             else:
                 vals.append(val)
-        # val = round(float(dups_probs[i]), 3)
-        # if np.isnan(val):
-        #     vals.append("--")
-        # else:
-        #     vals.append(val)
+        val = shared_percents[i]
+        if val == "nan":
+            vals.append("--")
+        else:
+            vals.append(val)
 
-        ra, dec, plx, pmRA, pmDE, Rv = vals
+        ra, dec, plx, pmRA, pmDE, Rv, perc = vals
 
-        close_table += f"|[{name}](/_clusters/{fname}/)| "
-        # close_table += f"{int(100 * prob)} | "
-        close_table += f"{ra} | "
-        close_table += f"{dec} | "
-        close_table += f"{plx} | "
-        close_table += f"{pmRA} | "
-        close_table += f"{pmDE} | "
-        close_table += f"{Rv} |\n"
+        shared_members_tab += f"|[{name}](/_clusters/{fname}/)| "
+        shared_members_tab += f"{perc} | "
+        shared_members_tab += f"{ra} | "
+        shared_members_tab += f"{dec} | "
+        shared_members_tab += f"{plx} | "
+        shared_members_tab += f"{pmRA} | "
+        shared_members_tab += f"{pmDE} | "
+        shared_members_tab += f"{Rv} |\n"
+
     # Remove final new line
-    close_table = close_table[:-1]
+    shared_members_tab = shared_members_tab[:-1]
 
-    return close_table
+    return shared_members_tab
 
 
 def fpars_in_lit(

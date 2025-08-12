@@ -17,8 +17,10 @@ assets_folder = ucc_path + "assets/"
 clusters_csv_path = assets_folder + "clusters.csv.gz"
 # Path to the md database file
 databases_md_path = pages_folder + "DATABASE.md"
-# # Path to the md file with the tables
-# tables_md_path = pages_folder + "TABLES.md"
+# Path to the md file with the articles
+articles_md_path = pages_folder + "ARTICLES.md"
+# Path to the md file with the tables
+tables_md_path = pages_folder + "TABLES.md"
 
 # Q folders paths and files
 #
@@ -26,6 +28,7 @@ databases_md_path = pages_folder + "DATABASE.md"
 members_folder = "datafiles/"
 # Path to the cluster's plots
 plots_folder = "plots/"
+plots_sub_folders = ("UCC", "aladin")  # , "HUNT23", "CANTAT20"
 
 
 # updt_ucc paths
@@ -67,3 +70,24 @@ gaia_max_mag = 20
 
 # Path to local ASteCA version
 local_asteca_path = "/home/gabriel/Github/ASteCA/ASteCA/asteca"
+# local_asteca_path = "/home/gperren.ifir/asteca"
+
+# Order used for the C3 classes
+class_order = [
+    "AA",
+    "AB",
+    "BA",
+    "AC",
+    "CA",
+    "BB",
+    "AD",
+    "DA",
+    "BC",
+    "CB",
+    "BD",
+    "DB",
+    "CC",
+    "CD",
+    "DC",
+    "DD",
+]
