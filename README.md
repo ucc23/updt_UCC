@@ -217,10 +217,11 @@ need to be applied to update the site.
 
 ### Output
 
-- `ucc/assets/clusters.json.gz`: Updated JSON file with the latest UCC data
+- `ucc/assets/clusters.csv.gz`: Updated JSON file with the latest UCC data
 - `ucc/images/catalogued_ocs.webp`: Updated image with the latest UCC data
 - `ucc/images/classif_bar.webp`: Updated image with the latest UCC data
 - `ucc/_pages/DATABASE.md`: Update databases file for the site
+- `ucc/_pages/ARTICLES.md`: Update articles file for the site
 - `ucc/_pages/TABLES.md`: Updated tables file for the site
 - `ucc/_tables/*.md`: Updated tables for the site
 - `ucc/_clusters/*.md`: Updated or generated files for each cluster
@@ -264,7 +265,7 @@ for dir in Q*/; do (cd "$dir" && [ -d .git ] && git acp "version YYMMDD"); done
 
 2. Create a 'New version' in the [Zenodo repository](https://zenodo.org/doi/10.5281/zenodo.8250523) 
 
-3.0 Make sure that the version number in the README matches than in the CHANGELOG
+3.0 Make sure that the version number in the README matches that in the CHANGELOG
 3.1 Upload the three files stored in the `temp_updt/zenodo/` folder
 3.2 Get a DOI
 3.3 Add a 'Publication date' with the format: YYYY-MM-DD
