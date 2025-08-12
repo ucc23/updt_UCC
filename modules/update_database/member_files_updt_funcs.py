@@ -43,9 +43,9 @@ def get_fastMP_membs(
     # If this is a 'manual' run, check if this OC is present in the file
     N_clust, N_clust_max, Nbox, frame_limit = np.nan, np.nan, np.nan, ""
     if manual_pars.empty is False:
-        row = manual_pars[manual_pars["fname"].str.contains(fname0)].iloc[0]
+        row = manual_pars[manual_pars["fname"] == fname0]
         if row.empty is False:
-            _, N_clust, N_clust_max, Nbox, frame_limit = row.to_numpy()
+            _, N_clust, N_clust_max, Nbox, frame_limit = row.to_numpy()[0]
     if isinstance(frame_limit, float) or frame_limit == "nan":
         frame_limit = ""
 
@@ -84,7 +84,7 @@ def get_fastMP_membs(
 
     # Run fastMP
     probs_fastmp = memb.fastmp()
-    logging.warning(f"probs_all>0.5={(probs_fastmp > 0.5).sum()}")
+    logging.warning(f"probs_all>=0.5={(probs_fastmp >= 0.5).sum()}")
 
     # Check initial versus members centers
     xy_c_m, vpd_c_m, plx_c_m = extract_centers(my_field, probs_fastmp)
