@@ -1,6 +1,12 @@
 Some of these are intermediate versions of the UCC database that are not published.
 
 
+## 25081111
+
+- Re process 39 entries, most were impacted by a bug that incorrectly searched for the
+fname in the manual_params file, the rest are large OCs that need more max members or
+a larger frame
+
 ## 25081010
 
 - New re-processing of the full database after fixing the IQR handling in fastMP
