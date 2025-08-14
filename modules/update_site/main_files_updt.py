@@ -15,42 +15,42 @@ def count_OCs_classes(C3, class_order):
     return OCs_per_class
 
 
-# def count_dups(df_UCC: pd.DataFrame) -> list:
-#     """
-#     Categorizes duplicate file names in the input DataFrame into five groups
-#     based on the number of duplicates. Each group is represented by a mask array.
+def count_shared_membs(df_UCC: pd.DataFrame) -> list:
+    """
+    Categorizes OCs with shared members into five groups based on the number of
+    OCs that share its members. Each group is represented by a mask array.
 
-#     Args:
-#         df_UCC (pandas.DataFrame): A DataFrame containing a column named
-#         "dups_fnames_m", where each entry is a string of file names separated by ";"
-#         or NaN.
+    Args:
+        df_UCC (pandas.DataFrame): A DataFrame containing a column named
+        "dups_fnames_m", where each entry is a string of file names separated by ";"
+        or NaN.
 
-#     Returns:
-#         list: A list of five numpy boolean arrays. Each array corresponds to a mask
-#               identifying rows with a specific range of duplicates:
-#               - Index 0: Rows with exactly 1 duplicate.
-#               - Index 1: Rows with exactly 2 duplicates.
-#               - Index 2: Rows with exactly 3 duplicates.
-#               - Index 3: Rows with exactly 4 duplicates.
-#               - Index 4: Rows with 5 or more duplicates.
-#     """
-#     dups_msk = [np.full(len(df_UCC), False) for _ in range(5)]
-#     for i, dups_fnames_m in enumerate(df_UCC["dups_fnames_m"]):
-#         if str(dups_fnames_m) == "nan":
-#             continue
-#         N_dup = len(dups_fnames_m.split(";"))
-#         if N_dup == 1:
-#             dups_msk[0][i] = True
-#         elif N_dup == 2:
-#             dups_msk[1][i] = True
-#         elif N_dup == 3:
-#             dups_msk[2][i] = True
-#         elif N_dup == 4:
-#             dups_msk[3][i] = True
-#         elif N_dup >= 5:
-#             dups_msk[4][i] = True
+    Returns:
+        list: A list of five numpy boolean arrays. Each array corresponds to a mask
+              identifying rows with a specific range:
+              - Index 0: Rows with exactly 1 OC with shared members
+              - Index 1: Rows with exactly 2 OC with shared members
+              - Index 2: Rows with exactly 3 OC with shared members
+              - Index 3: Rows with exactly 4 OC with shared members
+              - Index 4: Rows with 5 or more OC with shared members
+    """
+    shared_msk = [np.full(len(df_UCC), False) for _ in range(5)]
+    for i, shared_fnames in enumerate(df_UCC["shared_members"]):
+        if str(shared_fnames) == "nan":
+            continue
+        N_dup = len(shared_fnames.split(";"))
+        if N_dup == 1:
+            shared_msk[0][i] = True
+        elif N_dup == 2:
+            shared_msk[1][i] = True
+        elif N_dup == 3:
+            shared_msk[2][i] = True
+        elif N_dup == 4:
+            shared_msk[3][i] = True
+        elif N_dup >= 5:
+            shared_msk[4][i] = True
 
-#     return dups_msk
+    return shared_msk
 
 
 def count_N50membs(df_UCC: pd.DataFrame) -> list:
@@ -197,48 +197,7 @@ def ucc_n_total_updt(logging, N_db_UCC, N_cl_UCC, N_members_UCC, database_md):
     return database_md_updt
 
 
-# def chunks(data, SIZE=2):
-#     """Split dictionary into chunks"""
-#     it = iter(data)
-#     for i in range(0, len(data), SIZE):
-#         yield {k: data[k] for k in islice(it, SIZE)}
-
-
-def updt_cats_used(df_UCC, current_JSON, database_md_in):
-    """Update the table with the catalogues used in the UCC"""
-    # Count DB occurrences in UCC
-    N_in_DB = {_: 0 for _ in current_JSON.keys()}
-    for _ in df_UCC["DB"].values:
-        for DB in _.split(";"):
-            N_in_DB[DB] += 1
-
-    # md_table = "\n| Name | N | Name | N |\n"
-    md_table = "\n| Author(s) | Year | Vizier | Entries in UCC  |\n"
-    md_table += "| ---- | :--: | :----: | :-: |\n"
-    for DB, DB_data in current_JSON.items():
-        row = ""
-        # for DB, DB_data in dict_chunk.items():
-        ref_url = f"[{DB_data['authors']}]({DB_data['ADS_url']})"
-        viz_url = f"""<a href="{DB_data["vizier_url"]}" target="_blank"> <img src="/images/vizier.png " alt="Vizier url"></a>"""
-        if DB_data["vizier_url"] == "N/A":
-            viz_url = "N/A"
-        row += f"| {ref_url} | {DB_data['year']} | {viz_url} | [{N_in_DB[DB]}](/tables/dbs/{DB}_table) "
-        md_table += row + "|\n"
-    md_table += "\n"
-
-    delimeterA = "<!-- Begin table 1 -->\n"
-    delimeterB = "<!-- End table 1 -->\n"
-    database_md_updt = replace_text_between(
-        database_md_in, md_table, delimeterA, delimeterB
-    )
-
-    # if database_md_updt != database_md_in:
-    #     logging.info("Table: articles used in the UCC updated")
-
-    return database_md_updt
-
-
-def updt_C3_classification(logging, class_order, OCs_per_class, database_md_in):
+def updt_C3_classif_main_table(class_order, OCs_per_class, database_md_in: str):
     """ """
     C3_table = "\n| C3 |  N  | C3 |  N  | C3 |  N  | C3 |  N  |\n"
     C3_table += "|----| :-: |----| :-: |----| :-: |----| :-: |\n"
@@ -264,13 +223,13 @@ def updt_C3_classification(logging, class_order, OCs_per_class, database_md_in):
         database_md_in, C3_table, delimeterA, delimeterB
     )
 
-    if database_md_updt != database_md_in:
-        logging.info("Table: C3 classification updated")
+    # if database_md_updt != database_md_in:
+    #     logging.info("Table: C3 classification updated")
 
     return database_md_updt
 
 
-def updt_OCs_per_quad(logging, df_UCC, database_md_in):
+def updt_OCs_per_quad_main_table(df_UCC, database_md_in: str):
     """Update table of OCs per quadrants"""
     quad_table = "\n| Region  | lon range  | lat range  |   N |\n"
     quad_table += "|---------|------------|------------| :-: |\n"
@@ -303,51 +262,51 @@ def updt_OCs_per_quad(logging, df_UCC, database_md_in):
         database_md_in, quad_table, delimeterA, delimeterB
     )
 
-    if database_md_updt != database_md_in:
-        logging.info("Table: OCs per quadrant updated")
+    # if database_md_updt != database_md_in:
+    #     logging.info("Table: OCs per quadrant updated")
 
     return database_md_updt
 
 
-# def updt_dups_table(logging, dups_msk: list, database_md_in: str) -> str:
-#     """
-#     Updates a Markdown string with a summary table of duplicate counts, categorized
-#     by the number of duplicates.
+def updt_shared_membs_main_table(shared_msk: list, database_md_in: str) -> str:
+    """
+    Updates a Markdown string with a summary table of duplicate counts, categorized
+    by the number of duplicates.
 
-#     Args:
-#         database_md_in (str): The Markdown string to be updated with the duplicates
-#         table.
-#         dups_msk (list): A list of numpy boolean arrays, where each array masks rows
-#                          in `df_UCC` based on the number of duplicates.
+    Args:
+        database_md_in (str): The Markdown string to be updated with the duplicates
+        table.
+        dups_msk (list): A list of numpy boolean arrays, where each array masks rows
+                         in `df_UCC` based on the number of duplicates.
 
-#     Returns:
-#         str: The updated Markdown string with the duplicates table inserted.
-#     """
-#     dups_table = "\n| Probable duplicates |   N  |\n"
-#     dups_table += "|---------------------| :--: |\n"
+    Returns:
+        str: The updated Markdown string with the duplicates table inserted.
+    """
+    dups_table = "\n| Probable duplicates |   N  |\n"
+    dups_table += "|---------------------| :--: |\n"
 
-#     for i, msk in enumerate(dups_msk):
-#         Nde = " N_dup ="
-#         if i == 4:
-#             Nde = "N_dup >="
-#         dups_table += (
-#             f"|     {Nde} {i + 1}      | [{msk.sum()}](/tables/Nd{i + 1}_table) |\n"
-#         )
-#     dups_table += "\n"
+    for i, msk in enumerate(shared_msk):
+        Nde = " N_shared ="
+        if i == 4:
+            Nde = "N_shared >="
+        dups_table += (
+            f"|     {Nde} {i + 1}      | [{msk.sum()}](/tables/Ns{i + 1}_table) |\n"
+        )
+    dups_table += "\n"
 
-#     delimeterA = "<!-- Begin table 4 -->\n"
-#     delimeterB = "<!-- End table 4 -->\n"
-#     database_md_updt = replace_text_between(
-#         database_md_in, dups_table, delimeterA, delimeterB
-#     )
+    delimeterA = "<!-- Begin table 4 -->\n"
+    delimeterB = "<!-- End table 4 -->\n"
+    database_md_updt = replace_text_between(
+        database_md_in, dups_table, delimeterA, delimeterB
+    )
 
-#     if database_md_updt != database_md_in:
-#         logging.info("Table: duplicated OCs updated")
+    # if database_md_updt != database_md_in:
+    #     logging.info("Table: shared members updated")
 
-#     return database_md_updt
+    return database_md_updt
 
 
-def memb_number_table(logging, membs_msk, database_md_in):
+def updt_N50_main_table(membs_msk, database_md_in: str):
     """
     Updates a Markdown string with a summary table categorized by the number of
     N_50 members.
@@ -385,8 +344,46 @@ def memb_number_table(logging, membs_msk, database_md_in):
         database_md_in, dups_table, delimeterA, delimeterB
     )
 
-    if database_md_updt != database_md_in:
-        logging.info("Table: number of members updated")
+    # if database_md_updt != database_md_in:
+    #     logging.info("Table: number of members updated")
+
+    return database_md_updt
+
+
+# def chunks(data, SIZE=2):
+#     """Split dictionary into chunks"""
+#     it = iter(data)
+#     for i in range(0, len(data), SIZE):
+#         yield {k: data[k] for k in islice(it, SIZE)}
+
+
+def updt_articles_table(df_UCC, current_JSON, database_md_in):
+    """Update the table with the catalogues used in the UCC"""
+    # Count DB occurrences in UCC
+    N_in_DB = {_: 0 for _ in current_JSON.keys()}
+    for _ in df_UCC["DB"].values:
+        for DB in _.split(";"):
+            N_in_DB[DB] += 1
+
+    # md_table = "\n| Name | N | Name | N |\n"
+    md_table = "\n| Author(s) | Year | Vizier | Entries in UCC  |\n"
+    md_table += "| ---- | :--: | :----: | :-: |\n"
+    for DB, DB_data in current_JSON.items():
+        row = ""
+        # for DB, DB_data in dict_chunk.items():
+        ref_url = f"[{DB_data['authors']}]({DB_data['ADS_url']})"
+        viz_url = f"""<a href="{DB_data["vizier_url"]}" target="_blank"> <img src="/images/vizier.png " alt="Vizier url"></a>"""
+        if DB_data["vizier_url"] == "N/A":
+            viz_url = "N/A"
+        row += f"| {ref_url} | {DB_data['year']} | {viz_url} | [{N_in_DB[DB]}](/tables/dbs/{DB}_table) "
+        md_table += row + "|\n"
+    md_table += "\n"
+
+    delimeterA = "<!-- Begin table 1 -->\n"
+    delimeterB = "<!-- End table 1 -->\n"
+    database_md_updt = replace_text_between(
+        database_md_in, md_table, delimeterA, delimeterB
+    )
 
     return database_md_updt
 
@@ -421,7 +418,7 @@ def updt_DBs_tables(dbs_used, df_updt) -> dict:
     return new_tables_dict
 
 
-def updt_n50members_tables(df_updt, membs_msk) -> dict:
+def updt_N50_tables(df_updt, membs_msk) -> dict:
     """Update the duplicates table files"""
     header = (
         """---\nlayout: page\ntitle: nmembs_title\n"""
@@ -454,7 +451,7 @@ def updt_n50members_tables(df_updt, membs_msk) -> dict:
     return new_tables_dict
 
 
-def updt_C3_tables(df_updt, class_order: list) -> dict:
+def updt_C3_classif_tables(df_updt, class_order: list) -> dict:
     """Update the C3 classification table files"""
     header = (
         """---\nlayout: page\ntitle: C3_title\n"""
@@ -475,26 +472,28 @@ def updt_C3_tables(df_updt, class_order: list) -> dict:
     return new_tables_dict
 
 
-# def updt_dups_tables(df_updt, dups_msk) -> dict:
-#     """Update the duplicates table files"""
-#     header = (
-#         """---\nlayout: page\ntitle: dups_title\n"""
-#         + """permalink: /tables/dups_link_table/\n---\n\n"""
-#     )
+def updt_shared_membs_tables(df_updt, dups_msk) -> dict:
+    """Update the shared members table files"""
+    header = (
+        """---\nlayout: page\ntitle: shared_title\n"""
+        + """permalink: /tables/shared_link_table/\n---\n\n"""
+    )
 
-#     new_tables_dict = {}
-#     for i, dups_N in enumerate(("Nd1", "Nd2", "Nd3", "Nd4", "Nd5")):
-#         title = f"{dups_N} duplicates"
-#         md_table = header.replace("dups_title", title).replace("dups_link", dups_N)
-#         msk = dups_msk[i]
-#         md_table = generate_table(df_updt[msk], md_table)
+    new_tables_dict = {}
+    for i, shared_N in enumerate(("Ns1", "Ns2", "Ns3", "Ns4", "Ns5")):
+        title = f"{shared_N} shared"
+        md_table = header.replace("shared_title", title).replace(
+            "shared_link", shared_N
+        )
+        msk = dups_msk[i]
+        md_table = generate_table(df_updt[msk], md_table)
 
-#         new_tables_dict[dups_N] = md_table
+        new_tables_dict[shared_N] = md_table
 
-#     return new_tables_dict
+    return new_tables_dict
 
 
-def updt_quad_tables(df_updt):
+def updt_OCs_per_quad_tables(df_updt):
     """Update the per-quadrant table files"""
     header = (
         """---\nlayout: page\ntitle: quad_title\n"""

@@ -16,7 +16,6 @@ from modules.HARDCODED import (
     databases_md_path,
     dbs_folder,
     dbs_tables_folder,
-    tables_folder,
     images_folder,
     md_folder,
     name_DBs_json,
@@ -24,6 +23,7 @@ from modules.HARDCODED import (
     parquet_dates,
     plots_folder,
     plots_sub_folders,
+    tables_folder,
     tables_md_path,
     temp_fold,
 )
@@ -31,15 +31,18 @@ from modules.update_site import ucc_entry, ucc_plots
 from modules.update_site.main_files_updt import (
     count_N50membs,
     count_OCs_classes,
-    memb_number_table,
+    count_shared_membs,
     ucc_n_total_updt,
-    updt_C3_classification,
-    updt_cats_used,
+    updt_articles_table,
+    updt_C3_classif_main_table,
+    updt_C3_classif_tables,
     updt_DBs_tables,
-    updt_OCs_per_quad,
-    updt_n50members_tables,
-    updt_C3_tables,
-    updt_quad_tables
+    updt_N50_main_table,
+    updt_N50_tables,
+    updt_OCs_per_quad_main_table,
+    updt_OCs_per_quad_tables,
+    updt_shared_membs_main_table,
+    updt_shared_membs_tables,
 )
 from modules.utils import get_last_version_UCC, logger
 
@@ -92,7 +95,7 @@ def main():
             df_UCC,
             current_JSON,
         )
-    if input("\nUpdate plots? (y/n): ").lower() == "y":
+    if input("\nUpdate cluster plots? (y/n): ").lower() == "y":
         updt_ucc_cluster_plots(
             logging,
             root_UCC_path,
@@ -102,22 +105,47 @@ def main():
             temp_data_date_path,
         )
 
-    # Update the main ucc site files
-    if input("\nUpdate UCC site files? (y/n): ").lower() == "y":
-        updt_ucc_main_files(
+    # Count number of OCs in each class
+    OCs_per_class = count_OCs_classes(df_UCC["C3"], class_order)
+
+    if input("\nUpdate main site plots? (y/n): ").lower() == "y":
+        make_site_plots(logging, temp_image_path, df_UCC, OCs_per_class)
+
+    # Mask with OCs with shared members
+    shared_msk = count_shared_membs(df_UCC)
+
+    # Mask with N50 members
+    membs_msk = count_N50membs(df_UCC)
+
+    N_members_UCC = len(df_members)
+
+    # Update DATABASE, TABLES, ARTCILES .md files
+    if input("\nUpdate 'DATABASE, TABLES, ARTICLES' files? (y/n): ").lower() == "y":
+        update_main_pages(
             logging,
-            temp_image_path,
+            N_members_UCC,
+            current_JSON,
+            df_UCC,
+            database_md,
+            articles_md,
+            tables_md,
+            OCs_per_class,
+            membs_msk,
+            shared_msk,
+        )
+
+    # Update tables files
+    if input("\nUpdate individual tables files? (y/n): ").lower() == "y":
+        updt_indiv_tables_files(
+            logging,
             temp_dbs_tables_path,
             ucc_dbs_tables_path,
             ucc_tables_path,
             temp_tables_path,
-            df_UCC,
-            len(df_members),
             current_JSON,
-            database_md,
-            articles_md,
-            tables_md,
             df_tables,
+            membs_msk,
+            shared_msk,
         )
 
     # Update CSV file
@@ -526,75 +554,6 @@ def make_plots(
     return txt, data_dates_json
 
 
-def updt_ucc_main_files(
-    logging,
-    temp_image_path,
-    temp_dbs_tables_path,
-    ucc_dbs_tables_path,
-    ucc_tables_path,
-    temp_tables_path,
-    df_UCC,
-    N_members_UCC,
-    current_JSON,
-    database_md,
-    articles_md,
-    tables_md,
-    df_tables,
-):
-    """ """
-    logging.info("\nUpdating ucc.ar files")
-
-    # # TODO: radius in parsec, unused yet (24/12/04)
-    # pc_rad = pc_radius(df_UCC["r_50"].values, df_UCC["Plx_m"].values)
-
-    # # Mask with duplicates
-    # dups_msk = count_dups(df_UCC)
-
-    # Count number of OCs in each class
-    OCs_per_class = count_OCs_classes(df_UCC["C3"], class_order)
-
-    # Update site plots
-    make_site_plots(logging, temp_image_path, df_UCC, OCs_per_class)
-
-    # Mask with N50 members
-    membs_msk = count_N50membs(df_UCC)
-
-    # Update DATABASE.md
-    update_main_pages(
-        logging,
-        N_members_UCC,
-        current_JSON,
-        df_UCC,
-        database_md,
-        articles_md,
-        tables_md,
-        OCs_per_class,
-        membs_msk,
-    )
-
-    # Update pages for individual databases
-    new_tables_dict = updt_DBs_tables(current_JSON, df_tables)
-    general_table_update(
-        logging, ucc_dbs_tables_path, temp_dbs_tables_path, new_tables_dict
-    )
-
-    # Update page with N members
-    new_tables_dict = updt_n50members_tables(df_tables, membs_msk)
-    general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
-
-    #
-    new_tables_dict = updt_C3_tables(df_tables, class_order)
-    general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
-
-    #
-    # new_tables_dict = updt_dups_tables(df_tables, dups_msk)
-    # general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
-
-    #
-    new_tables_dict = updt_quad_tables(df_tables)
-    general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
-
-
 def make_site_plots(logging, temp_image_path, df_UCC, OCs_per_class):
     """ """
     ucc_plots.make_N_vs_year_plot(temp_image_path + "catalogued_ocs.webp", df_UCC)
@@ -616,47 +575,84 @@ def update_main_pages(
     tables_md,
     OCs_per_class,
     membs_msk,
+    shared_msk,
 ):
-    """Update DATABASE, TABLES, ARTCILES .md files"""
+    """Update DATABASE, TABLES, ARTICLES .md files"""
+    logging.info("\nUpdating DATABASE, TABLES, ARTICLES .md files")
 
-    # logging.info("\nCounting total number of members")
-    # N_members_UCC = count_N_members_UCC(members_folder)
-    # logging.info(f"Total number of members extracted: {N_members_UCC}")
-
-    # Update the total number of entries, databases, and members in the UCC
+    # Update DATABASE
     N_db_UCC, N_cl_UCC = len(current_JSON), len(df_UCC)
+    # Update the total number of entries, databases, and members in the UCC
     database_md_updt = ucc_n_total_updt(
         logging, N_db_UCC, N_cl_UCC, N_members_UCC, database_md
     )
-
-    # Save updated page (temp)
-    # if database_md != database_md_updt:
     with open(temp_fold + databases_md_path, "w") as file:
         file.write(database_md_updt)
-    logging.info("DATABASE.md updated")
+    if database_md != database_md_updt:
+        logging.info("DATABASE.md updated")
+    else:
+        logging.info("DATABASE.md not updated (no changes)")
 
-    #
-    tables_md_updt = updt_C3_classification(
-        logging, class_order, OCs_per_class, tables_md
-    )
-    tables_md_updt = updt_OCs_per_quad(logging, df_UCC, tables_md_updt)
-    # tables_md_updt = updt_dups_table(logging, dups_msk, tables_md_updt)
-    tables_md_updt = memb_number_table(logging, membs_msk, tables_md_updt)
-
-    # Save updated page (temp)
-    # if articles_md != articles_md_updt:
+    # Update TABLES
+    tables_md_updt = updt_C3_classif_main_table(class_order, OCs_per_class, tables_md)
+    tables_md_updt = updt_OCs_per_quad_main_table(df_UCC, tables_md_updt)
+    tables_md_updt = updt_shared_membs_main_table(shared_msk, tables_md_updt)
+    tables_md_updt = updt_N50_main_table(membs_msk, tables_md_updt)
     with open(temp_fold + tables_md_path, "w") as file:
         file.write(tables_md_updt)
-    logging.info("TABLES.md updated")
+    if tables_md != tables_md_updt:
+        logging.info("TABLES.md updated")
+    else:
+        logging.info("TABLES.md not updated (no changes)")
 
-    # Update the table with the catalogues used in the UCC
-    articles_md_updt = updt_cats_used(df_UCC, current_JSON, articles_md)
-
-    # Save updated page (temp)
-    # if articles_md != articles_md_updt:
+    # Update ARTICLES
+    articles_md_updt = updt_articles_table(df_UCC, current_JSON, articles_md)
     with open(temp_fold + articles_md_path, "w") as file:
         file.write(articles_md_updt)
-    logging.info("ARTICLES.md updated")
+    if articles_md != articles_md_updt:
+        logging.info("ARTICLES.md updated")
+    else:
+        logging.info("ARTICLES.md not updated (no changes)")
+
+
+def updt_indiv_tables_files(
+    logging,
+    temp_dbs_tables_path,
+    ucc_dbs_tables_path,
+    ucc_tables_path,
+    temp_tables_path,
+    current_JSON,
+    df_tables,
+    membs_msk,
+    shared_msk,
+):
+    """ """
+    logging.info("\nUpdating individual tables")
+
+    # # TODO: radius in parsec, unused yet (24/12/04)
+    # pc_rad = pc_radius(df_UCC["r_50"].values, df_UCC["Plx_m"].values)
+
+    # Update pages for individual databases
+    new_tables_dict = updt_DBs_tables(current_JSON, df_tables)
+    general_table_update(
+        logging, ucc_dbs_tables_path, temp_dbs_tables_path, new_tables_dict
+    )
+
+    # Update page with N members
+    new_tables_dict = updt_N50_tables(df_tables, membs_msk)
+    general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
+
+    #
+    new_tables_dict = updt_C3_classif_tables(df_tables, class_order)
+    general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
+
+    #
+    new_tables_dict = updt_shared_membs_tables(df_tables, shared_msk)
+    general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
+
+    #
+    new_tables_dict = updt_OCs_per_quad_tables(df_tables)
+    general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
 
 
 def general_table_update(
