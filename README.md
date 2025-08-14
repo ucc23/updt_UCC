@@ -266,20 +266,22 @@ for dir in Q*/; do (cd "$dir" && [ -d .git ] && git acp "version YYMMDD"); done
 
 2. Create a 'New version' in the [Zenodo repository](https://zenodo.org/doi/10.5281/zenodo.8250523) 
 
-3.0 Make sure that the version number in the README matches that in the CHANGELOG
-3.1 Upload the three files stored in the `temp_updt/zenodo/` folder
-3.2 Get a DOI
-3.3 Add a 'Publication date' with the format: YYYY-MM-DD
-3.4 Use the version number in the README (format: YYMMDD) in the release
+  -a Make sure that the version number in the `zenodo/README.md` file matches that in
+     the `_pages/CHANGELOG.md` file
+  -b Upload the three files stored in the `zenodo/` folder:
+     `README.md, UCC_cat.csv, UCC_members.parquet`
+  -c Get a new DOI from Zenodo
+  -d Add a _Publication date_ with the format: YYYY-MM-DD
+  -e Use the same version number from the README (format: YYMMDD) in the release
 
-Publish new release and copy **its own url** (no the general repository url)
+Publish this new release and copy **its own url** (no the general repository url)
 
 3. Update the `_pages/CHANGELOG.md` file, use the Zenodo URL for **this** release
 
-4. Pull to update the new arXiv JSON file to the `ucc` repository <-- **IMPORTANT**
+4. **IMPORTANT** -->
+   - Pull to update the new `assets/arxiv.json` file to the `ucc` repository
+   - Make sure that the `_config.yml` file includes all the folders
 
 5. Push the changes to the `ucc` repository
 
-6. Deploy the site using the Github workflow 'Build GitHub Page':
-
-https://github.com/ucc23/ucc/actions/workflows/jekyll-gh-pages.yml
+6. Deploy the site using the Github workflow [Build GitHub Page](https://github.com/ucc23/ucc/actions/workflows/jekyll-gh-pages.yml)
