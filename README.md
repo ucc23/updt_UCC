@@ -186,6 +186,7 @@ then steps 1-5 are skipped and the UCC is updated using the output from the B sc
 - `zenodo/UCC_cat_XXYYZZHH.csv`: Updated (previous version is archived)
 - `zenodo/data_dates.json`: Updated
 
+Files uploaded to Zenodo:
 - `zenodo/README.txt`: Updated
 - `zenodo/UCC_cat.csv`: Smaller version of the updated catalogue
 - `zenodo/UCC_members.parquet`: Updated (**FILE NOT TRACKED BECAUSE IT IS TOO LARGE**)
@@ -273,7 +274,7 @@ for dir in Q*/; do (cd "$dir" && [ -d .git ] && git acp "version YYMMDD"); done
 
 Publish new release and copy **its own url** (no the general repository url)
 
-3. Update the `CHANGELOG.md` file, use the Zenodo URL for **this** release
+3. Update the `_pages/CHANGELOG.md` file, use the Zenodo URL for **this** release
 
 4. Pull to update the new arXiv JSON file to the `ucc` repository <-- **IMPORTANT**
 
