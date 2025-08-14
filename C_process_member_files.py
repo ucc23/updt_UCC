@@ -443,8 +443,8 @@ def find_shared_members(logging, df_UCC, df_members):
 
         if shared_info:
             if len(shared_info) > 1:
-                # Sort by max values
-                i_sort = np.argsort(percentage_vals)[::-1]
+                # Sort by max values first and name second
+                i_sort = np.lexsort((shared_info, -np.array(percentage_vals)))
                 shared_info = [shared_info[i] for i in i_sort]
                 percentage_info = [percentage_info[i] for i in i_sort]
             results["shared_members"][idx] = ";".join(shared_info)
@@ -497,8 +497,10 @@ def find_intersections(df, df_members):
     # Compute pairwise sum of radii
     radii_sum = radii[:, None] + radii[None, :]
 
-    # Intersection condition: distance <= sum of radii, excluding self-comparisons
-    intersection_mask = (dists <= radii_sum) & (dists > 0)
+    # Intersection condition: distance <= sum of radii
+    # Exclude only the diagonal (self-comparisons)
+    not_self = ~np.eye(len(dists), dtype=bool)
+    intersection_mask = (dists <= radii_sum) & not_self
 
     # Extract intersecting names
     results = []
