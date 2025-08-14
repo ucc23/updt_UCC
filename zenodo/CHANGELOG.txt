@@ -1,5 +1,10 @@
 Some of these are intermediate versions of the UCC database that are not published.
 
+## 25081410
+
+- Re estimate the shared members after fixing the bug that was excluding OCs with
+dist==0 (and making sure the order is always repeated)
+
 
 ## 25081111
 
