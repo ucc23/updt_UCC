@@ -282,7 +282,7 @@ def updt_shared_membs_main_table(shared_msk: list, database_md_in: str) -> str:
     Returns:
         str: The updated Markdown string with the duplicates table inserted.
     """
-    dups_table = "\n| Probable duplicates |   N  |\n"
+    dups_table = "\n| OCs with shared members |   N  |\n"
     dups_table += "|---------------------| :--: |\n"
 
     for i, msk in enumerate(shared_msk):
