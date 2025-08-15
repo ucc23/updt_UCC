@@ -546,4 +546,15 @@ def generate_table(df_m, md_table):
         abcd = UCC_color(row["C3"])
         md_table += "| " + abcd + " |\n"
 
+    # Add script to sort tables
+    md_table += (
+        "\n\n\n"
+        + """<script type="module">
+import { enableTableSorting } from '{{ site.baseurl }}/scripts/table-sorting.js';
+document.querySelectorAll("table").forEach(table => {
+  enableTableSorting(table);
+});
+</script>"""
+    )
+
     return md_table
