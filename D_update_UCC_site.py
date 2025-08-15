@@ -73,7 +73,7 @@ def main():
     # Load required files
     (
         df_UCC,
-        df_tables,
+        df_UCC_edit,
         current_JSON,
         DBs_full_data,
         database_md,
@@ -143,14 +143,14 @@ def main():
             ucc_tables_path,
             temp_tables_path,
             current_JSON,
-            df_tables,
+            df_UCC_edit,
             membs_msk,
             shared_msk,
         )
 
     # Update CSV file
     if input("\nUpdate clusters CSV file? (y/n): ").lower() == "y":
-        updt_cls_CSV(logging, ucc_gz_CSV_path, temp_gz_CSV_path, df_tables)
+        updt_cls_CSV(logging, ucc_gz_CSV_path, temp_gz_CSV_path, df_UCC_edit)
 
     if input("\nMove files to their final destination? (y/n): ").lower() == "y":
         move_files(logging, root_UCC_path, temp_data_date_path)
@@ -262,7 +262,7 @@ def load_data(
     logging.info(f"UCC {ucc_file_path} loaded (N={len(df_UCC)})")
 
     # Prepare df_UCC to be used in the updating of the table files
-    df_tables = updt_UCC(df_UCC)
+    df_UCC_edit = updt_UCC(df_UCC)
 
     # Load clusters data in JSON file
     with open(name_DBs_json) as f:
@@ -296,7 +296,7 @@ def load_data(
 
     return (
         df_UCC,
-        df_tables,
+        df_UCC_edit,
         current_JSON,
         DBs_full_data,
         database_md,
@@ -622,7 +622,7 @@ def updt_indiv_tables_files(
     ucc_tables_path,
     temp_tables_path,
     current_JSON,
-    df_tables,
+    df_UCC_edit,
     membs_msk,
     shared_msk,
 ):
@@ -633,25 +633,25 @@ def updt_indiv_tables_files(
     # pc_rad = pc_radius(df_UCC["r_50"].values, df_UCC["Plx_m"].values)
 
     # Update pages for individual databases
-    new_tables_dict = updt_DBs_tables(current_JSON, df_tables)
+    new_tables_dict = updt_DBs_tables(current_JSON, df_UCC_edit)
     general_table_update(
         logging, ucc_dbs_tables_path, temp_dbs_tables_path, new_tables_dict
     )
 
     # Update page with N members
-    new_tables_dict = updt_N50_tables(df_tables, membs_msk)
+    new_tables_dict = updt_N50_tables(df_UCC_edit, membs_msk)
     general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
 
     #
-    new_tables_dict = updt_C3_classif_tables(df_tables, class_order)
+    new_tables_dict = updt_C3_classif_tables(df_UCC_edit, class_order)
     general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
 
     #
-    new_tables_dict = updt_shared_membs_tables(df_tables, shared_msk)
+    new_tables_dict = updt_shared_membs_tables(df_UCC_edit, shared_msk)
     general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
 
     #
-    new_tables_dict = updt_OCs_per_quad_tables(df_tables)
+    new_tables_dict = updt_OCs_per_quad_tables(df_UCC_edit)
     general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
 
 
