@@ -10,6 +10,7 @@ from scipy import ndimage
 def plot_CMD(
     plot_fpath,
     df_membs,
+    probs_col="probs",
     title="UCC",
     cmap="plasma",
     dpi=200,
@@ -20,9 +21,9 @@ def plot_CMD(
     plt.style.use("modules/update_site/science2.mplstyle")
 
     # Sort by probabilities
-    df_membs = df_membs.sort_values("probs", kind="stable")
+    df_membs = df_membs.sort_values(probs_col, kind="stable")
 
-    pr = df_membs["probs"]
+    pr = df_membs[probs_col]
     vmin, vmax = min(pr), max(pr)
     if vmin > 0.01:
         if (vmax - vmin) < 0.001:
