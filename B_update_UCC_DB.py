@@ -46,6 +46,7 @@ from modules.utils import (
 
 # =========================================================================
 # Select the mode used to run the script
+updt_DB_name = ""
 
 # # Add a new DB
 # run_mode = "new_DB"
@@ -135,6 +136,8 @@ def main():
     N_new = np.isnan(df_UCC_new["N_50"]).sum()
     logging.info(f"Entries marked for re-processing: {N_new}")
 
+    if input("\nMove files to their final paths? (y/n): ").lower() != "y":
+        sys.exit()
     move_files(
         logging,
         run_mode,
