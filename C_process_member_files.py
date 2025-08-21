@@ -629,7 +629,7 @@ def updt_readme(
     ZZZZ = str(N_members)
     txt = [
         f"These files correspond to the {XXXX} version of the UCC database (https://ucc.ar),\n",
-        f"composed of {YYYY} clusters with a combined {ZZZZ} members.",
+        f"composed of {YYYY} clusters with a combined {ZZZZ} members.\n",
     ]
 
     # Load the main file
