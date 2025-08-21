@@ -1076,5 +1076,36 @@
         "[Fe/H]84"
       ]
     }
+  },
+  "HU2025": {
+    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2025A%26A...699A.246H",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2025A%26A...699A.246H",
+    "authors": "Hu & Soubiran",
+    "year": "2025",
+    "names": "Cluster",
+    "pos": {
+      "RA": "RA_ICRS",
+      "DEC": "DE_ICRS"
+    },
+    "pars": {
+      "met": [
+        "MA22",
+        "MA23f",
+        "MA23g",
+        "MZ23",
+        "MK24",
+        "MF24"
+      ]
+    },
+    "e_pars": {
+      "e_met": [
+        "e_MA22",
+        "e_MA23f",
+        "e_MA23g",
+        "e_MZ23",
+        "e_MK24",
+        "e_MF24"
+      ]
+    }
   }
 }
