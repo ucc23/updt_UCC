@@ -258,7 +258,7 @@ example, using a different `include` with fewer/different selected folders)
 ### 5.2 Live build
 
 1. Push changes (if any) to each of the `QXY` repositories. To do this, position
-   the command line in the `UCC/` folder and run (change `YYMMDD` with version number):
+the command line in the `UCC/` folder and run (change `YYMMDD` with version number):
 
 ```
 for dir in Q*/; do (cd "$dir" && [ -d .git ] && git acp "version YYMMDD"); done
@@ -278,9 +278,7 @@ Publish this new release and copy **its own url** (no the general repository url
 
 3. Update the `_pages/CHANGELOG.md` file, use the Zenodo URL for **this** release
 
-4. **IMPORTANT** -->
-   - Pull to update the new `assets/arxiv.json` file to the `ucc` repository
-   - Make sure that the `_config.yml` file includes all the folders
+4. **IMPORTANT**: Make sure that the `_config.yml` file includes all the folders
 
 5. Push the changes to the `ucc` repository
 
