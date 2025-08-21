@@ -664,9 +664,10 @@ def move_files(
 
     # Move the data dates file
     file_path_temp = temp_zenodo_fold + parquet_dates
-    file_path = UCC_folder + parquet_dates
-    os.rename(file_path_temp, file_path)
-    logging.info(file_path_temp + " --> " + file_path)
+    if os.path.isfile(file_path_temp):
+        file_path = UCC_folder + parquet_dates
+        os.rename(file_path_temp, file_path)
+        logging.info(file_path_temp + " --> " + file_path)
 
     # Move the Zenodo catalogue file
     file_path_temp = temp_zenodo_fold + "UCC_cat.csv"
@@ -693,9 +694,10 @@ def move_files(
 
     # Move the final combined parquet file
     file_path_temp = temp_zenodo_fold + UCC_members_file
-    file_path = UCC_folder + UCC_members_file
-    os.rename(file_path_temp, file_path)
-    logging.info(file_path_temp + " --> " + file_path)
+    if os.path.isfile(file_path_temp):
+        file_path = UCC_folder + UCC_members_file
+        os.rename(file_path_temp, file_path)
+        logging.info(file_path_temp + " --> " + file_path)
 
     # Delete all individual parquet files?
 
