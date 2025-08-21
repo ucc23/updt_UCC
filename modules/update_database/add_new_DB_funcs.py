@@ -345,6 +345,10 @@ def updt_new_db_dict(
         "pmDE_m",
         "Rv_m",
         "N_Rv",
+        "N_clust",
+        "N_clust_max",
+        "shared_members",
+        "shared_members_p",
     ):
         if row is None:
             new_db_dict[col].append(np.nan)
