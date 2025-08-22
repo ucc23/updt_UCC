@@ -58,7 +58,10 @@
       "ext": "E(B-V)",
       "dist": "HDis",
       "age": "Age",
-      "met": "[Fe/H]"
+      "met": [
+        "[Fe/H]_1",
+        "[Fe/H]_2"
+      ]
     },
     "e_pars": {}
   },
@@ -598,16 +601,44 @@
       "pmde": "pmDE"
     },
     "pars": {
-      "ext": "AVPs",
-      "dist": "DPs",
-      "age": "Ages",
-      "met": "[Fe/H]s"
+      "ext": [
+        "AVPM",
+        "AVPf"
+      ],
+      "dist": [
+        "DPM",
+        "DPf"
+      ],
+      "age": [
+        "AgeM",
+        "AgeF"
+      ],
+      "met": [
+        "[Fe/H]M",
+        "[Fe/H]f"
+      ]
     },
     "e_pars": {
-      "e_ext": "e_AVPs",
-      "e_dist": "e_DPs",
-      "e_age": "e_Ages",
-      "e_met": "e_[Fe/H]s"
+      "e_ext": [
+        "e_AVPM",
+        "e_AVPf_l",
+        "e_AVPf_h"
+      ],
+      "e_dist": [
+        "e_DPM",
+        "e_DPf_l",
+        "e_DPf_h"
+      ],
+      "e_age": [
+        "e_AgeM",
+        "e_AgeF_l",
+        "e_AgeF_h"
+      ],
+      "e_met": [
+        "e_[Fe/H]M",
+        "e_[Fe/H]f_l",
+        "e_[Fe/H]f_h"
+      ]
     }
   },
   "HE2021": {

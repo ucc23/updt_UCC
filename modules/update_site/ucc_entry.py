@@ -417,21 +417,20 @@ def fpars_in_lit(
         txt_pars = ""
         # Add non-nan parameters
         for k, par in DBs_json[db]["pars"].items():
-            # Read parameter value from DB as string
-            par_v = str(df[par][int(DBs_i_w_pars[i])])
+            # Some DBs have parameters as lists because they list more than one value
+            # per parameter
+            if isinstance(par, list):
+                for par_i in par:
+                    par_v = str(df[par_i][int(DBs_i_w_pars[i])])[:max_chars]
+                    par_v = par_v.replace(" ", "")
+                    if par_v != "" and par_v != "nan":
+                        txt_pars += par_i + "=" + par_v + ", "
 
-            # Trim parameter value
-            if ";" in par_v:
-                # DBs like SANTOS21 list more than 1 value per parameter
-                par_v = par_v[: int(max_chars * 2)]
             else:
-                par_v = par_v[:max_chars]
-
-            # Remove empty spaces from param value (if any)
-            par_v = par_v.replace(" ", "")
-
-            if par_v != "" and par_v != "nan":
-                txt_pars += par + "=" + par_v + ", "
+                par_v = str(df[par][int(DBs_i_w_pars[i])])[:max_chars]
+                par_v = par_v.replace(" ", "")
+                if par_v != "" and par_v != "nan":
+                    txt_pars += par + "=" + par_v + ", "
 
         if txt_pars != "":
             # Remove final ', '
