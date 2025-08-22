@@ -1,5 +1,10 @@
 Some of these are intermediate versions of the UCC database that are not published.
 
+## 250821
+
+- Add Hu & Soubiran (2025)
+
+
 ## 25081410
 
 - Re estimate the shared members after fixing the bug that was excluding OCs with
