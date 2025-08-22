@@ -366,16 +366,17 @@ def updt_articles_table(df_UCC, current_JSON, database_md_in):
             N_in_DB[DB] += 1
 
     # md_table = "\n| Name | N | Name | N |\n"
-    md_table = "\n| Author(s) | Year | Vizier | Entries in UCC  |\n"
-    md_table += "| ---- | :--: | :----: | :-: |\n"
+    md_table = "\n| Title | Author(s) | Year | Vizier | N |\n"
+    md_table += "| ---- | :---: | :--: | :----: | :-: |\n"
     for DB, DB_data in current_JSON.items():
         row = ""
-        # for DB, DB_data in dict_chunk.items():
-        ref_url = f"[{DB_data['authors']}]({DB_data['ADS_url']})"
+        title = DB_data["title"].replace("'", "").replace('"', "")
+        short_title = title[:25] + "..."
+        ref_url = f"""<a href="{DB_data["ADS_url"]}" target="_blank" title="{title}">{short_title}</a>"""
         viz_url = f"""<a href="{DB_data["vizier_url"]}" target="_blank"> <img src="/images/vizier.png " alt="Vizier url"></a>"""
         if DB_data["vizier_url"] == "N/A":
             viz_url = "N/A"
-        row += f"| {ref_url} | {DB_data['year']} | {viz_url} | [{N_in_DB[DB]}](/tables/dbs/{DB}_table) "
+        row += f"| {ref_url} | {DB_data['authors']} | {DB_data['year']} | {viz_url} | [{N_in_DB[DB]}](/tables/dbs/{DB}_table) "
         md_table += row + "|\n"
     md_table += "\n"
 
