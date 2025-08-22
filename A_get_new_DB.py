@@ -53,8 +53,9 @@ def main():
 
     # 3. Fetch publication authors and year from NASA/ADS
     logging.info("Fetching NASA/ADS data...")
-    authors, year = get_ADS_data()
-    logging.info(f"Extracted author ({authors}) and year ({year})")
+    authors, year, title = get_ADS_data()
+    logging.info(f"Extracted author ({authors}), year ({year}) and title:")
+    logging.info(f"{title}")
 
     # 4. Generate a new database name based on extracted metadata.
     DB_name = get_DB_name(current_JSON, authors, year)
@@ -108,6 +109,7 @@ def main():
         temp_JSON_file,
         DB_name,
         authors,
+        title,
         year,
         names,
         pos_dict,
@@ -121,7 +123,7 @@ def main():
     logging.info("********************************************************")
 
 
-def get_ADS_data():
+def get_ADS_data() -> tuple[str, str, str]:
     """ """
     # ADS API endpoint for searching
     api_url = "https://api.adsabs.harvard.edu/v1/search/query"
@@ -134,7 +136,7 @@ def get_ADS_data():
     bibcode_int = ADS_bibcode.replace("%26", "&")
 
     # Define the query parameters
-    params = {"q": f"bibcode:{bibcode_int}", "fl": "author,year", "rows": 1}
+    params = {"q": f"bibcode:{bibcode_int}", "fl": "author,year,title", "rows": 1}
     # Make the request to the ADS API
     response = requests.get(api_url, headers=headers, params=params)
 
@@ -155,12 +157,13 @@ def get_ADS_data():
                 authors = authors_lst[0].split(",")[0] + " et al."
 
             year = article.get("year")
+            title = article.get("title")
         else:
             raise ValueError(f"No article found with the given bibcode: {bibcode_int}")
     else:
         raise ValueError(f"Failed to fetch data: {response.status_code}")
 
-    return authors, year
+    return authors, year, title
 
 
 def get_DB_name(current_JSON: dict, authors: str, year: str) -> str:
@@ -444,6 +447,7 @@ def add_DB_to_JSON(
     temp_JSON_file: str,
     DB_name: str,
     authors: str,
+    title: str,
     year: str,
     names: str,
     pos_dict: dict,
@@ -470,6 +474,7 @@ def add_DB_to_JSON(
     new_db_json["ADS_url"] = ADS_url
     new_db_json["vizier_url"] = vizier_url
     new_db_json["authors"] = authors
+    new_db_json["title"] = title
     new_db_json["year"] = year
     new_db_json["names"] = names
     new_db_json["pos"] = pos_dict
@@ -498,6 +503,7 @@ if __name__ == "__main__":
             "ADS_url": "https://ui.adsabs.harvard.edu/abs/xxxx",
             "vizier_url": "N/A",
             "authors": "Smith et al.",
+            "title": "Article title",
             "year": "2050",
             "names": "Name",
             "pos": {
