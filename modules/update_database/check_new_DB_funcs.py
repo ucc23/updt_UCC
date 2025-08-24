@@ -1,4 +1,5 @@
 import re
+from collections import defaultdict
 from difflib import SequenceMatcher
 
 import Levenshtein
@@ -36,14 +37,13 @@ def fnames_check_UCC_new_DB(
     logging.info("\nChecking uniqueness of fnames")
 
     # Create a dictionary to map filenames to their corresponding row indices
-    filename_map = {}
+    # Using defaultdict eliminates the explicit check for key existence
+    filename_map = defaultdict(list)
     for i, fnames in enumerate(df_UCC["fnames"]):
         for fname in fnames.split(";"):
-            if fname not in filename_map:
-                filename_map[fname] = []
             filename_map[fname].append(i)
 
-    # Find and print matches between df_fnames and new_fnames
+    # Find matches between UCC fnames and new_DB_fnames
     fnames_ucc_idxs = {}
     for k, fnames in enumerate(new_DB_fnames):
         fnames_ucc_idxs[k] = []
@@ -55,7 +55,7 @@ def fnames_check_UCC_new_DB(
     # Check if any new entry has more than one entry in the UCC associated to it
     dup_flag = False
     for k, v in fnames_ucc_idxs.items():
-        if len(v) > 1:
+        if len(list(set(v))) > 1:
             dup_flag = True
             logging.info(f"{new_DB_fnames[k]} --> {v}")
 
