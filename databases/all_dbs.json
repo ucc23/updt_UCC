@@ -300,9 +300,18 @@
       "met": "Fe/H"
     },
     "e_pars": {
-      "e_ext": "eAV",
-      "e_dist": "eDist",
-      "e_age": "elogA"
+      "e_ext": [
+        "e_logA",
+        "E_logA"
+      ],
+      "e_dist": [
+        "e_Dist",
+        "E_Dist"
+      ],
+      "e_age": [
+        "e_logA",
+        "E_logA"
+      ]
     }
   },
   "CASTRO2019": {
@@ -474,8 +483,7 @@
       "age": "logt"
     },
     "e_pars": {
-      "e_dist": "e_d_pc",
-      "e_age": "e_logt"
+      "e_dist": "e_d_pc"
     }
   },
   "DONOR2020": {
@@ -949,9 +957,7 @@
       "dist": "m-M",
       "age": "logAge"
     },
-    "e_pars": {
-      "e_age": "e_age"
-    }
+    "e_pars": {}
   },
   "HE2023_1": {
     "ADS_url": "https://ui.adsabs.harvard.edu/abs/2023ApJS..267...34H",
