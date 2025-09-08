@@ -34,8 +34,6 @@ def fnames_check_UCC_new_DB(
     bool
         True if duplicate entries are found, False otherwise.
     """
-    logging.info("\nChecking uniqueness of fnames")
-
     # Create a dictionary to map filenames to their corresponding row indices
     # Using defaultdict eliminates the explicit check for key existence
     filename_map = defaultdict(list)
@@ -89,8 +87,6 @@ def dups_fnames_inner_check(
     bool
         True if duplicate entries are found, False otherwise.
     """
-    logging.info("\nChecking for entries that must be combined")
-
     # Extract first fname for entries in new DB
     new_DB_fnames_0 = [fnames[0] for fnames in new_DB_fnames]
 

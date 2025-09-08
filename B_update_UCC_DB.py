@@ -386,10 +386,12 @@ def check_new_DB(
                 sys.exit()
 
     # Check all fnames in the new DB against all fnames in the UCC
+    logging.info("\nChecking uniqueness of fnames")
     if fnames_check_UCC_new_DB(logging, df_UCC, new_DB_fnames):
         raise ValueError("\nResolve the above issues before moving on")
 
     # Check the first fname for all entries in the new DB
+    logging.info("\nChecking for entries that must be combined")
     if dups_fnames_inner_check(logging, new_DB, newDB_json, df_new, new_DB_fnames):
         raise ValueError("\nResolve the above issues before moving on")
 

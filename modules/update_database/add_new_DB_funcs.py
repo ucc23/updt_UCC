@@ -65,7 +65,7 @@ def combine_UCC_new_DB(
 
         # Index of the match for this new cluster in the UCC (if any)
         if db_matches[i_new_cl] is None:
-            # The cluster is not present in the UCC, add to the new Db dictionary
+            # The cluster is not present in the UCC
             new_db_dict = new_OC_not_in_UCC(
                 new_DB,
                 new_db_dict,
@@ -80,7 +80,6 @@ def combine_UCC_new_DB(
             # The cluster is already present in the UCC
             # Row in UCC where this match is located
             row = dict(df_UCC.iloc[db_matches[i_new_cl]])
-            # Add to the new Db dictionary
             new_db_dict = OC_in_UCC(
                 run_mode, new_DB, new_db_dict, i_new_cl, fnames_new_cl, oc_names, row
             )
