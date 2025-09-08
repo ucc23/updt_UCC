@@ -215,6 +215,7 @@ def GCs_check(
         logging.info(f"Found {GCs_found} probable GCs:")
         for gc in gc_all:
             idx, row_id, idx_gc, df_gcs_name, d_arcmin = gc
+            row_id = row_id.strip()
             logging.info(
                 f"{idx:<6} {row_id:<15} --> {idx_gc:<6} {df_gcs_name.strip():<15}"
                 + f"d={round(float(d_arcmin), 2)}"
