@@ -9,25 +9,24 @@ import pandas as pd
 from fastparquet import ParquetFile
 from scipy.spatial.distance import cdist
 
-from B_update_UCC_DB import run_mode
-from modules.HARDCODED import (
+from .member_files_updt_funcs import get_fastMP_membs
+from .utils import (
+    diff_between_dfs,
+    get_last_version_UCC,
+    logger,
+    save_df_UCC,
+)
+from .variables import (
     GCs_cat,
     UCC_archive,
-    UCC_folder,
+    data_folder,
     UCC_members_file,
     manual_pars_file,
     members_folder,
     parquet_dates,
     path_gaia_frames,
     path_gaia_frames_ranges,
-    temp_fold,
-)
-from modules.update_database.member_files_updt_funcs import get_fastMP_membs
-from modules.utils import (
-    diff_between_dfs,
-    get_last_version_UCC,
-    logger,
-    save_df_UCC,
+    temp_folder,
 )
 
 
@@ -37,7 +36,7 @@ def main():
     """
     logging = logger()
 
-    logging.info(f"=== Running C script in '{run_mode}' mode ===\n")
+    logging.info("=== Running C script ===\n")
 
     # Generate paths and check for required folders and files
     (
@@ -55,8 +54,42 @@ def main():
         manual_pars,
     ) = load_data(logging)
 
+    # if run_mode == "manual":
+    #     # Read OCs manual parameters
+    #     manual_pars = pd.read_csv(manual_pars_file)
+    #     # Find repeated entries in 'fname' column
+    #     msk = manual_pars["fname"].duplicated()
+    #     if msk.sum() > 0:
+    #         rep_fnames = ", ".join([_ for _ in manual_pars[msk]["fname"]])
+    #         raise ValueError(
+    #             f"Repeated entries in {manual_pars_file} file:\n{rep_fnames}"
+    #         )
+
+    # if run_mode == "manual":
+    #     logging.info("\n=== Running in 'manual' mode ===\n")
+
+    #     fname_UCC = df_UCC_old["fnames"].str.split(";").str[0]
+    #     # Find matches between df1['name'] and df2['first_fnames']
+    #     matches = fname_UCC.isin(manual_pars["fname"])
+    #     # Update `N_50` for matching rows
+    #     df_UCC_old.loc[matches, "N_50"] = np.nan
+    #     #
+    #     df_UCC_new = df_UCC_old
+
     # Entries with no 'N_50' value are identified as new and processed with fastMP
-    N_new = np.isnan(df_UCC_B["N_50"]).sum()
+    # N_new = np.isnan(df_UCC_B["N_50"]).sum()
+
+    # # Add UCC_IDs and quadrants for new clusters
+    # ucc_ids_old = list(df_UCC_old["UCC_ID"].values)
+    # for i, UCC_ID in enumerate(new_db_dict["UCC_ID"]):
+    #     # Only process new OCs
+    #     if str(UCC_ID) != "nan":
+    #         continue
+    #     new_db_dict["UCC_ID"][i] = assign_UCC_ids(
+    #         logging, new_db_dict["GLON"][i], new_db_dict["GLAT"][i], ucc_ids_old
+    #     )
+    #     new_db_dict["quad"][i] = QXY_fold(new_db_dict["UCC_ID"][i])
+    #     ucc_ids_old += [new_db_dict["UCC_ID"][i]]
 
     if N_new == 0:
         logging.info("\nNo new OCs to process")
@@ -94,6 +127,111 @@ def main():
         df_UCC_final = find_shared_members(logging, df_UCC_new, df_members)
         logging.info("Shared members data updated in UCC")
 
+    # def assign_UCC_ids(logging, glon: float, glat: float, ucc_ids_old: list[str]) -> str:
+    #     """
+    #     Assigns a new UCC ID based on galactic coordinates, avoiding duplicates.
+
+    #     Format: UCC GXXX.X+YY.Y
+
+    #     Parameters
+    #     ----------
+    #     logging : logging.Logger
+    #         Logger object for outputting information.
+    #     glon : float
+    #         Galactic longitude.
+    #     glat : float
+    #         Galactic latitude.
+    #     ucc_ids_old : list
+    #         List of existing UCC IDs.
+
+    #     Returns
+    #     -------
+    #     str
+    #         A new, unique UCC ID.
+    #     """
+
+    #     def trunc(values, decs=1):
+    #         return np.trunc(values * 10**decs) / (10**decs)
+
+    #     ll = trunc(np.array([glon, glat]).T)
+    #     lon, lat = str(ll[0]), str(ll[1])
+
+    #     if ll[0] < 10:
+    #         lon = "00" + lon
+    #     elif ll[0] < 100:
+    #         lon = "0" + lon
+
+    #     if ll[1] >= 10:
+    #         lat = "+" + lat
+    #     elif ll[1] < 10 and ll[1] > 0:
+    #         lat = "+0" + lat
+    #     elif ll[1] == 0:
+    #         lat = "+0" + lat.replace("-", "")
+    #     elif ll[1] < 0 and ll[1] >= -10:
+    #         lat = "-0" + lat[1:]
+    #     elif ll[1] < -10:
+    #         pass
+
+    #     ucc_id = "UCC G" + lon + lat
+
+    #     i = 0
+    #     while True:
+    #         if i > 25:
+    #             ucc_id += "ERROR"
+    #             logging.info(f"ERROR NAMING: {glon}, {glat} --> {ucc_id}")
+    #             break
+    #         if ucc_id in ucc_ids_old:
+    #             if i == 0:
+    #                 # Add a letter to the end
+    #                 ucc_id += ascii_lowercase[i]
+    #             else:
+    #                 # Replace last letter
+    #                 ucc_id = ucc_id[:-1] + ascii_lowercase[i]
+    #             i += 1
+    #         else:
+    #             break
+
+    #     return ucc_id
+
+    # def QXY_fold(UCC_ID: str) -> str:
+    #     """
+    #     Determines the quadrant and north/south designation of a cluster based on its UCC ID.
+
+    #     Parameters
+    #     ----------
+    #     UCC_ID : str
+    #         The UCC ID of the cluster.
+
+    #     Returns
+    #     -------
+    #     str
+    #         A string representing the quadrant and north/south designation (e.g., "Q1P",
+    #         "Q3N").
+    #     """
+    #     # UCC_ID = cl['UCC_ID']
+    #     lonlat = UCC_ID.split("G")[1]
+    #     lon = float(lonlat[:5])
+    #     try:
+    #         lat = float(lonlat[5:])
+    #     except ValueError:
+    #         lat = float(lonlat[5:-1])
+
+    #     Qfold = "Q"
+    #     if lon >= 0 and lon < 90:
+    #         Qfold += "1"
+    #     elif lon >= 90 and lon < 180:
+    #         Qfold += "2"
+    #     elif lon >= 180 and lon < 270:
+    #         Qfold += "3"
+    #     elif lon >= 270 and lon < 3600:
+    #         Qfold += "4"
+    #     if lat >= 0:
+    #         Qfold += "P"
+    #     else:
+    #         Qfold += "N"
+
+    #     return Qfold
+
     # Save the generated data to temporary files before moving them
     update_files(
         logging,
@@ -106,9 +244,8 @@ def main():
         df_UCC_final,
     )
 
-    if input("\nMove files to their final paths? (y/n): ").lower() != "y":
-        sys.exit()
-    move_files(logging, temp_zenodo_fold, ucc_file, archived_UCC_file, new_ucc_file)
+    if input("\nMove files to their final paths? (y/n): ").lower() == "y":
+        move_files(logging, temp_zenodo_fold, ucc_file, archived_UCC_file, new_ucc_file)
 
     # if input("\nRemove temporary files and folders? (y/n): ").lower() == "y":
     #     # shutil.rmtree(temp_fold)

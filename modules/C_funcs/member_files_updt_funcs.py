@@ -4,16 +4,16 @@ import numpy as np
 import pandas as pd
 from scipy.spatial.distance import cdist
 
-from ..HARDCODED import (
+from .classification import get_classif
+from .gaia_query_frames import query_run
+from .utils import radec2lonlat
+from .variables import (
     gaia_max_mag,
     local_asteca_path,
     members_folder,
     path_gaia_frames,
-    temp_fold,
+    temp_folder,
 )
-from ..utils import check_centers, radec2lonlat
-from .classification import get_classif
-from .gaia_query_frames import query_run
 
 # Local version
 sys.path.append(local_asteca_path)
@@ -38,6 +38,7 @@ def get_fastMP_membs(
     plx_c: float,
     fname0: str,
     df_UCC_updt: dict,
+    rad_max: float = 5,
 ) -> dict:
     """ """
     # If this is a 'manual' run, check if this OC is present in the file
@@ -88,12 +89,15 @@ def get_fastMP_membs(
 
     # Check initial versus members centers
     xy_c_m, vpd_c_m, plx_c_m = extract_centers(my_field, probs_fastmp)
-    cent_flags = check_centers(
-        xy_c_m, vpd_c_m, plx_c_m, (glon_c, glat_c), (pmra_c, pmde_c), plx_c
-    )[0]
-    # "nnn" --> Centers are in agreement
-    if cent_flags[0] != "n":
-        logging.warning(f"  Centers flag: {cent_flags}")
+    # cent_flags = check_centers(
+    #     xy_c_m, vpd_c_m, plx_c_m, (glon_c, glat_c), (pmra_c, pmde_c), plx_c
+    # )[0]
+    # # "nnn" --> Centers are in agreement
+    # if cent_flags[0] != "n":
+    d_arcmin = np.sqrt((glon_c - glat_c) ** 2 + (xy_c_m[0] - xy_c_m[1]) ** 2) * 60
+    # Store information on the OCs that require attention
+    if d_arcmin > rad_max:
+        logging.warning(f"  Distance between centers: {d_arcmin:.1f}")
 
     # Split into members and field stars according to the probability values
     # assigned

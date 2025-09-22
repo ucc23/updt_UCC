@@ -6,8 +6,26 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from modules.HARDCODED import (
-    UCC_folder,
+from .update_site import ucc_entry, ucc_plots
+from .update_site.main_files_updt import (
+    count_N50membs,
+    count_OCs_classes,
+    count_shared_membs,
+    ucc_n_total_updt,
+    updt_articles_table,
+    updt_C3_classif_main_table,
+    updt_C3_classif_tables,
+    updt_DBs_tables,
+    updt_N50_main_table,
+    updt_N50_tables,
+    updt_OCs_per_quad_main_table,
+    updt_OCs_per_quad_tables,
+    updt_shared_membs_main_table,
+    updt_shared_membs_tables,
+)
+from .utils import get_last_version_UCC, logger
+from .variables import (
+    data_folder,
     UCC_members_file,
     articles_md_path,
     assets_folder,
@@ -25,26 +43,8 @@ from modules.HARDCODED import (
     plots_sub_folders,
     tables_folder,
     tables_md_path,
-    temp_fold,
+    temp_folder,
 )
-from modules.update_site import ucc_entry, ucc_plots
-from modules.update_site.main_files_updt import (
-    count_N50membs,
-    count_OCs_classes,
-    count_shared_membs,
-    ucc_n_total_updt,
-    updt_articles_table,
-    updt_C3_classif_main_table,
-    updt_C3_classif_tables,
-    updt_DBs_tables,
-    updt_N50_main_table,
-    updt_N50_tables,
-    updt_OCs_per_quad_main_table,
-    updt_OCs_per_quad_tables,
-    updt_shared_membs_main_table,
-    updt_shared_membs_tables,
-)
-from modules.utils import get_last_version_UCC, logger
 
 
 def main():

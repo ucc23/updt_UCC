@@ -3,26 +3,26 @@ import json
 import sys
 from pathlib import Path
 
-import Levenshtein
+from rapidfuzz import fuzz, process
 import numpy as np
 import pandas as pd
 import requests
 from astroquery.vizier import Vizier
 
-from modules.HARDCODED import (
+from .utils import logger
+from .variables import (
+    NASA_API_TOKEN_file,
     dbs_folder,
     name_DBs_json,
-    temp_fold,
+    temp_folder,
 )
-from modules.utils import logger
-
-# NASA/ADS bibcode for the new DB, e.g.: 2018MNRAS.481.3902B
-ADS_bibcode = "xxxxxx"
 
 
-def main():
+def main(ADS_bibcode):
     """
     Main function to download and process a database using NASA/ADS and Vizier data.
+
+    ADS_bibcode: NASA/ADS bibcode for the new DB, e.g.: 2018MNRAS.481.3902B
 
     Steps:
     1. Load the current JSON database file.
@@ -53,7 +53,7 @@ def main():
 
     # 3. Fetch publication authors and year from NASA/ADS
     logging.info("Fetching NASA/ADS data...")
-    authors, year, title = get_ADS_data()
+    authors, year, title = get_ADS_data(ADS_bibcode)
     logging.info(f"Extracted author ({authors}), year ({year}) and title:")
     logging.info(f"{title}")
 
@@ -63,11 +63,11 @@ def main():
 
     # 5. Handle temporary database files and check for existing data.
     # Temporary databases/ folder
-    temp_database_folder = temp_fold + dbs_folder
+    temp_database_folder = temp_folder + dbs_folder
     # Create folder if it does not exist
     Path(temp_database_folder).mkdir(parents=True, exist_ok=True)
     # Path to the new (temp) JSON file
-    temp_JSON_file = temp_fold + name_DBs_json
+    temp_JSON_file = temp_folder + name_DBs_json
     # Path to the new (temp) DB file
     temp_CSV_file = temp_database_folder + DB_name + ".csv"
 
@@ -79,7 +79,7 @@ def main():
         df_all = [pd.read_csv(temp_CSV_file)]
         logging.info("Vizier CSV file loaded from file")
     else:
-        table_url = get_CDS_table(logging)
+        table_url = get_CDS_table(logging, ADS_bibcode)
         df_all = get_DB_from_Vizier(logging, table_url)
         if df_all is not None:
             # Save the database(s) to a CSV file(s)
@@ -123,12 +123,12 @@ def main():
     logging.info("********************************************************")
 
 
-def get_ADS_data() -> tuple[str, str, str]:
+def get_ADS_data(ADS_bibcode: str) -> tuple[str, str, str]:
     """ """
     # ADS API endpoint for searching
     api_url = "https://api.adsabs.harvard.edu/v1/search/query"
     # Read token from file
-    with open("NASA_API_TOKEN", "r") as file:
+    with open(NASA_API_TOKEN_file, "r") as file:
         NASA_API_TOKEN = file.read().strip()
     headers = {"Authorization": f"Bearer {NASA_API_TOKEN}"}
 
@@ -196,7 +196,7 @@ def get_DB_name(current_JSON: dict, authors: str, year: str) -> str:
     return DB_name
 
 
-def get_CDS_table(logging) -> list:
+def get_CDS_table(logging, ADS_bibcode: str) -> list:
     """Obtain the available tables from 'ADS_bibcode'"""
     # Use row_limit=1 to avoid downloading the entire tables
     viz = Vizier(row_limit=1)

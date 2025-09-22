@@ -4,7 +4,7 @@ from ..utils import rename_standard
 
 
 def get_fnames_new_DB(
-    df_new: pd.DataFrame, newDB_json: dict, sep: str = ","
+    logging, df_new: pd.DataFrame, newDB_json: dict, sep: str = ","
 ) -> list[list[str]]:
     """
     Extract and standardize all names in the new catalogue
@@ -34,6 +34,20 @@ def get_fnames_new_DB(
             name = rename_standard(name)
             names_l.append(rm_chars_from_name(name))
         new_DB_fnames.append(names_l)
+
+    # Check that no fname is repeated within entries
+    seen, duplicates = {}, {}
+    for i, sublist in enumerate(new_DB_fnames):
+        # use set(sublist) so duplicates inside the same sublist are ignored
+        for item in set(sublist):
+            if item in seen and seen[item] != i:
+                duplicates.setdefault(item, {seen[item]}).add(i)
+            else:
+                seen[item] = i
+    if duplicates:
+        for name, idxs in duplicates.items():
+            logging.info(f"Duplicate '{name}' found in entries: {sorted(idxs)}")
+        raise ValueError("\nDuplicate fnames found in new DB entries")
 
     return new_DB_fnames
 

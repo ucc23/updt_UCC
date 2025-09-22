@@ -7,7 +7,7 @@ import numpy as np
 #     root_UCC_path,
 # )
 # from modules import combine_UCC_new_DB
-from ..utils import date_order_DBs
+# from ..utils import date_order_DBs
 
 header = """---
 layout: post
@@ -229,8 +229,8 @@ def make(
 def positions_in_lit(DBs_json, DBs_full_data, row_UCC):
     """ """
     # Re-arrange DBs by year
-    DBs_sort, DBs_i_sort = date_order_DBs(row_UCC["DB"], row_UCC["DB_i"])
-    DBs_sort, DBs_i_sort = DBs_sort.split(";"), DBs_i_sort.split(";")
+    # DBs_sort, DBs_i_sort = date_order_DBs(row_UCC["DB"], row_UCC["DB_i"])
+    DBs_sort, DBs_i_sort = row_UCC["DB"].split(";"), row_UCC["DB_i"].split(";")
 
     table = ""
     for i, db in enumerate(DBs_sort):
@@ -401,10 +401,10 @@ def fpars_in_lit(
         return table
 
     # Re-arrange DBs by year
-    DBs_w_pars, DBs_i_w_pars = date_order_DBs(
-        ";".join(DBs_w_pars), ";".join(DBs_i_w_pars)
-    )
-    DBs_w_pars, DBs_i_w_pars = DBs_w_pars.split(";"), DBs_i_w_pars.split(";")
+    # DBs_w_pars, DBs_i_w_pars = date_order_DBs(
+    #     ";".join(DBs_w_pars), ";".join(DBs_i_w_pars)
+    # )
+    # DBs_w_pars, DBs_i_w_pars = DBs_w_pars.split(";"), DBs_i_w_pars.split(";")
 
     txt = ""
     for i, db in enumerate(DBs_w_pars):
