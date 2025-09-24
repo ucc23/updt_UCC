@@ -7,9 +7,9 @@ temp_folder = "temp_updt/"
 # Path to the file that contains the NASA API token
 NASA_API_TOKEN_file = data_folder + "NASA_API_TOKEN"
 # Root of CSV file with merged DBs
-merged_dbs_file = "DBs_merged.csv"
+merged_dbs_file = "UCC_cat_B.csv"
 # Root of CSV file with final UCC catalogue
-ucc_cat_file = "UCC_cat_"
+ucc_cat_file = "UCC_cat_C.csv"
 # Path to the DBs
 dbs_folder = data_folder + "databases/"
 # Path to the JSON file with DBs data
@@ -95,11 +95,11 @@ selected_center_coords = {
 # Path to the folder that stores the latest UCC version
 zenodo_folder = data_folder + "zenodo/"
 # Path to the folder that stores the archived UCC versions
-UCC_archive = data_folder + "ucc_archived/"
+# UCC_archive = data_folder + "ucc_archived/"
 # Name of the  file that contains all of the members
-UCC_members_file = data_folder + "UCC_members.parquet"
+UCC_members_file = zenodo_folder + "UCC_members.parquet"
 # File that stores the dates and status of each member extraction
-parquet_dates = data_folder + "data_dates.json"
+# parquet_dates = data_folder + "data_dates.json"
 
 
 # Paths to the Gaia DR3 files in external drive
@@ -165,8 +165,8 @@ tables_md_path = pages_folder + "TABLES.md"
 
 # Q folders paths and files
 #
-# Path to the .parquet member files
-members_folder = "datafiles/"
+# Path to the temporary individual .parquet member files
+temp_members_folder = temp_folder + "datafiles/"
 # Path to the cluster's plots
 plots_folder = "plots/"
 plots_sub_folders = ("UCC", "aladin")  # , "HUNT23", "CANTAT20"
