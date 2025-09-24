@@ -165,6 +165,7 @@ cython_debug/
 *sublime*
 logs/*
 OLD/*
+data/ucc_archived_nogit/*
 temp_updt/*
 NASA_API_TOKEN
 UCC_members.parquet
