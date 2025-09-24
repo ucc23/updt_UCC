@@ -890,12 +890,23 @@ def fnames_check_UCC_new_DB(
                 # 'filename_map[fname]' will always contain a single element
                 fnames_ucc_idxs[k].append(filename_map[fname][0])
 
-    # Check if any new entry has more than one entry in the UCC associated to it
-    dup_flag = False
+    # Extract bad entries
+    bad_entries = []
     for k, v in fnames_ucc_idxs.items():
         if len(list(set(v))) > 1:
-            dup_flag = True
-            logging.info(f"{new_DB_fnames[k]} --> {v}")
+            bad_entries.append([k, v])
+
+    # Check if any new entry has more than one entry in the UCC associated to it
+    dup_flag = False
+    if bad_entries:
+        dup_flag = True
+        logging.info(
+            f"\nFound {len(bad_entries)} entries in the new DB with duplicated fnames"
+        )
+        for k, v in bad_entries:
+            new_db_entries = f"({k}) {', '.join(new_DB_fnames[k])}"
+            ucc_entries = ", ".join([f"({_}) {df_UCC.iloc[_]['fnames']}" for _ in v])
+            logging.info(f"{new_db_entries} --> {ucc_entries}")
 
     return dup_flag
 
