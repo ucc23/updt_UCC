@@ -18,6 +18,7 @@ from .variables import (
     merged_dbs_file,
     name_DBs_json,
     naming_order,
+    selected_center_coords,
     temp_folder,
 )
 
@@ -105,7 +106,6 @@ def main():
 
     file_path = dbs_merged_current_file.replace(data_folder, temp_folder)
     save_df_UCC(logging, dbs_merged_new, file_path, order_col="fnames")
-    logging.info(f"\nTemp file saved to {file_path}")
 
     if input("\nMove files to their final paths? (y/n): ").lower() == "y":
         move_files(
@@ -132,7 +132,7 @@ def get_paths_check_paths(
     temp_merged_f = temp_folder + merged_dbs_file
     if os.path.isfile(temp_merged_f):
         logging.warning(
-            f"WARNING: file {merged_dbs_file} exists. Moving on will re-write it"
+            f"WARNING: file {temp_merged_f} exists. Moving on will re-write it"
         )
         if input("Move on? (y/n): ").lower() != "y":
             sys.exit()
@@ -977,14 +977,11 @@ def combine_UCC_new_DB(
             pos_cols,
         )
 
-    # # Replace lists of values with nanmedians
-    df_new_db = pd.DataFrame(new_db_dict)
-
     N_new = db_matches.count(None)
     N_updt = len(db_matches) - N_new
     logging.info(f"\nNew entries: {N_new}, Updated entries: {N_updt}")
 
-    return df_new_db
+    return pd.DataFrame(new_db_dict)
 
 
 def rename_standard(all_names: str, sep_in: str = ",", sep_out: str = ";") -> str:
@@ -1150,7 +1147,7 @@ def updt_new_DB(
         names = row_ucc["Names"] + sep + oc_names
         fnames = row_ucc["fnames"] + sep + sep.join(fnames_new_cl)
 
-        # Only update values if nan is in place, else keep the first values stored
+        # Only update values if nan is in place, else keep the FIRST values stored
         vals_new = [ra_n, dec_n, lon_n, lat_n, plx_n, pmra_n, pmde_n]
         cols = ("RA_ICRS", "DE_ICRS", "GLON", "GLAT", "Plx", "pmRA", "pmDE")
         vals = [row_ucc[col] for col in cols]
@@ -1158,6 +1155,16 @@ def updt_new_DB(
             if np.isnan(val):
                 vals[i] = vals_new[i]
         ra_n, dec_n, lon_n, lat_n, plx_n, pmra_n, pmde_n = vals
+
+        # If this is one of the OCs with selected center values, replace here
+        idx = [
+            i
+            for i, val in enumerate(fnames_new_cl)
+            if val in selected_center_coords.keys()
+        ]
+        if idx:
+            ra_n, dec_n = selected_center_coords[fnames_new_cl[idx[0]]]
+            lon_n, lat_n = radec2lonlat(ra_n, dec_n)
 
         # # Always update values unless nan
         # vals_new = [ra_n, dec_n, lon_n, lat_n, plx_n, pmra_n, pmde_n]
@@ -1413,9 +1420,7 @@ def move_files(
             os.rename(db_temp, db_stored)
             logging.info(db_temp + " --> " + db_stored)
 
-    # Save dbs_merged_new to temp file
-    # file_path = temp_folder + "df_UCC_B_updt.csv"
-    # file_path = dbs_merged_current_file.replace(data_folder, temp_folder)
+    # Save dbs_merged_new to final folder
     save_df_UCC(logging, dbs_merged_new, dbs_merged_current_file, order_col="fnames")
 
 
