@@ -1,8 +1,6 @@
 import csv
 import datetime
 import logging
-import os
-import re
 from os.path import join
 from pathlib import Path
 
@@ -11,7 +9,7 @@ import pandas as pd
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from modules.variables import temp_folder
+from modules.variables import data_folder, temp_folder
 
 
 def logger():
@@ -26,7 +24,7 @@ def logger():
 
     # Name of log file using the date
     x = datetime.date.today()
-    out_file = "logs/" + str(x).replace("-", "_") + ".log"
+    out_file = data_folder + "logs/" + str(x).replace("-", "_") + ".log"
 
     # Set up logging module
     level = logging.INFO
@@ -43,20 +41,20 @@ def logger():
     return logging
 
 
-def get_last_version_UCC(UCC_folder: str) -> str:
-    """Path to the latest version of the UCC catalogue"""
+# def get_last_version_UCC(UCC_folder: str) -> str:
+#     """Path to the latest version of the UCC catalogue"""
 
-    pattern = re.compile(r"UCC_cat_\d{8}\.csv")
-    ucc_file = [f for f in os.listdir(UCC_folder) if pattern.fullmatch(f)]
+#     pattern = re.compile(r"UCC_cat_\d{8}\.csv")
+#     ucc_file = [f for f in os.listdir(UCC_folder) if pattern.fullmatch(f)]
 
-    if len(ucc_file) == 0:
-        raise ValueError(f"UCC file not found in {UCC_folder}")
-    elif len(ucc_file) > 1:
-        raise ValueError(f"More than one UCC file found in {UCC_folder}")
+#     if len(ucc_file) == 0:
+#         raise ValueError(f"UCC file not found in {UCC_folder}")
+#     elif len(ucc_file) > 1:
+#         raise ValueError(f"More than one UCC file found in {UCC_folder}")
 
-    last_version = ucc_file[0].split("_")[-1].split(".")[0]
+#     last_version = ucc_file[0].split("_")[-1].split(".")[0]
 
-    return last_version
+#     return last_version
 
 
 def radec2lonlat(
@@ -82,6 +80,26 @@ def radec2lonlat(
     return lb.l.value, lb.b.value  # pyright: ignore
 
 
+def round_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """ """
+    # Detect available columns to round
+    f_id = ""
+    if "GLON_m" in df.keys():
+        f_id = "_m"
+    df = df.round(
+        {
+            "RA_ICRS" + f_id: 5,
+            "DE_ICRS" + f_id: 5,
+            "GLON" + f_id: 5,
+            "GLAT" + f_id: 5,
+            "Plx" + f_id: 4,
+            "pmRA" + f_id: 4,
+            "pmDE" + f_id: 4,
+        }
+    )
+    return df
+
+
 def diff_between_dfs(
     logging,
     df_old: pd.DataFrame,
@@ -100,9 +118,10 @@ def diff_between_dfs(
         cols_exclude (list | None): List of columns to exclude from the diff
     """
     df_new = df_new_in.copy()
-    # Order by (lon, lat)
-    # df_new = df_new.sort_values(["GLON", "GLAT"])
-    # df_new = df_new.reset_index(drop=True)
+
+    df_new = round_columns(df_new)
+
+    # Order by fnames
     df_new = df_new.sort_values(by="fnames").reset_index(drop=True)
 
     # if cols_exclude is not None:
@@ -129,7 +148,7 @@ def diff_between_dfs(
     non_matching2 = [row for row in rows2 if tuple(row) not in set1]
 
     if len(non_matching1) == 0 and len(non_matching2) == 0:
-        logging.info("No differences found\n")
+        logging.info("\nNo differences found\n")
         return df_new
 
     if len(non_matching1) > 0:
@@ -144,29 +163,13 @@ def diff_between_dfs(
             for row in non_matching2:
                 writer.writerow(row)
 
-    logging.info("Files 'UCC_diff_xxx.csv' saved\n")
+    logging.info("\nFiles 'UCC_diff_xxx.csv' saved\n")
     return df_new
 
 
 def save_df_UCC(logging, df: pd.DataFrame, file_path: str, order_col: str) -> None:
     """ """
-
-    # Detect available columns to round
-    f_id = ""
-    if "GLOn_m" in df.keys():
-        f_id = "_m"
-
-    df = df.round(
-        {
-            "RA_ICRS" + f_id: 5,
-            "DE_ICRS" + f_id: 5,
-            "GLON" + f_id: 5,
-            "GLAT" + f_id: 5,
-            "Plx" + f_id: 4,
-            "pmRA" + f_id: 4,
-            "pmDE" + f_id: 4,
-        }
-    )
+    df = round_columns(df)
 
     # Order by 'order_col'
     df = df.sort_values(by=order_col).reset_index(drop=True)
