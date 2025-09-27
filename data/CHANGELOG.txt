@@ -1,0 +1,424 @@
+Some of these are intermediate versions of the UCC database that are not published.
+
+## 2509XXYY
+
+NOT DONE YET!
+
+- Removed entries from the main catalogue: fsr0297, fsr0911, fsr1071, fsr1557, fsr1681,
+fsr0380. Added their alternative names from FROEBRICH2007 to their entries in BICA2019
+and re-processed BICA2019.
+
+
+## 25092711
+
+Rebuilt the UCC from scratch. The following 33 entries had their main `fname` changed:
+
+dutrabica takes precedence over db:
+db1, dutrabica1 --> dutrabica1, db1
+db2, dutrabica2 --> dutrabica2, db2
+db29, dutrabica29 --> dutrabica29, db29
+db18, dutrabica18, mwsc2665 --> dutrabica18, db18, mwsc2665
+db20, dutrabica20 --> dutrabica20, db20
+db21, dutrabica21 --> dutrabica21, db21
+db19, dutrabica19 --> dutrabica19, db19
+db17, dutrabica17 --> dutrabica17, db17
+db25, dutrabica25, mwsc2763 --> dutrabica25, db25, mwsc2763
+db31, dutrabica31, mwsc2721 --> dutrabica31, db31, mwsc2721
+db32, dutrabica32, mwsc2768 --> dutrabica32, db32, mwsc2768
+db59, dutrabica59, db20011, bdb3, mwsc2648, mwsc2645 --> dutrabica59, db59, db20011, bdb3, mwsc2648, mwsc2645
+db35, dutrabica35 --> dutrabica35, db35
+db36, dutrabica36, mwsc2683 --> dutrabica36, db36, mwsc2683
+db38, dutrabica38 --> dutrabica38, db38
+db39, dutrabica39 --> dutrabica39, db39
+db40, dutrabica40, mwsc2736 --> dutrabica40, db40, mwsc2736
+db41, dutrabica41 --> dutrabica41, db41
+db42, dutrabica42 --> dutrabica42, db42
+db47, dutrabica47 --> dutrabica47, db47
+db46, dutrabica46, mwsc2731 --> dutrabica46, db46, mwsc2731
+db55, dutrabica55 --> dutrabica55, db55
+db57, dutrabica57 --> dutrabica57, db57
+
+koposov takes precedence over fsr:
+fsr0839, koposov41 --> koposov41, fsr0839
+fsr0849, koposov58 --> koposov58, fsr0849
+
+fsr takes precedence over sai:
+sai152, fsr0469 --> fsr0469, sai152
+sai39, fsr0696 --> fsr0696, sai39
+sai38, fsr0699 --> fsr0699, sai38
+sai54, fsr0855 --> fsr0855, sai54
+sai92, fsr1436 --> fsr1436, sai92
+sai114, fsr1555 --> fsr1555, sai114
+sai119, fsr1662 --> fsr1662, sai119
+
+renamed according to more reasonable main fname:
+fsr0837, fsr0835, mwsc435, mwsc434 --> fsr0835, fsr0837, mwsc435, mwsc434
+
+
+15 entries were re-processed with better center coordinates:
+
+ascc120
+cwnu289
+cwnu523
+cwnu528
+dolidze50
+fsr0213
+hsc2854
+hsc517
+lisciii3312
+lisciii3783
+ocsn42
+theia246
+ubc10a
+upk655
+upk71
+
+
+
+## 25082510
+
+Modified these DBs:
+
+- BICA2019 & BORISSOVA2011: fixed several VVV names
+- BICA2019: ASCC 60 fixed dec value (to negative)
+- BOSSINI2019: fixed a few VDBH names
+- DAMBIS1999: added NGC 2645 to Pismis 6
+- DIAS2021: removed Harvard 5 (duplicate of Collinder_258)
+- DONOR2020: fixed two names (one VDBH one VVV)
+- GLUSHKOVA2010: renamed fsr0848 to fsr0828, teutsch5 to teutsch51; fixed one VDBH
+- HE2022_1: fixed a few VDBH
+- KHARCHENKO2012: removed FSR 1184 (it's Saurer_1) and Dolidze 2 (it's IC_1311)
+- LIUPANG2019: fixed a few VDBH
+- LOKTIN2017: removed Basel9 (its' Ruprecht 148) and Collinder416 (its' NGC 6882)
+- QIN2023: fixed a few VDBH
+
+The catalogue is NOT CURRENTLY UPDATED
+
+
+## 25082116
+
+- Add Hu & Soubiran (2025)
+
+
+## 25081410
+
+- Re estimate the shared members after fixing the bug that was excluding OCs with
+dist==0 (and making sure the order is always repeated)
+
+
+## 25081111
+
+- Re process 39 entries, most were impacted by a bug that incorrectly searched for the
+fname in the manual_params file, the rest are large OCs that need more max members or
+a larger frame
+
+## 25081010
+
+- New re-processing of the full database after fixing the IQR handling in fastMP
+
+
+## 25080310
+
+- Second re-processing of 227 entries that needed some adjusting
+
+
+## 25072814
+
+- Re-processed the entire database using manual values for the maximum number of
+members for the "new" OCs (issue #62).
+
+
+## 25071809
+
+- Removed the 'close_entries' column. Replaced it by two columns showing the 
+percentage of members shared with other entries (produced by the C script)
+
+
+## 25071809
+
+- Added columns 'N_clust, N_clust_max' filled with 'nan' values
+
+
+## 25062409
+
+- Added back the "duplicated" columns now as close OCs + re-processed King 13
+
+
+## 25062314
+
+- Added ANGELO2019
+
+
+## 25062311
+
+- Added HUNT2024
+
+
+## 25062211
+
+- Added PIATTI2023
+
+
+## 25062210
+
+- Added ALFONSO2024
+
+
+
+## 25062209
+
+- Added DIAS2019
+
+
+## 25062111
+
+- Added DIAS2002
+
+
+## 25061610
+
+- Updated main name of 'Taurus moving cluster' to 'Hyades', issue #47
+
+
+## 25061512
+
+- Updated 'Herbig 1' using N_memb=25, issue #51
+
+
+## 25061511
+
+- Updated CHI2023_1, issue #48
+
+
+## 25061510
+
+- Updated LIUPANG19 database, issue #59
+
+Combined "ID" and "Name" columns.
+
+There are two sets of two entries with repeated names in the UCC:
+
+fof380, fof2326 --> ruprecht26
+fof2223, fof2310 --> ascc77
+
+To solve this I removed the fof2326 and fof2310 entries and added them as
+secondary names to fof380 and fof2223
+
+
+HE2022_1 ([A blind all-sky search...](https://ui.adsabs.harvard.edu/abs/2022ApJS..262....7H/abstract))
+mistakenly listed an entry as LP_2389 when in reality it is LP_2379 (checked with
+the coordinates, PMs and plx in LIUPANG19). This is stored in the UCC and HE2022_1 as
+FoF_2389. Renamed it to 'fof2379' in the UCC and HE2022_1; also renamed the associated
+files
+
+
+## 25061410
+
+Found entries in the UCC with repeated names:
+
+7117 7662 teutsch5
+7554 7672 fsr0848
+11581 11609 huluwa2
+11581 11723 huluwa2
+11609 11723 huluwa2
+
+-teutsch5: this comes from Koposov (2008) assigning it as a secondary name for
+Koposov 52. This is incorrect given the coordinates of Teutsch 5. I removed it
+from KOPOSOV2008 and the list of names in Koposov 52 (i=7664)
+
+-fsr0848: this also comes from Koposov (2008) assigning it as a secondary name for
+Koposov 43. Removed it too from KOPOSOV2008 and the list of names in Koposov 43 (i=7556)
+
+-huluwa2: this comes from QIN2023 where 'huluwa2' is assigned to three entries:
+OCSN 197, OCSN 198, and OCSN 199. I removed the assiciation to 'huluwa2' from
+OCSN 198 and OCSN 199, so that only OCSN 197 has it as a secondary name.
+
+
+## 25061311
+
+- Updated QIN2023 database, issue #49
+
+Combined "RefName" and "Name" columns
+Changed 'LP' in 2383, 2385, 2439, 2442 to 'FoF'
+Changed ChaI(north), ChaI(south) to ChaI_north, ChaI_south
+
+There are 223 OCs already in the literature classified as 2 and 3. The classification
+is as follows:
+
+1 =  f=0%, the new OCs in the OCSN catalog (101 entries, already in the UCC)
+2 =  f<50% and most of the common members are located on the outer part of the cluster
+in the OCSN catalog (25 entries)
+3 =  f>50% or most of the common members are located in the center part of the cluster
+in the OCSN catalog (198 entries)
+
+(where f is "the fraction between the common member stars to members in the OCSN
+catalog"). The issue with entries classified 2 and 3 is that they are often associated
+with more than one OC (or mg):
+
+OCSN 106 --> CWNU_375, CWNU_510, UPK_101
+
+(there are 32 such entries) or even multiple times to the same OC already listed in
+the UCC:
+
+OCSN 176 --> CWNU_1136
+OCSN 177 --> CWNU_1136
+OCSN 178 --> CWNU_1136
+
+OCSN 167 --> CWNU_1044
+OCSN 168 --> CWNU_1044
+
+To solve this I removed all the extra names for any entry with more than one other
+name associated to it (e.g: "OCSN 106,CWNU_375,CWNU_510,UPK_101" becomes "OCSN 106");
+which solves the first issue.
+
+For the second issue, I removed the repeated name (CWNU_1136, CWNU_1044) so that these
+become new entries.
+
+These changes result in 59 new entries added to the UCC out of the 223 being added by
+this DB updating process.
+
+
+## 25061115
+
+- Updated HE2022_1 database, issue #56
+
+
+## 25061114
+
+- Removed "dups_fnames_m,dups_probs_m" columns
+
+
+## 25020409
+
+- Added BORISSOVA2018
+
+
+## 25020310
+
+Changed 'vvvcc170' cluster name (and all files) to 'vvv170'. The 'vvvcc' denomination
+comes from BICA19. There are 9 clusters that use this naming, including vvvcc170,
+but this is the only one whose files also follow this naming. The files for the
+remaining cluster follow the naming 'vvvXXX'.
+I also modified in BICA19 and this version of the UCC all the 'VVV CC' to 'VVV-CL'.
+
+Changed *all* names of 'vvv' clusters to follow the format 'vvv00X, vvv0XX, vvvXXX'.
+This only affects 94 VVV clusters with numbers below 100.
+
+
+## 25020212
+
+- Changed 'vvvcl006' to 'vvv006' to match the rest of the VVV clusters:
+ - DONOR20: "VVV CL006,VVV 006" -> "VVV 006,VVV CL006"
+ - UCC_cat_25020211:
+   - 13188: "VVV CL006;VVV 006;VVV 6;VVV-CL 006" -> "VVV 006;VVV CL006;VVV 6;VVV-CL 006"
+   - 13188: "vvvcl006;vvv006;vvv6" -> "vvv006;vvvcl006;vvv6"
+   - 13189: "sai116;teutsch230;vvvcl006" -> "sai116;teutsch230;vvv006"
+   - 13190: "sai116;oc0572;vvvcl006" -> "sai116;oc0572;vvv006"
+   - 13192: "oc0572;teutsch230;vvvcl006" -> "oc0572;teutsch230;vvv006"
+ - UCC/Q4N/datafiles/vvvcl006.parquet -> vvv006.parquet
+ - UCC/Q4N/plots/vvvcl006.webp -> vvv006.webp
+ - UCC/Q4N/plots/vvvcl006_aladin.webp -> vvv006_aladin.webp
+ - UCC/ucc/_clusters/vvvcl006.md -> vvv006.md
+
+
+## 25020211
+
+- Added BORISSOVA2011
+
+
+## 25012716
+
+- Added GLUSHKOVA2010
+
+
+## 25012710
+
+- Removed columns: "dups_fnames", "dups_probs"
+
+
+## 25012510
+
+- Removed columns: "N_fixed", "fixed_cent", "cent_flags"
+
+```
+import csv
+import pandas as pd
+
+df = pd.read_csv("UCC_cat_25012510.csv")
+df = df.drop(columns=["N_fixed", "fixed_cent", "cent_flags"])
+df.to_csv(
+    "UCC_cat_25012510_2.csv",
+    na_rep="nan",
+    index=False,
+    quoting=csv.QUOTE_NONNUMERIC,
+)
+```
+
+
+## 24123010
+
+- Changed CHI2023 DBs names:
+ - CHI2023   -> CHI2023_1
+ - CHI2023_2 -> CHI2023
+ - CHI2023_3 -> CHI2023_2
+
+
+## 24122618
+
+- Added CHEN2003
+
+
+## 241213
+
+- Changed cent_flags column: 0 -> n ; 1 -> y
+
+
+## 241212
+
+Changed names:
+
+ - CMaXX --> 'CMa XX' for XX in: (00, 01, 03, 05, 05, 07, 07, 09, 13, 15, 17, 18, 19, 23)
+ - XDOCC-XX --> 'XDOCC XX' for XX in: (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
+
+Removed names (unnecessary duplicates):
+
+ - Andrews Lindsay 5
+ - Alessi Teutsch11; Alessi Teutsch 11
+ - UBC 10 a
+ - UBC 10 b
+ - Alessi Teutsch5; Alessi Teutsch 5
+ - Pismis Moreno1; Pismis Moreno 1
+ - Aveni Hunter1; Aveni Hunter 1
+ - Juchert Saloran1
+ - Alessi Teutsch10
+ - Dol Dzim 4
+ - Dutra Bica83
+ - Basel 11A
+ - Basel 11B
+ - UBC 17 b
+ - UBC 17 a
+ - vdB 1
+ - FOF 2302
+ - VdB 92
+ - AH03 J0748 26.9
+ - Arp Madore 2
+ - vdBergh_Hagen_4
+ - Alessi Teutsch7
+ - Alessi Teutsch3;Alessi Teutsch 3
+ - vdBergh_Hagen_63
+ - Alessi Teutsch8;Alessi Teutsch 8
+ - vdBergh_Hagen_131
+ - Alessi Teutsch 12
+ - Havlen Moffat 1
+ - Juchert Saloran 1
+
+
+## 241211
+
+- Add '19' and 20' to all DBs names to use full years
+
+
+## 241210
+
+- plx -> Plx (column names)
+- rm 'N_menbs' column
