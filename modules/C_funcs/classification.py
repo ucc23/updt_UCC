@@ -9,7 +9,9 @@ from scipy.special import loggamma
 from scipy.stats import gaussian_kde
 
 
-def get_classif(df_membs: pd.DataFrame, df_field: pd.DataFrame) -> str:
+def get_classif(
+    df_membs: pd.DataFrame, df_field: pd.DataFrame
+) -> tuple[float, float, str]:
     """
     Calculates classification metrics C1, C2, and C3 for a cluster.
 
@@ -41,8 +43,7 @@ def get_classif(df_membs: pd.DataFrame, df_field: pd.DataFrame) -> str:
 
     C3 = ABCD_classif(C1) + ABCD_classif(C2)
 
-    # return round(C1, 2), round(C2, 2), C3
-    return C3
+    return round(C1, 2), round(C2, 2), C3
 
 
 def lkl_phot(
