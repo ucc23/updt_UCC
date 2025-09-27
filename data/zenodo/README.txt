@@ -1,7 +1,7 @@
 # The Unified Cluster Catalogue (UCC)
 
-These files correspond to the 250821 version of the UCC database (https://ucc.ar),
-composed of 16588 clusters with a combined 1048454 members.
+These files correspond to the 250927 version of the UCC database (https://ucc.ar),
+composed of 16588 clusters with a combined 1048369 members.
 If you find this data useful please cite its associated article
 ([Perren et al. 2023](https://ui.adsabs.harvard.edu/abs/2023MNRAS.526.4107P))
 using the following BibTex snippet:
@@ -39,19 +39,18 @@ paper:
 | UCC_members.parquet  | List of members for the clusters in the UCC catalogue |
 --------------------------------------------------------------------------------
 
-Columns listed in the `UCC_cat.csv` file:
+Columns listed in the `UCC_cat.csv` file (one row per cluster):
 
 ```
-UCC_ID              : Internal UCC naming
-ID                  : Name(s) associated to the OC
-RA_ICRS             : Median right ascension
-DE_ICRS             : Median declination
-GLON                : Medan galactic longitude
-GLAT                : Median galactic latitude
-Plx                 : Median parallax
-pmRA                : Median right ascension proper motion
-pmDE                : Median declination proper motion
-Rv                  : Median radial velocity
+Name                : Name(s) associated to the OC
+RA_ICRS             : Right ascension
+DE_ICRS             : Declination
+GLON                : Galactic longitude
+GLAT                : Galactic latitude
+Plx                 : Parallax
+pmRA                : Right ascension proper motion
+pmDE                : Declination proper motion
+Rv                  : Radial velocity
 N_Rv                : Number of members used to estimate the radial velocity
 N_50                : Number of estimated members with P>0.5
 r_50                : Radius that contains half the members (in arcmin)
@@ -60,13 +59,13 @@ shared_members      : Names of clusters with shared members
 shared_members_perc : Percentage of shared members for each cluster
 ```
 
-Columns listed in the `UCC_members.parquet` file:
+Columns listed in the `UCC_members.parquet` file (one row per star):
 
 ```
 name      : Cluster's main name
 Source    : Gaia identification
-RA_ICRS   : RA
-DE_ICRS   : DEC
+RA_ICRS   : Right ascension
+DE_ICRS   : Declination
 Plx       : Parallax
 e_Plx     : Parallax error
 pmRA      : Proper motion in RA
