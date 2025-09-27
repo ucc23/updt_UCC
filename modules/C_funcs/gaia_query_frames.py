@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from .utils import radec2lonlat
+from ..utils import radec2lonlat
 
 
 def query_run(
