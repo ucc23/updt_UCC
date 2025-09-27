@@ -1,266 +1,122 @@
 import csv
-import datetime
-import json
 import os
+import shutil
 import sys
 
 import numpy as np
 import pandas as pd
-from fastparquet import ParquetFile
 from scipy.spatial.distance import cdist
 
-from .member_files_updt_funcs import get_fastMP_membs
+from .C_funcs.member_files_updt_funcs import (
+    get_fastMP_membs,
+    save_cl_datafile,
+    updt_UCC_new_cl_data,
+)
 from .utils import (
     diff_between_dfs,
-    get_last_version_UCC,
     logger,
     save_df_UCC,
 )
 from .variables import (
     GCs_cat,
-    UCC_archive,
-    data_folder,
     UCC_members_file,
-    manual_pars_file,
-    members_folder,
-    parquet_dates,
+    data_folder,
+    merged_dbs_file,
     path_gaia_frames,
     path_gaia_frames_ranges,
     temp_folder,
+    temp_members_folder,
+    ucc_cat_file,
+    zenodo_cat_fname,
+    zenodo_folder,
 )
 
 
 def main():
-    """Second function to update the UCC (Unified Cluster Catalogue) with a new
-    database
-    """
+    """Second function to update the UCC (Unified Cluster Catalogue)"""
     logging = logger()
-
     logging.info("=== Running C script ===\n")
 
     # Generate paths and check for required folders and files
-    (
-        ucc_file,
-        temp_zenodo_fold,
-        UCC_new_version,
-        new_ucc_file,
-        archived_UCC_file,
-    ) = get_paths_check_paths(logging)
+    ucc_B_file, ucc_C_file, temp_zenodo_fold = get_paths_check_paths(logging)
 
-    (
-        gaia_frames_data,
-        df_GCs,
-        df_UCC_B,
-        manual_pars,
-    ) = load_data(logging)
-
-    # if run_mode == "manual":
-    #     # Read OCs manual parameters
-    #     manual_pars = pd.read_csv(manual_pars_file)
-    #     # Find repeated entries in 'fname' column
-    #     msk = manual_pars["fname"].duplicated()
-    #     if msk.sum() > 0:
-    #         rep_fnames = ", ".join([_ for _ in manual_pars[msk]["fname"]])
-    #         raise ValueError(
-    #             f"Repeated entries in {manual_pars_file} file:\n{rep_fnames}"
-    #         )
-
-    # if run_mode == "manual":
-    #     logging.info("\n=== Running in 'manual' mode ===\n")
-
-    #     fname_UCC = df_UCC_old["fnames"].str.split(";").str[0]
-    #     # Find matches between df1['name'] and df2['first_fnames']
-    #     matches = fname_UCC.isin(manual_pars["fname"])
-    #     # Update `N_50` for matching rows
-    #     df_UCC_old.loc[matches, "N_50"] = np.nan
-    #     #
-    #     df_UCC_new = df_UCC_old
-
-    # Entries with no 'N_50' value are identified as new and processed with fastMP
-    # N_new = np.isnan(df_UCC_B["N_50"]).sum()
-
-    # # Add UCC_IDs and quadrants for new clusters
-    # ucc_ids_old = list(df_UCC_old["UCC_ID"].values)
-    # for i, UCC_ID in enumerate(new_db_dict["UCC_ID"]):
-    #     # Only process new OCs
-    #     if str(UCC_ID) != "nan":
-    #         continue
-    #     new_db_dict["UCC_ID"][i] = assign_UCC_ids(
-    #         logging, new_db_dict["GLON"][i], new_db_dict["GLAT"][i], ucc_ids_old
-    #     )
-    #     new_db_dict["quad"][i] = QXY_fold(new_db_dict["UCC_ID"][i])
-    #     ucc_ids_old += [new_db_dict["UCC_ID"][i]]
-
-    if N_new == 0:
-        logging.info("\nNo new OCs to process")
-        df_UCC_final = df_UCC_B
-        json_date_data, df_members = None, None
-        # Count number of members in current file
-        N_members = ParquetFile(UCC_folder + UCC_members_file).count()
-    else:
-        logging.info(f"\nProcessing {N_new} new OCs")
-
-        # # Load file if it already exists and the .parquet files were generated
-        # df_UCC_updt = pd.read_csv(temp_fold + "df_UCC_updt.csv")
-
-        # Generate member files for new OCs and obtain their data
-        df_UCC_updt = member_files_updt(
-            logging, df_UCC_B, gaia_frames_data, df_GCs, manual_pars
-        )
-
-        # Update the UCC with the new OCs member's data
-        df_UCC_new = update_UCC_membs_data(df_UCC_B, df_UCC_updt)
-        logging.info(f"UCC database updated ({len(df_UCC_new)} entries)")
-        diff_between_dfs(logging, df_UCC_B, df_UCC_new)
-
-        # Combine individual parquet members file into a single one. Also update
-        # dates of their updating
-        df_comb, json_date_data = gen_comb_members_file(logging)
-        logging.info(f"Combined members file generated ({len(df_comb)} stars)")
-
-        # Generate final updated members file
-        df_members = update_membs_file(logging, df_comb)
-        N_members = len(df_members)
-        logging.info(f"Zenodo '{UCC_members_file}' file updated")
-
-        # Find shared members between OCs
-        df_UCC_final = find_shared_members(logging, df_UCC_new, df_members)
-        logging.info("Shared members data updated in UCC")
-
-    # def assign_UCC_ids(logging, glon: float, glat: float, ucc_ids_old: list[str]) -> str:
-    #     """
-    #     Assigns a new UCC ID based on galactic coordinates, avoiding duplicates.
-
-    #     Format: UCC GXXX.X+YY.Y
-
-    #     Parameters
-    #     ----------
-    #     logging : logging.Logger
-    #         Logger object for outputting information.
-    #     glon : float
-    #         Galactic longitude.
-    #     glat : float
-    #         Galactic latitude.
-    #     ucc_ids_old : list
-    #         List of existing UCC IDs.
-
-    #     Returns
-    #     -------
-    #     str
-    #         A new, unique UCC ID.
-    #     """
-
-    #     def trunc(values, decs=1):
-    #         return np.trunc(values * 10**decs) / (10**decs)
-
-    #     ll = trunc(np.array([glon, glat]).T)
-    #     lon, lat = str(ll[0]), str(ll[1])
-
-    #     if ll[0] < 10:
-    #         lon = "00" + lon
-    #     elif ll[0] < 100:
-    #         lon = "0" + lon
-
-    #     if ll[1] >= 10:
-    #         lat = "+" + lat
-    #     elif ll[1] < 10 and ll[1] > 0:
-    #         lat = "+0" + lat
-    #     elif ll[1] == 0:
-    #         lat = "+0" + lat.replace("-", "")
-    #     elif ll[1] < 0 and ll[1] >= -10:
-    #         lat = "-0" + lat[1:]
-    #     elif ll[1] < -10:
-    #         pass
-
-    #     ucc_id = "UCC G" + lon + lat
-
-    #     i = 0
-    #     while True:
-    #         if i > 25:
-    #             ucc_id += "ERROR"
-    #             logging.info(f"ERROR NAMING: {glon}, {glat} --> {ucc_id}")
-    #             break
-    #         if ucc_id in ucc_ids_old:
-    #             if i == 0:
-    #                 # Add a letter to the end
-    #                 ucc_id += ascii_lowercase[i]
-    #             else:
-    #                 # Replace last letter
-    #                 ucc_id = ucc_id[:-1] + ascii_lowercase[i]
-    #             i += 1
-    #         else:
-    #             break
-
-    #     return ucc_id
-
-    # def QXY_fold(UCC_ID: str) -> str:
-    #     """
-    #     Determines the quadrant and north/south designation of a cluster based on its UCC ID.
-
-    #     Parameters
-    #     ----------
-    #     UCC_ID : str
-    #         The UCC ID of the cluster.
-
-    #     Returns
-    #     -------
-    #     str
-    #         A string representing the quadrant and north/south designation (e.g., "Q1P",
-    #         "Q3N").
-    #     """
-    #     # UCC_ID = cl['UCC_ID']
-    #     lonlat = UCC_ID.split("G")[1]
-    #     lon = float(lonlat[:5])
-    #     try:
-    #         lat = float(lonlat[5:])
-    #     except ValueError:
-    #         lat = float(lonlat[5:-1])
-
-    #     Qfold = "Q"
-    #     if lon >= 0 and lon < 90:
-    #         Qfold += "1"
-    #     elif lon >= 90 and lon < 180:
-    #         Qfold += "2"
-    #     elif lon >= 180 and lon < 270:
-    #         Qfold += "3"
-    #     elif lon >= 270 and lon < 3600:
-    #         Qfold += "4"
-    #     if lat >= 0:
-    #         Qfold += "P"
-    #     else:
-    #         Qfold += "N"
-
-    #     return Qfold
-
-    # Save the generated data to temporary files before moving them
-    update_files(
-        logging,
-        UCC_new_version,
-        new_ucc_file,
-        temp_zenodo_fold,
-        json_date_data,
-        df_members,
-        N_members,
-        df_UCC_final,
+    (gaia_frames_data, df_GCs, df_members, df_UCC_B, df_UCC_C) = load_data(
+        logging, ucc_B_file, ucc_C_file
     )
 
+    # Detect entries to be processed
+    B_not_in_C, C_not_in_B, C_reprocess = detect_entries_to_process(df_UCC_B, df_UCC_C)
+
+    N_process = len(B_not_in_C) + len(C_not_in_B) + len(C_reprocess)
+    if N_process == 0:
+        logging.info("\nNo new OCs to process")
+        # N_members = ParquetFile(UCC_members_file).count()
+        return
+
+    logging.info(
+        f"\nProcessing:\n-B entries not in C : {len(B_not_in_C)}\n"
+        + f"-C entries not in B : {len(C_not_in_B)}\n"
+        + f"-Entries marked in C: {len(C_reprocess)}"
+    )
+
+    load_file = False
+    temp_UCC_updt_file = temp_folder + "df_UCC_C_updt.csv"
+    if os.path.isfile(temp_UCC_updt_file):
+        if (
+            input(f"\nLoad existing '{temp_UCC_updt_file}' file? (y/n): ").lower()
+            == "y"
+        ):
+            load_file = True
+
+    if load_file:
+        # Load file if it already exists and the .parquet files were generated
+        df_UCC_C_updt = pd.read_csv(temp_folder + "df_UCC_C_updt.csv")
+        logging.info("\nTemp file df_UCC_C_updt loaded")
+    else:
+        # Generate dataframe to store data extracted from the OCs to be processed
+        df_UCC_C_updt = process_entries(df_UCC_B, B_not_in_C, C_reprocess)
+
+        # Generate member files for new OCs and obtain their data
+        df_UCC_C_updt = member_files_updt(
+            logging, gaia_frames_data, df_GCs, df_UCC_C, df_UCC_C_updt
+        )
+
+    # Update the UCC with the new OCs member's data. Remove here entries in C that
+    # are no longer in B in both the C and members dataframes
+    df_members_new, df_UCC_C_new = update_UCC_membs_data(
+        df_members, C_not_in_B, df_UCC_C, df_UCC_C_updt
+    )
+    logging.info(
+        f"UCC database C updated: ({len(df_UCC_C_new)} entries; {len(df_members_new)} members)"
+    )
+
+    # Updated members file
+    df_members_new = update_membs_file(logging, df_members_new)
+    logging.info(f"Zenodo '{UCC_members_file}' file updated")
+
+    # Find shared members between OCs and update df_UCC_C_new dataframe
+    df_UCC_C_final = find_shared_members(logging, df_UCC_C_new, df_members_new)
+    logging.info("Shared members data updated in UCC")
+
+    # Check differences between the original and final C dataframes
+    diff_between_dfs(logging, df_UCC_C, df_UCC_C_final)
+
+    # Check the 'fnames' columns in df_UCC_B and df_UCC_C_final dataframes are equal
+    if not df_UCC_B["fnames"].equals(df_UCC_C_final["fnames"]):
+        raise ValueError("The 'fnames' columns in B and final C dataframes differ")
+
+    # Save the generated data to temporary files before moving them
+    update_files(logging, temp_zenodo_fold, df_UCC_B, df_UCC_C_final, df_members_new)
+
     if input("\nMove files to their final paths? (y/n): ").lower() == "y":
-        move_files(logging, temp_zenodo_fold, ucc_file, archived_UCC_file, new_ucc_file)
+        move_files(logging, temp_zenodo_fold)
 
     # if input("\nRemove temporary files and folders? (y/n): ").lower() == "y":
     #     # shutil.rmtree(temp_fold)
     #     logging.info(f"Folder removed: {temp_fold}")
 
 
-def get_paths_check_paths(
-    logging,
-) -> tuple[
-    str,
-    str,
-    str,
-    str,
-    str,
-]:
+def get_paths_check_paths(logging) -> tuple[str, str, str]:
     """ """
     txt = ""
     # Check for Gaia files
@@ -275,136 +131,198 @@ def get_paths_check_paths(
         if input("Move on? (y/n): ").lower() != "y":
             sys.exit()
 
-    # If file exists, warn
-    if os.path.isfile(temp_fold + "df_UCC_updt.csv"):
-        logging.warning(
-            "WARNING: file 'df_UCC_updt.csv' exists. Moving on will re-write it"
-        )
+    # If temp file exists, warn
+    temp_f = temp_folder + ucc_cat_file
+    if os.path.isfile(temp_f):
+        logging.warning(f"WARNING: file {temp_f} exists. Moving on will re-write it")
         if input("Move on? (y/n): ").lower() != "y":
             sys.exit()
 
-    # Create folder to store parquet member files
-    out_path = temp_fold + members_folder
-    if not os.path.exists(out_path):
-        os.makedirs(out_path)
+    # Create folder to store the per-cluster parquet member files
+    if not os.path.exists(temp_members_folder):
+        os.makedirs(temp_members_folder)
     else:
-        if len(os.listdir(out_path)) > 0:
+        if len(os.listdir(temp_members_folder)) > 0:
             logging.warning(
-                f"WARNING: There are .parquet files in '{out_path}'. If left there,"
-                + "\nthey will be used when the script combines the"
-                + " final members data"
+                f"WARNING: There are .parquet files in '{temp_members_folder}'. If left"
+                + "there,\nthey will be used when the script combines the final members data"
             )
             if input("Move on? (y/n): ").lower() != "y":
                 sys.exit()
 
-    last_version = get_last_version_UCC(UCC_folder)
-    # Path to the current UCC csv file
-    ucc_file = UCC_folder + last_version
-
     # Temporary zenodo/ folder
-    temp_zenodo_fold = temp_fold + UCC_folder
+    temp_zenodo_fold = temp_folder + zenodo_folder
     # Create if required
     if not os.path.exists(temp_zenodo_fold):
         os.makedirs(temp_zenodo_fold)
 
-    # Path to the new (temp) version of the UCC database
-    new_version = datetime.datetime.now().strftime("%Y%m%d%H")[2:]
-    new_ucc_file = "UCC_cat_" + new_version + ".csv"
-    # # Check if file already exists
-    # if os.path.exists(temp_zenodo_fold + new_ucc_file):
-    #     logging.info(
-    #         f"File {temp_zenodo_fold + new_ucc_file} already exists. "
-    #         + "Moving on will re-write it"
-    #     )
-    #     if input("Move on? (y/n): ").lower() != "y":
-    #         sys.exit()
+    # Path to the current UCC csv files
+    ucc_B_file = data_folder + merged_dbs_file
+    ucc_C_file = data_folder + ucc_cat_file
 
-    # Path to archive the current UCC csv file
-    archived_UCC_file = UCC_archive + last_version.replace(".csv", ".csv.gz")
-
-    return (
-        ucc_file,
-        temp_zenodo_fold,
-        new_version,
-        new_ucc_file,
-        archived_UCC_file,
-    )
+    return ucc_B_file, ucc_C_file, temp_zenodo_fold
 
 
-def load_data(logging) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+def load_data(
+    logging, ucc_B_file, ucc_C_file
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """ """
     # Load file with Gaia frames ranges
     gaia_frames_data = pd.DataFrame([])
     if os.path.isfile(path_gaia_frames_ranges):
         gaia_frames_data = pd.read_csv(path_gaia_frames_ranges)
-    # else:
-    #     warnings.warn(f"File {path_gaia_frames_ranges} not found")
 
     # Load GCs data
     df_GCs = pd.read_csv(GCs_cat)
 
-    df_UCC_B = pd.read_csv(temp_fold + "df_UCC_B_updt.csv")
-    logging.info(f"\nFile 'df_UCC_B_updt.csv' loaded ({len(df_UCC_B)} entries)")
+    # Load current members file
+    df_members = pd.read_parquet(zenodo_folder + UCC_members_file)
 
-    # Dummy
-    manual_pars = pd.DataFrame()
-    if run_mode == "manual":
-        # Read OCs manual parameters
-        manual_pars = pd.read_csv(manual_pars_file)
+    # Load current CSV data files
+    df_UCC_B = pd.read_csv(ucc_B_file)
+    logging.info(f"\nFile {ucc_B_file} loaded ({len(df_UCC_B)} entries)")
+    df_UCC_C = pd.read_csv(ucc_C_file)
+    logging.info(f"File {ucc_C_file} loaded ({len(df_UCC_C)} entries)")
 
-    return gaia_frames_data, df_GCs, df_UCC_B, manual_pars
+    return gaia_frames_data, df_GCs, df_members, df_UCC_B, df_UCC_C
+
+
+def detect_entries_to_process(
+    df_UCC_B: pd.DataFrame, df_UCC_C: pd.DataFrame
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """
+
+    B_not_in_C  --> Add to C
+    C_not_in_B  --> Remove from C
+    C_reprocess --> Reprocess in C
+
+    """
+
+    # fnames_B = df_UCC_B["fnames"].to_list()
+    # fnames_C = df_UCC_C["fnames"].to_list()
+
+    # # Detect entries in C that are not in B and thus must be removed
+    # remove_C_entries = []
+    # for fname_C in fnames_C:
+    #     if fname_C not in fnames_B:
+    #         remove_C_entries.append(fname_C)
+
+    # new_B_entries = []
+    # for i, fname_B in enumerate(fnames_B):
+    #     fname_B0 = fname_B.split(";")[0]
+
+    #     fnameB_found = False
+    #     for j, fname_C in enumerate(fnames_C[i:]):
+    #         fname_C = fname_C.split(";")
+    #         if fname_B0 in fname_C:
+    #             if fname_B0 == fname_C[0]:
+    #                 fnameB_found = True
+    #                 break
+    #             else:
+    #                 raise ValueError(f"({i}) {fname_B} != ({j}) {fname_C}")
+    #     if fnameB_found is False:
+    #         new_B_entries.append(fname_B0)
+
+    # Entries that must be added to C
+    B_not_in_C = df_UCC_B[~df_UCC_B["fnames"].isin(df_UCC_C["fnames"])]
+
+    # Entries that must be removed from C
+    C_not_in_B = df_UCC_C[~df_UCC_C["fnames"].isin(df_UCC_B["fnames"])]
+
+    # Entries manually marked for re-processing in C
+    msk = df_UCC_C["process"] == "y"
+    C_reprocess = df_UCC_C[msk].copy()
+
+    # Check that these three dataframes don't share equal elements in their 'fnames' columns
+    df_names = ["B_not_in_C", "C_not_in_B", "C_reprocess"]
+    for i, df1 in enumerate([B_not_in_C, C_not_in_B, C_reprocess]):
+        for j, df2 in enumerate([B_not_in_C, C_not_in_B, C_reprocess]):
+            if i >= j:
+                continue
+            shared = set(df1["fnames"]) & set(df2["fnames"])
+            if len(shared) > 0:
+                raise ValueError(
+                    f"{df_names[i]} and {df_names[j]} share {len(shared)} elements"
+                )
+
+    return pd.DataFrame(B_not_in_C), pd.DataFrame(C_not_in_B), pd.DataFrame(C_reprocess)
+
+
+def process_entries(
+    df_UCC_B: pd.DataFrame, B_not_in_C: pd.DataFrame, C_reprocess: pd.DataFrame
+) -> pd.DataFrame:
+    """ """
+    # Extract all columns except "fnames"
+    B_cols = list(B_not_in_C.keys())
+    B_cols.remove("fnames")
+    C_cols = list(C_reprocess.keys())
+    C_cols.remove("fnames")
+    all_cols = B_cols + C_cols
+
+    # Generate empty dictionary with all the fnames to be processed
+    all_fnames = list(B_not_in_C["fnames"]) + list(C_reprocess["fnames"])
+    df_UCC_updt = {"fnames": all_fnames}
+    N_tot = len(all_fnames)
+    for k in all_cols:
+        df_UCC_updt[k] = [np.nan] * N_tot
+
+    # Add data from the B_not_in_C dataframe
+    for i, fname in enumerate(B_not_in_C["fnames"]):
+        j = df_UCC_updt["fnames"].index(fname)
+        for col in B_cols:
+            df_UCC_updt[col][j] = B_not_in_C[col].iloc[i]
+
+    # Add data from the C_reprocess dataframe and information from df_UCC_B
+    B_fnames_lst = list(df_UCC_B["fnames"])
+    for i, fname in enumerate(C_reprocess["fnames"]):
+        j = df_UCC_updt["fnames"].index(fname)
+        for col in C_cols:
+            df_UCC_updt[col][j] = C_reprocess[col].iloc[i]
+
+        # Add df_UCC_B data
+        k = B_fnames_lst.index(fname)
+        for col in B_cols:
+            df_UCC_updt[col][j] = df_UCC_B[col].iloc[k]
+
+    return pd.DataFrame(df_UCC_updt)
 
 
 def member_files_updt(
-    logging, df_UCC, gaia_frames_data, df_GCs, manual_pars
+    logging, gaia_frames_data, df_GCs, df_UCC_C, df_UCC_C_updt
 ) -> pd.DataFrame:
     """
     Updates the Unified Cluster Catalogue (UCC) with new open clusters (OCs).
     """
-    # For each new OC
-    df_UCC_updt = {
-        "UCC_idx": [],
-        "N_clust": [],
-        "N_clust_max": [],
-        "C3": [],
-        "GLON_m": [],
-        "GLAT_m": [],
-        "RA_ICRS_m": [],
-        "DE_ICRS_m": [],
-        "Plx_m": [],
-        "pmRA_m": [],
-        "pmDE_m": [],
-        "Rv_m": [],
-        "N_Rv": [],
-        "N_50": [],
-        "r_50": [],
-    }
-    N_cl = 0
-    for UCC_idx, new_cl in df_UCC.iterrows():
-        # Check if this is a new OC that should be processed
-        if not np.isnan(new_cl["N_50"]):
-            continue
-
+    for idx, cl_row in df_UCC_C_updt.iterrows():
+        # Extract some data
         fnames, ra_c, dec_c, glon_c, glat_c, pmra_c, pmde_c, plx_c = (
-            new_cl["fnames"],
-            float(new_cl["RA_ICRS"]),
-            float(new_cl["DE_ICRS"]),
-            float(new_cl["GLON"]),
-            float(new_cl["GLAT"]),
-            float(new_cl["pmRA"]),  # This can be nan
-            float(new_cl["pmDE"]),  # This can be nan
-            float(new_cl["Plx"]),  # This can be nan
+            cl_row["fnames"],
+            float(cl_row["RA_ICRS"]),
+            float(cl_row["DE_ICRS"]),
+            float(cl_row["GLON"]),
+            float(cl_row["GLAT"]),
+            float(cl_row["pmRA"]),  # This can be nan
+            float(cl_row["pmDE"]),  # This can be nan
+            float(cl_row["Plx"]),  # This can be nan
         )
         fname0 = str(fnames).split(";")[0]
-        logging.info(f"\n{N_cl} Processing {fname0} (idx={UCC_idx})")
+        logging.info(f"\n{idx} Processing {fname0}")
 
-        df_UCC_updt = get_fastMP_membs(
+        # Extract manual parameters if any
+        N_clust, N_clust_max, N_box, frame_limit = np.nan, np.nan, np.nan, ""
+        if str(cl_row["process"]) == "y":
+            N_clust, N_clust_max, N_box, frame_limit = cl_row[
+                ["N_clust", "N_clust_max", "N_box", "frame_limit"]
+            ]
+        if isinstance(frame_limit, float) or frame_limit == "nan":
+            frame_limit = ""
+
+        df_field, df_membs = get_fastMP_membs(
             logging,
-            manual_pars,
-            df_UCC,
             df_GCs,
             gaia_frames_data,
-            UCC_idx,
+            df_UCC_C,  # Used by close objects check
+            fname0,
             ra_c,
             dec_c,
             glon_c,
@@ -412,56 +330,78 @@ def member_files_updt(
             pmra_c,
             pmde_c,
             plx_c,
-            fname0,
-            df_UCC_updt,
+            N_clust,
+            N_clust_max,
+            N_box,
+            frame_limit,
         )
+
+        # Write selected member stars to file
+        save_cl_datafile(logging, fname0, df_membs)
+
+        # Store data from this new entry used to update the UCC
+        df_UCC_C_updt = updt_UCC_new_cl_data(idx, df_UCC_C_updt, df_field, df_membs)
 
         # Update file with information. Do this for each iteration to avoid
         # losing data if something goes wrong with any cluster
-        df = pd.DataFrame(df_UCC_updt)
-        df.to_csv(temp_fold + "df_UCC_updt.csv", index=False, na_rep="nan")
-
-        N_cl += 1
+        df_UCC_C_updt.to_csv(
+            temp_folder + "df_UCC_C_updt.csv", index=False, na_rep="nan"
+        )
 
     # This dataframe (and file) contains the data extracted from all the new entries,
     # used to update the UCC
-    df_UCC_updt = pd.DataFrame(df_UCC_updt)
-    logging.info("\nTemp file df_UCC_updt saved")
+    df_UCC_updt = pd.DataFrame(df_UCC_C_updt)
+    logging.info("\nTemp file df_UCC_C_updt saved")
 
     return df_UCC_updt
 
 
-def update_UCC_membs_data(df_UCC, df_UCC_updt) -> pd.DataFrame:
+def update_UCC_membs_data(
+    df_members: pd.DataFrame,
+    C_not_in_B: pd.DataFrame,
+    df_UCC_C: pd.DataFrame,
+    df_UCC_C_updt: pd.DataFrame,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Update the UCC database using the data extracted from the processed OCs'
     members.
     """
-    # Generate copy to not disturb the dataframe given to this function which is
-    # later used to generate the diffs files
-    df_inner = df_UCC.copy()
+    if len(C_not_in_B) > 0:
+        remove_entries = [_.split(";")[0] for _ in C_not_in_B["fnames"]]
 
-    # Update 'df_inner' using 'df_UCC_updt' data
-    for _, row in df_UCC_updt.iterrows():
-        UCC_idx = row["UCC_idx"]
-        for key, val in row.items():
-            if key == "UCC_idx":
-                continue
-            df_inner.at[UCC_idx, key] = val
+        # Remove entries from df_members in the 'name' column
+        msk = ~df_members["name"].isin(remove_entries)
+        df_members_new = pd.DataFrame(df_members[msk])
 
-    return df_inner
+        # Remove elements in C_not_in_B["fnames"] from df_UCC_C
+        msk = ~df_UCC_C["fnames"].isin(C_not_in_B["fnames"])
+        df_UCC_C_new = pd.DataFrame(df_UCC_C[msk])
+    else:
+        df_members_new = df_members
+        df_UCC_C_new = df_UCC_C.copy()
+
+    # Update df_UCC_C_new using data from df_UCC_C_updt
+    fnames_lst = list(df_UCC_C_new["fnames"])
+    for _, row in df_UCC_C_updt.iterrows():
+        fname = row["fnames"]
+        if fname in fnames_lst:
+            i = fnames_lst.index(fname)
+            for col in df_UCC_C_new.columns:
+                df_UCC_C_new.at[i, col] = row[col]
+
+    return df_members_new, df_UCC_C_new
 
 
-def gen_comb_members_file(logging) -> tuple[pd.DataFrame, dict]:
+def gen_comb_members_file(logging) -> pd.DataFrame:
     """Combine individual parquet files into a single temporary one"""
 
     # Path to folder with individual .parquet files
-    path = temp_fold + members_folder
-    member_files = os.listdir(path)
+    member_files = os.listdir(temp_members_folder)
 
     logging.info(f"Combining {len(member_files)} .parquet files...")
-    json_date_data, tmp = {}, []
+    tmp = []
     for file in member_files:
-        df = pd.read_parquet(path + file)
+        df = pd.read_parquet(temp_members_folder + file)
 
         # Round before storing
         df[["RA_ICRS", "DE_ICRS", "GLON", "GLAT"]] = df[
@@ -505,28 +445,28 @@ def gen_comb_members_file(logging) -> tuple[pd.DataFrame, dict]:
         df.insert(loc=0, column="name", value=fname)
         tmp.append(df)
 
-        # Update entry for this file
-        json_date_data[fname] = (
-            f"updated ({datetime.datetime.now().strftime('%y%m%d%H')})"
-        )
+        # # Update entry for this file
+        # json_date_data[fname] = (
+        #     f"updated ({datetime.datetime.now().strftime('%y%m%d%H')})"
+        # )
 
     # Concatenate all temporary DataFrames into one
     df_comb = pd.concat(tmp, ignore_index=True)
 
-    return df_comb, json_date_data
+    return df_comb
 
 
-def update_membs_file(logging, df_comb) -> pd.DataFrame:
+def update_membs_file(logging, df_members: pd.DataFrame) -> pd.DataFrame:
     """
     Update the parquet file containing estimated members from the
     Unified Cluster Catalog (UCC) dataset, formatted for storage in the Zenodo
     repository.
     """
-    logging.info("Updating members file...")
+    # Concatenate all temporary DataFrames into one
+    df_comb = gen_comb_members_file(logging)
 
-    # Load current members file
-    zenodo_members_file = UCC_folder + UCC_members_file
-    df_members = pd.read_parquet(zenodo_members_file)
+    #
+    logging.info("Updating members file...")
 
     # Get the list of names in each DataFrame
     names_df1 = set(df_members["name"])
@@ -657,65 +597,46 @@ def find_intersections(df, df_members):
 
 def update_files(
     logging,
-    UCC_new_version: str,
-    new_ucc_file: str,
     temp_zenodo_fold: str,
-    json_date_data: dict | None,
-    df_members: pd.DataFrame | None,
-    N_members: int,
-    df_UCC_final: pd.DataFrame,
+    df_UCC_B: pd.DataFrame,
+    df_UCC_C_final: pd.DataFrame,
+    df_members_new: pd.DataFrame,
 ):
     """ """
     # Generate updated full UCC catalogue
-    logging.info("\nUpdate files:")
+    logging.info("Update files:")
 
     # Save updated UCC to temporary CSV file
-    ucc_temp = temp_zenodo_fold + new_ucc_file
-    save_df_UCC(logging, df_UCC_final, ucc_temp)
+    save_df_UCC(logging, df_UCC_C_final, temp_folder + ucc_cat_file, "fnames")
 
-    file_path = temp_zenodo_fold + "UCC_cat.csv"
-    updt_zenodo_csv(logging, df_UCC_final, file_path)
+    fpath = temp_zenodo_fold + zenodo_cat_fname
+    updt_zenodo_csv(logging, df_UCC_B, df_UCC_C_final, fpath)
 
-    N_clusters = len(df_UCC_final)
-    updt_readme(logging, UCC_new_version, N_clusters, N_members, temp_zenodo_fold)
+    N_clusters, N_members = len(df_UCC_C_final), len(df_members_new)
+    updt_readme(logging, N_clusters, N_members, temp_zenodo_fold)
 
-    if df_members is not None:
-        # Update JSON dates file
-        fname_json = UCC_folder + parquet_dates
-        # Load the current JSON file
-        with open(fname_json, "r") as f:
-            json_data = json.load(f)
-        # Update JSON data
-        json_data.update(json_date_data)
-        # Save the updated JSON to temp file
-        fname_json_temp = temp_zenodo_fold + parquet_dates
-        with open(fname_json_temp, "w") as f:
-            json.dump(json_data, f, indent=2)
-        logging.info(f"JSON file with dates updated: '{fname_json_temp}'")
-
-        zenodo_members_file_temp = temp_zenodo_fold + UCC_members_file
-        df_members.to_parquet(zenodo_members_file_temp, index=False)
-        logging.info(f"Members file updated: '{zenodo_members_file_temp}'")
+    zenodo_members_file_temp = temp_zenodo_fold + UCC_members_file
+    df_members_new.to_parquet(zenodo_members_file_temp, index=False)
+    logging.info(f"Zenodo members file: '{zenodo_members_file_temp}'")
 
 
-def updt_zenodo_csv(logging, df_UCC: pd.DataFrame, file_path: str) -> None:
+def updt_zenodo_csv(
+    logging, df_UCC_B: pd.DataFrame, df_UCC_C: pd.DataFrame, file_path: str
+) -> None:
     """
     Generates a CSV file containing a reduced Unified Cluster Catalog
     (UCC) dataset, which can be stored in the Zenodo repository.
     """
-
-    # Add 'fname' column
-    df = df_UCC.copy()
-    df["fname"] = df["fnames"].str.split(";").str[0]
+    # Add column
+    df_UCC_C["Name"] = df_UCC_B["Names"]
 
     # Re-order columns
-    df = pd.DataFrame(
-        df[
+    df_UCC_C = pd.DataFrame(
+        df_UCC_C[
             [
-                "UCC_ID",
-                "ID",
-                "RA_ICRS",
-                "DE_ICRS",
+                "Name",
+                "RA_ICRS_m",
+                "DE_ICRS_m",
                 "GLON_m",
                 "GLAT_m",
                 "Plx_m",
@@ -732,8 +653,10 @@ def updt_zenodo_csv(logging, df_UCC: pd.DataFrame, file_path: str) -> None:
         ]
     )
     # Re-name columns
-    df.rename(
+    df_UCC_C.rename(
         columns={
+            "RA_ICRS_m": "RA_ICRS",
+            "DE_ICRS_m": "DEC_ICRS",
             "GLON_m": "GLON",
             "GLAT_m": "GLAT",
             "Plx_m": "Plx",
@@ -746,22 +669,22 @@ def updt_zenodo_csv(logging, df_UCC: pd.DataFrame, file_path: str) -> None:
     )
 
     # Store to csv file
-    df.to_csv(
+    df_UCC_C.to_csv(
         file_path,
         na_rep="nan",
         index=False,
         quoting=csv.QUOTE_NONNUMERIC,
     )
 
-    logging.info(f"Zenodo '.csv' file generated: '{file_path}'")
+    logging.info(f"Zenodo '.csv' file: '{file_path}'")
 
 
 def updt_readme(
-    logging, new_version: str, N_clusters: int, N_members: int, temp_zenodo_fold: str
+    logging, N_clusters: int, N_members: int, temp_zenodo_fold: str
 ) -> None:
     """Update info number in README file uploaded to Zenodo"""
 
-    XXXX = str(new_version[:-2])
+    XXXX = pd.Timestamp.now().strftime("%y%m%d")  # Date in format YYMMDD
     YYYY = str(N_clusters)
     ZZZZ = str(N_members)
     txt = [
@@ -770,7 +693,7 @@ def updt_readme(
     ]
 
     # Load the main file
-    in_file_path = UCC_folder + "README.txt"
+    in_file_path = zenodo_folder + "README.txt"
     with open(in_file_path, "r") as f:
         dataf = f.readlines()
         # Replace lines
@@ -781,62 +704,60 @@ def updt_readme(
     with open(out_file_path, "w") as f:
         f.writelines(dataf)
 
-    logging.info(f"Zenodo README file updated: '{out_file_path}'")
+    logging.info(f"Zenodo 'README' file: '{out_file_path}'")
 
 
-def move_files(
-    logging,
-    temp_zenodo_fold: str,
-    ucc_file: str,
-    archived_UCC_file: str,
-    new_ucc_file: str,
-) -> None:
+def move_files(logging, temp_zenodo_fold: str) -> None:
     """Move files to the appropriate folders"""
 
     # Move the README file
     file_path_temp = temp_zenodo_fold + "README.txt"
-    file_path = UCC_folder + "README.txt"
+    file_path = zenodo_folder + "README.txt"
     os.rename(file_path_temp, file_path)
     logging.info(file_path_temp + " --> " + file_path)
-
-    # Move the data dates file
-    file_path_temp = temp_zenodo_fold + parquet_dates
-    if os.path.isfile(file_path_temp):
-        file_path = UCC_folder + parquet_dates
-        os.rename(file_path_temp, file_path)
-        logging.info(file_path_temp + " --> " + file_path)
 
     # Move the Zenodo catalogue file
-    file_path_temp = temp_zenodo_fold + "UCC_cat.csv"
-    file_path = UCC_folder + "UCC_cat.csv"
+    file_path_temp = temp_zenodo_fold + zenodo_cat_fname
+    file_path = zenodo_folder + zenodo_cat_fname
     os.rename(file_path_temp, file_path)
     logging.info(file_path_temp + " --> " + file_path)
 
-    # Generate '.gz' compressed file for the old UCC and archive it
-    df = pd.read_csv(ucc_file)
+    # Move the final combined members parquet file
+    file_path_temp = temp_zenodo_fold + UCC_members_file
+    if os.path.isfile(file_path_temp):
+        # Save a copy to the archive folder first
+        archived_members = data_folder + "ucc_archived_nogit/" + UCC_members_file
+        shutil.copy(file_path_temp, archived_members)
+        logging.info(file_path_temp + " --> " + archived_members)
+        # Now rename
+        file_path = zenodo_folder + UCC_members_file
+        os.rename(file_path_temp, file_path)
+        logging.info(file_path_temp + " --> " + file_path)
+    # Delete left over individual parquet files?
+
+    # Generate '.gz' compressed file for the old C file and archive it
+    df = pd.read_csv(data_folder + ucc_cat_file)
+    now_time = pd.Timestamp.now().strftime("%y%m%d%H")
+    archived_C_file = (
+        data_folder
+        + "ucc_archived_nogit/"
+        + ucc_cat_file.replace(".csv", f"_{now_time}.csv.gz")
+    )
     df.to_csv(
-        archived_UCC_file,
+        archived_C_file,
         na_rep="nan",
         index=False,
         quoting=csv.QUOTE_NONNUMERIC,
+        compression="gzip"
     )
-    # Remove old UCC csv file
-    os.remove(ucc_file)
-    logging.info(ucc_file + " --> " + archived_UCC_file)
-    # Move new UCC file into place
-    ucc_stored = UCC_folder + new_ucc_file
-    ucc_temp = temp_zenodo_fold + new_ucc_file
+    # Remove old C csv file
+    os.remove(data_folder + ucc_cat_file)
+    logging.info(data_folder + ucc_cat_file + " --> " + archived_C_file)
+    # Move new C file into place
+    ucc_stored = data_folder + ucc_cat_file
+    ucc_temp = temp_folder + ucc_cat_file
     os.rename(ucc_temp, ucc_stored)
     logging.info(ucc_temp + " --> " + ucc_stored)
-
-    # Move the final combined parquet file
-    file_path_temp = temp_zenodo_fold + UCC_members_file
-    if os.path.isfile(file_path_temp):
-        file_path = UCC_folder + UCC_members_file
-        os.rename(file_path_temp, file_path)
-        logging.info(file_path_temp + " --> " + file_path)
-
-    # Delete all individual parquet files?
 
 
 if __name__ == "__main__":

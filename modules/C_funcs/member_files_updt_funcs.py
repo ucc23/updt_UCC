@@ -1,19 +1,19 @@
 import sys
+import warnings
 
 import numpy as np
 import pandas as pd
 from scipy.spatial.distance import cdist
 
-from .classification import get_classif
-from .gaia_query_frames import query_run
-from .utils import radec2lonlat
-from .variables import (
+from ..utils import radec2lonlat
+from ..variables import (
     gaia_max_mag,
     local_asteca_path,
-    members_folder,
     path_gaia_frames,
-    temp_folder,
+    temp_members_folder,
 )
+from .classification import get_classif
+from .gaia_query_frames import query_run
 
 # Local version
 sys.path.append(local_asteca_path)
@@ -24,35 +24,26 @@ print(f"ASteCA version: {asteca.__version__}")
 
 def get_fastMP_membs(
     logging,
-    manual_pars: pd.DataFrame,
-    df_UCC: pd.DataFrame,
     df_GCs: pd.DataFrame,
     gaia_frames_data,
-    UCC_idx: int,
-    ra_c: float,
-    dec_c: float,
-    glon_c: float,
-    glat_c: float,
-    pmra_c: float,
-    pmde_c: float,
-    plx_c: float,
-    fname0: str,
-    df_UCC_updt: dict,
-    rad_max: float = 5,
-) -> dict:
+    df_UCC_C: pd.DataFrame,
+    fname0,
+    ra_c,
+    dec_c,
+    glon_c,
+    glat_c,
+    pmra_c,
+    pmde_c,
+    plx_c,
+    N_clust,
+    N_clust_max,
+    N_box,
+    frame_limit,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     """ """
-    # If this is a 'manual' run, check if this OC is present in the file
-    N_clust, N_clust_max, Nbox, frame_limit = np.nan, np.nan, np.nan, ""
-    if manual_pars.empty is False:
-        row = manual_pars[manual_pars["fname"] == fname0]
-        if row.empty is False:
-            _, N_clust, N_clust_max, Nbox, frame_limit = row.to_numpy()[0]
-    if isinstance(frame_limit, float) or frame_limit == "nan":
-        frame_limit = ""
-
     # Obtain the full Gaia frame
     gaia_frame = get_gaia_frame(
-        logging, gaia_frames_data, fname0, ra_c, dec_c, plx_c, Nbox, frame_limit
+        logging, gaia_frames_data, fname0, ra_c, dec_c, plx_c, N_box, frame_limit
     )
     # gaia_frame.to_csv("temp_clust.csv", index=False)
     # breakpoint()
@@ -63,13 +54,13 @@ def get_fastMP_membs(
         + f"({my_field.pms_c[0]:.4f}, {my_field.pms_c[1]:.4f}), {my_field.plx_c:.4f}"
     )
 
-    N_clust, N_clust_max = get_Nmembs(logging, N_clust, N_clust_max, my_field)
+    get_Nmembs(logging, N_clust, N_clust_max, my_field)
 
-    # Only check if the number of members larger than the minimum value
+    # Only check if the number of members is larger than the minimum value
     if my_field.N_cluster > my_field.N_clust_min:
         check_close_cls(
             logging,
-            df_UCC,
+            df_UCC_C,
             gaia_frame,
             fname0,
             glon_c,
@@ -85,33 +76,16 @@ def get_fastMP_membs(
 
     # Run fastMP
     probs_fastmp = memb.fastmp()
-    logging.warning(f"probs_all>=0.5={(probs_fastmp >= 0.5).sum()}")
+    logging.info(f"probs_all>=0.5={(probs_fastmp >= 0.5).sum()}")
 
     # Check initial versus members centers
-    xy_c_m, vpd_c_m, plx_c_m = extract_centers(my_field, probs_fastmp)
-    # cent_flags = check_centers(
-    #     xy_c_m, vpd_c_m, plx_c_m, (glon_c, glat_c), (pmra_c, pmde_c), plx_c
-    # )[0]
-    # # "nnn" --> Centers are in agreement
-    # if cent_flags[0] != "n":
-    d_arcmin = np.sqrt((glon_c - glat_c) ** 2 + (xy_c_m[0] - xy_c_m[1]) ** 2) * 60
-    # Store information on the OCs that require attention
-    if d_arcmin > rad_max:
-        logging.warning(f"  Distance between centers: {d_arcmin:.1f}")
+    center_check(glon_c, glat_c, my_field, probs_fastmp)
 
     # Split into members and field stars according to the probability values
     # assigned
     df_field, df_membs = extract_members(gaia_frame, probs_fastmp)
 
-    # Write selected member stars to file
-    save_cl_datafile(logging, temp_fold, members_folder, fname0, df_membs)
-
-    # Store data from this new entry used to update the UCC
-    df_UCC_updt = updt_UCC_new_cl_data(
-        df_UCC_updt, UCC_idx, df_field, df_membs, N_clust, N_clust_max
-    )
-
-    return df_UCC_updt
+    return df_field, df_membs
 
 
 def get_gaia_frame(
@@ -121,7 +95,7 @@ def get_gaia_frame(
     ra_c,
     dec_c,
     plx_c,
-    Nbox: float,
+    N_box: float,
     frame_limit: str,
     N_min_stars: int = 100,
     box_length_add: float = 0.5,
@@ -152,8 +126,8 @@ def get_gaia_frame(
     while True:
         # Get frame limits
         box_s, plx_min = get_frame_limits(fname0, plx_c, extra_length)
-        if not np.isnan(Nbox):
-            box_s = box_s * Nbox
+        if not np.isnan(N_box):
+            box_s = box_s * N_box
 
         # Request Gaia frame
         gaia_frame = query_run(
@@ -323,7 +297,7 @@ def get_Nmembs(
     N_clust: float,
     N_clust_max: float,
     my_field: asteca.Cluster,
-) -> tuple[int | float, int | float]:
+) -> None:
     """
     Estimate the number of cluster members
 
@@ -343,7 +317,6 @@ def get_Nmembs(
     if not np.isnan(N_clust):
         my_field.N_cluster = int(N_clust)
         logging.info(f"  Using manual N_cluster={int(N_clust)}")
-        return N_clust, N_clust_max
     # Else, if 'N_clust_max' was given use it to cap the maximum number of members
     elif not np.isnan(N_clust_max):
         my_field.N_clust_max = int(N_clust_max)
@@ -362,8 +335,6 @@ def get_Nmembs(
         logging.info(f"  WARNING: {my_field.N_cluster} > {my_field.N_clust_max}" + txt)
     else:
         logging.info(f"  Estimated N_cluster={my_field.N_cluster}")
-
-    return N_clust, N_clust_max
 
 
 def check_close_cls(
@@ -416,19 +387,17 @@ def check_close_cls(
         & (df_UCC["GLAT_m"] < b_max)
         & (df_UCC["Plx_m"] > plx_min)
     )
-    in_frame = df_UCC[
-        ["ID", "fnames", "GLON_m", "GLAT_m", "Plx_m", "pmRA_m", "pmDE_m"]
-    ][msk]
+    in_frame = df_UCC[["fnames", "GLON_m", "GLAT_m", "Plx_m", "pmRA_m", "pmDE_m"]][msk]
     # Remove this OC from the dataframe
     msk = in_frame["fnames"].str.split(";").str[0] != fname
     # Drop columns
-    in_frame = in_frame[msk].drop("fnames", axis=1)
+    in_frame = in_frame[msk]  # .drop("fnames", axis=1)
     # Assign type of object
     in_frame["Type"] = ["o"] * len(in_frame)
     # Rename columns to match GCs
     in_frame.rename(
         columns={
-            "ID": "Name",
+            "fnames": "Name",
             "GLON_m": "GLON",
             "GLAT_m": "GLAT",
             "Plx_m": "plx",
@@ -508,12 +477,15 @@ def check_close_cls(
             logging.info(f"  ({len(in_frame_all) - 10} more)")
 
 
-def extract_centers(
+def center_check(
+    glon_c: float,
+    glat_c: float,
     my_field: asteca.Cluster,
     probs_all: np.ndarray,
     N_membs_min: int = 25,
     prob_cut: float = 0.5,
-) -> tuple[tuple[float, float], tuple[float, float], float]:
+    rad_max: float = 15,
+) -> None:
     """
     Extracts the cluster center coordinates, proper motion, and parallax from
     high-probability members.
@@ -549,12 +521,24 @@ def extract_centers(
     glon, glat = radec2lonlat(my_field.ra, my_field.dec)
 
     # Centers of selected members
-    xy_c_m = np.nanmedian([np.array(glon)[msk], np.array(glat)[msk]], 1)
-    vpd_c_m = np.nanmedian([my_field.pmra[msk], my_field.pmde[msk]], 1)
-    plx_c_m = np.nanmedian(my_field.plx[msk])
+    lonlat_c_m = np.nanmedian([np.array(glon)[msk], np.array(glat)[msk]], 1)
+    # vpd_c_m = np.nanmedian([my_field.pmra[msk], my_field.pmde[msk]], 1)
+    # plx_c_m = np.nanmedian(my_field.plx[msk])
+
+    # cent_flags = check_centers(
+    #     xy_c_m, vpd_c_m, plx_c_m, (glon_c, glat_c), (pmra_c, pmde_c), plx_c
+    # )[0]
+    # # "nnn" --> Centers are in agreement
+    # if cent_flags[0] != "n":
+    d_arcmin = (
+        np.sqrt((glon_c - lonlat_c_m[0]) ** 2 + (glat_c - lonlat_c_m[1]) ** 2) * 60
+    )
+    # Store information on the OCs that require attention
+    if d_arcmin > rad_max:
+        warnings.warn(f"Distance between centers: {d_arcmin:.1f}")
 
     # pyright issue due to: https://github.com/numpy/numpy/issues/28076
-    return xy_c_m, vpd_c_m, plx_c_m  # pyright: ignore
+    # return lonlat_c_m, vpd_c_m, plx_c_m  # pyright: ignore
 
 
 def extract_members(
@@ -617,14 +601,12 @@ def extract_members(
 
 
 def updt_UCC_new_cl_data(
-    df_UCC_updt: dict,
-    UCC_idx: int,
+    idx: int,
+    df_UCC_C_updt: pd.DataFrame,
     df_field: pd.DataFrame,
     df_membs: pd.DataFrame,
-    N_clust: int | float,
-    N_clust_max: int | float,
     prob_cut: float = 0.5,
-) -> dict:
+) -> pd.DataFrame:
     """
     Extracts cluster parameters from the member DataFrame.
 
@@ -665,14 +647,17 @@ def updt_UCC_new_cl_data(
     r_50 = float(round(r_50 * 60.0, 1))
 
     # Classification data
-    C3 = get_classif(df_membs, df_field)
+    C1, C2, C3 = get_classif(df_membs, df_field)
 
     # Temp dict used to update the UCC
-    dict_UCC_updt = {
-        "UCC_idx": UCC_idx,
-        "N_clust": N_clust,
-        "N_clust_max": N_clust_max,
+    dict_updt = {
+        "plot_used": "n",  # Update to indicate a new plot is required
+        "process": "n",  # Update to indicate this entry was processed
+        "r_50": r_50,
+        "C1": C1,
+        "C2": C2,
         "C3": C3,
+        "N_50": N_50,
         "GLON_m": lon,
         "GLAT_m": lat,
         "RA_ICRS_m": ra,
@@ -682,21 +667,17 @@ def updt_UCC_new_cl_data(
         "pmDE_m": pmDE,
         "Rv_m": Rv,
         "N_Rv": N_Rv,
-        "N_50": N_50,
-        "r_50": r_50,
     }
 
-    # Update 'df_UCC_updt' with 'dict_UCC_updt' values
-    for key, val in dict_UCC_updt.items():
-        df_UCC_updt[key].append(val)
+    # Update 'df_UCC_updt' with 'dict_updt' values
+    for key, val in dict_updt.items():
+        df_UCC_C_updt.loc[idx, key] = val
 
-    return df_UCC_updt
+    return df_UCC_C_updt
 
 
 def save_cl_datafile(
     logging,
-    temp_fold: str,
-    members_folder: str,
     fname0: str,
     df_membs: pd.DataFrame,
 ) -> None:
@@ -718,7 +699,7 @@ def save_cl_datafile(
     # Order by probabilities
     df_membs = df_membs.sort_values("probs", ascending=False)
 
-    out_fname = temp_fold + members_folder + fname0 + ".parquet"
+    out_fname = temp_members_folder + fname0 + ".parquet"
     df_membs.to_parquet(out_fname, index=False)
     logging.info(f"  Saved file to: {out_fname} (N={len(df_membs)})")
 
