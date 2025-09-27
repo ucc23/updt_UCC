@@ -97,10 +97,13 @@ zenodo_folder = data_folder + "zenodo/"
 # Path to the folder that stores the archived UCC versions
 # UCC_archive = data_folder + "ucc_archived/"
 # Name of the  file that contains all of the members
-UCC_members_file = zenodo_folder + "UCC_members.parquet"
+UCC_members_file = "UCC_members.parquet"
 # File that stores the dates and status of each member extraction
 # parquet_dates = data_folder + "data_dates.json"
-
+# Path to the temporary individual .parquet member files
+temp_members_folder = temp_folder + "datafiles/"
+# Final name of Zenodo catalogue
+zenodo_cat_fname = "UCC_cat.csv"
 
 # Paths to the Gaia DR3 files in external drive
 #
@@ -165,8 +168,6 @@ tables_md_path = pages_folder + "TABLES.md"
 
 # Q folders paths and files
 #
-# Path to the temporary individual .parquet member files
-temp_members_folder = temp_folder + "datafiles/"
 # Path to the cluster's plots
 plots_folder = "plots/"
 plots_sub_folders = ("UCC", "aladin")  # , "HUNT23", "CANTAT20"
