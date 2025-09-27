@@ -103,9 +103,9 @@ def round_columns(df: pd.DataFrame) -> pd.DataFrame:
 def diff_between_dfs(
     logging,
     df_old: pd.DataFrame,
-    df_new_in: pd.DataFrame,
+    df_new: pd.DataFrame,
     # cols_exclude=None,
-) -> pd.DataFrame:
+) -> None:
     """
     Order by (lon, lat) and change NaN as "nan".
 
@@ -117,25 +117,6 @@ def diff_between_dfs(
         df_new (pd.DataFrame): Second DataFrame to compare.
         cols_exclude (list | None): List of columns to exclude from the diff
     """
-    df_new = df_new_in.copy()
-
-    df_new = round_columns(df_new)
-
-    # Order by fnames
-    df_new = df_new.sort_values(by="fnames").reset_index(drop=True)
-
-    # if cols_exclude is not None:
-    #     logging.info(f"\n{cols_exclude} columns excluded")
-    #     for col in cols_exclude:
-    #         if col in df_old.keys():
-    #             df_old = df_old.drop(columns=(col))
-    #         if col in df_new.keys():
-    #             df_new = df_new.drop(columns=(col))
-    # else:
-    #     logging.info("\nNo columns excluded")
-    # df1 = df_old
-    # df2 = df_new
-
     # Convert DataFrames to lists of tuples (rows) for comparison
     rows1 = [[str(_) for _ in row] for row in df_old.values]
     rows2 = [[str(_) for _ in row] for row in df_new.values]
@@ -149,7 +130,7 @@ def diff_between_dfs(
 
     if len(non_matching1) == 0 and len(non_matching2) == 0:
         logging.info("\nNo differences found\n")
-        return df_new
+        return
 
     if len(non_matching1) > 0:
         # Write intertwined lines to the output file
@@ -164,7 +145,6 @@ def diff_between_dfs(
                 writer.writerow(row)
 
     logging.info("\nFiles 'UCC_diff_xxx.csv' saved\n")
-    return df_new
 
 
 def save_df_UCC(logging, df: pd.DataFrame, file_path: str, order_col: str) -> None:
@@ -180,4 +160,4 @@ def save_df_UCC(logging, df: pd.DataFrame, file_path: str, order_col: str) -> No
         index=False,
         quoting=csv.QUOTE_NONNUMERIC,
     )
-    logging.info(f"UCC file '{file_path}' stored (N={len(df)})")
+    logging.info(f"UCC file (N={len(df)}): '{file_path}'")
