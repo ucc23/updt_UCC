@@ -9,6 +9,11 @@ fsr0380. Added their alternative names from FROEBRICH2007 to their entries in BI
 and re-processed BICA2019.
 
 
+## 25092811
+
+Added UTI column to C database
+
+
 ## 25092711
 
 Rebuilt the UCC from scratch. The following 33 entries had their main `fname` changed:
