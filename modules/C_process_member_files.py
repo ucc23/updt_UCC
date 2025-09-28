@@ -20,6 +20,7 @@ from .utils import (
 from .variables import (
     GCs_cat,
     UCC_members_file,
+    class_order,
     data_folder,
     merged_dbs_file,
     path_gaia_frames,
@@ -97,6 +98,9 @@ def main():
     # Find shared members between OCs and update df_UCC_C_new dataframe
     df_UCC_C_final = find_shared_members(logging, df_UCC_C_new, df_members_new)
     logging.info("Shared members data updated in UCC")
+
+    # Add UTI values
+    df_UCC_C_final = get_UTI(df_UCC_B, df_UCC_C_final)
 
     # Check differences between the original and final C dataframes
     diff_between_dfs(logging, df_UCC_C, df_UCC_C_final)
@@ -595,6 +599,50 @@ def find_intersections(df, df_members):
     return intersection_map
 
 
+def get_UTI(df_UCC_B, df_UCC_C):
+    """ """
+
+    N_50 = df_UCC_C["N_50"].to_numpy()
+    r_50 = df_UCC_C["r_50"].to_numpy()
+    dens_50 = N_50 / r_50
+
+    # Linear transformation from values to [0, 1]
+    C_N50 = np.clip((N_50 - 25) / (250 - 25), 0, 1)
+    C_d50 = np.clip((dens_50 - 0) / (2 - 0), 0, 1)
+
+    # Assign a number from 15 to 0 to all elements in C3, according to their
+    # positions in 'class_order'
+    order_map = {cls: i for i, cls in enumerate(class_order)}
+    C3 = df_UCC_C["C3"].to_numpy()
+    C_C3 = np.array([15 - order_map[x] for x in C3]) / 15
+
+    # Count number of times each OC is mentioned in the literature
+    N_lit = np.array([len(_.split(";")) for _ in df_UCC_B["DB"]])
+    C_lit = np.clip((N_lit - 1) / (5 - 1), 0, 1)
+
+    f_year = np.array([int(_.split(";")[0].split("_")[0][-4:]) for _ in df_UCC_B["DB"]])
+    fnames = [_.split(";")[0] for _ in df_UCC_B["fnames"]]
+    C_sha = [100] * len(df_UCC_C)
+    for idx, cl in df_UCC_C.iterrows():
+        shared_p = 0
+        if str(cl["shared_members"]) == "nan":
+            continue
+        cl_year = f_year[idx]
+        for j, cl_shared in enumerate(cl["shared_members"].split(";")):
+            k = fnames.index(cl_shared)
+            if cl_year <= f_year[k]:
+                continue
+            shared_p = max(shared_p, float(cl["shared_members_p"].split(";")[j]))
+
+        C_sha[idx] -= shared_p
+    C_sha = np.array(C_sha) / 100
+
+    UTI = 0.25 * (C_N50 + C_d50 + C_C3 + C_lit) * C_sha
+    df_UCC_C["UTI"] = np.round(UTI, 2)
+
+    return df_UCC_C
+
+
 def update_files(
     logging,
     temp_zenodo_fold: str,
@@ -748,7 +796,7 @@ def move_files(logging, temp_zenodo_fold: str) -> None:
         na_rep="nan",
         index=False,
         quoting=csv.QUOTE_NONNUMERIC,
-        compression="gzip"
+        compression="gzip",
     )
     # Remove old C csv file
     os.remove(data_folder + ucc_cat_file)
