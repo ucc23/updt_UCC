@@ -3,6 +3,15 @@ import pandas as pd
 
 from .ucc_entry import UCC_color
 
+header_default = """---
+layout: page
+title: {} 
+permalink: {}
+style: style
+---
+
+"""
+
 
 def count_OCs_classes(C3, class_order):
     """Count the number of OCs per C3 class"""
@@ -229,43 +238,43 @@ def updt_C3_classif_main_table(class_order, OCs_per_class, database_md_in: str):
     return database_md_updt
 
 
-def updt_OCs_per_quad_main_table(df_UCC, database_md_in: str):
-    """Update table of OCs per quadrants"""
-    quad_table = "\n| Region  | lon range  | lat range  |   N |\n"
-    quad_table += "|---------|------------|------------| :-: |\n"
-    quad_lines = (
-        "| Q1P: 1st quadrant, positive latitude | [0, 90)    | [0, 90]    |",
-        "| Q1N: 1st quadrant, negative latitude | [0, 90)    | (0, -90]   |",
-        "| Q2P: 2nd quadrant, positive latitude | [90, 180)  | [0, 90]    |",
-        "| Q2N: 2nd quadrant, negative latitude | [90, 180)  | (0, -90]   |",
-        "| Q3P: 3rd quadrant, positive latitude | [180, 270) | [0, 90]    |",
-        "| Q3N: 3rd quadrant, negative latitude | [180, 270) | (0, -90]   |",
-        "| Q4P: 4th quadrant, positive latitude | [270, 360) | [0, 90]    |",
-        "| Q4N: 4th quadrant, negative latitude | [270, 360) | (0, -90]   |",
-    )
+# def updt_OCs_per_quad_main_table(df_UCC, database_md_in: str):
+#     """Update table of OCs per quadrants"""
+#     quad_table = "\n| Region  | lon range  | lat range  |   N |\n"
+#     quad_table += "|---------|------------|------------| :-: |\n"
+#     quad_lines = (
+#         "| Q1P: 1st quadrant, positive latitude | [0, 90)    | [0, 90]    |",
+#         "| Q1N: 1st quadrant, negative latitude | [0, 90)    | (0, -90]   |",
+#         "| Q2P: 2nd quadrant, positive latitude | [90, 180)  | [0, 90]    |",
+#         "| Q2N: 2nd quadrant, negative latitude | [90, 180)  | (0, -90]   |",
+#         "| Q3P: 3rd quadrant, positive latitude | [180, 270) | [0, 90]    |",
+#         "| Q3N: 3rd quadrant, negative latitude | [180, 270) | (0, -90]   |",
+#         "| Q4P: 4th quadrant, positive latitude | [270, 360) | [0, 90]    |",
+#         "| Q4N: 4th quadrant, negative latitude | [270, 360) | (0, -90]   |",
+#     )
 
-    df = df_UCC["quad"].values
-    i = 0
-    for quad_N in range(1, 5):
-        for quad_s in ("P", "N"):
-            i += 1
-            quad = "Q" + str(quad_N) + quad_s
-            msk = df == quad
-            quad_table += (
-                quad_lines[i - 1] + f" [{msk.sum()}](/tables/{quad}_table) |\n"
-            )
-    quad_table += "\n"
+#     df = df_UCC["quad"].values
+#     i = 0
+#     for quad_N in range(1, 5):
+#         for quad_s in ("P", "N"):
+#             i += 1
+#             quad = "Q" + str(quad_N) + quad_s
+#             msk = df == quad
+#             quad_table += (
+#                 quad_lines[i - 1] + f" [{msk.sum()}](/tables/{quad}_table) |\n"
+#             )
+#     quad_table += "\n"
 
-    delimeterA = "<!-- Begin table 3 -->\n"
-    delimeterB = "<!-- End table 3 -->\n"
-    database_md_updt = replace_text_between(
-        database_md_in, quad_table, delimeterA, delimeterB
-    )
+#     delimeterA = "<!-- Begin table 3 -->\n"
+#     delimeterB = "<!-- End table 3 -->\n"
+#     database_md_updt = replace_text_between(
+#         database_md_in, quad_table, delimeterA, delimeterB
+#     )
 
-    # if database_md_updt != database_md_in:
-    #     logging.info("Table: OCs per quadrant updated")
+#     # if database_md_updt != database_md_in:
+#     #     logging.info("Table: OCs per quadrant updated")
 
-    return database_md_updt
+#     return database_md_updt
 
 
 def updt_shared_membs_main_table(shared_msk: list, database_md_in: str) -> str:
@@ -391,10 +400,11 @@ def updt_articles_table(df_UCC, current_JSON, database_md_in):
 
 def updt_DBs_tables(dbs_used, df_updt) -> dict:
     """Update the DBs classification table files"""
-    header = (
-        """---\nlayout: page\ntitle: \n"""
-        + """permalink: /tables/dbs/DB_link_table/\n---\n\n"""
-    )
+    # header = (
+    #     """---\nlayout: page\ntitle: \n"""
+    #     + """permalink: /tables/dbs/DB_link_table/\n---\n\n"""
+    # )
+    header = header_default.format("", "/tables/dbs/DB_link_table/")
 
     # Count DB occurrences in UCC
     all_DBs = list(dbs_used.keys())
@@ -421,10 +431,11 @@ def updt_DBs_tables(dbs_used, df_updt) -> dict:
 
 def updt_N50_tables(df_updt, membs_msk) -> dict:
     """Update the duplicates table files"""
-    header = (
-        """---\nlayout: page\ntitle: nmembs_title\n"""
-        + """permalink: /tables/nmembs_link_table/\n---\n\n"""
-    )
+    # header = (
+    #     """---\nlayout: page\ntitle: nmembs_title\n"""
+    #     + """permalink: /tables/nmembs_link_table/\n---\n\n"""
+    # )
+    header = header_default.format("nmembs_title", "/tables/nmembs_link_table/")
 
     # N==0 table
     md_table = header.replace("nmembs_title", "N50 members (==0)").replace(
@@ -454,10 +465,11 @@ def updt_N50_tables(df_updt, membs_msk) -> dict:
 
 def updt_C3_classif_tables(df_updt, class_order: list) -> dict:
     """Update the C3 classification table files"""
-    header = (
-        """---\nlayout: page\ntitle: C3_title\n"""
-        + """permalink: /tables/C3_link_table/\n---\n\n"""
-    )
+    # header = (
+    #     """---\nlayout: page\ntitle: C3_title\n"""
+    #     + """permalink: /tables/C3_link_table/\n---\n\n"""
+    # )
+    header = header_default.format("C3_title", "/tables/C3_link_table/")
 
     new_tables_dict = {}
     for C3_N in range(16):
@@ -475,10 +487,11 @@ def updt_C3_classif_tables(df_updt, class_order: list) -> dict:
 
 def updt_shared_membs_tables(df_updt, dups_msk) -> dict:
     """Update the shared members table files"""
-    header = (
-        """---\nlayout: page\ntitle: shared_title\n"""
-        + """permalink: /tables/shared_link_table/\n---\n\n"""
-    )
+    # header = (
+    #     """---\nlayout: page\ntitle: shared_title\n"""
+    #     + """permalink: /tables/shared_link_table/\n---\n\n"""
+    # )
+    header = header_default.format("shared_title", "/tables/shared_link_table/")
 
     new_tables_dict = {}
     for i, shared_N in enumerate(("Ns1", "Ns2", "Ns3", "Ns4", "Ns5")):
@@ -494,34 +507,34 @@ def updt_shared_membs_tables(df_updt, dups_msk) -> dict:
     return new_tables_dict
 
 
-def updt_OCs_per_quad_tables(df_updt):
-    """Update the per-quadrant table files"""
-    header = (
-        """---\nlayout: page\ntitle: quad_title\n"""
-        + """permalink: /tables/quad_link_table/\n---\n\n"""
-    )
+# def updt_OCs_per_quad_tables(df_updt):
+#     """Update the per-quadrant table files"""
+#     header = (
+#         """---\nlayout: page\ntitle: quad_title\n"""
+#         + """permalink: /tables/quad_link_table/\n---\n\n"""
+#     )
 
-    title_dict = {
-        1: "1st",
-        2: "2nd",
-        3: "3rd",
-        4: "4th",
-        "P": "positive",
-        "N": "negative",
-    }
+#     title_dict = {
+#         1: "1st",
+#         2: "2nd",
+#         3: "3rd",
+#         4: "4th",
+#         "P": "positive",
+#         "N": "negative",
+#     }
 
-    new_tables_dict = {}
-    for quad_N in range(1, 5):
-        for quad_s in ("P", "N"):
-            quad = "Q" + str(quad_N) + quad_s
+#     new_tables_dict = {}
+#     for quad_N in range(1, 5):
+#         for quad_s in ("P", "N"):
+#             quad = "Q" + str(quad_N) + quad_s
 
-            title = f"{title_dict[quad_N]} quadrant, {title_dict[quad_s]} latitude"
-            md_table = header.replace("quad_title", title).replace("quad_link", quad)
-            msk = df_updt["quad"] == quad
-            md_table = generate_table(df_updt[msk], md_table)
-            new_tables_dict[quad] = md_table
+#             title = f"{title_dict[quad_N]} quadrant, {title_dict[quad_s]} latitude"
+#             md_table = header.replace("quad_title", title).replace("quad_link", quad)
+#             msk = df_updt["quad"] == quad
+#             md_table = generate_table(df_updt[msk], md_table)
+#             new_tables_dict[quad] = md_table
 
-    return new_tables_dict
+#     return new_tables_dict
 
 
 def generate_table(df_m, md_table):
@@ -529,7 +542,7 @@ def generate_table(df_m, md_table):
     md_table += "| Name | l | b | ra | dec | Plx | N50 | r50 | C3 |\n"
     md_table += "| ---- | - | - | -- | --- | --- | --  | --  |-- |\n"
 
-    df_m = df_m.sort_values("ID")
+    df_m = df_m.sort_values("Name")
     df_m["N_50"] = df_m["N_50"].astype(int)
 
     for i, row in df_m.iterrows():
