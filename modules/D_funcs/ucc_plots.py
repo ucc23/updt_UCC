@@ -6,6 +6,8 @@ import numpy as np
 from astropy.io import fits
 from scipy import ndimage
 
+from ..variables import custom_style_path
+
 
 def plot_CMD(
     plot_fpath,
@@ -16,9 +18,7 @@ def plot_CMD(
     dpi=200,
 ):
     """ """
-    # This is a modified style that removes the Latex dependence from the
-    # 'scienceplots' package
-    plt.style.use("modules/update_site/science2.mplstyle")
+    plt.style.use(custom_style_path)
 
     # Sort by probabilities
     df_membs = df_membs.sort_values(probs_col, kind="stable")
@@ -101,7 +101,7 @@ def plot_CMD(
     )
 
     x_pos, y_pos, w, h = 0.985, 0.08, 0.02, 0.847
-    cb_ax = fig.add_axes([x_pos, y_pos, w, h])
+    cb_ax = fig.add_axes((x_pos, y_pos, w, h))
     cbar = fig.colorbar(im2, orientation="vertical", cax=cb_ax)
     # cbar.set_label('Probs')
     cbar.ax.tick_params(labelsize=fs)
@@ -227,8 +227,8 @@ def plot_aladin(
     try:
         url = f"http://alasky.u-strasbg.fr/hips-image-services/hips2fits?{urlencode(query_params)}"
         hdul = fits.open(url)
-    except Exception as _:
-        return "ERROR"
+    except Exception as e:
+        return f"ERROR: {e}"
 
     rotated_img = ndimage.rotate(hdul[0].data.T, 90)
     fig, ax = plt.subplots()
@@ -266,7 +266,7 @@ def plot_aladin(
 
 def make_N_vs_year_plot(file_out_name, df_UCC, fontsize=7, dpi=300):
     """ """
-    plt.style.use("modules/update_site/science2.mplstyle")
+    plt.style.use(custom_style_path)
 
     # Extract minimum year of publication for each catalogued OC
     years = []
@@ -379,7 +379,7 @@ def make_N_vs_year_plot(file_out_name, df_UCC, fontsize=7, dpi=300):
 
 def make_classif_plot(path, height, class_order, dpi=300):
     """ """
-    plt.style.use("modules/update_site/science2.mplstyle")
+    plt.style.use(custom_style_path)
 
     def rescale(x):
         return (x - np.min(x)) / (np.max(x) - np.min(x))
@@ -395,6 +395,29 @@ def make_classif_plot(path, height, class_order, dpi=300):
     plt.minorticks_off()
     fig.tight_layout()
 
+    plt.savefig(path, dpi=dpi)
+    # https://stackoverflow.com/a/65910539/1391441
+    fig.clear()
+    plt.close(fig)
+
+
+def make_UTI_plot(path, UTI_vals, dpi=300):
+    """ """
+    plt.style.use(custom_style_path)
+    my_cmap = plt.get_cmap("RdYlGn")
+
+    fig, ax = plt.subplots(1, figsize=(6, 3))
+
+    Y, X = np.histogram(UTI_vals, 25)
+    x_span = X.max() - X.min()
+    C = [my_cmap(((x - X.min()) / x_span)) for x in X]
+    width = X[1] - X[0]
+    plt.bar(0.5 * width + X[:-1], Y, color=C, width=width)
+
+    plt.xlabel("UTI")
+    plt.ylabel("N")
+
+    fig.tight_layout()
     plt.savefig(path, dpi=dpi)
     # https://stackoverflow.com/a/65910539/1391441
     fig.clear()
