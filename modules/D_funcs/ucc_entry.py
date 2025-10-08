@@ -1,22 +1,21 @@
+import datetime
 from pathlib import Path
 
+import matplotlib.cm as cm
+import matplotlib.colors as mcolors
 import numpy as np
 
-# from HARDCODED import (
-#     plots_folder,
-#     root_UCC_path,
-# )
-# from modules import combine_UCC_new_DB
-# from ..utils import date_order_DBs
+from ..variables import plots_folder, root_ucc_path
 
 header = """---
 layout: post
-title:  {}
+title: {}
+style: style
+title_flag: true
 ---
 """
 
 more_names = """<h3><span style="color: #808080;"><i>(cl_names_str)</i></span></h3>"""
-
 
 aladin_snippet = r"""<div style="display: flex; justify-content: space-between; width:720px;height:250px">
 <div style="text-align: center;">
@@ -24,7 +23,7 @@ aladin_snippet = r"""<div style="display: flex; justify-content: space-between; 
 <!-- Static image + data attributes for FOV and target -->
 <img id="aladin_img"
      data-umami-event="aladin_load"
-     src="https://raw.githubusercontent.com/ucc23/QFOLD/main/plots/aladin/FNAME.webp"
+     src="https://raw.githubusercontent.com/ucc23/FOLD/main/aladin/FNAME.webp"
      alt="Click to load Aladin Lite" 
      style="width:355px;height:250px; cursor: pointer;"
      data-fov="FOV_VAL" 
@@ -41,12 +40,37 @@ aladin_snippet = r"""<div style="display: flex; justify-content: space-between; 
 table_right_col = """
 <table style="width:355px;height:250px;">
   <!-- Row 1 (title) -->
-  <tr>
-    <td colspan="5"><h3>UCC_ID</h3></td>
+  <tr style="background-color: UTI_COLOR;">
+      <td colspan="5">
+      <div class="popup-container-focus" style="display: flex; justify-content: center; align-items: center; gap: 0.5em;">
+          <button class="popup-button-focus"><a href="{{ site.baseurl }}/faq#what-is-the-uti-parameter" title="UTI parameter">UTI</a>: <span class="uti_value" data-umami-event="UTI">UCC_UTI</span></button>
+          <div class="popup-message-focus">
+              <strong>UCC Trust Index</strong><br><br>
+                <table>
+                  <tr style="background-color: #fafafa;">
+                    <td style="text-align: center;">C_N</td>
+                    <td style="text-align: center;">C_dens</td>
+                    <td style="text-align: center;">C_C3</td>
+                    <td style="text-align: center;">C_lit</td>
+                    <td style="text-align: center;">C_dup</td>
+                  </tr>
+                  <tr>
+                      <td style="text-align: center; background-color: UTI_C_N_COL; font-weight: bold;">UTI_C_N</td>
+                      <td style="text-align: center; background-color: UTI_C_dens_COL; font-weight: bold;">UTI_C_dens</td>
+                      <td style="text-align: center; background-color: UTI_C_C3_COL; font-weight: bold;">UTI_C_C3</td>
+                      <td style="text-align: center; background-color: UTI_C_lit_COL; font-weight: bold;">UTI_C_lit</td>
+                      <td style="text-align: center; background-color: UTI_C_dup_COL; font-weight: bold;">UTI_C_dup</td>
+                  </tr>
+                </table><br>
+              <!-- Object summary follows below -->
+              SUMMARY
+          </div>
+        </div>
+    </td>
   </tr>
   <!-- Row 2 -->
   <tr>
-    <th style="text-align: center;"><a href="https://ucc.ar/faq#what-is-the-c3-parameter" title="Combined class">C3</a></th>
+    <th style="text-align: center;"><a href="https://ucc.ar/faq#what-is-the-c3-parameter" title="C3 class">C3</a></th>
     <th style="text-align: center;"><div title="Stars with membership probability >50%">N_50</div></th>
     <th style="text-align: center;"><div title="Radius that contains half the members [arcmin]">r_50</div></th>
   </tr>
@@ -57,12 +81,6 @@ table_right_col = """
     <td style="text-align: center;">r_50_val</td>
   </tr>
 </table>
-</div>
-"""
-
-no_membs_50_warning = """
-<div style="text-align: center;">
-   <span style="color: #99180f; font-weight: bold;">Warning: </span><span>less than 25 stars with <i>P>0.5</i> were found</span>
 </div>
 """
 
@@ -136,17 +154,10 @@ shared_OCs = """\n
 | :---:   | :-: |:---: | :---: | :---: | :---: | :---: | :---: |
 """
 
-# data_foot = """\n
-# <br>
-# <font color="b3b1b1"><i>Last modified: {}</i></font>
-# """
 
-
-def make(
-    UCC_cl, fname0, Qfold, posit_table, img_cont, abcd_c, fpars_table, shared_table
-):
+def make(UCC_cl, fname0, posit_table, img_cont, abcd_c, fpars_table, shared_table):
     """ """
-    cl_names = UCC_cl["ID"].split(";")
+    cl_names = UCC_cl["Names"].split(";")
 
     # Start generating the md file
     txt = ""
@@ -156,24 +167,52 @@ def make(
 
     fov = round(2 * (UCC_cl["r_50"] / 60.0), 3)
     txt += (
-        aladin_snippet.replace("QFOLD", str(Qfold).replace("/", ""))
+        aladin_snippet.replace("FOLD", f"plots_{fname0[0]}")
         .replace("FNAME", str(fname0))
         .replace("FOV_VAL", str(fov))
         .replace("RA_ICRS", str(UCC_cl["RA_ICRS_m"]))
         .replace("DE_ICRS", str(UCC_cl["DE_ICRS_m"]))
     )
 
+    C_N, C_dens, C_C3, C_lit, C_dup = (
+        UCC_cl["C_N"],
+        UCC_cl["C_dens"],
+        UCC_cl["C_C3"],
+        UCC_cl["C_lit"],
+        UCC_cl["C_dup"],
+    )
     txt += (
-        table_right_col.replace("UCC_ID", UCC_cl["UCC_ID"])
-        # .replace("Class1", str(UCC_cl["C1"]))
-        # .replace("Class2", str(UCC_cl["C2"]))
+        table_right_col.replace("UTI_COLOR", UTI_to_hex(UCC_cl["UTI"]))
+        .replace("UCC_UTI", str(UCC_cl["UTI"]))
+        .replace("UTI_C_N_COL", UTI_to_hex(C_N))
+        .replace("UTI_C_dens_COL", UTI_to_hex(C_dens))
+        .replace("UTI_C_C3_COL", UTI_to_hex(C_C3))
+        .replace("UTI_C_lit_COL", UTI_to_hex(C_lit))
+        .replace("UTI_C_dup_COL", UTI_to_hex(C_dup))
+        .replace("UTI_C_N", str(C_N))
+        .replace("UTI_C_dens", str(C_dens))
+        .replace("UTI_C_C3", str(C_C3))
+        .replace("UTI_C_lit", str(C_lit))
+        .replace("UTI_C_dup", str(C_dup))
+        .replace(
+            "SUMMARY",
+            summarize_object(
+                cl_names[0],
+                UCC_cl["DB"],
+                UCC_cl["N_50"],
+                UCC_cl["Plx_m"],
+                UCC_cl["shared_members_p"],
+                C_N,
+                C_dens,
+                C_C3,
+                C_lit,
+                C_dup,
+            ),
+        )
         .replace("Class3", abcd_c)
         .replace("r_50_val", str(UCC_cl["r_50"]))
         .replace("N_50_val", str(int(UCC_cl["N_50"])))
     )
-
-    if UCC_cl["N_50"] < 25:
-        txt += no_membs_50_warning
 
     txt += nasa_simbad_url.replace("XXNASAXX", cl_names[0].replace(" ", "%20")).replace(
         "XXSIMBADXX", fname0
@@ -199,7 +238,7 @@ def make(
 
     txt += cl_plot.format(img_cont)
 
-    txt += notebook_url.format(Qfold.replace("/", ""), fname0)
+    txt += notebook_url
 
     if fpars_table != "":
         txt += fpars_table_top
@@ -211,8 +250,8 @@ def make(
 
     txt += (
         cluster_region_plot.replace("FOCNAME", fname0)
-        .replace("RAICRS", str(round(UCC_cl["RA_ICRS"], 2)))
-        .replace("DEICRS", str(round(UCC_cl["DE_ICRS"], 2)))
+        .replace("RAICRS", str(round(UCC_cl["RA_ICRS_m"], 2)))
+        .replace("DEICRS", str(round(UCC_cl["DE_ICRS_m"], 2)))
         .replace("R50", str(UCC_cl["r_50"]))
         .replace("PLX", str(UCC_cl["Plx_m"]))
         .replace("OCNAME", str(cl_names[0]))
@@ -226,10 +265,179 @@ def make(
     return contents
 
 
+def UTI_to_hex(x: float, soft: float = 0.65) -> str:
+    """
+    Map a value in [0, 1] to a pastel hex color using the RdYlGn colormap.
+
+    Parameters
+    ----------
+    x : float
+        Value between 0 and 1.
+
+    Returns
+    -------
+    str
+        Hex color code.
+    """
+    # Clamp to [0, 1]
+    x = max(0.0, min(1.0, x))
+
+    # Get color from colormap (RGBA in [0,1])
+    rgba = cm.RdYlGn(x)
+
+    # Convert to pastel by blending toward white
+    pastel = tuple(soft + (1 - soft) * c for c in rgba[:3])  # soften colors
+
+    return mcolors.to_hex(pastel)
+
+
+def summarize_object(
+    name, cl_DB, N_50, plx, shared_members_p, C_N, C_dens, C_C3, C_lit, C_dup
+):
+    """
+    Summarize an astronomical object based on five normalized parameters.
+
+    Parameters
+    ----------
+    name : float
+        Name of the object
+    last_lit_year : int
+        Latest year this object was mentioned in the literature
+    N_50 : int
+        Number of members with P>0.5
+    C_N : float
+        Number of estimated true members (1 = many).
+    C_dens : float
+        Stellar density (1 = dense).
+    C_C3 : float
+        Normalized C3 parameter (1 = best class AA, 0 = worst DD).
+    C_lit : float
+        Presence in literature (1 = frequently mentioned).
+    C_dup : float
+        Probability of duplication (1 = not a duplicate).
+
+    Returns
+    -------
+    str
+        Short textual summary.
+    """
+
+    def level(value, thresholds, labels):
+        for t, lbl in zip(thresholds, labels):
+            if value >= t:
+                return lbl
+        return labels[-1]
+
+    distance = level(
+        plx,
+        [10, 5, 2, 1],
+        ["very close", "close", "relatively close", "somewhat close", ""],
+    )
+    members = level(
+        C_N,
+        [0.9, 0.75, 0.5, 0.25],
+        ["very rich", "rich", "moderately populated", "poorly populated", "sparse"],
+    )
+    density = level(
+        C_dens,
+        [0.9, 0.75, 0.5, 0.25],
+        ["very dense", "dense", "moderately dense", "loose", "very loose"],
+    )
+    quality = level(
+        C_C3,
+        [0.99, 0.7, 0.5, 0.2],
+        ["very high", "high", "intermediate", "low", "very low"],
+    )
+    literature = level(
+        C_lit,
+        [0.9, 0.75, 0.5, 0.25],
+        [
+            "very well-studied",
+            "well-studied",
+            "moderately studied",
+            "poorly studied",
+            "rarely studied",
+        ],
+    )
+    duplication = level(
+        C_dup,
+        [0.999, 0.75, 0.5, 0.25, 0.1],
+        [
+            "a unique",
+            "very likely a unique",
+            "likely a unique",
+            "possibly a duplicated",
+            "likely a duplicate",
+            "very likely a duplicate",
+        ],
+    )
+
+    txt_dist = ""
+    if distance != "":
+        txt_dist = f"{distance}, "
+    summary = (
+        f"{name} is a {txt_dist}{members}, {density} object of {quality} C3 quality."
+    )
+
+    first_lit_year = int(cl_DB.split(";")[0].split("_")[0][-4:])
+    current_year = datetime.datetime.now().year
+    years_gap_first = current_year - first_lit_year
+    if years_gap_first <= 3:
+        # The FIRST article associated to this entry is recent
+        txt = ""
+        if literature in ("well-studied", "moderately studied"):
+            txt = f"but it is {literature} "
+        summary += f" It was recently reported {txt}in the literature."
+    else:
+        # The FIRST article associated to this entry is NOT recent
+        last_lit_year = int(cl_DB.split(";")[-1].split("_")[0][-4:])
+        years_gap_last = current_year - last_lit_year
+
+        if years_gap_last > 5:
+            # This is an OC that has not been revisited in a while
+            summary += f" It is {literature} in the literature, "
+            summary += f"with no articles listed in the last {years_gap_last} years."
+        else:
+            summary += f" It is {literature} in the literature."
+
+    txt_warn = (
+        """<br><br><span style="color: #99180f; font-weight: bold;">Warning: </span>"""
+    )
+
+    dup_warn, dup_amount = "<br><br>", ""
+    if duplication == "a unique":
+        if str(shared_members_p) != "nan:":
+            shared_members_p = shared_members_p.split(";")
+            N_shared = len(shared_members_p)
+            max_p = max(map(float, shared_members_p))
+            if max_p > 10:
+                entr, upto = "entries", "up to "
+                if N_shared == 1:
+                    N_shared, entr, upto = "a", "entry", ""
+                summary += f"This is {duplication} object, with {N_shared} later "
+                summary += f"reported {entr} sharing {upto}{max_p:.0f}% of its members."
+    elif duplication == "very likely a unique":
+        dup_amount = "very small"
+    elif duplication == "likely a unique":
+        dup_amount = "small"
+    elif duplication == "possibly a duplicated":
+        dup_warn, dup_amount = txt_warn, "moderate"
+    elif duplication in ("likely a duplicate", "very likely a duplicate"):
+        dup_warn, dup_amount = txt_warn, "significant"
+
+    if dup_amount != "":
+        summary += dup_warn
+        summary += f"This is {duplication} object, which shares a {dup_amount}"
+        summary += " percentage of members with a previously reported entry."
+
+    if N_50 < 25:
+        summary += txt_warn + "contains less than 25 stars with <i>P>0.5</i> estimated."
+
+    return summary
+
+
 def positions_in_lit(DBs_json, DBs_full_data, row_UCC):
     """ """
-    # Re-arrange DBs by year
-    # DBs_sort, DBs_i_sort = date_order_DBs(row_UCC["DB"], row_UCC["DB_i"])
     DBs_sort, DBs_i_sort = row_UCC["DB"].split(";"), row_UCC["DB_i"].split(";")
 
     table = ""
@@ -276,25 +484,36 @@ def positions_in_lit(DBs_json, DBs_full_data, row_UCC):
     return table
 
 
-def carousel_div(root_UCC_path, plots_folder, cl_name, Qfold, fname0):
+def carousel_div(cl_name, fname0):
     """Generate the plot or carousel of plots, depending on whether there is more than
     one plot for a cluster.
     """
 
     def slider_content(_db):
         slide_cont = (
-            f"""<a href="https://raw.githubusercontent.com/ucc23/{Qfold}"""
-            + f"""main/{plots_folder}{_db}{fname0}.webp" target="_blank">\n"""
+            f"""<a href="https://raw.githubusercontent.com/ucc23/plots_{fname0[0]}/"""
+            + f"""main/{_db}{fname0}.webp" target="_blank">\n"""
         )
-        slide_cont += f"""<img src="https://raw.githubusercontent.com/ucc23/{Qfold}"""
-        slide_cont += f"""main/{plots_folder}{_db}{fname0}.webp" alt="{cl_name} {_db[:-1]}">\n</a>\n"""
+        slide_cont += (
+            f"""<img src="https://raw.githubusercontent.com/ucc23/plots_{fname0[0]}/"""
+        )
+        slide_cont += (
+            f"""main/{_db}{fname0}.webp" alt="{cl_name} {_db[:-1]}">\n</a>\n"""
+        )
         return slide_cont
 
     # Check present plots. The order here determines the order in which plots will be
     # shown: UCC --> HUNT23 --> CANTAT20
     cmd_plots = []
     for _db in ("UCC/", "HUNT23/", "CANTAT20/"):
-        plot_fpath = Path(root_UCC_path + Qfold + plots_folder + _db + fname0 + ".webp")
+        plot_fpath = Path(
+            root_ucc_path
+            + plots_folder
+            + f"plots_{fname0[0]}/"
+            + _db
+            + fname0
+            + ".webp"
+        )
         if plot_fpath.is_file() is True:
             cmd_plots.append(_db)
 
@@ -308,8 +527,8 @@ def carousel_div(root_UCC_path, plots_folder, cl_name, Qfold, fname0):
     img_cont += """<input type="radio" name="radio-btn" id="slide1" checked>\n"""
 
     # Buttons
-    for _ in range(len(cmd_plots)):
-        img_cont += f"""<input type="radio" name="radio-btn" id="slide{_ + 1}">\n"""
+    for _ in range(2, len(cmd_plots) + 1):
+        img_cont += f"""<input type="radio" name="radio-btn" id="slide{_}">\n"""
 
     # Slider
     img_cont += """<div class="slides">\n"""
@@ -320,8 +539,8 @@ def carousel_div(root_UCC_path, plots_folder, cl_name, Qfold, fname0):
 
     # Button labels
     img_cont += """</div>\n<div class="indicators">\n"""
-    for _ in range(len(cmd_plots)):
-        img_cont += f"""<label for="slide{_ + 1}">{_ + 1}</label>\n"""
+    for _ in range(1, len(cmd_plots) + 1):
+        img_cont += f"""<label for="slide{_}">{_}</label>\n"""
 
     img_cont += """</div>\n</div>"""
 
@@ -346,7 +565,7 @@ def table_shared_members(df_UCC, fnames_all, row):
         # Locate OC with shared members in the UCC
         j = fnames_all.index(fname)
 
-        name = df_UCC["ID"][j].split(";")[0]
+        name = df_UCC["Names"][j].split(";")[0]
         vals = []
         for col in ("RA_ICRS_m", "DE_ICRS_m", "Plx_m", "pmRA_m", "pmDE_m", "Rv_m"):
             val = round(float(df_UCC[col][j]), 3)

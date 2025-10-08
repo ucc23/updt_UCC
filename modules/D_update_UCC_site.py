@@ -1,4 +1,4 @@
-import datetime
+import csv
 import json
 import os
 from pathlib import Path
@@ -6,8 +6,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from .update_site import ucc_entry, ucc_plots
-from .update_site.main_files_updt import (
+from .D_funcs import ucc_entry, ucc_plots
+from .D_funcs.main_files_updt import (
     count_N50membs,
     count_OCs_classes,
     count_shared_membs,
@@ -18,32 +18,34 @@ from .update_site.main_files_updt import (
     updt_DBs_tables,
     updt_N50_main_table,
     updt_N50_tables,
-    updt_OCs_per_quad_main_table,
-    updt_OCs_per_quad_tables,
     updt_shared_membs_main_table,
     updt_shared_membs_tables,
 )
-from .utils import get_last_version_UCC, logger
+from .utils import logger
 from .variables import (
-    data_folder,
     UCC_members_file,
     articles_md_path,
     assets_folder,
     class_order,
     clusters_csv_path,
+    data_folder,
     databases_md_path,
     dbs_folder,
     dbs_tables_folder,
     images_folder,
     md_folder,
+    merged_dbs_file,
     name_DBs_json,
     pages_folder,
-    parquet_dates,
     plots_folder,
     plots_sub_folders,
+    root_ucc_path,
     tables_folder,
     tables_md_path,
     temp_folder,
+    ucc_cat_file,
+    ucc_path,
+    zenodo_folder,
 )
 
 
@@ -51,13 +53,8 @@ def main():
     """ """
     logging = logger()
 
-    # Get the latest version of the UCC catalogue
-    UCC_last_version = get_last_version_UCC(UCC_folder)
-
     # Read paths
     (
-        ucc_file_path,
-        root_UCC_path,
         temp_gz_CSV_path,
         ucc_gz_CSV_path,
         temp_dbs_tables_path,
@@ -67,42 +64,43 @@ def main():
         temp_entries_path,
         ucc_entries_path,
         temp_image_path,
-        temp_data_date_path,
-    ) = load_paths(UCC_last_version)
+    ) = load_paths()
 
     # Load required files
     (
         df_UCC,
-        df_UCC_edit,
         current_JSON,
         DBs_full_data,
         database_md,
         articles_md,
         tables_md,
         df_members,
-        data_dates_json,
-    ) = load_data(logging, ucc_file_path, root_UCC_path)
+    ) = load_data(logging)
 
-    # Update per cluster md and webp files. If no changes are expected, this step
-    # can be skipped to save time
+    # from pyinstrument import Profiler
+    # profiler = Profiler()
+    # profiler.start()
+    # Update per cluster md files. If no changes are expected, this step can be skipped
     if input("\nUpdate md files? (y/n): ").lower() == "y":
         updt_ucc_cluster_files(
             logging,
-            root_UCC_path,
             ucc_entries_path,
             temp_entries_path,
             DBs_full_data,
             df_UCC,
             current_JSON,
         )
+    # profiler.stop()
+    # profiler.open_in_browser()
+    # breakpoint()
+
+    # Update per cluster webp files. If no changes are expected, this step can be skipped
     if input("\nUpdate cluster plots? (y/n): ").lower() == "y":
+        # Returns dataframe with 'plot_used' column updated
         updt_ucc_cluster_plots(
             logging,
-            root_UCC_path,
             df_UCC,
             df_members,
-            data_dates_json,
-            temp_data_date_path,
         )
 
     # Count number of OCs in each class
@@ -134,6 +132,8 @@ def main():
             shared_msk,
         )
 
+    df_UCC_edit = updt_UCC(df_UCC)
+
     # Update tables files
     if input("\nUpdate individual tables files? (y/n): ").lower() == "y":
         updt_indiv_tables_files(
@@ -153,22 +153,17 @@ def main():
         updt_cls_CSV(logging, ucc_gz_CSV_path, temp_gz_CSV_path, df_UCC_edit)
 
     if input("\nMove files to their final destination? (y/n): ").lower() == "y":
-        move_files(logging, root_UCC_path, temp_data_date_path)
+        move_files(logging)
         logging.info("All files moved into place")
 
     # Check number of files
     N_UCC = len(df_UCC)
-    file_checker(logging, N_UCC, root_UCC_path)
+    file_checker(logging, N_UCC)
 
     logging.info("\nAll done!")
 
 
-def load_paths(
-    UCC_last_version: str,
-) -> tuple[
-    str,
-    str,
-    str,
+def load_paths() -> tuple[
     str,
     str,
     str,
@@ -180,63 +175,51 @@ def load_paths(
     str,
 ]:
     """ """
-    # Full path to the current UCC csv file
-    ucc_file_path = UCC_folder + UCC_last_version
-
-    # Root UCC path
-    root_UCC_path = os.path.dirname(os.getcwd()) + "/"
-
     # UCC and temp path to compressed JSON file
-    ucc_gz_CSV_path = root_UCC_path + clusters_csv_path
-    temp_gz_CSV_path = temp_fold + clusters_csv_path
+    ucc_gz_CSV_path = root_ucc_path + clusters_csv_path
+    temp_gz_CSV_path = temp_folder + clusters_csv_path
 
     # Temp path to the ucc assets and pages
-    temp_assets_path = temp_fold + assets_folder
+    temp_assets_path = temp_folder + assets_folder
     if not os.path.exists(temp_assets_path):
         os.makedirs(temp_assets_path)
-    temp_pages_path = temp_fold + pages_folder
+    temp_pages_path = temp_folder + pages_folder
     if not os.path.exists(temp_pages_path):
         os.makedirs(temp_pages_path)
 
     # Temp path to the ucc table files for each DB
-    temp_dbs_tables_path = temp_fold + dbs_tables_folder
+    temp_dbs_tables_path = temp_folder + dbs_tables_folder
     if not os.path.exists(temp_dbs_tables_path):
         os.makedirs(temp_dbs_tables_path)
     # Root path to the ucc table files for each DB
-    ucc_dbs_tables_path = root_UCC_path + dbs_tables_folder
+    ucc_dbs_tables_path = root_ucc_path + dbs_tables_folder
 
-    ucc_tables_path = root_UCC_path + tables_folder
-    temp_tables_path = temp_fold + tables_folder
+    ucc_tables_path = root_ucc_path + tables_folder
+    temp_tables_path = temp_folder + tables_folder
 
     # Temp path to the ucc cluster folder where each md entry is stored
-    temp_entries_path = temp_fold + md_folder
+    temp_entries_path = temp_folder + md_folder
     if not os.path.exists(temp_entries_path):
         os.makedirs(temp_entries_path)
     # Root path to the ucc cluster folder where each md entry is stored
-    ucc_entries_path = root_UCC_path + md_folder
+    ucc_entries_path = root_ucc_path + md_folder
 
     # Temp path to ucc images folder
-    temp_image_path = temp_fold + images_folder
+    temp_image_path = temp_folder + images_folder
     if not os.path.exists(temp_image_path):
         os.makedirs(temp_image_path)
 
-    # Create temp quadrant folders for the plots
-    for Nquad in range(1, 5):
-        for lat in ("P", "N"):
-            quad = "Q" + str(Nquad) + lat + "/"
-            for fold in plots_sub_folders:
-                out_path = temp_fold + quad + plots_folder + fold
-                if not os.path.exists(out_path):
-                    os.makedirs(out_path)
+    # Create temp folders using all letters in the alphabet
+    for letter in "abcdefghijklmnopqrstuvwxyz":
+        for fold in plots_sub_folders:
+            out_path = temp_folder + plots_folder + f"plots_{letter}/" + fold
+            if not os.path.exists(out_path):
+                os.makedirs(out_path)
 
-    if not os.path.exists(temp_fold + UCC_folder):
-        os.makedirs(temp_fold + UCC_folder)
-    # Temporary path for updated data dates file
-    temp_data_date_path = temp_fold + UCC_folder + parquet_dates
+    if not os.path.exists(temp_folder + data_folder):
+        os.makedirs(temp_folder + data_folder)
 
     return (
-        ucc_file_path,
-        root_UCC_path,
         temp_gz_CSV_path,
         ucc_gz_CSV_path,
         temp_dbs_tables_path,
@@ -246,23 +229,38 @@ def load_paths(
         temp_entries_path,
         ucc_entries_path,
         temp_image_path,
-        temp_data_date_path,
     )
 
 
 def load_data(
-    logging, ucc_file_path: str, root_UCC_path: str
-) -> tuple[
-    pd.DataFrame, pd.DataFrame, pd.DataFrame, dict, str, str, str, pd.DataFrame, dict
-]:
+    logging,
+) -> tuple[pd.DataFrame, dict, dict, str, str, str, pd.DataFrame]:
     """ """
 
-    # Current UCC catalogue
-    df_UCC = pd.read_csv(ucc_file_path)
-    logging.info(f"UCC {ucc_file_path} loaded (N={len(df_UCC)})")
+    # Load current CSV data files
+    ucc_B_file = data_folder + merged_dbs_file
+    ucc_C_file = data_folder + ucc_cat_file
+    df_UCC_B = pd.read_csv(ucc_B_file)
+    logging.info(f"\nFile {ucc_B_file} loaded ({len(df_UCC_B)} entries)")
+    df_UCC_C = pd.read_csv(
+        ucc_C_file,
+        dtype={
+            "frame_limit": "string",
+            "shared_members": "string",
+            "shared_members_p": "string",
+        },
+    )
+    # Replace NaN values with "nan" string only in selected columns
+    selected_columns = ["frame_limit", "shared_members", "shared_members_p"]
+    df_UCC_C[selected_columns] = df_UCC_C[selected_columns].fillna("nan")
 
-    # Prepare df_UCC to be used in the updating of the table files
-    df_UCC_edit = updt_UCC(df_UCC)
+    logging.info(f"File {ucc_C_file} loaded ({len(df_UCC_C)} entries)")
+    # Check the 'fnames' columns in df_UCC_B and df_UCC_C_final dataframes are equal
+    if not df_UCC_B["fnames"].equals(df_UCC_C["fnames"]):
+        raise ValueError("The 'fnames' columns in B and final C dataframes differ")
+    # Add required columns to df_UCC_C
+    df_UCC = df_UCC_C
+    df_UCC[["Names", "DB", "DB_i"]] = df_UCC_B[["Names", "DB", "DB_i"]]
 
     # Load clusters data in JSON file
     with open(name_DBs_json) as f:
@@ -274,90 +272,34 @@ def load_data(
         DBs_full_data[k] = pd.read_csv(dbs_folder + k + ".csv")
 
     # Load DATABASE.md file
-    with open(root_UCC_path + databases_md_path) as file:
+    with open(root_ucc_path + databases_md_path) as file:
         database_md = file.read()
 
     # Load ARTICLES.md file
-    with open(root_UCC_path + articles_md_path) as file:
+    with open(root_ucc_path + articles_md_path) as file:
         articles_md = file.read()
 
     # Load TABLES.md file
-    with open(root_UCC_path + tables_md_path) as file:
+    with open(root_ucc_path + tables_md_path) as file:
         tables_md = file.read()
 
     # Load current members file
-    zenodo_members_file = UCC_folder + UCC_members_file
+    zenodo_members_file = zenodo_folder + UCC_members_file
     df_members = pd.read_parquet(zenodo_members_file)
-
-    # Load JSON file with last updated dates
-    fname_json = UCC_folder + parquet_dates
-    with open(fname_json, "r") as file:
-        data_dates_json = json.load(file)
 
     return (
         df_UCC,
-        df_UCC_edit,
         current_JSON,
         DBs_full_data,
         database_md,
         articles_md,
         tables_md,
         df_members,
-        data_dates_json,
     )
-
-
-def updt_UCC(df_UCC: pd.DataFrame) -> pd.DataFrame:
-    """
-    Updates a DataFrame of astronomical cluster data by processing identifiers,
-    coordinates, URLs, and derived quantities such as distances.
-
-    Args:
-        df_UCC (pd.DataFrame): The input DataFrame containing cluster data with columns:
-                               - "ID": A semicolon-separated string of identifiers.
-                               - "fnames": A semicolon-separated string of file names.
-                               - "RA_ICRS", "DE_ICRS", "GLON", "GLAT": Coordinates.
-                               - "Plx_m": Parallax measurements in milliarcseconds.
-
-    Returns:
-        pd.DataFrame: The updated DataFrame with the following changes:
-                      - "ID": Extracts the first identifier from the "ID" column.
-                      - "ID_url": Adds URLs linking to cluster details.
-                      - "RA_ICRS", "DE_ICRS", "GLON", "GLAT": Rounded coordinates.
-                      - "dist_pc": Adds parallax-based distances in parsecs, clipped
-                                   to the range [10, 50000].
-    """
-    df = pd.DataFrame(df_UCC)
-
-    # Extract the first identifier from the "ID" column
-    df["ID"] = [_.split(";")[0] for _ in df_UCC["ID"]]
-
-    # Generate URLs for names
-    names_url = []
-    for i, cl in df.iterrows():
-        name = str(cl["ID"]).split(";")[0]
-        fname = str(cl["fnames"]).split(";")[0]
-        url = "/_clusters/" + fname + "/"
-        names_url.append(f"[{name}]({url})")
-    df["ID_url"] = names_url
-
-    # Round coordinate columns
-    df["RA_ICRS"] = np.round(df_UCC["RA_ICRS"], 2)
-    df["DE_ICRS"] = np.round(df_UCC["DE_ICRS"], 2)
-    df["GLON"] = np.round(df_UCC["GLON"], 2)
-    df["GLAT"] = np.round(df_UCC["GLAT"], 2)
-
-    # Compute parallax-based distances in parsecs
-    dist_pc = 1000 / np.clip(np.array(df["Plx_m"]), a_min=0.0000001, a_max=np.inf)
-    dist_pc = np.clip(dist_pc, a_min=10, a_max=50000)
-    df["dist_pc"] = np.round(dist_pc, 0)
-
-    return df
 
 
 def updt_ucc_cluster_files(
     logging,
-    root_UCC_path,
     ucc_entries_path,
     temp_entries_path,
     DBs_full_data,
@@ -374,184 +316,124 @@ def updt_ucc_cluster_files(
     for i_ucc, UCC_cl in df_UCC.iterrows():
         fname0 = str(UCC_cl["fnames"]).split(";")[0]
 
-        Qfold = UCC_cl["quad"] + "/"
+        if np.random.rand() < 0.2: # or fname0 in ("theia1975",):
+            pass
+        else:
+            continue
 
-        txt = f"{Qfold}{fname0}: "
+        # Generate table with positional data: (ra, dec, plx, pmra, pmde, Rv)
+        posit_table = ucc_entry.positions_in_lit(current_JSON, DBs_full_data, UCC_cl)
 
-        # Make catalogue entry
-        txt_e = make_entry(
-            root_UCC_path,
-            ucc_entries_path,
-            temp_entries_path,
-            plots_folder,
-            Qfold,
-            df_UCC,
-            fnames_all,
-            UCC_cl,
-            current_JSON,
-            DBs_full_data,
-            fname0,
+        # Generate CMD image carousel
+        cl_name = UCC_cl["Names"].split(";")[0]
+        img_cont = ucc_entry.carousel_div(cl_name, fname0)
+
+        # Generate fundamental parameters table
+        fpars_table = ucc_entry.fpars_in_lit(
+            current_JSON, DBs_full_data, UCC_cl["DB"], UCC_cl["DB_i"]
         )
 
-        if txt_e != "":
+        # Generate table with OCs that share members with this one
+        shared_table = ucc_entry.table_shared_members(df_UCC, fnames_all, UCC_cl)
+
+        # Get colors used by the 'CX' classification
+        abcd_c = ucc_entry.UCC_color(UCC_cl["C3"])
+
+        # Generate full entry
+        new_md_entry = ucc_entry.make(
+            UCC_cl, fname0, posit_table, img_cont, abcd_c, fpars_table, shared_table
+        )
+
+        # Compare old md file (if it exists) with the new md file, for this cluster
+        try:
+            # Read old entry
+            with open(ucc_entries_path + fname0 + ".md", "r") as f:
+                old_md_entry = f.read()
+
+            # Check if entry needs updating
+            if new_md_entry != old_md_entry:
+                txt = "md updated |"
+                # with open("OLD.md", "w") as f:
+                #     f.write(old_md_entry_no_date)
+                # with open("NEW.md", "w") as f:
+                #     f.write(new_md_entry_no_date)
+                # breakpoint()
+            else:
+                # The existing md file has not changed
+                txt = ""
+
+        except FileNotFoundError:
+            # This is a new OC with no md entry yet
+            txt = "md generated |"
+
+        if txt != "":
+            # Generate/update entry
+            with open(temp_entries_path + fname0 + ".md", "w") as f:
+                f.write(new_md_entry)
+            # if txt != "":
             N_total += 1
-            logging.info(f"{N_total} -> " + txt + txt_e + f" ({i_ucc})")
+            logging.info(f"{N_total} -> {fname0}: " + txt + f" ({i_ucc})")
 
     logging.info(f"\nN={N_total} OCs processed")
 
 
-def make_entry(
-    root_UCC_path,
-    ucc_entries_path,
-    temp_entries_path,
-    plots_folder,
-    Qfold,
-    df_UCC,
-    fnames_all,
-    UCC_cl,
-    current_JSON,
-    DBs_full_data,
-    fname0,
-) -> str:
-    """ """
-    # Generate table with positional data: (ra, dec, plx, pmra, pmde, Rv)
-    posit_table = ucc_entry.positions_in_lit(current_JSON, DBs_full_data, UCC_cl)
-
-    # Generate CMD image carousel
-    cl_name = UCC_cl["ID"].split(";")[0]
-    img_cont = ucc_entry.carousel_div(
-        root_UCC_path, plots_folder, cl_name, Qfold, fname0
-    )
-
-    # Generate fundamental parameters table
-    fpars_table = ucc_entry.fpars_in_lit(
-        current_JSON, DBs_full_data, UCC_cl["DB"], UCC_cl["DB_i"]
-    )
-
-    # Generate table with OCs that share members with this one
-    shared_table = ucc_entry.table_shared_members(df_UCC, fnames_all, UCC_cl)
-
-    # Get colors used by the 'CX' classification
-    abcd_c = ucc_entry.UCC_color(UCC_cl["C3"])
-
-    # Generate full entry
-    new_md_entry = ucc_entry.make(
-        UCC_cl, fname0, Qfold, posit_table, img_cont, abcd_c, fpars_table, shared_table
-    )
-
-    # Compare old md file (if it exists) with the new md file, for this cluster
-    try:
-        # Read old entry
-        with open(ucc_entries_path + fname0 + ".md", "r") as f:
-            old_md_entry = f.read()
-
-        # Check if entry needs updating
-        if new_md_entry != old_md_entry:
-            txt = "md updated |"
-            # with open("OLD.md", "w") as f:
-            #     f.write(old_md_entry_no_date)
-            # with open("NEW.md", "w") as f:
-            #     f.write(new_md_entry_no_date)
-            # breakpoint()
-        else:
-            # The existing md file has not changed
-            txt = ""
-
-    except FileNotFoundError:
-        # This is a new OC with no md entry yet
-        txt = "md generated |"
-
-    if txt != "":
-        # Generate/update entry
-        with open(temp_entries_path + fname0 + ".md", "w") as f:
-            f.write(new_md_entry)
-
-    return txt
-
-
-def updt_ucc_cluster_plots(
-    logging, root_UCC_path, df_UCC, df_members, data_dates_json, temp_data_date_path
-):
+def updt_ucc_cluster_plots(logging, df_UCC, df_members) -> None:
     """ """
     logging.info("\nGenerating plot files")
     N_total = 0
     # Iterate trough each entry in the UCC database
     for i_ucc, UCC_cl in df_UCC.iterrows():
         fname0 = str(UCC_cl["fnames"]).split(";")[0]
+        txt = ""
 
-        Qfold = UCC_cl["quad"] + "/"
-
-        txt = f"{Qfold}{fname0}: "
-
-        # Make plots
-        txt_p, data_dates_json = make_plots(
-            root_UCC_path,
-            temp_fold,
-            Qfold,
-            plots_folder,
-            UCC_cl,
-            fname0,
-            df_members,
-            data_dates_json,
+        # Make Aladin plot if image files does not exist. These images are not updated
+        # Path to original image (if it exists)
+        orig_aladin_path = (
+            f"{root_ucc_path}{plots_folder}plots_{fname0[0]}/aladin/{fname0}.webp"
         )
+        if Path(orig_aladin_path).is_file() is False:
+            # Path were new image will be stored
+            save_plot_file = (
+                f"{temp_folder}{plots_folder}plots_{fname0[0]}/aladin/{fname0}.webp"
+            )
+            ucc_plots.plot_aladin(
+                UCC_cl["RA_ICRS_m"],
+                UCC_cl["DE_ICRS_m"],
+                UCC_cl["r_50"],
+                save_plot_file,
+            )
+            txt += " Aladin plot generated |"
 
-        if txt_p != "":
+        # Make CMD plot
+        # Check if this OC's plot should be updated or generated
+        if UCC_cl["plot_used"] == "n":
+            # Read members
+            df_membs = df_members[df_members["name"] == fname0]
+            # Temp path were the image will be stored
+            temp_plot_file = (
+                f"{temp_folder}{plots_folder}plots_{fname0[0]}/UCC/{fname0}.webp"
+            )
+            ucc_plots.plot_CMD(temp_plot_file, df_membs)
+            txt += " CMD plot generated |"
+            # Update value indicating that the plot was generated
+            df_UCC.loc[i_ucc, "plot_used"] = "y"
+
+        if txt != "":
             N_total += 1
-            logging.info(f"{N_total} -> " + txt + txt_p + f" ({i_ucc})")
-
-    # Save temp file with updated dates to temp folder
-    with open(temp_data_date_path, "w") as file:
-        json.dump(data_dates_json, file, indent=2)
+            logging.info(f"{N_total} -> {fname0}" + txt + f" ({i_ucc})")
 
     logging.info(f"\nN={N_total} OCs processed")
 
-
-def make_plots(
-    root_UCC_path,
-    temp_fold,
-    Qfold,
-    plots_folder,
-    UCC_cl,
-    fname0,
-    df_members,
-    data_dates_json,
-) -> tuple[str, dict]:
-    """
-    Make CMD and Aladin plots.
-    """
-    txt = ""
-
-    # Make Aladin plot if image files does not exist. These images are not updated
-    # Path to original image (if it exists)
-    orig_aladin_path = (
-        root_UCC_path + Qfold + plots_folder + "aladin/" + fname0 + ".webp"
-    )
-    if Path(orig_aladin_path).is_file() is False:
-        # Path were new image will be stored
-        save_plot_file = temp_fold + Qfold + plots_folder + "aladin/" + fname0 + ".webp"
-        ucc_plots.plot_aladin(
-            UCC_cl["RA_ICRS_m"],
-            UCC_cl["DE_ICRS_m"],
-            UCC_cl["r_50"],
-            save_plot_file,
+    if N_total > 0:
+        temp_C_path = temp_folder + data_folder + ucc_cat_file
+        df_UCC_C_new = df_UCC.drop(columns=["Names", "DB", "DB_i"])
+        df_UCC_C_new.to_csv(
+            temp_C_path,
+            na_rep="nan",
+            index=False,
+            quoting=csv.QUOTE_NONNUMERIC,
         )
-        txt += " Aladin plot generated |"
-
-    # Make CMD plot
-    # Check if the data for this OC new and the plot should be updated
-    if "USED" not in data_dates_json[fname0]:
-        # Read members
-        df_membs = df_members[df_members["name"] == fname0]
-        # Temp path were the image will be stored
-        temp_plot_file = temp_fold + Qfold + plots_folder + "UCC/" + fname0 + ".webp"
-        ucc_plots.plot_CMD(temp_plot_file, df_membs)
-        txt += " CMD plot generated |"
-        # Update file with current date of usage
-        data_dates_json[fname0] = (
-            f"USED ({datetime.datetime.now().strftime('%y%m%d%H')})"
-        )
-
-    return txt, data_dates_json
+        logging.info(f"\nFile '{ucc_cat_file}' updated")
 
 
 def make_site_plots(logging, temp_image_path, df_UCC, OCs_per_class):
@@ -563,6 +445,9 @@ def make_site_plots(logging, temp_image_path, df_UCC, OCs_per_class):
         temp_image_path + "classif_bar.webp", OCs_per_class, class_order
     )
     logging.info("Plot generated: classification histogram")
+
+    ucc_plots.make_UTI_plot(temp_image_path + "UTI_values.webp", df_UCC["UTI"])
+    logging.info("Plot generated: UTI histogram")
 
 
 def update_main_pages(
@@ -586,7 +471,7 @@ def update_main_pages(
     database_md_updt = ucc_n_total_updt(
         logging, N_db_UCC, N_cl_UCC, N_members_UCC, database_md
     )
-    with open(temp_fold + databases_md_path, "w") as file:
+    with open(temp_folder + databases_md_path, "w") as file:
         file.write(database_md_updt)
     if database_md != database_md_updt:
         logging.info("DATABASE.md updated")
@@ -595,10 +480,10 @@ def update_main_pages(
 
     # Update TABLES
     tables_md_updt = updt_C3_classif_main_table(class_order, OCs_per_class, tables_md)
-    tables_md_updt = updt_OCs_per_quad_main_table(df_UCC, tables_md_updt)
+    # tables_md_updt = updt_OCs_per_quad_main_table(df_UCC, tables_md_updt)
     tables_md_updt = updt_shared_membs_main_table(shared_msk, tables_md_updt)
     tables_md_updt = updt_N50_main_table(membs_msk, tables_md_updt)
-    with open(temp_fold + tables_md_path, "w") as file:
+    with open(temp_folder + tables_md_path, "w") as file:
         file.write(tables_md_updt)
     if tables_md != tables_md_updt:
         logging.info("TABLES.md updated")
@@ -607,12 +492,45 @@ def update_main_pages(
 
     # Update ARTICLES
     articles_md_updt = updt_articles_table(df_UCC, current_JSON, articles_md)
-    with open(temp_fold + articles_md_path, "w") as file:
+    with open(temp_folder + articles_md_path, "w") as file:
         file.write(articles_md_updt)
     if articles_md != articles_md_updt:
         logging.info("ARTICLES.md updated")
     else:
         logging.info("ARTICLES.md not updated (no changes)")
+
+
+def updt_UCC(df_UCC: pd.DataFrame) -> pd.DataFrame:
+    """
+    Updates a DataFrame of astronomical cluster data by processing identifiers,
+    coordinates, URLs, and derived quantities such as distances.
+    """
+    df = df_UCC.copy()
+
+    # Extract the first identifier from the "ID" column
+    df["Name"] = [_.split(";")[0] for _ in df_UCC["Names"]]
+
+    # Generate URLs for names
+    names_url = []
+    for i, cl in df.iterrows():
+        name = str(cl["Name"]).split(";")[0]
+        fname = str(cl["fnames"]).split(";")[0]
+        url = "/_clusters/" + fname + "/"
+        names_url.append(f"[{name}]({url})")
+    df["ID_url"] = names_url
+
+    # Round coordinate columns
+    df["RA_ICRS"] = np.round(df_UCC["RA_ICRS_m"], 2)
+    df["DE_ICRS"] = np.round(df_UCC["DE_ICRS_m"], 2)
+    df["GLON"] = np.round(df_UCC["GLON_m"], 2)
+    df["GLAT"] = np.round(df_UCC["GLAT_m"], 2)
+
+    # Compute parallax-based distances in parsecs
+    dist_pc = 1000 / np.clip(np.array(df["Plx_m"]), a_min=0.0000001, a_max=np.inf)
+    dist_pc = np.clip(dist_pc, a_min=10, a_max=50000)
+    df["dist_pc"] = np.round(dist_pc, 0)
+
+    return df
 
 
 def updt_indiv_tables_files(
@@ -651,8 +569,8 @@ def updt_indiv_tables_files(
     general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
 
     #
-    new_tables_dict = updt_OCs_per_quad_tables(df_UCC_edit)
-    general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
+    # new_tables_dict = updt_OCs_per_quad_tables(df_UCC_edit)
+    # general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
 
 
 def general_table_update(
@@ -679,15 +597,15 @@ def general_table_update(
 
 
 def updt_cls_CSV(
-    logging, ucc_gz_CSV_path: str, temp_gz_CSV_path: str, df_tables: pd.DataFrame
+    logging, ucc_gz_CSV_path: str, temp_gz_CSV_path: str, df_UCC_edit: pd.DataFrame
 ) -> None:
     """
     Update compressed cluster.csv file used by 'ucc.ar' search
     """
     df = pd.DataFrame(
-        df_tables[
+        df_UCC_edit[
             [
-                "ID",
+                "Name",
                 "fnames",
                 "RA_ICRS",
                 "DE_ICRS",
@@ -697,10 +615,11 @@ def updt_cls_CSV(
                 "N_50",
                 "r_50",
                 "C3",
+                "UTI",
             ]
         ]
     )
-    df_new = df.sort_values("ID")
+    df_new = df.sort_values("Name")
 
     # Load the current compressed CSV file
     df_old = pd.read_csv(ucc_gz_CSV_path, compression="gzip")
@@ -719,57 +638,57 @@ def updt_cls_CSV(
 
 def move_files(
     logging,
-    root_UCC_path,
-    temp_data_date_path,
 ) -> None:
     """ """
-    logging.info("\nUpdate files:")
+    logging.info("\nMoving files:")
 
-    # Move all files inside 'temp_fold/ucc/'
-    temp_ucc_fold = temp_fold + "ucc/"
+    # Move updated C file
+    final_C_path = data_folder + ucc_cat_file
+    temp_C_path = temp_folder + final_C_path
+    if os.path.exists(temp_C_path):
+        # os.rename(temp_C_path, final_C_path)
+        logging.info(temp_C_path + " --> " + final_C_path)
+
+    # Move all files inside temporary 'ucc/'
+    temp_ucc_fold = temp_folder + ucc_path
     for root, dirs, files in os.walk(temp_ucc_fold):
         for filename in files:
             file_path = os.path.join(root, filename)
-            file_ucc = file_path.replace(temp_fold, root_UCC_path)
+            file_ucc = file_path.replace(temp_folder, root_ucc_path)
             if "_clusters" not in root:
                 logging.info(file_path + " --> " + file_ucc)
-            os.rename(file_path, file_ucc)
+            # os.rename(file_path, file_ucc)
         if "_clusters" in root:
             file_path = root + "/*.md"
-            file_ucc = file_path.replace(temp_fold, root_UCC_path)
+            file_ucc = file_path.replace(temp_folder, root_ucc_path)
             logging.info(file_path + " --> " + file_ucc)
     logging.info("")
 
-    # Move the 'temp_fold/zenodo/data_dates.json' file
-    if os.path.exists(temp_data_date_path):
-        os.rename(temp_data_date_path, UCC_folder + parquet_dates)
-        logging.info(temp_data_date_path + " --> " + UCC_folder + parquet_dates)
-        logging.info("")
-
     # Move all plots
-    all_plot_folds = [[], []]
-    for qN in range(1, 5):
-        for lat in ("P", "N"):
-            qfold = "Q" + str(qN) + lat + "/"
-            qplots_fold = qfold + plots_folder
-            for fold in plots_sub_folders:
-                temp_fpath = temp_fold + qplots_fold + fold + "/"
-                fpath = root_UCC_path + qplots_fold + fold + "/"
-                # Check if folder exists
-                if os.path.exists(temp_fpath):
-                    # For every file in this folder
-                    for file in os.listdir(temp_fpath):
-                        plot_temp = temp_fpath + file
-                        plot_stored = fpath + file
-                        all_plot_folds[0].append(temp_fpath)
-                        all_plot_folds[1].append(fpath)
-                        os.rename(plot_temp, plot_stored)
-    all_plot_folds[0] = list(set(all_plot_folds[0]))
-    all_plot_folds[1] = list(set(all_plot_folds[1]))
+    all_plot_folds = []
+    for letter in "abcdefghijklmnopqrstuvwxyz":
+        letter_fold = plots_folder + f"plots_{letter}/"
+        for fold in plots_sub_folders:
+            temp_fpath = temp_folder + letter_fold + fold + "/"
+            fpath = root_ucc_path + letter_fold + fold + "/"
+            # Check if folder exists
+            if os.path.exists(temp_fpath):
+                # For every file in this folder
+                for file in os.listdir(temp_fpath):
+                    all_plot_folds.append(fpath)
+                    # os.rename(temp_fpath + file, fpath + file)
+    unq_plot_folds = list(set(all_plot_folds))
+    for plot_stored in unq_plot_folds:
+        N = all_plot_folds.count(plot_stored)
+        logging.info(
+            plot_stored.replace(temp_folder, root_ucc_path)
+            + "*.webp"
+            + " --> "
+            + plot_stored
+            + f"*.webp (N={N})"
+        )
 
-    for i, plot_temp in enumerate(all_plot_folds[0]):
-        plot_stored = all_plot_folds[1][i]
-        logging.info(plot_temp + "/*.webp" + " --> " + plot_stored + "/*.webp")
+    breakpoint()
 
 
 def file_checker(
@@ -789,15 +708,14 @@ def file_checker(
     flag_error = False
 
     N_all = {}
-    for qN in range(1, 5):
-        for lat in ("P", "N"):
-            qfold = "Q" + str(qN) + lat + "/"
-            N_all[qfold], N_extra = {}, 0
-            for fold in plots_sub_folders:
-                qplots_fold = root_UCC_fold + qfold + plots_folder + fold
-                N_all[qfold][fold] = len(os.listdir(qplots_fold))
-                N_extra += sum(not f.endswith(".webp") for f in os.listdir(qplots_fold))
-            N_all[qfold]["extra"] = N_extra
+    for letter in "abcdefghijklmnopqrstuvwxyz":
+        # qfold = "Q" + str(qN) + lat + "/"
+        N_all[letter], N_extra = {}, 0
+        for fold in plots_sub_folders:
+            letter_fold = root_UCC_fold + f"plots_{letter}/" + plots_folder + fold
+            N_all[qfold][fold] = len(os.listdir(letter_fold))
+            N_extra += sum(not f.endswith(".webp") for f in os.listdir(letter_fold))
+        N_all[letter]["extra"] = N_extra
 
     Ntot = {_: 0 for _ in plots_sub_folders}
     Ntot["extra"] = 0
