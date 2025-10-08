@@ -235,6 +235,8 @@ need to be applied to update the site.
 
 ## 5. Building the site
 
+The Jekyll theme used by the site is a modified [Reverie](https://jekyllthemes.io/theme/reverie) theme.
+
 ### 5.1 Local build
 
 Before updating the live site, generate a local site build and check the results
