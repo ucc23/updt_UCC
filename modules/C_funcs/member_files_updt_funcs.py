@@ -606,6 +606,7 @@ def updt_UCC_new_cl_data(
     df_field: pd.DataFrame,
     df_membs: pd.DataFrame,
     prob_cut: float = 0.5,
+    N_digits: int = 5,
 ) -> pd.DataFrame:
     """
     Extracts cluster parameters from the member DataFrame.
@@ -627,16 +628,22 @@ def updt_UCC_new_cl_data(
     lon, lat = np.nanmedian(df_membs["GLON"]), np.nanmedian(df_membs["GLAT"])
     ra, dec = np.nanmedian(df_membs["RA_ICRS"]), np.nanmedian(df_membs["DE_ICRS"])
     plx = np.nanmedian(df_membs["Plx"])
+    e_plx = np.nanmedian(df_membs["e_Plx"])
     pmRA, pmDE = np.nanmedian(df_membs["pmRA"]), np.nanmedian(df_membs["pmDE"])
-    Rv, N_Rv = np.nan, 0
+    e_pmRA, e_pmDE = np.nanmedian(df_membs["e_pmRA"]), np.nanmedian(df_membs["e_pmDE"])
+    Rv, e_Rv, N_Rv = np.nan, np.nan, 0
     if not np.isnan(df_membs["RV"].values).all():
         Rv = np.nanmedian(df_membs["RV"])
+        e_Rv = np.nanmedian(df_membs["e_RV"])
         N_Rv = int(len(df_membs["RV"]) - np.isnan(df_membs["RV"].values).sum())
-    lon, lat = round(lon, 3), round(lat, 3)
-    ra, dec = round(ra, 3), round(dec, 3)
-    plx = round(plx, 3)
-    pmRA, pmDE = round(pmRA, 3), round(pmDE, 3)
-    Rv = round(Rv, 3)
+
+    # Round values
+    lon, lat = round(lon, N_digits), round(lat, N_digits)
+    ra, dec = round(ra, N_digits), round(dec, N_digits)
+    plx, e_plx = round(plx, N_digits), round(e_plx, N_digits)
+    pmRA, pmDE = round(pmRA, N_digits), round(pmDE, N_digits)
+    e_pmRA, e_pmDE = round(e_pmRA, N_digits), round(e_pmDE, N_digits)
+    Rv, e_Rv = round(Rv, N_digits), round(e_Rv, N_digits)
 
     # Radius that contains half the members
     xy = np.array([df_membs["GLON"].values, df_membs["GLAT"].values]).T
@@ -663,9 +670,13 @@ def updt_UCC_new_cl_data(
         "RA_ICRS_m": ra,
         "DE_ICRS_m": dec,
         "Plx_m": plx,
+        "e_Plx_m": e_plx,
         "pmRA_m": pmRA,
+        "e_pmRA_m": e_pmRA,
         "pmDE_m": pmDE,
+        "e_pmDE_m": e_pmDE,
         "Rv_m": Rv,
+        "e_Rv_m": e_Rv,
         "N_Rv": N_Rv,
     }
 
