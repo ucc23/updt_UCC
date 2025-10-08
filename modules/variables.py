@@ -144,7 +144,9 @@ class_order = [
 
 # UCC site paths
 #
-# Root path to the repo for the ucc site
+# Root path to the 'ucc/' folder
+root_ucc_path = "../"
+# Path to the repo for the ucc site
 ucc_path = "ucc/"
 # Path to the md entries folder
 md_folder = ucc_path + "_clusters/"
@@ -166,8 +168,10 @@ articles_md_path = pages_folder + "ARTICLES.md"
 # Path to the md file with the tables
 tables_md_path = pages_folder + "TABLES.md"
 
-# Q folders paths and files
+# Plots paths and files
 #
 # Path to the cluster's plots
 plots_folder = "plots/"
 plots_sub_folders = ("UCC", "aladin")  # , "HUNT23", "CANTAT20"
+# This is a modified style that removes the Latex dependence from 'scienceplots'
+custom_style_path = "modules/D_funcs/science2.mplstyle"
