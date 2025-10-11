@@ -1,10 +1,11 @@
 {
   "DAMBIS1999": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/1999AstL...25....7D",
+    "SCIX_url": "https://scixplorer.org/abs/1999AstL...25....7D",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=1999AstL...25....7D",
     "authors": "Dambis",
     "title": "Space-age distribution of young open clusters and observational selection",
     "year": "1999",
+    "received": "19970720",
     "names": "Name",
     "pos": {
       "RA": "_RA",
@@ -20,11 +21,12 @@
     }
   },
   "DIAS2002": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2002A%26A...389..871D",
+    "SCIX_url": "https://scixplorer.org/abs/2002A%26A...389..871D",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2002A%26A...389..871D",
     "authors": "Dias et al.",
     "title": "New catalogue of optically visible open clusters and candidates",
     "year": "2002",
+    "received": "20020314",
     "names": "Cluster",
     "pos": {
       "RA": "RAJ2000",
@@ -44,11 +46,12 @@
     }
   },
   "CHEN2003": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2003AJ....125.1397C",
+    "SCIX_url": "https://scixplorer.org/abs/2003AJ....125.1397C",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2003AJ....125.1397C",
     "authors": "Chen et al.",
     "title": "On the Galactic Disk Metallicity Distribution from Open Clusters. I. New Catalogs and Abundance Gradient",
     "year": "2003",
+    "received": "20020605",
     "names": "Name",
     "pos": {
       "RA": "RA",
@@ -69,11 +72,12 @@
     "e_pars": {}
   },
   "KOPOSOV2008": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2008A%26A...486..771K",
+    "SCIX_url": "https://scixplorer.org/abs/2008A%26A...486..771K",
     "vizier_url": "N/A",
     "authors": "Koposov et al.",
     "title": "Automated search for Galactic star clusters in large multiband surveys. I. Discovery of 15 new open clusters in the Galactic anticenter region",
     "year": "2008",
+    "received": "20070907",
     "names": "Names",
     "pos": {
       "RA": "RA_deg",
@@ -91,11 +95,12 @@
     }
   },
   "GLUSHKOVA2010": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2010AstL...36...75G",
+    "SCIX_url": "https://scixplorer.org/abs/2010AstL...36...75G",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2010AstL...36...75G",
     "authors": "Glushkova et al.",
     "title": "Automated search for star clusters in large multiband surveys: II. Discovery and investigation of open clusters in the galactic plane",
     "year": "2010",
+    "received": "20090920",
     "names": "Name",
     "pos": {
       "RA": "RAJ2000",
@@ -113,11 +118,12 @@
     }
   },
   "BORISSOVA2011": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2011A%26A...532A.131B",
+    "SCIX_url": "https://scixplorer.org/abs/2011A%26A...532A.131B",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2011A%26A...532A.131B",
     "authors": "Borissova et al.",
     "title": "New Galactic star clusters discovered in the VVV survey",
     "year": "2011",
+    "received": "20110206",
     "names": "VVV-CL",
     "pos": {
       "RA": "RA",
@@ -127,11 +133,12 @@
     "e_pars": {}
   },
   "KHARCHENKO2012": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2012A%26A...543A.156K",
+    "SCIX_url": "https://scixplorer.org/abs/2012A%26A...543A.156K",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2012A%26A...543A.156K",
     "authors": "Kharchenko et al.",
     "title": "Global survey of star clusters in the Milky Way. I. The pipeline and fundamental parameters in the second quadrant",
     "year": "2012",
+    "received": "20111222",
     "names": "name",
     "pos": {
       "RA": "ra",
@@ -151,11 +158,12 @@
     }
   },
   "LOKTIN2017": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2017AstBu..72..257L",
+    "SCIX_url": "https://scixplorer.org/abs/2017AstBu..72..257L",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2017AstBu..72..257L",
     "authors": "Loktin & Popova",
     "title": "Updated version of the 'homogeneous catalog of open cluster parameters'",
     "year": "2017",
+    "received": "20170101",
     "names": "Name",
     "pos": {
       "RA": "RAJ2000",
@@ -176,11 +184,12 @@
     }
   },
   "BORISSOVA2018": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2018MNRAS.481.3902B",
+    "SCIX_url": "https://scixplorer.org/abs/2018MNRAS.481.3902B",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2018MNRAS.481.3902B",
     "authors": "Borissova et al.",
     "title": "New Galactic star clusters discovered in the disc area of the VVVX survey",
     "year": "2018",
+    "received": "20180131",
     "names": "Name",
     "pos": {
       "RA": "RAJ2000",
@@ -201,11 +210,12 @@
     }
   },
   "CASTRO2018": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2018A%26A...618A..59C",
+    "SCIX_url": "https://scixplorer.org/abs/2018A%26A...618A..59C",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2018A%26A...618A..59C",
     "authors": "Castro-Ginard et al.",
     "title": "A new method for unveiling open clusters in Gaia. New nearby open clusters confirmed by DR2",
     "year": "2018",
+    "received": "20180508",
     "names": "Cluster",
     "pos": {
       "RA": "_RA.icrs",
@@ -219,11 +229,12 @@
     "e_pars": {}
   },
   "ANGELO2019": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2019A%26A...624A...8A",
+    "SCIX_url": "https://scixplorer.org/abs/2019A%26A...624A...8A",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2019A%26A...624A...8A",
     "authors": "Angelo et al.",
     "title": "Investigating dynamical properties of evolved Galactic open clusters",
     "year": "2019",
+    "received": "20180125",
     "names": "Cluster",
     "pos": {
       "RA": "RAJ2000",
@@ -241,11 +252,12 @@
     }
   },
   "DIAS2019": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2019MNRAS.486.5726D",
+    "SCIX_url": "https://scixplorer.org/abs/2019MNRAS.486.5726D",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2019MNRAS.486.5726D",
     "authors": "Dias et al.",
     "title": "The spiral pattern rotation speed of the Galaxy and the corotation radius with Gaia DR2",
     "year": "2019",
+    "received": "20190320",
     "names": "Name",
     "pos": {
       "RA": "RAJ2000",
@@ -269,11 +281,12 @@
     }
   },
   "BICA2019": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2019AJ....157...12B",
+    "SCIX_url": "https://scixplorer.org/abs/2019AJ....157...12B",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2019AJ....157...12B",
     "authors": "Bica et al.",
     "title": "A Multi-band Catalog of 10978 Star Clusters, Associations, and Candidates in the Milky Way",
     "year": "2019",
+    "received": "20180718",
     "names": "Name",
     "pos": {
       "RA": "RA_ICRS",
@@ -283,11 +296,12 @@
     "e_pars": {}
   },
   "BOSSINI2019": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2019A%26A...623A.108B",
+    "SCIX_url": "https://scixplorer.org/abs/2019A%26A...623A.108B",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2019A%26A...623A.108B",
     "authors": "Bossini et al.",
     "title": "Age determination for 269 Gaia DR2 open clusters",
     "year": "2019",
+    "received": "20181120",
     "names": "Cluster",
     "pos": {
       "RA": "RA_ICRS",
@@ -315,11 +329,12 @@
     }
   },
   "CASTRO2019": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2019A%26A...627A..35C",
+    "SCIX_url": "https://scixplorer.org/abs/2019A%26A...627A..35C",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2019A%26A...627A..35C",
     "authors": "Castro-Ginard et al.",
     "title": "Hunting for open clusters in Gaia DR2: the Galactic anticentre",
     "year": "2019",
+    "received": "20190325",
     "names": "Cluster",
     "pos": {
       "RA": "RA_ICRS",
@@ -332,11 +347,12 @@
     "e_pars": {}
   },
   "SIM2019": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2019JKAS...52..145S",
+    "SCIX_url": "https://scixplorer.org/abs/2019JKAS...52..145S",
     "vizier_url": "N/A",
     "authors": "Sim et al.",
     "title": "207 New Open Star Clusters within 1 kpc from Gaia Data Release 2",
     "year": "2019",
+    "received": "20190514",
     "names": "ID",
     "pos": {
       "RA": "RA_ICRS",
@@ -353,11 +369,12 @@
     }
   },
   "LIUPANG2019": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2019ApJS..245...32L",
+    "SCIX_url": "https://scixplorer.org/abs/2019ApJS..245...32L",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2019ApJS..245...32L",
     "authors": "Liu & Pang",
     "title": "A Catalog of Newly Identified Star Clusters in Gaia DR2",
     "year": "2019",
+    "received": "20190608",
     "names": "ID",
     "pos": {
       "RA": "_RA.icrs",
@@ -375,11 +392,12 @@
     }
   },
   "FERREIRA2019": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2019MNRAS.483.5508F",
+    "SCIX_url": "https://scixplorer.org/abs/2019MNRAS.483.5508F",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2019MNRAS.483.5508F",
     "authors": "Ferreira et al.",
     "title": "Three new Galactic star clusters discovered in the field of the open cluster NGC 5999 with Gaia DR2",
     "year": "2019",
+    "received": "20180611",
     "names": "Name",
     "pos": {
       "RA": "RA_ICRS",
@@ -401,11 +419,12 @@
     }
   },
   "CANTAT2020": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2020A%26A...640A...1C",
+    "SCIX_url": "https://scixplorer.org/abs/2020A%26A...640A...1C",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2020A%26A...640A...1C",
     "authors": "Cantat-Gaudin et al.",
     "title": "Painting a portrait of the Galactic disc with its stellar clusters",
     "year": "2020",
+    "received": "20200417",
     "names": "Cluster",
     "pos": {
       "RA": "RA_ICRS",
@@ -422,11 +441,12 @@
     "e_pars": {}
   },
   "CASTRO2020": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2020A%26A...635A..45C",
+    "SCIX_url": "https://scixplorer.org/abs/2020A%26A...635A..45C",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2020A%26A...635A..45C",
     "authors": "Castro-Ginard et al.",
     "title": "Hunting for open clusters in Gaia DR2: 582 new open clusters in the Galactic disc",
     "year": "2020",
+    "received": "20191220",
     "names": "Cluster",
     "pos": {
       "RA": "RA_ICRS",
@@ -439,11 +459,12 @@
     "e_pars": {}
   },
   "FERREIRA2020": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2020MNRAS.496.2021F",
+    "SCIX_url": "https://scixplorer.org/abs/2020MNRAS.496.2021F",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2020MNRAS.496.2021F",
     "authors": "Ferreira et al.",
     "title": "Discovery and astrophysical properties of Galactic open clusters in dense stellar fields using Gaia DR2",
     "year": "2020",
+    "received": "20200330",
     "names": "Name",
     "pos": {
       "RA": "RA_ICRS",
@@ -464,11 +485,12 @@
     }
   },
   "HAO2020": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2020PASP..132c4502H",
+    "SCIX_url": "https://scixplorer.org/abs/2020PASP..132c4502H",
     "vizier_url": "N/A",
     "authors": "Hao et al.",
     "title": "Sixteen Open Clusters Discovered with Sample-based Clustering Search of Gaia DR2",
     "year": "2020",
+    "received": "20191125",
     "names": "Name",
     "pos": {
       "RA": "ra",
@@ -487,11 +509,12 @@
     }
   },
   "DONOR2020": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2020AJ....159..199D",
+    "SCIX_url": "https://scixplorer.org/abs/2020AJ....159..199D",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2020AJ....159..199D",
     "authors": "Donor et al.",
     "title": "The Open Cluster Chemical Abundances and Mapping Survey. IV. Abundances for 128 Open Clusters Using SDSS/APOGEE DR16",
     "year": "2020",
+    "received": "20191209",
     "names": "Name",
     "pos": {
       "RA": "RA",
@@ -508,11 +531,12 @@
     }
   },
   "DIAS2021": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2021MNRAS.504..356D",
+    "SCIX_url": "https://scixplorer.org/abs/2021MNRAS.504..356D",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2021MNRAS.504..356D",
     "authors": "Dias et al.",
     "title": "Updated parameters of 1743 open clusters based on Gaia DR2",
     "year": "2021",
+    "received": "20201104",
     "names": "Cluster",
     "pos": {
       "RA": "RA_ICRS",
@@ -536,11 +560,12 @@
     }
   },
   "CASADO2021": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2021RAA....21..117C",
+    "SCIX_url": "https://scixplorer.org/abs/2021RAA....21..117C",
     "vizier_url": "N/A",
     "authors": "Casado",
     "title": "New open clusters found by manual mining of data based on Gaia DR2",
     "year": "2021",
+    "received": "20200911",
     "names": "Name",
     "pos": {
       "RA": "RA_ICRS",
@@ -557,11 +582,12 @@
     }
   },
   "FERREIRA2021": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2021MNRAS.502L..90F",
+    "SCIX_url": "https://scixplorer.org/abs/2021MNRAS.502L..90F",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2021MNRAS.502L..90F",
     "authors": "Ferreira et al.",
     "title": "New star clusters discovered towards the Galactic bulge direction using Gaia DR2",
     "year": "2021",
+    "received": "20201214",
     "names": "Name",
     "pos": {
       "RA": "RAJ2000",
@@ -582,11 +608,12 @@
     }
   },
   "HUNT2021": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2021A%26A...646A.104H",
+    "SCIX_url": "https://scixplorer.org/abs/2021A%26A...646A.104H",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2021A%26A...646A.104H",
     "authors": "Hunt & Reffert",
     "title": "Improving the open cluster census. I. Comparison of clustering algorithms applied to Gaia DR2 data",
     "year": "2021",
+    "received": "20200904",
     "names": "Name",
     "pos": {
       "RA": "RA_ICRS",
@@ -599,11 +626,12 @@
     "e_pars": {}
   },
   "JAEHNIG2021": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2021ApJ...923..129J",
+    "SCIX_url": "https://scixplorer.org/abs/2021ApJ...923..129J",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2021ApJ...923..129J",
     "authors": "Jaehnig et al.",
     "title": "Membership Lists for 431 Open Clusters in Gaia DR2 Using Extreme Deconvolution Gaussian Mixture Models",
     "year": "2021",
+    "received": "20210526",
     "names": "Cl",
     "pos": {
       "RA": "RA_ICRS",
@@ -624,11 +652,12 @@
     }
   },
   "SANTOS2021": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2021MNRAS.508.1033S",
+    "SCIX_url": "https://scixplorer.org/abs/2021MNRAS.508.1033S",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2021MNRAS.508.1033S",
     "authors": "Santos-Silva et al.",
     "title": "Canis Major OB1 stellar group contents revealed by Gaia",
     "year": "2021",
+    "received": "20201229",
     "names": "Groups",
     "pos": {
       "RA": "RA",
@@ -679,11 +708,12 @@
     }
   },
   "HE2021": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2021RAA....21...93H",
+    "SCIX_url": "https://scixplorer.org/abs/2021RAA....21...93H",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2021RAA....21...93H",
     "authors": "He et al.",
     "title": "A catalogue of 74 new open clusters found in Gaia Data-Release 2",
     "year": "2021",
+    "received": "20200927",
     "names": "OC",
     "pos": {
       "RA": "RA_ICRS",
@@ -701,11 +731,12 @@
     "e_pars": {}
   },
   "CASTRO2022": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2022A%26A...661A.118C",
+    "SCIX_url": "https://scixplorer.org/abs/2022A%26A...661A.118C",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2022A%26A...661A.118C",
     "authors": "Castro-Ginard et al.",
     "title": "Hunting for open clusters in Gaia EDR3: 628 new open clusters found with OCfinder",
     "year": "2022",
+    "received": "20211102",
     "names": "Cluster",
     "pos": {
       "RA": "RA_ICRS",
@@ -723,11 +754,12 @@
     "e_pars": {}
   },
   "TARRICQ2022": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2022A%26A...659A..59T",
+    "SCIX_url": "https://scixplorer.org/abs/2022A%26A...659A..59T",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2022A%26A...659A..59T",
     "authors": "Tarricq et al.",
     "title": "Structural parameters of 389 local open clusters",
     "year": "2022",
+    "received": "20210909",
     "names": "Cluster",
     "pos": {
       "RA": "RA_ICRS",
@@ -743,11 +775,12 @@
     "e_pars": {}
   },
   "LI2022": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2022ApJS..259...19L",
+    "SCIX_url": "https://scixplorer.org/abs/2022ApJS..259...19L",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2022ApJS..259...19L",
     "authors": "Li et al.",
     "title": "LISC Catalog of Star Clusters. I. Galactic Disk Clusters in Gaia EDR3",
     "year": "2022",
+    "received": "20210918",
     "names": "LISC",
     "pos": {
       "RA": "RAJ2000",
@@ -766,11 +799,12 @@
     "e_pars": {}
   },
   "HE2022": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2022ApJS..260....8H",
+    "SCIX_url": "https://scixplorer.org/abs/2022ApJS..260....8H",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2022ApJS..260....8H",
     "authors": "He et al.",
     "title": "New Open-cluster Candidates Found in the Galactic Disk Using Gaia DR2/EDR3 Data",
     "year": "2022",
+    "received": "20220124",
     "names": "Cluster",
     "pos": {
       "RA": "_RA.icrs",
@@ -789,11 +823,12 @@
     "e_pars": {}
   },
   "HE2022_1": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2022ApJS..262....7H",
+    "SCIX_url": "https://scixplorer.org/abs/2022ApJS..262....7H",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2022ApJS..262....7H",
     "authors": "He et al.",
     "title": "A Blind All-sky Search for Star Clusters in Gaia EDR3: 886 Clusters within 1.2 kpc of the Sun",
     "year": "2022",
+    "received": "20220328",
     "names": "Cluster",
     "pos": {
       "RA": "_RA.icrs",
@@ -809,11 +844,12 @@
     "e_pars": {}
   },
   "HAO2022": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2022A%26A...660A...4H",
+    "SCIX_url": "https://scixplorer.org/abs/2022A%26A...660A...4H",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2022A%26A...660A...4H",
     "authors": "Hao et al.",
     "title": "Newly detected open clusters in the Galactic disk using Gaia EDR3",
     "year": "2022",
+    "received": "20220112",
     "names": "Cluster",
     "pos": {
       "RA": "RA_ICRS",
@@ -833,11 +869,12 @@
     }
   },
   "PERREN2022": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2022A%26A...663A.131P",
+    "SCIX_url": "https://scixplorer.org/abs/2022A%26A...663A.131P",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2022A%26A...663A.131P",
     "authors": "Perren et al.",
     "title": "An analysis of the most distant cataloged open clusters. Re-assessing fundamental parameters with Gaia EDR3 and ASteCA",
     "year": "2022",
+    "received": "20220208",
     "names": "Cluster",
     "pos": {
       "RA": "RA_ICRS",
@@ -854,11 +891,12 @@
     "e_pars": {}
   },
   "PIATTI2023": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2023MNRAS.518.6216P",
+    "SCIX_url": "https://scixplorer.org/abs/2023MNRAS.518.6216P",
     "vizier_url": "N/A",
     "authors": "Piatti et al.",
     "title": "Assessing the physical reality of Milky Way open cluster candidates",
     "year": "2023",
+    "received": "20220912",
     "names": "Name",
     "pos": {},
     "pars": {
@@ -875,11 +913,12 @@
     }
   },
   "CHI2023": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2023ApJS..265...20C",
+    "SCIX_url": "https://scixplorer.org/abs/2023ApJS..265...20C",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2023ApJS..265...20C",
     "authors": "Chi et al.",
     "title": "Identifying 46 New Open Cluster Candidates in Gaia EDR3 Using a Hybrid pyUPMASK and Random Forest Method",
     "year": "2023",
+    "received": "20220916",
     "names": "Name",
     "pos": {
       "RA": "RA_ICRS",
@@ -895,11 +934,12 @@
     "e_pars": {}
   },
   "CHI2023_1": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2023RAA....23f5008C",
+    "SCIX_url": "https://scixplorer.org/abs/2023RAA....23f5008C",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2023RAA....23f5008C",
     "authors": "Chi et al.",
     "title": "LISC Catalog of Open Clusters III. 83 Newly Found Galactic Disk Open Clusters Using Gaia EDR3",
     "year": "2023",
+    "received": "20221218",
     "names": "ID",
     "pos": {
       "RA": "_RA.icrs",
@@ -917,11 +957,12 @@
     "e_pars": {}
   },
   "CHI2023_2": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2023ApJS..266...36C",
+    "SCIX_url": "https://scixplorer.org/abs/2023ApJS..266...36C",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2023ApJS..266...36C",
     "authors": "Chi et al.",
     "title": "Blind Search of the Solar Neighborhood Galactic Disk within 5 kpc: 1179 New Star Clusters Found in Gaia DR3",
     "year": "2023",
+    "received": "20221220",
     "names": "Id",
     "pos": {
       "RA": "ra",
@@ -938,11 +979,12 @@
     "e_pars": {}
   },
   "HE2023": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2023ApJS..264....8H",
+    "SCIX_url": "https://scixplorer.org/abs/2023ApJS..264....8H",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2023ApJS..264....8H",
     "authors": "He et al.",
     "title": "Unveiling Hidden Stellar Aggregates in the Milky Way: 1656 New Star Clusters Found in Gaia EDR3",
     "year": "2023",
+    "received": "20220711",
     "names": "CWNU_id",
     "pos": {
       "RA": "RA_ICRS",
@@ -960,11 +1002,12 @@
     "e_pars": {}
   },
   "HE2023_1": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2023ApJS..267...34H",
+    "SCIX_url": "https://scixplorer.org/abs/2023ApJS..267...34H",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2023ApJS..267...34H",
     "authors": "He et al.",
     "title": "Survey for Distant Stellar Aggregates in the Galactic Disk: Detecting 2000 Star Clusters and Candidates, along with the Dwarf Galaxy IC 10",
     "year": "2023",
+    "received": "20230330",
     "names": "ID",
     "pos": {
       "RA": "RAdeg",
@@ -982,11 +1025,12 @@
     "e_pars": {}
   },
   "CASADOHENDY2023": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2023MNRAS.521.1399C",
+    "SCIX_url": "https://scixplorer.org/abs/2023MNRAS.521.1399C",
     "vizier_url": "N/A",
     "authors": "Casado & Hendy",
     "title": "Discovery and description of two young open clusters in the primordial group of NGC 6871",
     "year": "2023",
+    "received": "20221202",
     "names": "name",
     "pos": {
       "RA": "RA_ICRS",
@@ -1005,11 +1049,12 @@
     "e_pars": {}
   },
   "HUNT2023": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2023A%26A...673A.114H",
+    "SCIX_url": "https://scixplorer.org/abs/2023A%26A...673A.114H",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2023A%26A...673A.114H",
     "authors": "Hunt & Reffert",
     "title": "Improving the open cluster census. II. An all-sky cluster catalogue with Gaia DR3",
     "year": "2023",
+    "received": "20230301",
     "names": "Name",
     "pos": {
       "RA": "RA_ICRS",
@@ -1045,11 +1090,12 @@
     }
   },
   "QIN2023": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2023ApJS..265...12Q",
+    "SCIX_url": "https://scixplorer.org/abs/2023ApJS..265...12Q",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2023ApJS..265...12Q",
     "authors": "Qin et al.",
     "title": "Hunting for Neighboring Open Clusters with Gaia DR3: 101 New Open Clusters within 500 pc",
     "year": "2023",
+    "received": "20221018",
     "names": "Name",
     "pos": {
       "RA": "RA_ICRS",
@@ -1067,11 +1113,12 @@
     "e_pars": {}
   },
   "LI2023": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2023ApJS..265....3L",
+    "SCIX_url": "https://scixplorer.org/abs/2023ApJS..265....3L",
     "vizier_url": "N/A",
     "authors": "Li & Mao",
     "title": "LISC Catalog of Star Clusters. II. High Galactic Latitude Open Clusters in Gaia EDR3",
     "year": "2023",
+    "received": "20220707",
     "names": "id",
     "pos": {
       "RA": "ra",
@@ -1084,11 +1131,12 @@
     "e_pars": {}
   },
   "HUNT2024": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2024A%26A...686A..42H",
+    "SCIX_url": "https://scixplorer.org/abs/2024A%26A...686A..42H",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2024A%26A...686A..42H",
     "authors": "Hunt & Reffert",
     "title": "Improving the open cluster census. III. Using cluster masses, radii, and dynamics to create a cleaned open cluster catalogue",
     "year": "2024",
+    "received": "20231117",
     "names": "Name",
     "pos": {
       "RA": "RA_ICRS",
@@ -1106,11 +1154,12 @@
     }
   },
   "ALFONSO2024": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2024A%26A...689A..18A",
+    "SCIX_url": "https://scixplorer.org/abs/2024A%26A...689A..18A",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2024A%26A...689A..18A",
     "authors": "Alfonso et al.",
     "title": "Exploring Galactic open clusters with Gaia: I. An examination in the first kiloparsec",
     "year": "2024",
+    "received": "20240528",
     "names": "Cluster",
     "pos": {
       "RA": "RA_ICRS",
@@ -1128,11 +1177,12 @@
     "e_pars": {}
   },
   "CAVALLO2024": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2024AJ....167...12C",
+    "SCIX_url": "https://scixplorer.org/abs/2024AJ....167...12C",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2024AJ....167...12C",
     "authors": "Cavallo et al.",
     "title": "Parameter Estimation for Open Clusters using an Artificial Neural Network with a QuadTree-based Feature Extractor",
     "year": "2024",
+    "received": "20230803",
     "names": "Cluster",
     "pos": {
       "RA": "RA_ICRS",
@@ -1165,11 +1215,12 @@
     }
   },
   "HU2025": {
-    "ADS_url": "https://ui.adsabs.harvard.edu/abs/2025A%26A...699A.246H",
+    "SCIX_url": "https://scixplorer.org/abs/2025A%26A...699A.246H",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2025A%26A...699A.246H",
     "authors": "Hu & Soubiran",
     "title": "Metallicities of old open clusters: A new Galactic map",
     "year": "2025",
+    "received": "20250325",
     "names": "Cluster",
     "pos": {
       "RA": "RA_ICRS",
