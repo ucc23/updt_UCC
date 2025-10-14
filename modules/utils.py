@@ -104,6 +104,7 @@ def diff_between_dfs(
     logging,
     df_old: pd.DataFrame,
     df_new: pd.DataFrame,
+    order_col: str = "fnames",
     # cols_exclude=None,
 ) -> None:
     """
@@ -117,6 +118,10 @@ def diff_between_dfs(
         df_new (pd.DataFrame): Second DataFrame to compare.
         cols_exclude (list | None): List of columns to exclude from the diff
     """
+    df_old = df_old.copy().sort_values(by=order_col).reset_index(drop=True)
+    df_new = df_new.copy().sort_values(by=order_col).reset_index(drop=True)
+    df_new = round_columns(df_new)
+
     # Convert DataFrames to lists of tuples (rows) for comparison
     rows1 = [[str(_) for _ in row] for row in df_old.values]
     rows2 = [[str(_) for _ in row] for row in df_new.values]
