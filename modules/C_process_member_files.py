@@ -1,4 +1,5 @@
 import csv
+import json
 import os
 import shutil
 import sys
@@ -22,6 +23,7 @@ from .variables import (
     UCC_members_file,
     data_folder,
     merged_dbs_file,
+    name_DBs_json,
     path_gaia_frames,
     path_gaia_frames_ranges,
     temp_folder,
@@ -39,8 +41,8 @@ def main():
     # Generate paths and check for required folders and files
     ucc_B_file, ucc_C_file, temp_zenodo_fold = get_paths_check_paths(logging)
 
-    (gaia_frames_data, df_GCs, df_members, df_UCC_B, df_UCC_C) = load_data(
-        logging, ucc_B_file, ucc_C_file
+    (gaia_frames_data, current_JSON, df_GCs, df_members, df_UCC_B, df_UCC_C) = (
+        load_data(logging, ucc_B_file, ucc_C_file)
     )
 
     # Detect entries to be processed
@@ -96,15 +98,15 @@ def main():
     df_UCC_C_final = find_shared_members(logging, df_UCC_C_new, df_members_new)
     logging.info("Shared members data updated in UCC")
 
+    # Check the 'fnames' columns in df_UCC_B and df_UCC_C_final dataframes are equal
+    if not df_UCC_B["fnames"].to_list() == df_UCC_C_final["fnames"].to_list():
+        raise ValueError("The 'fnames' columns in B and final C dataframes differ")
+
     # Add UTI values
-    df_UCC_C_final = get_UTI(df_UCC_B, df_UCC_C_final)
+    df_UCC_C_final = get_UTI(current_JSON, df_UCC_B, df_UCC_C_final)
 
     # Check differences between the original and final C dataframes
     diff_between_dfs(logging, df_UCC_C, df_UCC_C_final)
-
-    # Check the 'fnames' columns in df_UCC_B and df_UCC_C_final dataframes are equal
-    if not df_UCC_B["fnames"].equals(df_UCC_C_final["fnames"]):
-        raise ValueError("The 'fnames' columns in B and final C dataframes differ")
 
     # Save the generated data to temporary files before moving them
     update_files(logging, temp_zenodo_fold, df_UCC_B, df_UCC_C_final, df_members_new)
@@ -166,12 +168,16 @@ def get_paths_check_paths(logging) -> tuple[str, str, str]:
 
 def load_data(
     logging, ucc_B_file, ucc_C_file
-) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+) -> tuple[pd.DataFrame, dict, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """ """
     # Load file with Gaia frames ranges
     gaia_frames_data = pd.DataFrame([])
     if os.path.isfile(path_gaia_frames_ranges):
         gaia_frames_data = pd.read_csv(path_gaia_frames_ranges)
+
+    # Load clusters data in JSON file
+    with open(name_DBs_json) as f:
+        current_JSON = json.load(f)
 
     # Load GCs data
     df_GCs = pd.read_csv(GCs_cat)
@@ -185,7 +191,7 @@ def load_data(
     df_UCC_C = pd.read_csv(ucc_C_file)
     logging.info(f"File {ucc_C_file} loaded ({len(df_UCC_C)} entries)")
 
-    return gaia_frames_data, df_GCs, df_members, df_UCC_B, df_UCC_C
+    return gaia_frames_data, current_JSON, df_GCs, df_members, df_UCC_B, df_UCC_C
 
 
 def detect_entries_to_process(
@@ -294,6 +300,9 @@ def member_files_updt(
     """
     Updates the Unified Cluster Catalogue (UCC) with new open clusters (OCs).
     """
+    if df_UCC_C_updt.empty:
+        return df_UCC_C_updt
+
     for idx, cl_row in df_UCC_C_updt.iterrows():
         # Extract some data
         fnames, ra_c, dec_c, glon_c, glat_c, pmra_c, pmde_c, plx_c = (
@@ -351,10 +360,10 @@ def member_files_updt(
 
     # This dataframe (and file) contains the data extracted from all the new entries,
     # used to update the UCC
-    df_UCC_updt = pd.DataFrame(df_UCC_C_updt)
-    logging.info("\nTemp file df_UCC_C_updt saved")
+    # df_UCC_updt = pd.DataFrame(df_UCC_C_updt)
+    # logging.info("\nTemp file df_UCC_C_updt saved")
 
-    return df_UCC_updt
+    return df_UCC_C_updt
 
 
 def update_UCC_membs_data(
@@ -390,6 +399,10 @@ def update_UCC_membs_data(
             for col in df_UCC_C_new.columns:
                 df_UCC_C_new.at[i, col] = row[col]
 
+    # Reset indexes of both dataframes
+    df_members_new = df_members_new.reset_index(drop=True)
+    df_UCC_C_new = df_UCC_C_new.reset_index(drop=True)
+
     return df_members_new, df_UCC_C_new
 
 
@@ -398,6 +411,8 @@ def gen_comb_members_file(logging) -> pd.DataFrame:
 
     # Path to folder with individual .parquet files
     member_files = os.listdir(temp_members_folder)
+    if len(member_files) == 0:
+        return pd.DataFrame([])
 
     logging.info(f"Combining {len(member_files)} .parquet files...")
     tmp = []
@@ -446,11 +461,6 @@ def gen_comb_members_file(logging) -> pd.DataFrame:
         df.insert(loc=0, column="name", value=fname)
         tmp.append(df)
 
-        # # Update entry for this file
-        # json_date_data[fname] = (
-        #     f"updated ({datetime.datetime.now().strftime('%y%m%d%H')})"
-        # )
-
     # Concatenate all temporary DataFrames into one
     df_comb = pd.concat(tmp, ignore_index=True)
 
@@ -465,6 +475,9 @@ def update_membs_file(logging, df_members: pd.DataFrame) -> pd.DataFrame:
     """
     # Concatenate all temporary DataFrames into one
     df_comb = gen_comb_members_file(logging)
+
+    if df_comb.empty:
+        return df_members.copy()
 
     #
     logging.info("Updating members file...")
@@ -542,6 +555,7 @@ def find_shared_members(logging, df_UCC, df_members):
     df_UCC[["shared_members", "shared_members_p"]] = result_df[
         ["shared_members", "shared_members_p"]
     ]
+    df_UCC = df_UCC.reset_index(drop=True)
 
     return df_UCC
 
@@ -596,7 +610,7 @@ def find_intersections(df, df_members):
     return intersection_map
 
 
-def get_UTI(df_UCC_B, df_UCC_C, max_dens=5, min_lit=1, max_lit=7):
+def get_UTI(current_JSON, df_UCC_B, df_UCC_C, max_dens=5):
     """
     Linear transformation from values to [0, 1]
     """
@@ -628,37 +642,85 @@ def get_UTI(df_UCC_B, df_UCC_C, max_dens=5, min_lit=1, max_lit=7):
     # Count number of times each OC is mentioned in the literature
     N_lit = np.array([len(_.split(";")) for _ in df_UCC_B["DB"]])
     C_lit = np.ones(len(N_lit))
-    C_lit[N_lit < 3] = 0.0
+    min_lit = 2
+    C_lit[N_lit < min_lit] = 0.0
     # Define intervals and mapping ranges
     bounds = (0.25, 0.5, 0.75, 0.9)
-    Nvals = (3, 5, 7, 10)
+    Nvals = (min_lit, 5, 7, 10)
     for i in range(1, len(bounds)):
         normalize(N_lit, C_lit, Nvals[i - 1], Nvals[i], bounds[i - 1], bounds[i])
 
     # C_dup indicates the confidence that an entry is a duplicate of a previously
     # reported object. A value of 1 means not at all a duplicate
 
-    # Extract the first year of publication for each entry
-    f_year = np.array([int(_.split(";")[0].split("_")[0][-4:]) for _ in df_UCC_B["DB"]])
+    # Extract the first DB and year of publication for each entry (assumes the DBs
+    # are already ordered by year)
+    dbs = [_.split(";")[0] for _ in df_UCC_B["DB"]]
+    f_year = [int(_.split("_")[0][-4:]) for _ in dbs]
+    # Extract first fname
     fnames = [_.split(";")[0] for _ in df_UCC_B["fnames"]]
+    # Map years and dbs to fnames
+    fname_db_to_year = {name: [year, db] for name, year, db in zip(fnames, f_year, dbs)}
+
     C_dup = [100.0] * len(df_UCC_C)
+    C_dup_same_db = [100.0] * len(df_UCC_C)
     for idx, cl in df_UCC_C.iterrows():
         if str(cl["shared_members"]) == "nan":
+            # This OC does not share members with any other, move on to the next
             continue
-        # Year of first publication for this entry
-        cl_year = f_year[idx]
-        shared_p = 0.0
-        for j, cl_shared in enumerate(cl["shared_members"].split(";")):
-            k = fnames.index(cl_shared)
-            # If the first year of publication for this OC is smaller (older)
-            # than the OC listed in 'shared_members', then it can not be a duplicate
-            if cl_year <= f_year[k]:
-                continue
-            # Extract the maximum value of shared members percentage
-            shared_p = max(shared_p, float(cl["shared_members_p"].split(";")[j]))
 
-        C_dup[idx] -= shared_p
+        # # Extract the years and dbs associated to the entries that share members
+        # with 'cl'
+        shared_members = cl["shared_members"].split(";")
+        fyears_shared, dbs_shared = [], []
+        for s in shared_members:
+            fyears_shared.append(fname_db_to_year[s][0])
+            dbs_shared.append(fname_db_to_year[s][1])
+
+        # Year of publication of 'cl'
+        f_year_cl = f_year[idx]
+
+        if min(fyears_shared) > f_year_cl:
+            # All entries that share members with 'cl' where published *after* 'cl',
+            # 'cl' thus cannot be a duplicate of any of them
+            continue
+
+        shared_members_p = list(map(float, cl["shared_members_p"].split(";")))
+        date_received_cl = int(current_JSON[dbs[idx]]["received"])
+
+        # shared_p = [[], []]
+        shared_p = {"n": 0.0, "y": 0.0}
+        for j, f_year_shared in enumerate(fyears_shared):
+            # shared_members_j, same_db = 0.0, 'n'
+            if f_year_cl > f_year_shared:
+                # If 'cl' is more recent than this entry, 'cl' is the duplicate
+                shared_p["n"] = max(shared_p["n"], shared_members_p[j])
+            elif f_year_cl == f_year_shared:
+                # If the years are equal, use the received date to disambiguate
+                date_received_shared = int(current_JSON[dbs_shared[j]]["received"])
+                if date_received_cl > date_received_shared:
+                    # If 'cl' is more recent than this entry, 'cl' is the duplicate
+                    shared_p["n"] = max(shared_p["n"], shared_members_p[j])
+                elif date_received_cl == date_received_shared:
+                    if dbs[idx] != dbs_shared[j]:
+                        # This should never happen
+                        raise ValueError(
+                            f"({idx}) {cl['fnames']} & {shared_members[j]} share "
+                            "publication date but different DBs"
+                        )
+                    # These entries share members BUT they belong to the same DB.
+                    shared_p["y"] = max(shared_p["y"], shared_members_p[j])
+
+        if shared_p["n"] > 0.0:
+            # At least one entry that shares members with 'cl' belongs to a
+            # different DB
+            C_dup[idx] -= shared_p["n"]
+        if shared_p["y"] > 0.0:
+            # All entries that share members with 'cl' belong to the same DB
+            C_dup_same_db[idx] -= shared_p["y"]
+
     C_dup = np.array(C_dup) / 100
+    C_dup_same_db = np.array(C_dup_same_db) / 100
 
     # Final UTI
     UTI = np.clip(0.2 * (C_N50 + C_dens + C_C3 + 2 * C_lit) * C_dup, 0, 1)
@@ -669,6 +731,7 @@ def get_UTI(df_UCC_B, df_UCC_C, max_dens=5, min_lit=1, max_lit=7):
     df_UCC_C["C_C3"] = np.round(C_C3, 2)
     df_UCC_C["C_lit"] = np.round(C_lit, 2)
     df_UCC_C["C_dup"] = np.round(C_dup, 2)
+    df_UCC_C["C_dup_f"] = np.round(C_dup_same_db, 2)
     df_UCC_C["UTI"] = np.round(UTI, 2)
 
     return df_UCC_C
