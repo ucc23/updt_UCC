@@ -316,32 +316,9 @@ def updt_ucc_cluster_files(
     for i_ucc, UCC_cl in df_UCC.iterrows():
         fname0 = str(UCC_cl["fnames"]).split(";")[0]
 
-        if np.random.rand() < 0.2: # or fname0 in ("theia1975",):
-            pass
-        else:
-            continue
-
-        # Generate table with positional data: (ra, dec, plx, pmra, pmde, Rv)
-        posit_table = ucc_entry.positions_in_lit(current_JSON, DBs_full_data, UCC_cl)
-
-        # Generate CMD image carousel
-        cl_name = UCC_cl["Names"].split(";")[0]
-        img_cont = ucc_entry.carousel_div(cl_name, fname0)
-
-        # Generate fundamental parameters table
-        fpars_table = ucc_entry.fpars_in_lit(
-            current_JSON, DBs_full_data, UCC_cl["DB"], UCC_cl["DB_i"]
-        )
-
-        # Generate table with OCs that share members with this one
-        shared_table = ucc_entry.table_shared_members(df_UCC, fnames_all, UCC_cl)
-
-        # Get colors used by the 'CX' classification
-        abcd_c = ucc_entry.UCC_color(UCC_cl["C3"])
-
         # Generate full entry
         new_md_entry = ucc_entry.make(
-            UCC_cl, fname0, posit_table, img_cont, abcd_c, fpars_table, shared_table
+            current_JSON, DBs_full_data, df_UCC, UCC_cl, fnames_all, fname0
         )
 
         # Compare old md file (if it exists) with the new md file, for this cluster

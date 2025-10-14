@@ -9,258 +9,142 @@ from ..variables import plots_folder, root_ucc_path
 
 header = """---
 layout: post
-title: {}
+title: {title}
 style: style
 title_flag: true
+more_names: {more_names}
+fname: {fname}
+fov: {fov}
+ra_icrs: {ra_icrs}
+de_icrs: {de_icrs}
+glon: {glon}
+glat: {glat}
+r50: {r50}
+plx: {plx}
+UTI: {UTI}
+UTI_COLOR: "{UTI_COLOR}"
+UTI_C_N_COL: "{UTI_C_N_COL}"
+UTI_C_dens_COL: "{UTI_C_dens_COL}"
+UTI_C_C3_COL: "{UTI_C_C3_COL}"
+UTI_C_lit_COL: "{UTI_C_lit_COL}"
+UTI_C_dup_COL: "{UTI_C_dup_COL}"
+UTI_C_N: {UTI_C_N}
+UTI_C_dens: {UTI_C_dens}
+UTI_C_C3: {UTI_C_C3}
+UTI_C_lit: {UTI_C_lit}
+UTI_C_dup: {UTI_C_dup}
+UTI_summary: |
+    {UTI_summary}
+class3: |
+    {class3}
+r_50_val: {r_50_val}
+N_50_val: {N_50_val}
+scix_url: {scix_url}
+posit_table: |
+    {posit_table}
+cds_radec: {cds_radec}
+carousel: {carousel}
+fpars_table: |
+    {fpars_table}
+shared_table: |
+    {shared_table}
 ---
 """
 
-more_names = """<h3><span style="color: #808080;"><i>(cl_names_str)</i></span></h3>"""
 
-aladin_snippet = r"""<div style="display: flex; justify-content: space-between; width:720px;height:250px">
-<div style="text-align: center;">
-
-<!-- Static image + data attributes for FOV and target -->
-<img id="aladin_img"
-     data-umami-event="aladin_load"
-     src="https://raw.githubusercontent.com/ucc23/FOLD/main/aladin/FNAME.webp"
-     alt="Click to load Aladin Lite" 
-     style="width:355px;height:250px; cursor: pointer;"
-     data-fov="FOV_VAL" 
-     data-target="RA_ICRS DE_ICRS"/>
-<!-- Div to contain Aladin Lite viewer -->
-<div id="aladin-lite-div" style="width:355px;height:250px;display:none;"></div>
-<!-- Aladin Lite script (will be loaded after the image is clicked) -->
-<script src="{{ site.baseurl }}/scripts/aladin_load.js"></script>
-
-</div>
-<!-- Left block -->
-"""
-
-table_right_col = """
-<table style="width:355px;height:250px;">
-  <!-- Row 1 (title) -->
-  <tr style="background-color: UTI_COLOR;">
-      <td colspan="5">
-      <div class="popup-container-focus" style="display: flex; justify-content: center; align-items: center; gap: 0.5em;">
-          <button class="popup-button-focus"><a href="{{ site.baseurl }}/faq#what-is-the-uti-parameter" title="UTI parameter">UTI</a>: <span class="uti_value" data-umami-event="UTI">UCC_UTI</span></button>
-          <div class="popup-message-focus">
-              <strong>UCC Trust Index</strong><br><br>
-                <table>
-                  <tr style="background-color: #fafafa;">
-                    <td style="text-align: center;">C_N</td>
-                    <td style="text-align: center;">C_dens</td>
-                    <td style="text-align: center;">C_C3</td>
-                    <td style="text-align: center;">C_lit</td>
-                    <td style="text-align: center;">C_dup</td>
-                  </tr>
-                  <tr>
-                      <td style="text-align: center; background-color: UTI_C_N_COL; font-weight: bold;">UTI_C_N</td>
-                      <td style="text-align: center; background-color: UTI_C_dens_COL; font-weight: bold;">UTI_C_dens</td>
-                      <td style="text-align: center; background-color: UTI_C_C3_COL; font-weight: bold;">UTI_C_C3</td>
-                      <td style="text-align: center; background-color: UTI_C_lit_COL; font-weight: bold;">UTI_C_lit</td>
-                      <td style="text-align: center; background-color: UTI_C_dup_COL; font-weight: bold;">UTI_C_dup</td>
-                  </tr>
-                </table><br>
-              <!-- Object summary follows below -->
-              SUMMARY
-          </div>
-        </div>
-    </td>
-  </tr>
-  <!-- Row 2 -->
-  <tr>
-    <th style="text-align: center;"><a href="https://ucc.ar/faq#what-is-the-c3-parameter" title="C3 class">C3</a></th>
-    <th style="text-align: center;"><div title="Stars with membership probability >50%">N_50</div></th>
-    <th style="text-align: center;"><div title="Radius that contains half the members [arcmin]">r_50</div></th>
-  </tr>
-  <!-- Row 3 -->
-  <tr>
-    <td style="text-align: center;">Class3</td>
-    <td style="text-align: center;">N_50_val</td>
-    <td style="text-align: center;">r_50_val</td>
-  </tr>
-</table>
-</div>
-"""
-
-nasa_simbad_url = """
-> <p style="text-align:center; font-weight: bold; font-size:20px">Search object in <a data-umami-event="nasa_search" href="https://ui.adsabs.harvard.edu/search/q=%20collection%3Aastronomy%20body%3A%22XXNASAXX%22&sort=date%20desc%2C%20bibcode%20desc&p_=0" target="_blank">NASA/SAO ADS</a> | <a data-umami-event="simbad_search" href="https://simbad.cds.unistra.fr/simbad/sim-id-refs?Ident=XXSIMBADXX" target="_blank">Simbad</a></p>
-"""
-
-#  Mobile url
-# https://simbad.cds.unistra.fr/mobile/bib_list.html?ident=
-
-posit_table_top = """\n
-### Positions
-
-| Reference    | RA    | DEC   | Plx  | pmRA  | pmDE   |  Rv  |
-| :---         | :---: | :---: | :---: | :---: | :---: | :---: |
-"""
-
-cds_simbad_url = """
-> <p style="text-align:center; font-weight: bold; font-size:20px">Search coordinates in <a data-umami-event="cds_coord_search" href="https://cdsportal.u-strasbg.fr/?target=RADEC_CDS" target="_blank">CDS</a> | <a data-umami-event="simbad_coord_search" href="https://simbad.cds.unistra.fr/mobile/object_list.html?coord=RADEC_SMB&output=json&radius=5&userEntry=XCLUSTX" target="_blank">Simbad</a></p>
-"""
-
-cl_plot = """
-### Estimated members
-
-{}
-
-"""
-
-notebook_url = """
-> <p style="text-align:center; font-weight: bold; font-size:20px">Explore data in <a data-umami-event="colab" href="https://colab.research.google.com/github/ucc23/ucc/blob/main/assets/notebook.ipynb" target="_blank">Colab</a></p>
-"""
-
-fpars_table_top = """\n
-### Fundamental parameters
-
-| Reference |  Values |
-| :---      |  :---:  |
-"""
-
-bayestar_url = """\n
-> <p style="text-align:center; font-weight: bold; font-size:20px">Search coordinates in <a data-umami-event="bayestar" href="http://argonaut.skymaps.info/query?lon=XXGLONXX%20&lat=XXGLATXX&coordsys=gal&mapname=bayestar2019" target="_blank">Bayestar19</a></p>
-"""
-
-cluster_region_plot = """\n
-### Cluster region
-
-<html lang="en">
-  <body>
-    <center>
-    <div id="plot-params"
-         data-oc-name="FOCNAME"
-         data-ra-center="RAICRS"
-         data-dec-center="DEICRS"
-         data-rad-deg="R50"
-         data-plx="PLX">
-    </div>
-    <div id="plot-container">
-        <div id="plot"></div>
-    </div>
-    <script defer type="module" src="{{ site.baseurl }}/scripts/radec_scatter.js"></script>
-    </center>
-  </body>
-</html>
-<br>
-"""
-
-shared_OCs = """\n
-#### Objects with shared members
-
-| Cluster | <span title="Percentage of members that this OC shares with the ones listed">%</span>   | RA   | DEC   | Plx   | pmRA  | pmDE  | Rv    |
-| :---:   | :-: |:---: | :---: | :---: | :---: | :---: | :---: |
-"""
-
-
-def make(UCC_cl, fname0, posit_table, img_cont, abcd_c, fpars_table, shared_table):
+def make(current_JSON, DBs_full_data, df_UCC, UCC_cl, fnames_all, fname0):
     """ """
     cl_names = UCC_cl["Names"].split(";")
 
-    # Start generating the md file
-    txt = ""
-    txt += header.format(cl_names[0])
+    more_names = ""
     if len(cl_names) > 1:
-        txt += more_names.replace("cl_names_str", "; ".join(cl_names[1:]))
+        more_names = "; ".join(cl_names[1:])
 
-    fov = round(2 * (UCC_cl["r_50"] / 60.0), 3)
-    txt += (
-        aladin_snippet.replace("FOLD", f"plots_{fname0[0]}")
-        .replace("FNAME", str(fname0))
-        .replace("FOV_VAL", str(fov))
-        .replace("RA_ICRS", str(UCC_cl["RA_ICRS_m"]))
-        .replace("DE_ICRS", str(UCC_cl["DE_ICRS_m"]))
-    )
-
-    C_N, C_dens, C_C3, C_lit, C_dup = (
+    UTI_summary = summarize_object(
+        cl_names[0],
+        UCC_cl["DB"],
+        UCC_cl["N_50"],
+        UCC_cl["Plx_m"],
+        UCC_cl["shared_members_p"],
         UCC_cl["C_N"],
         UCC_cl["C_dens"],
         UCC_cl["C_C3"],
         UCC_cl["C_lit"],
         UCC_cl["C_dup"],
-    )
-    txt += (
-        table_right_col.replace("UTI_COLOR", UTI_to_hex(UCC_cl["UTI"]))
-        .replace("UCC_UTI", str(UCC_cl["UTI"]))
-        .replace("UTI_C_N_COL", UTI_to_hex(C_N))
-        .replace("UTI_C_dens_COL", UTI_to_hex(C_dens))
-        .replace("UTI_C_C3_COL", UTI_to_hex(C_C3))
-        .replace("UTI_C_lit_COL", UTI_to_hex(C_lit))
-        .replace("UTI_C_dup_COL", UTI_to_hex(C_dup))
-        .replace("UTI_C_N", str(C_N))
-        .replace("UTI_C_dens", str(C_dens))
-        .replace("UTI_C_C3", str(C_C3))
-        .replace("UTI_C_lit", str(C_lit))
-        .replace("UTI_C_dup", str(C_dup))
-        .replace(
-            "SUMMARY",
-            summarize_object(
-                cl_names[0],
-                UCC_cl["DB"],
-                UCC_cl["N_50"],
-                UCC_cl["Plx_m"],
-                UCC_cl["shared_members_p"],
-                C_N,
-                C_dens,
-                C_C3,
-                C_lit,
-                C_dup,
-            ),
-        )
-        .replace("Class3", abcd_c)
-        .replace("r_50_val", str(UCC_cl["r_50"]))
-        .replace("N_50_val", str(int(UCC_cl["N_50"])))
+        UCC_cl["C_dup_same_db"],
     )
 
-    txt += nasa_simbad_url.replace("XXNASAXX", cl_names[0].replace(" ", "%20")).replace(
-        "XXSIMBADXX", fname0
-    )
+    # Get colors used by the 'CX' classification
+    abcd_c = color_C3(UCC_cl["C3"])
 
-    txt += posit_table_top
-    txt += posit_table
-
-    signed_dec = (
+    cds_dec = (
         "+" + str(UCC_cl["DE_ICRS_m"])
         if UCC_cl["DE_ICRS_m"] >= 0
         else str(UCC_cl["DE_ICRS_m"])
     )
-    txt += (
-        cds_simbad_url.replace(
-            "RADEC_CDS", "{},{}".format(UCC_cl["RA_ICRS_m"], signed_dec)
+    cds_radec = f"{UCC_cl['RA_ICRS_m']},{cds_dec}"
+
+    # Generate table with positional data: (ra, dec, plx, pmra, pmde, Rv)
+    posit_table = positions_in_lit(current_JSON, DBs_full_data, UCC_cl)
+
+    # Check present plots. The order here determines the order in which plots will be
+    # shown: UCC --> HUNT23 --> CANTAT20
+    carousel = "UCC"
+    for _db in ("HUNT23", "CANTAT20"):
+        plot_fpath = Path(
+            root_ucc_path
+            + plots_folder
+            + f"plots_{fname0[0]}/"
+            + _db
+            + "/"
+            + fname0
+            + ".webp"
         )
-        .replace(
-            "RADEC_SMB", "{}%20{}".format(UCC_cl["RA_ICRS_m"], UCC_cl["DE_ICRS_m"])
-        )
-        .replace("XCLUSTX", fname0)
+        if plot_fpath.is_file() is True:
+            carousel += "_" + _db
+
+    # Generate fundamental parameters table
+    fpars_table = fpars_in_lit(
+        current_JSON, DBs_full_data, UCC_cl["DB"], UCC_cl["DB_i"]
     )
 
-    txt += cl_plot.format(img_cont)
+    # Generate table with OCs that share members with this one
+    shared_table = table_shared_members(df_UCC, fnames_all, UCC_cl)
 
-    txt += notebook_url
-
-    if fpars_table != "":
-        txt += fpars_table_top
-        txt += fpars_table
-
-    txt += bayestar_url.replace("XXGLONXX", str(UCC_cl["GLON_m"])).replace(
-        "XXGLATXX", str(UCC_cl["GLAT_m"])
+    contents = header.format(
+        title=cl_names[0],
+        more_names=more_names,
+        fname=fname0,
+        fov=str(round(2 * (UCC_cl["r_50"] / 60.0), 3)),
+        ra_icrs=str(UCC_cl["RA_ICRS_m"]),
+        de_icrs=str(UCC_cl["DE_ICRS_m"]),
+        glon=str(UCC_cl["GLON_m"]),
+        glat=str(UCC_cl["GLAT_m"]),
+        r50=str(UCC_cl["r_50"]),
+        plx=str(UCC_cl["Plx_m"]),
+        UTI="1.0" if UCC_cl["UTI"] == 1.0 else f"{UCC_cl['UTI']:.2f}",
+        UTI_COLOR=UTI_to_hex(UCC_cl["UTI"]),
+        UTI_C_N_COL=UTI_to_hex(UCC_cl["C_N"]),
+        UTI_C_dens_COL=UTI_to_hex(UCC_cl["C_dens"]),
+        UTI_C_C3_COL=UTI_to_hex(UCC_cl["C_C3"]),
+        UTI_C_lit_COL=UTI_to_hex(UCC_cl["C_lit"]),
+        UTI_C_dup_COL=UTI_to_hex(UCC_cl["C_dup"]),
+        UTI_C_N=str(UCC_cl["C_N"]),
+        UTI_C_dens=str(UCC_cl["C_dens"]),
+        UTI_C_C3=str(UCC_cl["C_C3"]),
+        UTI_C_lit=str(UCC_cl["C_lit"]),
+        UTI_C_dup=str(UCC_cl["C_dup"]),
+        UTI_summary=UTI_summary,
+        class3=abcd_c,
+        r_50_val=str(UCC_cl["r_50"]),
+        N_50_val=str(int(UCC_cl["N_50"])),
+        scix_url=cl_names[0].replace(" ", "%20"),
+        posit_table=posit_table,
+        cds_radec=cds_radec,
+        carousel=carousel,
+        fpars_table=fpars_table,
+        shared_table=shared_table,
     )
-
-    txt += (
-        cluster_region_plot.replace("FOCNAME", fname0)
-        .replace("RAICRS", str(round(UCC_cl["RA_ICRS_m"], 2)))
-        .replace("DEICRS", str(round(UCC_cl["DE_ICRS_m"], 2)))
-        .replace("R50", str(UCC_cl["r_50"]))
-        .replace("PLX", str(UCC_cl["Plx_m"]))
-        .replace("OCNAME", str(cl_names[0]))
-    )
-
-    if shared_table != "":
-        txt += shared_OCs + shared_table
-
-    contents = "".join(txt)
 
     return contents
 
@@ -292,8 +176,18 @@ def UTI_to_hex(x: float, soft: float = 0.65) -> str:
 
 
 def summarize_object(
-    name, cl_DB, N_50, plx, shared_members_p, C_N, C_dens, C_C3, C_lit, C_dup
-):
+    name,
+    cl_DB,
+    N_50,
+    plx,
+    shared_members_p,
+    C_N,
+    C_dens,
+    C_C3,
+    C_lit,
+    C_dup,
+    C_dup_same_db,
+) -> str:
     """
     Summarize an astronomical object based on five normalized parameters.
 
@@ -359,18 +253,6 @@ def summarize_object(
             "rarely studied",
         ],
     )
-    duplication = level(
-        C_dup,
-        [0.999, 0.75, 0.5, 0.25, 0.1],
-        [
-            "a unique",
-            "very likely a unique",
-            "likely a unique",
-            "possibly a duplicated",
-            "likely a duplicate",
-            "very likely a duplicate",
-        ],
-    )
 
     txt_dist = ""
     if distance != "":
@@ -400,48 +282,111 @@ def summarize_object(
         else:
             summary += f" It is {literature} in the literature."
 
-    txt_warn = (
+    html_warn = (
         """<br><br><span style="color: #99180f; font-weight: bold;">Warning: </span>"""
     )
 
-    dup_warn, dup_amount = "<br><br>", ""
-    if duplication == "a unique":
-        if str(shared_members_p) != "nan:":
-            shared_members_p = shared_members_p.split(";")
-            N_shared = len(shared_members_p)
-            max_p = max(map(float, shared_members_p))
-            if max_p > 10:
-                entr, upto = "entries", "up to "
-                if N_shared == 1:
-                    N_shared, entr, upto = "a", "entry", ""
-                summary += f"This is {duplication} object, with {N_shared} later "
-                summary += f"reported {entr} sharing {upto}{max_p:.0f}% of its members."
-    elif duplication == "very likely a unique":
-        dup_amount = "very small"
-    elif duplication == "likely a unique":
-        dup_amount = "small"
-    elif duplication == "possibly a duplicated":
-        dup_warn, dup_amount = txt_warn, "moderate"
-    elif duplication in ("likely a duplicate", "very likely a duplicate"):
-        dup_warn, dup_amount = txt_warn, "significant"
+    summary_dup, summary_unique = False, False
+    if C_dup == 1.0:
+        if C_dup_same_db == 1.0:
+            # No duplicates found. Do nothing
+            pass
+        else:
+            # Only same DB duplicates found
+            summary_dup = True
+            duplication = "likely a unique"
+            dup_warn = "<br><br>"
+            dup_amount = "significant"
+            dup_amount = level(
+                C_dup_same_db,
+                [0.75, 0.5, 0.25],
+                [
+                    "very small",
+                    "small",
+                    "moderate",
+                    "significant",
+                ],
+            )
+            prev_or_same_db = "entry reported in the same catalogue."
+    else:
+        summary_dup = True
+        duplication = level(
+            C_dup,
+            [0.999, 0.75, 0.5, 0.25, 0.1],
+            [
+                "a unique",
+                "very likely a unique",
+                "likely a unique",
+                "possibly a duplicated",
+                "likely a duplicate",
+                "very likely a duplicate",
+            ],
+        )
+        dup_warn = "<br><br>"
+        if duplication not in ("very likely a unique", "likely a unique"):
+            dup_warn = html_warn
+        dup_amount = level(
+            C_dup,
+            [0.75, 0.5, 0.25],
+            ["very small", "small", "moderate", "significant"],
+        )
+        if C_dup_same_db == 1.0:
+            # Only different DB duplicates found
+            if duplication == "a unique":
+                if str(shared_members_p) != "nan:":
+                    shared_members_p = shared_members_p.split(";")
+                    N_shared = len(shared_members_p)
+                    max_p = max(map(float, shared_members_p))
+                    if max_p > 10:
+                        entr, upto = "entries", "up to "
+                        if N_shared == 1:
+                            N_shared, entr, upto = "a", "entry", ""
+                        dup_warn = ""
+                        summary_unique = True
+            else:
+                prev_or_same_db = "previously reported entry."
 
-    if dup_amount != "":
-        summary += dup_warn
-        summary += f"This is {duplication} object, which shares a {dup_amount}"
-        summary += " percentage of members with a previously reported entry."
+        else:
+            # Duplicates found in same and different DBs
+            dup_amount_same = level(
+                C_dup_same_db,
+                [0.75, 0.5, 0.25],
+                ["very small", "small", "moderate", "significant"],
+            )
+            prev_or_same_db = (
+                f"previously reported entry, and a {dup_amount_same} "
+                + "percentage with at least one entry reported in the same catalogue."
+            )
+
+    if summary_unique:
+        summary += (
+            f"{dup_warn}This is {duplication} object, with {N_shared} later "
+            + f"reported {entr} sharing {upto}{max_p:.0f}% of its members."
+        )
+    elif summary_dup:
+        summary += (
+            f"{dup_warn}This is {duplication} object, which shares a {dup_amount} "
+            + f"percentage of members with at least one {prev_or_same_db}"
+        )
 
     if N_50 < 25:
-        summary += txt_warn + "contains less than 25 stars with <i>P>0.5</i> estimated."
+        summary += (
+            html_warn + "contains less than 25 stars with <i>P>0.5</i> estimated."
+        )
 
     return summary
 
 
 def positions_in_lit(DBs_json, DBs_full_data, row_UCC):
     """ """
-    DBs_sort, DBs_i_sort = row_UCC["DB"].split(";"), row_UCC["DB_i"].split(";")
+    DBs_i_sort = row_UCC["DB_i"].split(";")
 
-    table = ""
-    for i, db in enumerate(DBs_sort):
+    table = (
+        "| Reference    | RA    | DEC   | Plx  | pmRA  | pmDE   |  Rv  |\n"
+        + "    | :---         | :---: | :---: | :---: | :---: | :---: | :---: |\n"
+    )
+
+    for i, db in enumerate(row_UCC["DB"].split(";")):
         # Full 'db' database
         df = DBs_full_data[db]
 
@@ -466,89 +411,20 @@ def positions_in_lit(DBs_json, DBs_full_data, row_UCC):
         # See if the row contains any values
         if row_in.replace("--", "").replace("|", "").strip() != "":
             # Add reference
-            ref_url = f"[{DBs_json[db]['authors']} ({DBs_json[db]['year']})]({DBs_json[db]['ADS_url']})"
-            table += "|" + ref_url + " | "
+            ref_url = f"[{DBs_json[db]['authors']} ({DBs_json[db]['year']})]({DBs_json[db]['SCIX_url']})"
+            table += "    |" + ref_url + " | "
             # Close and add row
             table += row_in[:-1] + "\n"
 
     # Add UCC positions
-    table += "| **UCC** |"
+    table += "    | **UCC** |"
     for col in ("RA_ICRS_m", "DE_ICRS_m", "Plx_m", "pmRA_m", "pmDE_m", "Rv_m"):
         val = "--"
         if row_UCC[col] != "" and not np.isnan(row_UCC[col]):
             val = str(round(float(row_UCC[col]), 3))
         table += val + " | "
-    # Close row
-    table = table[:-1] + "\n"
 
     return table
-
-
-def carousel_div(cl_name, fname0):
-    """Generate the plot or carousel of plots, depending on whether there is more than
-    one plot for a cluster.
-    """
-
-    def slider_content(_db):
-        slide_cont = (
-            f"""<a href="https://raw.githubusercontent.com/ucc23/plots_{fname0[0]}/"""
-            + f"""main/{_db}{fname0}.webp" target="_blank">\n"""
-        )
-        slide_cont += (
-            f"""<img src="https://raw.githubusercontent.com/ucc23/plots_{fname0[0]}/"""
-        )
-        slide_cont += (
-            f"""main/{_db}{fname0}.webp" alt="{cl_name} {_db[:-1]}">\n</a>\n"""
-        )
-        return slide_cont
-
-    # Check present plots. The order here determines the order in which plots will be
-    # shown: UCC --> HUNT23 --> CANTAT20
-    cmd_plots = []
-    for _db in ("UCC/", "HUNT23/", "CANTAT20/"):
-        plot_fpath = Path(
-            root_ucc_path
-            + plots_folder
-            + f"plots_{fname0[0]}/"
-            + _db
-            + fname0
-            + ".webp"
-        )
-        if plot_fpath.is_file() is True:
-            cmd_plots.append(_db)
-
-    # Only UCC CMD is present
-    if len(cmd_plots) == 1:
-        img_cont = slider_content(cmd_plots[0])
-        return img_cont
-
-    # Initiate carousel
-    img_cont = """<div class="carousel">\n"""
-    img_cont += """<input type="radio" name="radio-btn" id="slide1" checked>\n"""
-
-    # Buttons
-    for _ in range(2, len(cmd_plots) + 1):
-        img_cont += f"""<input type="radio" name="radio-btn" id="slide{_}">\n"""
-
-    # Slider
-    img_cont += """<div class="slides">\n"""
-    for _db in cmd_plots:
-        img_cont += """<div class="slide">\n"""
-        img_cont += slider_content(_db)
-        img_cont += """</div>\n"""
-
-    # Button labels
-    img_cont += """</div>\n<div class="indicators">\n"""
-    for _ in range(1, len(cmd_plots) + 1):
-        img_cont += f"""<label for="slide{_}">{_}</label>\n"""
-
-    img_cont += """</div>\n</div>"""
-
-    # with open("temp_imag_cont.txt", "w") as text_file:
-    #     text_file.write(img_cont)
-    # breakpoint()
-
-    return img_cont
 
 
 def table_shared_members(df_UCC, fnames_all, row):
@@ -557,6 +433,11 @@ def table_shared_members(df_UCC, fnames_all, row):
 
     if str(row["shared_members"]) == "nan":
         return shared_members_tab
+
+    shared_members_tab = """| Cluster | <span title="Percentage of members that this OC shares with the ones listed">%</span>   | RA   | DEC   | Plx   | pmRA  | pmDE  | Rv    |\n"""
+    shared_members_tab += (
+        """    | :---:   | :-: |:---: | :---: | :---: | :---: | :---: | :---: |\n"""
+    )
 
     shared_fnames = row["shared_members"].split(";")
     shared_percents = row["shared_members_p"].split(";")
@@ -581,7 +462,7 @@ def table_shared_members(df_UCC, fnames_all, row):
 
         ra, dec, plx, pmRA, pmDE, Rv, perc = vals
 
-        shared_members_tab += f"|[{name}](/_clusters/{fname}/)| "
+        shared_members_tab += f"    |[{name}](/_clusters/{fname}/)| "
         shared_members_tab += f"{perc} | "
         shared_members_tab += f"{ra} | "
         shared_members_tab += f"{dec} | "
@@ -615,23 +496,17 @@ def fpars_in_lit(
             DBs_w_pars.append(db)
             DBs_i_w_pars.append(DBs_i_lst[i])
 
+    table = ""
     if len(DBs_w_pars) == 0:
-        table = ""
         return table
-
-    # Re-arrange DBs by year
-    # DBs_w_pars, DBs_i_w_pars = date_order_DBs(
-    #     ";".join(DBs_w_pars), ";".join(DBs_i_w_pars)
-    # )
-    # DBs_w_pars, DBs_i_w_pars = DBs_w_pars.split(";"), DBs_i_w_pars.split(";")
 
     txt = ""
     for i, db in enumerate(DBs_w_pars):
         # Full 'db' database
         df = DBs_full_data[db]
         # Add reference
-        ref_url = f"[{DBs_json[db]['authors']} ({DBs_json[db]['year']})]({DBs_json[db]['ADS_url']})"
-        txt_db = "| " + ref_url + " | "
+        ref_url = f"[{DBs_json[db]['authors']} ({DBs_json[db]['year']})]({DBs_json[db]['SCIX_url']})"
+        txt_db = "    | " + ref_url + " | "
 
         txt_pars = ""
         # Add non-nan parameters
@@ -659,15 +534,16 @@ def fpars_in_lit(
             # Combine and close row
             txt += txt_db + txt_pars + " |\n"
 
-    table = ""
     if txt != "":
-        # Remove final new line
-        table = txt[:-1]
+        # If any parameter was added, add header to the table
+        txt0 = """| Reference |  Values |\n    | :---  |  :---:  |\n"""
+        # [:-1] -> Remove final new line
+        table = txt0 + txt[:-1]
 
     return table
 
 
-def UCC_color(abcd):
+def color_C3(abcd):
     """ """
     abcd_c = ""
     line = r"""<span style="color: {}; font-weight: bold;">{}</span>"""
