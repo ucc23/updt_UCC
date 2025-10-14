@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from .ucc_entry import UCC_color
+from .ucc_entry import color_C3
 
 header_default = """---
 layout: page
@@ -212,7 +212,7 @@ def updt_C3_classif_main_table(class_order, OCs_per_class, database_md_in: str):
     C3_table += "|----| :-: |----| :-: |----| :-: |----| :-: |\n"
     classes_colors = []
     for C3 in class_order:
-        col_row = UCC_color(C3)
+        col_row = color_C3(C3)
         classes_colors.append(col_row)
 
     idx = -1
@@ -557,7 +557,7 @@ def generate_table(df_m, md_table):
             "r_50",
         ):
             md_table += "| " + str(row[col]) + " "
-        abcd = UCC_color(row["C3"])
+        abcd = color_C3(row["C3"])
         md_table += "| " + abcd + " |\n"
 
     # Add script to sort tables
