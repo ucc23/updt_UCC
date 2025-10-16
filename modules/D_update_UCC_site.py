@@ -66,6 +66,8 @@ def main():
         temp_image_path,
     ) = load_paths()
 
+    cols_from_B_to_C = ["Names", "DB", "DB_i"]
+
     # Load required files
     (
         df_UCC,
@@ -75,11 +77,8 @@ def main():
         articles_md,
         tables_md,
         df_members,
-    ) = load_data(logging)
+    ) = load_data(logging, cols_from_B_to_C)
 
-    # from pyinstrument import Profiler
-    # profiler = Profiler()
-    # profiler.start()
     # Update per cluster md files. If no changes are expected, this step can be skipped
     if input("\nUpdate md files? (y/n): ").lower() == "y":
         updt_ucc_cluster_files(
@@ -90,18 +89,27 @@ def main():
             df_UCC,
             current_JSON,
         )
-    # profiler.stop()
-    # profiler.open_in_browser()
-    # breakpoint()
 
     # Update per cluster webp files. If no changes are expected, this step can be skipped
     if input("\nUpdate cluster plots? (y/n): ").lower() == "y":
         # Returns dataframe with 'plot_used' column updated
-        updt_ucc_cluster_plots(
+        df_UCC_updated = updt_ucc_cluster_plots(
             logging,
             df_UCC,
             df_members,
         )
+        # Update and save updated UCC catalog file if any plots were generated
+        if df_UCC_updated.empty is False:
+            temp_C_path = temp_folder + data_folder + ucc_cat_file
+            # Drop added columns from B
+            df_UCC_C_new = df_UCC_updated.drop(columns=cols_from_B_to_C)
+            df_UCC_C_new.to_csv(
+                temp_C_path,
+                na_rep="nan",
+                index=False,
+                quoting=csv.QUOTE_NONNUMERIC,
+            )
+            logging.info(f"\nFile '{temp_C_path}' updated")
 
     # Count number of OCs in each class
     OCs_per_class = count_OCs_classes(df_UCC["C3"], class_order)
@@ -157,9 +165,7 @@ def main():
         logging.info("All files moved into place")
 
     # Check number of files
-    N_UCC = len(df_UCC)
-    file_checker(logging, N_UCC)
-
+    file_checker(logging)
     logging.info("\nAll done!")
 
 
@@ -234,6 +240,7 @@ def load_paths() -> tuple[
 
 def load_data(
     logging,
+    cols_from_B_to_C,
 ) -> tuple[pd.DataFrame, dict, dict, str, str, str, pd.DataFrame]:
     """ """
 
@@ -259,8 +266,8 @@ def load_data(
     if not df_UCC_B["fnames"].equals(df_UCC_C["fnames"]):
         raise ValueError("The 'fnames' columns in B and final C dataframes differ")
     # Add required columns to df_UCC_C
-    df_UCC = df_UCC_C
-    df_UCC[["Names", "DB", "DB_i"]] = df_UCC_B[["Names", "DB", "DB_i"]]
+    df_UCC = df_UCC_C.copy()
+    df_UCC[cols_from_B_to_C] = df_UCC_B[cols_from_B_to_C]
 
     # Load clusters data in JSON file
     with open(name_DBs_json) as f:
@@ -354,7 +361,7 @@ def updt_ucc_cluster_files(
     logging.info(f"\nN={N_total} OCs processed")
 
 
-def updt_ucc_cluster_plots(logging, df_UCC, df_members) -> None:
+def updt_ucc_cluster_plots(logging, df_UCC, df_members) -> pd.DataFrame:
     """ """
     logging.info("\nGenerating plot files")
     N_total = 0
@@ -402,15 +409,9 @@ def updt_ucc_cluster_plots(logging, df_UCC, df_members) -> None:
     logging.info(f"\nN={N_total} OCs processed")
 
     if N_total > 0:
-        temp_C_path = temp_folder + data_folder + ucc_cat_file
-        df_UCC_C_new = df_UCC.drop(columns=["Names", "DB", "DB_i"])
-        df_UCC_C_new.to_csv(
-            temp_C_path,
-            na_rep="nan",
-            index=False,
-            quoting=csv.QUOTE_NONNUMERIC,
-        )
-        logging.info(f"\nFile '{ucc_cat_file}' updated")
+        return df_UCC.copy()
+    else:
+        return pd.DataFrame([])
 
 
 def make_site_plots(logging, temp_image_path, df_UCC, OCs_per_class):
@@ -665,14 +666,8 @@ def move_files(
             + f"*.webp (N={N})"
         )
 
-    breakpoint()
 
-
-def file_checker(
-    logging,
-    N_UCC: int,
-    root_UCC_fold: str,
-) -> None:
+def file_checker(logging) -> None:
     """Check the number and types of files in directories for consistency.
 
     Parameters:
@@ -681,44 +676,56 @@ def file_checker(
     Returns:
     - None
     """
-    logging.info(f"\nChecking number of files against N_UCC={N_UCC}\n")
+    logging.info("\nChecking files\n")
+    # Read stored final version
+    df_UCC_C = pd.read_csv(data_folder + ucc_cat_file, usecols=["fnames", "plot_used"])
     flag_error = False
 
-    N_all = {}
-    for letter in "abcdefghijklmnopqrstuvwxyz":
-        # qfold = "Q" + str(qN) + lat + "/"
-        N_all[letter], N_extra = {}, 0
-        for fold in plots_sub_folders:
-            letter_fold = root_UCC_fold + f"plots_{letter}/" + plots_folder + fold
-            N_all[qfold][fold] = len(os.listdir(letter_fold))
-            N_extra += sum(not f.endswith(".webp") for f in os.listdir(letter_fold))
-        N_all[letter]["extra"] = N_extra
+    # Check that all entries in df_UCC_C have plot_used='y'
+    if any(df_UCC_C["plot_used"] == "n"):
+        logging.warning("Some entries in final C dataframe still have plot_used='n'\n")
 
-    Ntot = {_: 0 for _ in plots_sub_folders}
-    Ntot["extra"] = 0
-    for qf, vals in N_all.items():
-        mark = "V"
-        txt = f"{qf} --> " + "; ".join(f"{k}: {v}" for k, v in vals.items())
-        if vals["extra"] > 0 or len(set(vals[_] for _ in plots_sub_folders)) > 1:
-            mark, flag_error = "X", True
-        logging.info(f"{txt} <-- {mark}")
-        Ntot["extra"] += vals["extra"]
-        for k, v in vals.items():
-            Ntot[k] += v
-    logging.info("\nTotal  --> " + "; ".join(f"{k}: {v}" for k, v in Ntot.items()))
-
-    # Check .md files
-    clusters_md_fold = root_UCC_fold + md_folder
-    NT_md = len(os.listdir(clusters_md_fold))
-    NT_extra = NT_md - N_UCC
-    mark = "V" if (NT_extra == 0) else "X"
-    logging.info("\nN_UCC   md      extra")
-    logging.info(f"{N_UCC}   {NT_md}   {NT_extra}     <-- {mark}")
-    if mark == "X":
+    # Check the 'fnames' columns in df_UCC_B and df_UCC_C_final dataframes are equal
+    df_UCC_B = pd.read_csv(data_folder + merged_dbs_file, usecols=["fnames"])
+    df_UCC_fnames = df_UCC_C["fnames"].to_list()
+    if not df_UCC_B["fnames"].to_list() == df_UCC_fnames:
         flag_error = True
+        logging.warning("The 'fnames' columns in B and final C dataframes differ\n")
+
+    ucc_fnames = sorted([_.split(";")[0] for _ in df_UCC_fnames])
+
+    # Check that all md_files match the elements in df_UCC_fnames
+    md_files = os.listdir(root_ucc_path + md_folder)
+    md_fnames = sorted([_[:-3] for _ in md_files])
+    # Print to screen which elements are different in both lists
+    for f in md_fnames:
+        if f not in ucc_fnames:
+            logging.warning(f"{f} (.md) not in UCC catalog")
+            flag_error = True
+    for f in ucc_fnames:
+        if f not in md_fnames:
+            logging.warning(f"{f} (UCC) not in md files")
+            flag_error = True
+    logging.info("")
+
+    for letter in "abcdefghijklmnopqrstuvwxyz":
+        # Count how many elements in df_UCC_fnames start with this letter
+        ucc_webp = [_ for _ in ucc_fnames if _.startswith(letter)]
+        for fold in plots_sub_folders:
+            letter_fold = root_ucc_path + plots_folder + f"plots_{letter}/" + fold
+            if os.path.isdir(letter_fold):
+                subf_webp = [_[:-5] for _ in os.listdir(letter_fold)]
+                for f in subf_webp:
+                    if f not in ucc_webp:
+                        logging.warning(f"{fold}/{f}.webp not in UCC catalog")
+                        flag_error = True
+                for f in ucc_webp:
+                    if f not in subf_webp:
+                        logging.warning(f"{f}(.webp) not in {fold} folder")
+                        flag_error = True
 
     if flag_error:
-        raise ValueError("The file check was unsuccessful")
+        raise ValueError("\nErrors were detected associated to the files")
 
 
 if __name__ == "__main__":
