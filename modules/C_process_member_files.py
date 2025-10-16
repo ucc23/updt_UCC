@@ -102,6 +102,10 @@ def main():
     if not df_UCC_B["fnames"].to_list() == df_UCC_C_final["fnames"].to_list():
         raise ValueError("The 'fnames' columns in B and final C dataframes differ")
 
+    # Check that all entries in df_UCC_C_final have process='n'
+    if any(df_UCC_C_final["process"] == "y"):
+        raise ValueError("Some entries in final C dataframe still have process='y'")
+
     # Add UTI values
     df_UCC_C_final = get_UTI(current_JSON, df_UCC_B, df_UCC_C_final)
 
