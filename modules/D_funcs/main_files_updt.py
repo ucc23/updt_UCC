@@ -381,7 +381,7 @@ def updt_articles_table(df_UCC, current_JSON, database_md_in):
         row = ""
         title = DB_data["title"].replace("'", "").replace('"', "")
         short_title = title[:25] + "..."
-        ref_url = f"""<a href="{DB_data["ADS_url"]}" target="_blank" title="{title}">{short_title}</a>"""
+        ref_url = f"""<a href="{DB_data["SCIX_url"]}" target="_blank" title="{title}">{short_title}</a>"""
         viz_url = f"""<a href="{DB_data["vizier_url"]}" target="_blank"> <img src="/images/vizier.png " alt="Vizier url"></a>"""
         if DB_data["vizier_url"] == "N/A":
             viz_url = "N/A"
@@ -400,10 +400,6 @@ def updt_articles_table(df_UCC, current_JSON, database_md_in):
 
 def updt_DBs_tables(dbs_used, df_updt) -> dict:
     """Update the DBs classification table files"""
-    # header = (
-    #     """---\nlayout: page\ntitle: \n"""
-    #     + """permalink: /tables/dbs/DB_link_table/\n---\n\n"""
-    # )
     header = header_default.format("", "/tables/dbs/DB_link_table/")
 
     # Count DB occurrences in UCC
@@ -412,7 +408,7 @@ def updt_DBs_tables(dbs_used, df_updt) -> dict:
     new_tables_dict = {}
     for DB_id in all_DBs:
         md_table = header.replace("DB_link", DB_id)
-        ref_url = f"[{dbs_used[DB_id]['authors']} ({dbs_used[DB_id]['year']})]({dbs_used[DB_id]['ADS_url']})"
+        ref_url = f"[{dbs_used[DB_id]['authors']} ({dbs_used[DB_id]['year']})]({dbs_used[DB_id]['SCIX_url']})"
         md_table += "&nbsp;\n" + f"# {ref_url}" + "\n\n"
 
         msk = []
