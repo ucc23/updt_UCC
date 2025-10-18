@@ -162,7 +162,6 @@ def main():
 
     if input("\nMove files to their final destination? (y/n): ").lower() == "y":
         move_files(logging)
-        logging.info("All files moved into place")
 
     # Check number of files
     file_checker(logging)
@@ -617,7 +616,7 @@ def move_files(
     final_C_path = data_folder + ucc_cat_file
     temp_C_path = temp_folder + final_C_path
     if os.path.exists(temp_C_path):
-        # os.rename(temp_C_path, final_C_path)
+        os.rename(temp_C_path, final_C_path)
         logging.info(temp_C_path + " --> " + final_C_path)
 
     # Move all files inside temporary 'ucc/'
@@ -628,7 +627,7 @@ def move_files(
             file_ucc = file_path.replace(temp_folder, root_ucc_path)
             if "_clusters" not in root:
                 logging.info(file_path + " --> " + file_ucc)
-            # os.rename(file_path, file_ucc)
+            os.rename(file_path, file_ucc)
         if "_clusters" in root:
             file_path = root + "/*.md"
             file_ucc = file_path.replace(temp_folder, root_ucc_path)
@@ -647,7 +646,7 @@ def move_files(
                 # For every file in this folder
                 for file in os.listdir(temp_fpath):
                     all_plot_folds.append(fpath)
-                    # os.rename(temp_fpath + file, fpath + file)
+                    os.rename(temp_fpath + file, fpath + file)
     unq_plot_folds = list(set(all_plot_folds))
     for plot_stored in unq_plot_folds:
         N = all_plot_folds.count(plot_stored)
@@ -658,6 +657,8 @@ def move_files(
             + plot_stored
             + f"*.webp (N={N})"
         )
+
+    logging.info("\nAll files moved into place")
 
 
 def file_checker(logging) -> None:
