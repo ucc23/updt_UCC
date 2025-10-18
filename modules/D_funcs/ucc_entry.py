@@ -21,7 +21,7 @@ glon: {glon}
 glat: {glat}
 r50: {r50}
 plx: {plx}
-UTI: {UTI}
+UTI: "{UTI}"
 UTI_COLOR: "{UTI_COLOR}"
 UTI_C_N_COL: "{UTI_C_N_COL}"
 UTI_C_dens_COL: "{UTI_C_dens_COL}"
