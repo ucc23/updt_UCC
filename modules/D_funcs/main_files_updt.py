@@ -427,10 +427,6 @@ def updt_DBs_tables(dbs_used, df_updt) -> dict:
 
 def updt_N50_tables(df_updt, membs_msk) -> dict:
     """Update the duplicates table files"""
-    # header = (
-    #     """---\nlayout: page\ntitle: nmembs_title\n"""
-    #     + """permalink: /tables/nmembs_link_table/\n---\n\n"""
-    # )
     header = header_default.format("nmembs_title", "/tables/nmembs_link_table/")
 
     # N==0 table
@@ -461,10 +457,6 @@ def updt_N50_tables(df_updt, membs_msk) -> dict:
 
 def updt_C3_classif_tables(df_updt, class_order: list) -> dict:
     """Update the C3 classification table files"""
-    # header = (
-    #     """---\nlayout: page\ntitle: C3_title\n"""
-    #     + """permalink: /tables/C3_link_table/\n---\n\n"""
-    # )
     header = header_default.format("C3_title", "/tables/C3_link_table/")
 
     new_tables_dict = {}
@@ -483,10 +475,6 @@ def updt_C3_classif_tables(df_updt, class_order: list) -> dict:
 
 def updt_shared_membs_tables(df_updt, dups_msk) -> dict:
     """Update the shared members table files"""
-    # header = (
-    #     """---\nlayout: page\ntitle: shared_title\n"""
-    #     + """permalink: /tables/shared_link_table/\n---\n\n"""
-    # )
     header = header_default.format("shared_title", "/tables/shared_link_table/")
 
     new_tables_dict = {}
