@@ -508,6 +508,9 @@ def updt_UCC(df_UCC: pd.DataFrame) -> pd.DataFrame:
     dist_pc = np.clip(dist_pc, a_min=10, a_max=50000)
     df["dist_pc"] = np.round(dist_pc, 0)
 
+    df["Plx_m_round"] = np.round(df["Plx_m"], 2)
+    df["C3_abcd"] = [ucc_entry.color_C3(_) for _ in df["C3"]]
+
     return df
 
 
