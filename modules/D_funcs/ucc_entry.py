@@ -215,13 +215,6 @@ def summarize_object(
     str
         Short textual summary.
     """
-
-    def level(value, thresholds, labels):
-        for t, lbl in zip(thresholds, labels):
-            if value >= t:
-                return lbl
-        return labels[-1]
-
     distance = level(
         plx,
         [10, 5, 2, 1],
@@ -286,94 +279,86 @@ def summarize_object(
         """<br><br><span style="color: #99180f; font-weight: bold;">Warning: </span>"""
     )
 
-    summary_dup, summary_unique = False, False
-    if C_dup == 1.0:
-        if C_dup_same_db == 1.0:
-            # No duplicates found. Do nothing
-            pass
-        else:
-            # Only same DB duplicates found
-            summary_dup = True
-            duplication = "likely a unique"
-            dup_warn = "<br><br>"
-            dup_amount = "significant"
-            dup_amount = level(
-                C_dup_same_db,
-                [0.75, 0.5, 0.25],
-                [
-                    "very small",
-                    "small",
-                    "moderate",
-                    "significant",
-                ],
-            )
-            prev_or_same_db = "entry reported in the same catalogue."
-    else:
-        summary_dup = True
-        duplication = level(
-            C_dup,
-            [0.999, 0.75, 0.5, 0.25, 0.1],
-            [
-                "a unique",
-                "very likely a unique",
-                "likely a unique",
-                "possibly a duplicated",
-                "likely a duplicate",
-                "very likely a duplicate",
-            ],
-        )
-        dup_warn = "<br><br>"
-        if duplication not in ("very likely a unique", "likely a unique"):
-            dup_warn = html_warn
-        dup_amount = level(
-            C_dup,
-            [0.75, 0.5, 0.25],
-            ["very small", "small", "moderate", "significant"],
-        )
-        if C_dup_same_db == 1.0:
-            # Only different DB duplicates found
-            if duplication == "a unique":
-                if str(shared_members_p) != "nan:":
-                    shared_members_p = shared_members_p.split(";")
-                    N_shared = len(shared_members_p)
-                    max_p = max(map(float, shared_members_p))
-                    if max_p > 10:
-                        entr, upto = "entries", "up to "
-                        if N_shared == 1:
-                            N_shared, entr, upto = "a", "entry", ""
-                        dup_warn = ""
-                        summary_unique = True
-            else:
-                prev_or_same_db = "previously reported entry."
-
-        else:
-            # Duplicates found in same and different DBs
-            dup_amount_same = level(
-                C_dup_same_db,
-                [0.75, 0.5, 0.25],
-                ["very small", "small", "moderate", "significant"],
-            )
-            prev_or_same_db = (
-                f"previously reported entry, and a {dup_amount_same} "
-                + "percentage with at least one entry reported in the same catalogue."
-            )
-
-    if summary_unique:
-        summary += (
-            f"{dup_warn}This is {duplication} object, with {N_shared} later "
-            + f"reported {entr} sharing {upto}{max_p:.0f}% of its members."
-        )
-    elif summary_dup:
-        summary += (
-            f"{dup_warn}This is {duplication} object, which shares a {dup_amount} "
-            + f"percentage of members with at least one {prev_or_same_db}"
-        )
+    summary = dupl_summary(shared_members_p, C_dup, C_dup_same_db, html_warn, summary)
 
     if N_50 < 25:
         summary += (
             html_warn + "contains less than 25 stars with <i>P>0.5</i> estimated."
         )
 
+    return summary
+
+
+def level(value, thresholds, labels):
+    for t, lbl in zip(thresholds, labels):
+        if value >= t:
+            return lbl
+    return labels[-1]
+
+
+def dupl_summary(shared_members_p, C_dup, C_dup_same_db, html_warn, summary):
+    """ """
+
+    def member_level(
+        value,
+        thresholds=[0.9, 0.75, 0.5, 0.25],
+        labels=["very small", "small", "moderate", "significant", "large"],
+    ):
+        return level(value, thresholds, labels)
+
+    # If this unique object contains shared members with other entries
+    if C_dup == 1.0 and C_dup_same_db == 1.0:
+        if str(shared_members_p) == "nan":
+            # Return with no duplication info added
+            return summary
+        else:
+            shared_members_p = shared_members_p.split(";")
+            max_p = max(map(float, shared_members_p)) / 100.0
+            N_shared = len(shared_members_p)
+            entr = "entries"
+            if N_shared == 1:
+                N_shared, entr = "a", "entry"
+            # Generate summary components
+            summary += (
+                f" This object shares a {member_level(1 - max_p)} percentage of members "
+                f"with {N_shared} later reported {entr}."
+            )
+            return summary
+
+    if C_dup == 1.0 and C_dup_same_db < 1.0:
+        # Only same DB duplicates found
+        summary += (
+            f"<br><br>This object shares a {member_level(C_dup_same_db)} percentage "
+            "of members with at least one entry reported in the same catalogue."
+        )
+        return summary
+
+    duplication, dup_warn = level(
+        C_dup,
+        [0.95, 0.75, 0.5, 0.25, 0.1],
+        [
+            ("a unique", ""),
+            ("very likely a unique", "<br><br>"),
+            ("likely a unique", "<br><br>"),
+            ("possibly a duplicated", html_warn),
+            ("likely a duplicate", html_warn),
+            ("very likely a duplicate", html_warn),
+        ],
+    )
+    dup_amount = member_level(C_dup)
+    # Duplicates found in different DBs only (C_dup<1.0 & C_dup_same_db==1.0)
+    prev_or_same_db = "previously reported entry."
+    if C_dup < 1.0 and C_dup_same_db < 1.0:
+        # Duplicates found in different AND same DBs
+        prev_or_same_db = prev_or_same_db[:-1] + (
+            f", and a {member_level(C_dup_same_db)} percentage with at least "
+            "one entry reported in the same catalogue."
+        )
+
+    summary += "{}This is {} object, ".format(dup_warn, duplication)
+    summary += "which shares a {} percentage of members with at least one {}".format(
+        dup_amount, prev_or_same_db
+    )
     return summary
 
 
