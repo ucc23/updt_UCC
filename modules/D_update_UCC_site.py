@@ -329,23 +329,14 @@ def updt_ucc_cluster_files(
         )
 
         # Compare old md file (if it exists) with the new md file, for this cluster
+        txt = ""
         try:
             # Read old entry
             with open(ucc_entries_path + fname0 + ".md", "r") as f:
                 old_md_entry = f.read()
-
             # Check if entry needs updating
             if new_md_entry != old_md_entry:
                 txt = "md updated |"
-                # with open("OLD.md", "w") as f:
-                #     f.write(old_md_entry_no_date)
-                # with open("NEW.md", "w") as f:
-                #     f.write(new_md_entry_no_date)
-                # breakpoint()
-            else:
-                # The existing md file has not changed
-                txt = ""
-
         except FileNotFoundError:
             # This is a new OC with no md entry yet
             txt = "md generated |"
@@ -354,7 +345,6 @@ def updt_ucc_cluster_files(
             # Generate/update entry
             with open(temp_entries_path + fname0 + ".md", "w") as f:
                 f.write(new_md_entry)
-            # if txt != "":
             N_total += 1
             logging.info(f"{N_total} -> {fname0}: " + txt + f" ({i_ucc})")
 
