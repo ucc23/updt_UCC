@@ -523,26 +523,27 @@ def updt_shared_membs_tables(df_updt, dups_msk) -> dict:
 
 def generate_table(df_m, md_table):
     """ """
-    md_table += "| Name | l | b | ra | dec | Plx | N50 | r50 | C3 |\n"
-    md_table += "| ---- | - | - | -- | --- | --- | --  | --  |-- |\n"
+    md_table += "| Name | RA | DEC | Plx | N50 | r50 | C3 | UTI |\n"
+    md_table += "| --- | :-: | :-: | :-: | :-: | :-: | :-: | :-: |\n"
 
     df_m = df_m.sort_values("Name")
-    df_m["N_50"] = df_m["N_50"].astype(int)
+    # df_m["N_50"] = df_m["N_50"].astype(int)
 
     for i, row in df_m.iterrows():
         for col in (
             "ID_url",
-            "GLON",
-            "GLAT",
+            # "GLON",
+            # "GLAT",
             "RA_ICRS",
             "DE_ICRS",
-            "Plx_m",
+            "Plx_m_round",
             "N_50",
             "r_50",
+            "C3_abcd",
+            "UTI",
         ):
             md_table += "| " + str(row[col]) + " "
-        abcd = color_C3(row["C3"])
-        md_table += "| " + abcd + " |\n"
+        md_table += " |\n"
 
     # Add script to sort tables
     md_table += (
