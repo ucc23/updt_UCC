@@ -489,7 +489,7 @@ def updt_UCC(df_UCC: pd.DataFrame) -> pd.DataFrame:
 
     # Generate URLs for names
     names_url = []
-    for i, cl in df.iterrows():
+    for _, cl in df.iterrows():
         name = str(cl["Name"]).split(";")[0]
         fname = str(cl["fnames"]).split(";")[0]
         url = "/_clusters/" + fname + "/"
@@ -509,6 +509,10 @@ def updt_UCC(df_UCC: pd.DataFrame) -> pd.DataFrame:
 
     df["Plx_m_round"] = np.round(df["Plx_m"], 2)
     df["C3_abcd"] = [ucc_entry.color_C3(_) for _ in df["C3"]]
+
+    df["N_50"] = df["N_50"].astype(int)
+
+    df = df.sort_values("Name")
 
     return df
 

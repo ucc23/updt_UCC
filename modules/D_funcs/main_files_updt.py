@@ -582,9 +582,6 @@ def generate_table(df_m, md_table):
     md_table += "| Name | RA | DEC | Plx | N50 | r50 | C3 | UTI |\n"
     md_table += "| --- | :-: | :-: | :-: | :-: | :-: | :-: | :-: |\n"
 
-    df_m = df_m.sort_values("Name")
-    # df_m["N_50"] = df_m["N_50"].astype(int)
-
     for i, row in df_m.iterrows():
         for col in (
             "ID_url",
