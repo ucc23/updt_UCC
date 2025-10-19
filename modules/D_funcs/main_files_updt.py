@@ -62,13 +62,25 @@ def count_shared_membs(df_UCC: pd.DataFrame) -> list:
     return shared_msk
 
 
+def UTI_ranges(df_UCC: pd.DataFrame) -> list:
+    """ """
+    UTI_msk = [df_UCC["UTI"] == 0.0]
+    N_limi = 0.0
+    for N_limf in (0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9):
+        UTI_msk.append((df_UCC["UTI"] > N_limi) & (df_UCC["UTI"] <= N_limf))
+        N_limi = N_limf
+    UTI_msk.append(df_UCC["UTI"] > N_limi)
+
+    return UTI_msk
+
+
 def count_N50membs(df_UCC: pd.DataFrame) -> list:
     """ """
 
     membs_msk = [df_UCC["N_50"] == 0]
 
     N_limi = 0
-    for i, N_limf in enumerate((25, 50, 75, 100, 250, 500, 1000, 2000)):
+    for N_limf in (25, 50, 75, 100, 250, 500, 1000, 2000):
         N50_r = (df_UCC["N_50"] > N_limi) & (df_UCC["N_50"] <= N_limf)
         membs_msk.append(N50_r)
         N_limi = N_limf
@@ -206,6 +218,27 @@ def ucc_n_total_updt(logging, N_db_UCC, N_cl_UCC, N_members_UCC, database_md):
     return database_md_updt
 
 
+def updt_UTI_main_table(UTI_msk, database_md_in: str):
+    """ """
+    UTI_table = "\n| UTI |  N  | UTI |  N  |\n"
+    UTI_table += "| :--: | :-: | :--: | :-: |\n"
+    UTI_table += f"| == 0.0 | [{UTI_msk[0].sum()}](/tables/UTI0_table) |"
+    for i, msk in enumerate(UTI_msk[1:-1]):
+        fchar = "|\n" if i in (0, 2, 4, 6, 8) else "| "
+        N = f"[{msk.sum()}](/tables/UTI{i + 1}_table)"
+        UTI_table += f" ({0.0 + (i * 0.1):.1f}, {0.1 + (i * 0.1):.1f}] | {N} {fchar}"
+    UTI_table += f"| 0.9 < | [{UTI_msk[-1].sum()}](/tables/UTI10_table) | -- | -- |\n"
+    UTI_table += "\n"
+
+    delimeterA = "<!-- Begin table 1 -->\n"
+    delimeterB = "<!-- End table 1 -->\n"
+    database_md_updt = replace_text_between(
+        database_md_in, UTI_table, delimeterA, delimeterB
+    )
+
+    return database_md_updt
+
+
 def updt_C3_classif_main_table(class_order, OCs_per_class, database_md_in: str):
     """ """
     C3_table = "\n| C3 |  N  | C3 |  N  | C3 |  N  | C3 |  N  |\n"
@@ -231,9 +264,6 @@ def updt_C3_classif_main_table(class_order, OCs_per_class, database_md_in: str):
     database_md_updt = replace_text_between(
         database_md_in, C3_table, delimeterA, delimeterB
     )
-
-    # if database_md_updt != database_md_in:
-    #     logging.info("Table: C3 classification updated")
 
     return database_md_updt
 
@@ -421,6 +451,32 @@ def updt_DBs_tables(dbs_used, df_updt) -> dict:
 
         new_table = generate_table(df_updt[msk], md_table)
         new_tables_dict[DB_id] = new_table
+
+    return new_tables_dict
+
+
+def updt_UTI_tables(df_updt, UTI_msk) -> dict:
+    """Update the duplicates table files"""
+    header = header_default.format("uti_title", "/tables/uti_link_table/")
+
+    # UTI==0 table
+    md_table = header.replace("uti_title", "UTI==0").replace("uti_link", "UTI0")
+    md_table = generate_table(df_updt[UTI_msk[0]], md_table)
+    new_tables_dict = {"UTI0": md_table}
+
+    Ni = 0
+    for i, Nf in enumerate((0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)):
+        title = f"UTI ({Ni}, {Nf}]"
+        Nmembs = f"UTI{i + 1}"
+        md_table = header.replace("uti_title", title).replace("uti_link", Nmembs)
+        md_table = generate_table(df_updt[UTI_msk[i + 1]], md_table)
+        Ni = Nf
+        new_tables_dict[Nmembs] = md_table
+
+    # N>0.9 table
+    md_table = header.replace("uti_title", "UTI>0.9").replace("uti_link", "UTI10")
+    md_table = generate_table(df_updt[UTI_msk[-1]], md_table)
+    new_tables_dict["UTI10"] = md_table
 
     return new_tables_dict
 

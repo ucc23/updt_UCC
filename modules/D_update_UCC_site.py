@@ -8,6 +8,7 @@ import pandas as pd
 
 from .D_funcs import ucc_entry, ucc_plots
 from .D_funcs.main_files_updt import (
+    UTI_ranges,
     count_N50membs,
     count_OCs_classes,
     count_shared_membs,
@@ -20,6 +21,8 @@ from .D_funcs.main_files_updt import (
     updt_N50_tables,
     updt_shared_membs_main_table,
     updt_shared_membs_tables,
+    updt_UTI_main_table,
+    updt_UTI_tables,
 )
 from .utils import logger
 from .variables import (
@@ -120,6 +123,7 @@ def main():
     # Mask with OCs with shared members
     shared_msk = count_shared_membs(df_UCC)
 
+    UTI_msk = UTI_ranges(df_UCC)
     # Mask with N50 members
     membs_msk = count_N50membs(df_UCC)
 
@@ -136,6 +140,7 @@ def main():
             articles_md,
             tables_md,
             OCs_per_class,
+            UTI_msk,
             membs_msk,
             shared_msk,
         )
@@ -152,6 +157,7 @@ def main():
             temp_tables_path,
             current_JSON,
             df_UCC_edit,
+            UTI_msk,
             membs_msk,
             shared_msk,
         )
@@ -426,6 +432,7 @@ def update_main_pages(
     articles_md,
     tables_md,
     OCs_per_class,
+    UTI_msk,
     membs_msk,
     shared_msk,
 ):
@@ -446,7 +453,10 @@ def update_main_pages(
         logging.info("DATABASE.md not updated (no changes)")
 
     # Update TABLES
-    tables_md_updt = updt_C3_classif_main_table(class_order, OCs_per_class, tables_md)
+    tables_md_updt = updt_UTI_main_table(UTI_msk, tables_md)
+    tables_md_updt = updt_C3_classif_main_table(
+        class_order, OCs_per_class, tables_md_updt
+    )
     # tables_md_updt = updt_OCs_per_quad_main_table(df_UCC, tables_md_updt)
     tables_md_updt = updt_shared_membs_main_table(shared_msk, tables_md_updt)
     tables_md_updt = updt_N50_main_table(membs_msk, tables_md_updt)
@@ -511,6 +521,7 @@ def updt_indiv_tables_files(
     temp_tables_path,
     current_JSON,
     df_UCC_edit,
+    UTI_msk,
     membs_msk,
     shared_msk,
 ):
@@ -525,6 +536,10 @@ def updt_indiv_tables_files(
     general_table_update(
         logging, ucc_dbs_tables_path, temp_dbs_tables_path, new_tables_dict
     )
+
+    # Update page with N members
+    new_tables_dict = updt_UTI_tables(df_UCC_edit, UTI_msk)
+    general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
 
     # Update page with N members
     new_tables_dict = updt_N50_tables(df_UCC_edit, membs_msk)
