@@ -94,7 +94,11 @@ membership by the next script:
 
 ### Output
 
-- `UCC_cat_B.csv`: Updated version of this file
+- `UCC_cat_B.csv`: Updated version of this file (old one is archived)
+- `temp_updt/UCC_diff_new.csv`: Non-matching entries in the new database
+- `temp_updt/UCC_diff_old.csv`: Non-matching entries in the old database
+
+The last two files are meant to be viewed with a diff app (e.g.: Meld) side by side
 
 If new DBs were added then these files are moved from temporary folders to their
 final destination:
@@ -102,13 +106,20 @@ final destination:
 - `data/databases_info.json`: Updated UCC database JSON file
 - `data/NEW_DB.csv`: New database in CSV format
 
-These files are also generated, for exploratory use only:
 
-- `temp_updt/df_UCC_updt.csv`: File with all the updated entries
-- `temp_updt/UCC_diff_new.csv`: Non-matching entries in the new database
-- `temp_updt/UCC_diff_old.csv`: Non-matching entries in the old database
+Notice
+------
 
-The last two files are meant to be viewed with a diff app (e.g.: Meld) side by side
+If main fnames are changed in this file, these changes need to be manually
+propagated to:
+
+- the `UCC_cat_C.csv` file
+- the `UCC_members.parquet` file
+- the plot files in the `plots/` folder, and
+- the site files in the `ucc/_clusters/` folder
+
+This is done using the `BC_fnames_renaming.py` script.
+
 
 
 
