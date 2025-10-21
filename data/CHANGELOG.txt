@@ -8,6 +8,24 @@ NOT DONE YET!
 fsr0380. Added their alternative names from FROEBRICH2007 to their entries in BICA2019
 and re-processed BICA2019.
 
+## 25101912
+
+Renamed several groups of clusters to have consistent naming (all above 'ngc' now):
+
+ -"melotte",  # 1915
+  -"trumpler",  # 1930
+ -"collinder",  # 1931
+ -"tombaugh",  # 1940
+ -"haffner", # 1957
+ -"ruprecht",  # 1958
+ -"berkeley",  # 1958
+ -"pismis",  # 1959
+ -"basel",  # 1971
+ -"loden",  # 1973
+ -"vdbh",  # 1975
+ -"bochum",  # 1975
+
+
 
 ## 25092811
 
