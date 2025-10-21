@@ -64,12 +64,12 @@ def count_shared_membs(df_UCC: pd.DataFrame) -> list:
 
 def UTI_ranges(df_UCC: pd.DataFrame) -> list:
     """ """
-    UTI_msk = [df_UCC["UTI"] == 0.0]
+    UTI_msk = [list(df_UCC["UTI"] == 0.0)]
     N_limi = 0.0
     for N_limf in (0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9):
-        UTI_msk.append((df_UCC["UTI"] > N_limi) & (df_UCC["UTI"] <= N_limf))
+        UTI_msk.append(list((df_UCC["UTI"] > N_limi) & (df_UCC["UTI"] <= N_limf)))
         N_limi = N_limf
-    UTI_msk.append(df_UCC["UTI"] > N_limi)
+    UTI_msk.append(list(df_UCC["UTI"] > N_limi))
 
     return UTI_msk
 
@@ -222,12 +222,12 @@ def updt_UTI_main_table(UTI_msk, database_md_in: str):
     """ """
     UTI_table = "\n| UTI |  N  | UTI |  N  |\n"
     UTI_table += "| :--: | :-: | :--: | :-: |\n"
-    UTI_table += f"| == 0.0 | [{UTI_msk[0].sum()}](/tables/UTI0_table) |"
+    UTI_table += f"| == 0.0 | [{sum(UTI_msk[0])}](/tables/UTI0_table) |"
     for i, msk in enumerate(UTI_msk[1:-1]):
         fchar = "|\n" if i in (0, 2, 4, 6, 8) else "| "
-        N = f"[{msk.sum()}](/tables/UTI{i + 1}_table)"
+        N = f"[{sum(msk)}](/tables/UTI{i + 1}_table)"
         UTI_table += f" ({0.0 + (i * 0.1):.1f}, {0.1 + (i * 0.1):.1f}] | {N} {fchar}"
-    UTI_table += f"| 0.9 < | [{UTI_msk[-1].sum()}](/tables/UTI10_table) | -- | -- |\n"
+    UTI_table += f"| 0.9 < | [{sum(UTI_msk[-1])}](/tables/UTI10_table) | -- | -- |\n"
     UTI_table += "\n"
 
     delimeterA = "<!-- Begin table 1 -->\n"
