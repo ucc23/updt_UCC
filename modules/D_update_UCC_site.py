@@ -31,6 +31,7 @@ from .variables import (
     assets_folder,
     class_order,
     clusters_csv_path,
+    clusters_manifest_path,
     data_folder,
     databases_md_path,
     dbs_folder,
@@ -58,7 +59,6 @@ def main():
 
     # Read paths
     (
-        temp_gz_CSV_path,
         ucc_gz_CSV_path,
         temp_dbs_tables_path,
         ucc_dbs_tables_path,
@@ -67,7 +67,7 @@ def main():
         temp_entries_path,
         ucc_entries_path,
         temp_image_path,
-    ) = load_paths()
+    ) = load_paths(logging)
 
     cols_from_B_to_C = ["Names", "DB", "DB_i"]
 
@@ -120,22 +120,23 @@ def main():
     if input("\nUpdate main site plots? (y/n): ").lower() == "y":
         make_site_plots(logging, temp_image_path, df_UCC, OCs_per_class)
 
-    # Mask with OCs with shared members
-    shared_msk = count_shared_membs(df_UCC)
-
-    UTI_msk = UTI_ranges(df_UCC)
+    #
+    df_UCC_edit = updt_UCC(df_UCC)
+    #
+    UTI_msk = UTI_ranges(df_UCC_edit)
     # Mask with N50 members
-    membs_msk = count_N50membs(df_UCC)
-
-    N_members_UCC = len(df_members)
+    membs_msk = count_N50membs(df_UCC_edit)
+    # Mask with OCs with shared members
+    shared_msk = count_shared_membs(df_UCC_edit)
 
     # Update DATABASE, TABLES, ARTCILES .md files
     if input("\nUpdate 'DATABASE, TABLES, ARTICLES' files? (y/n): ").lower() == "y":
+        N_members_UCC = len(df_members)
         update_main_pages(
             logging,
             N_members_UCC,
             current_JSON,
-            df_UCC,
+            df_UCC_edit,
             database_md,
             articles_md,
             tables_md,
@@ -144,8 +145,6 @@ def main():
             membs_msk,
             shared_msk,
         )
-
-    df_UCC_edit = updt_UCC(df_UCC)
 
     # Update tables files
     if input("\nUpdate individual tables files? (y/n): ").lower() == "y":
@@ -163,19 +162,21 @@ def main():
         )
 
     # Update CSV file
+    new_clusters_csv_path = ""
     if input("\nUpdate clusters CSV file? (y/n): ").lower() == "y":
-        updt_cls_CSV(logging, ucc_gz_CSV_path, temp_gz_CSV_path, df_UCC_edit)
+        new_clusters_csv_path = updt_cls_CSV(logging, ucc_gz_CSV_path, df_UCC_edit)
 
     if input("\nMove files to their final destination? (y/n): ").lower() == "y":
-        move_files(logging)
+        move_files(logging, ucc_gz_CSV_path, new_clusters_csv_path)
 
     # Check number of files
     file_checker(logging)
     logging.info("\nAll done!")
 
 
-def load_paths() -> tuple[
-    str,
+def load_paths(
+    logging,
+) -> tuple[
     str,
     str,
     str,
@@ -186,22 +187,35 @@ def load_paths() -> tuple[
     str,
 ]:
     """ """
-    # UCC and temp path to compressed JSON file
-    ucc_gz_CSV_path = root_ucc_path + clusters_csv_path
-    temp_gz_CSV_path = temp_folder + clusters_csv_path
+    # UCC path to compressed JSON file
+    folder = Path(root_ucc_path, assets_folder)
+    matches = list(folder.glob(clusters_csv_path))
+    if matches:
+        ucc_gz_CSV_path = str(matches[0])
+    else:
+        ucc_gz_CSV_path = ""
+        logging.warning(
+            f"No file matching '{clusters_csv_path}' found in {root_ucc_path}"
+        )
 
     # Temp path to the ucc assets and pages
     temp_assets_path = temp_folder + assets_folder
     if not os.path.exists(temp_assets_path):
         os.makedirs(temp_assets_path)
+    else:
+        logging.info(f"Folder exists: {temp_assets_path}")
     temp_pages_path = temp_folder + pages_folder
     if not os.path.exists(temp_pages_path):
         os.makedirs(temp_pages_path)
+    else:
+        logging.info(f"Folder exists: {temp_pages_path}")
 
     # Temp path to the ucc table files for each DB
     temp_dbs_tables_path = temp_folder + dbs_tables_folder
     if not os.path.exists(temp_dbs_tables_path):
         os.makedirs(temp_dbs_tables_path)
+    else:
+        logging.info(f"Folder exists: {temp_dbs_tables_path}")
     # Root path to the ucc table files for each DB
     ucc_dbs_tables_path = root_ucc_path + dbs_tables_folder
 
@@ -212,6 +226,8 @@ def load_paths() -> tuple[
     temp_entries_path = temp_folder + md_folder
     if not os.path.exists(temp_entries_path):
         os.makedirs(temp_entries_path)
+    else:
+        logging.info(f"Folder exists: {temp_entries_path}")
     # Root path to the ucc cluster folder where each md entry is stored
     ucc_entries_path = root_ucc_path + md_folder
 
@@ -219,19 +235,28 @@ def load_paths() -> tuple[
     temp_image_path = temp_folder + images_folder
     if not os.path.exists(temp_image_path):
         os.makedirs(temp_image_path)
+    else:
+        logging.info(f"Folder exists: {temp_image_path}")
 
     # Create temp folders using all letters in the alphabet
+    plots_fold_exist = False
     for letter in "abcdefghijklmnopqrstuvwxyz":
         for fold in plots_sub_folders:
             out_path = temp_folder + plots_folder + f"plots_{letter}/" + fold
             if not os.path.exists(out_path):
                 os.makedirs(out_path)
+                plots_fold_exist = True
+    if plots_fold_exist:
+        logging.info(
+            f"At least one folder exists: {temp_folder + plots_folder + 'plots_*/'}"
+        )
 
     if not os.path.exists(temp_folder + data_folder):
         os.makedirs(temp_folder + data_folder)
+    else:
+        logging.info(f"Folder exists: {temp_folder + data_folder}")
 
     return (
-        temp_gz_CSV_path,
         ucc_gz_CSV_path,
         temp_dbs_tables_path,
         ucc_dbs_tables_path,
@@ -423,60 +448,6 @@ def make_site_plots(logging, temp_image_path, df_UCC, OCs_per_class):
     logging.info("Plot generated: UTI histogram")
 
 
-def update_main_pages(
-    logging,
-    N_members_UCC,
-    current_JSON,
-    df_UCC,
-    database_md,
-    articles_md,
-    tables_md,
-    OCs_per_class,
-    UTI_msk,
-    membs_msk,
-    shared_msk,
-):
-    """Update DATABASE, TABLES, ARTICLES .md files"""
-    logging.info("\nUpdating DATABASE, TABLES, ARTICLES .md files")
-
-    # Update DATABASE
-    N_db_UCC, N_cl_UCC = len(current_JSON), len(df_UCC)
-    # Update the total number of entries, databases, and members in the UCC
-    database_md_updt = ucc_n_total_updt(
-        logging, N_db_UCC, N_cl_UCC, N_members_UCC, database_md
-    )
-    with open(temp_folder + databases_md_path, "w") as file:
-        file.write(database_md_updt)
-    if database_md != database_md_updt:
-        logging.info("DATABASE.md updated")
-    else:
-        logging.info("DATABASE.md not updated (no changes)")
-
-    # Update TABLES
-    tables_md_updt = updt_UTI_main_table(UTI_msk, tables_md)
-    tables_md_updt = updt_C3_classif_main_table(
-        class_order, OCs_per_class, tables_md_updt
-    )
-    # tables_md_updt = updt_OCs_per_quad_main_table(df_UCC, tables_md_updt)
-    tables_md_updt = updt_shared_membs_main_table(shared_msk, tables_md_updt)
-    tables_md_updt = updt_N50_main_table(membs_msk, tables_md_updt)
-    with open(temp_folder + tables_md_path, "w") as file:
-        file.write(tables_md_updt)
-    if tables_md != tables_md_updt:
-        logging.info("TABLES.md updated")
-    else:
-        logging.info("TABLES.md not updated (no changes)")
-
-    # Update ARTICLES
-    articles_md_updt = updt_articles_table(df_UCC, current_JSON, articles_md)
-    with open(temp_folder + articles_md_path, "w") as file:
-        file.write(articles_md_updt)
-    if articles_md != articles_md_updt:
-        logging.info("ARTICLES.md updated")
-    else:
-        logging.info("ARTICLES.md not updated (no changes)")
-
-
 def updt_UCC(df_UCC: pd.DataFrame) -> pd.DataFrame:
     """
     Updates a DataFrame of astronomical cluster data by processing identifiers,
@@ -517,6 +488,60 @@ def updt_UCC(df_UCC: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def update_main_pages(
+    logging,
+    N_members_UCC,
+    current_JSON,
+    df_UCC_edit,
+    database_md,
+    articles_md,
+    tables_md,
+    OCs_per_class,
+    UTI_msk,
+    membs_msk,
+    shared_msk,
+):
+    """Update DATABASE, TABLES, ARTICLES .md files"""
+    logging.info("\nUpdating DATABASE, TABLES, ARTICLES .md files")
+
+    # Update DATABASE
+    N_db_UCC, N_cl_UCC = len(current_JSON), len(df_UCC_edit)
+    # Update the total number of entries, databases, and members in the UCC
+    database_md_updt = ucc_n_total_updt(
+        logging, N_db_UCC, N_cl_UCC, N_members_UCC, database_md
+    )
+    with open(temp_folder + databases_md_path, "w") as file:
+        file.write(database_md_updt)
+    if database_md != database_md_updt:
+        logging.info("DATABASE.md updated")
+    else:
+        logging.info("DATABASE.md not updated (no changes)")
+
+    # Update TABLES
+    tables_md_updt = updt_UTI_main_table(UTI_msk, tables_md)
+    tables_md_updt = updt_C3_classif_main_table(
+        class_order, OCs_per_class, tables_md_updt
+    )
+    # tables_md_updt = updt_OCs_per_quad_main_table(df_UCC, tables_md_updt)
+    tables_md_updt = updt_shared_membs_main_table(shared_msk, tables_md_updt)
+    tables_md_updt = updt_N50_main_table(membs_msk, tables_md_updt)
+    with open(temp_folder + tables_md_path, "w") as file:
+        file.write(tables_md_updt)
+    if tables_md != tables_md_updt:
+        logging.info("TABLES.md updated")
+    else:
+        logging.info("TABLES.md not updated (no changes)")
+
+    # Update ARTICLES
+    articles_md_updt = updt_articles_table(df_UCC_edit, current_JSON, articles_md)
+    with open(temp_folder + articles_md_path, "w") as file:
+        file.write(articles_md_updt)
+    if articles_md != articles_md_updt:
+        logging.info("ARTICLES.md updated")
+    else:
+        logging.info("ARTICLES.md not updated (no changes)")
+
+
 def updt_indiv_tables_files(
     logging,
     temp_dbs_tables_path,
@@ -541,7 +566,7 @@ def updt_indiv_tables_files(
         logging, ucc_dbs_tables_path, temp_dbs_tables_path, new_tables_dict
     )
 
-    # Update page with N members
+    # Update page with UTI values
     new_tables_dict = updt_UTI_tables(df_UCC_edit, UTI_msk)
     general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
 
@@ -585,11 +610,9 @@ def general_table_update(
             logging.info(f"Table {table_name} {txt}")
 
 
-def updt_cls_CSV(
-    logging, ucc_gz_CSV_path: str, temp_gz_CSV_path: str, df_UCC_edit: pd.DataFrame
-) -> None:
+def updt_cls_CSV(logging, ucc_gz_CSV_path: str, df_UCC_edit: pd.DataFrame) -> str:
     """
-    Update compressed cluster.csv file used by 'ucc.ar' search
+    Update compressed cluster.csv.gz file used by 'ucc.ar' search
     """
     df = pd.DataFrame(
         df_UCC_edit[
@@ -611,23 +634,38 @@ def updt_cls_CSV(
     df_new = df.sort_values("Name")
 
     # Load the current compressed CSV file
-    df_old = pd.read_csv(ucc_gz_CSV_path, compression="gzip")
+    try:
+        df_old = pd.read_csv(ucc_gz_CSV_path, compression="gzip")
+    except Exception as e:
+        df_old = pd.DataFrame()
 
     # Update CSV if required
+    new_clusters_csv_path = ""
     if not df_old.equals(df_new):
+        date = pd.Timestamp.now().strftime("%y%m%d%H")
+        new_clusters_csv_path = clusters_csv_path.replace("*", f"{date}")
+        temp_gz_CSV_path = temp_folder + assets_folder + new_clusters_csv_path
         df.to_csv(
             temp_gz_CSV_path,
             index=False,
             compression="gzip",
         )
-        logging.info("File 'clusters.csv.gz' updated")
+        # Update the 'latest' key in the 'clusters_manifest.json' JSON file
+        manifest_path = root_ucc_path + assets_folder + clusters_manifest_path
+        with open(manifest_path, "r") as f:
+            manifest_data = json.load(f)
+        manifest_data["latest"] = new_clusters_csv_path
+        with open(temp_folder + assets_folder + clusters_manifest_path, "w") as f:
+            json.dump(manifest_data, f, indent=2)
+        logging.info(f"File 'clusters_{date}.csv.gz' updated")
+
     else:
-        logging.info("File 'cluster.csv.gz' not updated (no changes)")
+        logging.info(f"File '{ucc_gz_CSV_path}' not updated (no changes)")
+
+    return new_clusters_csv_path
 
 
-def move_files(
-    logging,
-) -> None:
+def move_files(logging, ucc_gz_CSV_path: str, new_clusters_csv_path: str) -> None:
     """ """
     logging.info("\nMoving files:")
 
@@ -652,6 +690,12 @@ def move_files(
             file_ucc = file_path.replace(temp_folder, root_ucc_path)
             logging.info(file_path + " --> " + file_ucc)
     logging.info("")
+
+    # Delete old cluster_XXXX.csv.gz file
+    if new_clusters_csv_path != "":
+        if os.path.exists(ucc_gz_CSV_path):
+            os.remove(ucc_gz_CSV_path)
+            logging.info(f"Old file removed: {ucc_gz_CSV_path}")
 
     # Move all plots
     all_plot_folds = []
