@@ -1,4 +1,3 @@
-import csv
 import json
 import os
 import re
@@ -114,7 +113,6 @@ def main():
             dbs_merged_current_file,
             temp_JSON_file,
             all_dbs_data,
-            dbs_merged_new,
             temp_database_folder,
         )
 
@@ -1400,7 +1398,6 @@ def move_files(
     dbs_merged_current_file: str,
     temp_JSON_file: str,
     all_dbs_data: dict,
-    dbs_merged_new: pd.DataFrame,
     temp_database_folder: str,
 ) -> None:
     """ """
@@ -1420,27 +1417,21 @@ def move_files(
             logging.info(db_temp + " --> " + db_stored)
 
     # Generate '.gz' compressed file for the old B file and archive it
+    df_OLD_B = pd.read_csv(dbs_merged_current_file)
     now_time = pd.Timestamp.now().strftime("%y%m%d%H")
     archived_B_file = (
         data_folder
         + "ucc_archived_nogit/"
         + merged_dbs_file.replace(".csv", f"_{now_time}.csv.gz")
     )
-    dbs_merged_new.to_csv(
-        archived_B_file,
-        na_rep="nan",
-        index=False,
-        quoting=csv.QUOTE_NONNUMERIC,
-        compression="gzip",
-    )
+    save_df_UCC(logging, df_OLD_B, archived_B_file, "fnames", "gzip")
     # Remove old B csv file
     os.remove(dbs_merged_current_file)
     logging.info(dbs_merged_current_file + " --> " + archived_B_file)
     # Move new B file into place
-    ucc_stored = data_folder + merged_dbs_file
     ucc_temp = temp_folder + merged_dbs_file
-    os.rename(ucc_temp, ucc_stored)
-    logging.info(ucc_temp + " --> " + ucc_stored)
+    os.rename(ucc_temp, dbs_merged_current_file)
+    logging.info(ucc_temp + " --> " + dbs_merged_current_file)
 
 
 if __name__ == "__main__":
