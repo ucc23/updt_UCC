@@ -152,17 +152,28 @@ def diff_between_dfs(
     logging.info("\nFiles 'UCC_diff_xxx.csv' saved\n")
 
 
-def save_df_UCC(logging, df: pd.DataFrame, file_path: str, order_col: str) -> None:
+def save_df_UCC(
+    logging, df: pd.DataFrame, file_path: str, order_col: str, compression: str = ""
+) -> None:
     """ """
     df = round_columns(df)
 
     # Order by 'order_col'
     df = df.sort_values(by=order_col).reset_index(drop=True)
     # Save UCC to CSV file
-    df.to_csv(
-        file_path,
-        na_rep="nan",
-        index=False,
-        quoting=csv.QUOTE_NONNUMERIC,
-    )
+    if compression == "gzip":
+        df.to_csv(
+            file_path,
+            na_rep="nan",
+            index=False,
+            quoting=csv.QUOTE_NONNUMERIC,
+            compression="gzip",
+        )
+    else:
+        df.to_csv(
+            file_path,
+            na_rep="nan",
+            index=False,
+            quoting=csv.QUOTE_NONNUMERIC,
+        )
     logging.info(f"UCC file (N={len(df)}): '{file_path}'")
