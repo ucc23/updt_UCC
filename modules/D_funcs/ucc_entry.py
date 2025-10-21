@@ -419,9 +419,9 @@ def table_shared_members(df_UCC, fnames_all, row):
     if str(row["shared_members"]) == "nan":
         return shared_members_tab
 
-    shared_members_tab = """| Cluster | <span title="Percentage of members that this OC shares with the ones listed">%</span>   | RA   | DEC   | Plx   | pmRA  | pmDE  | Rv    |\n"""
+    shared_members_tab = """| Cluster | <span title="Percentage of members that this OC shares with the ones listed">%</span>   | RA   | DEC   | Plx   | pmRA  | pmDE  | Rv | UTI |\n"""
     shared_members_tab += (
-        """    | :---:   | :-: |:---: | :---: | :---: | :---: | :---: | :---: |\n"""
+        """    | :-: | :-: |:-: | :-: | :-: | :-: | :-: | :-: | :-: |\n"""
     )
 
     shared_fnames = row["shared_members"].split(";")
@@ -433,8 +433,16 @@ def table_shared_members(df_UCC, fnames_all, row):
 
         name = df_UCC["Names"][j].split(";")[0]
         vals = []
-        for col in ("RA_ICRS_m", "DE_ICRS_m", "Plx_m", "pmRA_m", "pmDE_m", "Rv_m"):
-            val = round(float(df_UCC[col][j]), 3)
+        for col in (
+            "RA_ICRS_m",
+            "DE_ICRS_m",
+            "Plx_m",
+            "pmRA_m",
+            "pmDE_m",
+            "Rv_m",
+            "UTI",
+        ):
+            val = round(float(df_UCC[col][j]), 2)
             if np.isnan(val):
                 vals.append("--")
             else:
@@ -445,7 +453,7 @@ def table_shared_members(df_UCC, fnames_all, row):
         else:
             vals.append(val)
 
-        ra, dec, plx, pmRA, pmDE, Rv, perc = vals
+        ra, dec, plx, pmRA, pmDE, Rv, UTI, perc = vals
 
         shared_members_tab += f"    |[{name}](/_clusters/{fname}/)| "
         shared_members_tab += f"{perc} | "
@@ -454,7 +462,8 @@ def table_shared_members(df_UCC, fnames_all, row):
         shared_members_tab += f"{plx} | "
         shared_members_tab += f"{pmRA} | "
         shared_members_tab += f"{pmDE} | "
-        shared_members_tab += f"{Rv} |\n"
+        shared_members_tab += f"{Rv} |"
+        shared_members_tab += f"{UTI} |\n"
 
     # Remove final new line
     shared_members_tab = shared_members_tab[:-1]
