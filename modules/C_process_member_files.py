@@ -872,36 +872,34 @@ def move_files(logging, temp_zenodo_fold: str) -> None:
     # Move the final combined members parquet file
     file_path_temp = temp_zenodo_fold + UCC_members_file
     if os.path.isfile(file_path_temp):
-        # Save a copy to the archive folder first
-        archived_members = data_folder + "ucc_archived_nogit/" + UCC_members_file
-        shutil.copy(file_path_temp, archived_members)
-        logging.info(file_path_temp + " --> " + archived_members)
-        # Now rename
         file_path = zenodo_folder + UCC_members_file
+        # Save a copy to the archive folder first
+        archived_members = (
+            data_folder
+            + "ucc_archived_nogit/"
+            + UCC_members_file.replace(".parquet", "_backup.parquet")
+        )
+        shutil.copy(file_path, archived_members)
+        logging.info(file_path + " --> " + archived_members)
+        # Now rename
         os.rename(file_path_temp, file_path)
         logging.info(file_path_temp + " --> " + file_path)
     # Delete left over individual parquet files?
 
     # Generate '.gz' compressed file for the old C file and archive it
-    df = pd.read_csv(data_folder + ucc_cat_file)
+    ucc_stored = data_folder + ucc_cat_file
+    df_OLD_C = pd.read_csv(ucc_stored)
     now_time = pd.Timestamp.now().strftime("%y%m%d%H")
     archived_C_file = (
         data_folder
         + "ucc_archived_nogit/"
         + ucc_cat_file.replace(".csv", f"_{now_time}.csv.gz")
     )
-    df.to_csv(
-        archived_C_file,
-        na_rep="nan",
-        index=False,
-        quoting=csv.QUOTE_NONNUMERIC,
-        compression="gzip",
-    )
+    save_df_UCC(logging, df_OLD_C, archived_C_file, "fnames", "gzip")
     # Remove old C csv file
-    os.remove(data_folder + ucc_cat_file)
-    logging.info(data_folder + ucc_cat_file + " --> " + archived_C_file)
+    os.remove(ucc_stored)
+    logging.info(ucc_stored + " --> " + archived_C_file)
     # Move new C file into place
-    ucc_stored = data_folder + ucc_cat_file
     ucc_temp = temp_folder + ucc_cat_file
     os.rename(ucc_temp, ucc_stored)
     logging.info(ucc_temp + " --> " + ucc_stored)
