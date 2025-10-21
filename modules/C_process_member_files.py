@@ -795,6 +795,7 @@ def updt_zenodo_csv(
                 "C3",
                 "shared_members",
                 "shared_members_p",
+                "UTI",
             ]
         ]
     )
