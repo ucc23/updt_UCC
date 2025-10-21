@@ -405,8 +405,8 @@ def updt_articles_table(df_UCC, current_JSON, database_md_in):
             N_in_DB[DB] += 1
 
     # md_table = "\n| Name | N | Name | N |\n"
-    md_table = "\n| Title | Author(s) | Year | Vizier | N |\n"
-    md_table += "| ---- | :---: | :--: | :----: | :-: |\n"
+    md_table = "\n| Title | Author(s) | Year | Vizier | N | CSV |\n"
+    md_table += "| ---- | :---: | :--: | :----: | :-: | :-: |\n"
     for DB, DB_data in current_JSON.items():
         row = ""
         title = DB_data["title"].replace("'", "").replace('"', "")
@@ -415,7 +415,8 @@ def updt_articles_table(df_UCC, current_JSON, database_md_in):
         viz_url = f"""<a href="{DB_data["vizier_url"]}" target="_blank"> <img src="/images/vizier.png " alt="Vizier url"></a>"""
         if DB_data["vizier_url"] == "N/A":
             viz_url = "N/A"
-        row += f"| {ref_url} | {DB_data['authors']} | {DB_data['year']} | {viz_url} | [{N_in_DB[DB]}](/tables/dbs/{DB}_table) "
+        CSV_url = f"""<a href="https://flatgithub.com/ucc23/updt_UCC?filename=data/databases/{DB}.csv" target="_blank">📊</a>"""
+        row += f"| {ref_url} | {DB_data['authors']} | {DB_data['year']} | {viz_url} | [{N_in_DB[DB]}](/tables/dbs/{DB}_table) | {CSV_url}"
         md_table += row + "|\n"
     md_table += "\n"
 
