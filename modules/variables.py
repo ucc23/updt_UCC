@@ -20,26 +20,23 @@ GCs_cat = data_folder + "globulars.csv"
 manual_pars_file = data_folder + "manual_params.csv"
 # Preferred order in which the OCs are assigned their primary name
 naming_order = (
+    "melotte",  # 1915
     "hyades",
-    "blanco",
-    "westerlund",
+    "trumpler",  # 1930
+    "collinder",  # 1931
+    "tombaugh",  # 1940
+    "haffner",  # 1957
+    "ruprecht",  # 1958
+    "berkeley",  # 1958
+    "pismis",  # 1959
+    "basel",  # 1971
+    "loden",  # 1973
+    "vdbh",  # 1975
+    "bochum",  # 1975
     "ngc",
-    "melotte",
-    "trumpler",
-    "ruprecht",
-    "berkeley",
-    "pismis",
-    "vdbh",
-    "loden",
-    "kronberger",
-    "collinder",
-    "haffner",
-    "tombaugh",
-    "dolidze",
-    "auner",
-    "waterloo",
-    "basel",
-    "bochum",
+    "kronberger",  # 2006
+    "dolidze",  # > 1950?
+    "auner",  # 2007
     "hogg",
     "carraro",
     "lynga",
@@ -49,6 +46,9 @@ naming_order = (
     "harvard",
     "czernik",
     "koposov",
+    "blanco",
+    "westerlund",
+    "waterloo",
     "eso",
     "ascc",
     "alessiteutsch",
@@ -160,7 +160,8 @@ images_folder = ucc_path + "images/"
 # Assets folder
 assets_folder = ucc_path + "assets/"
 # Path to the compressed CSV file with clusters data
-clusters_csv_path = assets_folder + "clusters.csv.gz"
+clusters_csv_path = "clusters_*.csv.gz"
+clusters_manifest_path = "clusters_manifest.json"
 # Path to the md database file
 databases_md_path = pages_folder + "DATABASE.md"
 # Path to the md file with the articles
