@@ -277,15 +277,7 @@ example, using a different `include` with fewer/different selected folders)
 
 ### 5.2 Live build
 
-1. Push changes (if any) to each of the `plots/plots_*` repositories. To do this, position
-the command line in the `UCC/plots/` folder and run:
-
-```
-$ cd UCC/plots/
-$ for dir in plots_*/; do (cd "$dir" && [ -d .git ] && git acp "updt plots"); done
-```
-
-2. Create a 'New version' in the [Zenodo repository](https://zenodo.org/doi/10.5281/zenodo.8250523) 
+1. Create a 'New version' in the [Zenodo repository](https://zenodo.org/doi/10.5281/zenodo.8250523) 
 
   -a Make sure that the version number in the `zenodo/README.md` file matches that in
      the `_pages/CHANGELOG.md` file
@@ -297,13 +289,24 @@ $ for dir in plots_*/; do (cd "$dir" && [ -d .git ] && git acp "updt plots"); do
 
 Publish this new release and copy **its own url** (no the general repository url)
 
-3. Update the `_pages/CHANGELOG.md` file, use the Zenodo URL for **this** release
+2. Update the `_pages/CHANGELOG.md` file, use the Zenodo URL for **this** release
+
+3. Push changes (if any) to each of the `plots/plots_*` repositories. To do this, position
+the command line in the `UCC/plots/` folder and run:
+
+```
+$ cd UCC/plots/
+$ for dir in plots_*/; do (cd "$dir" && [ -d .git ] && git acp "updt plots"); done
+```
 
 4. **IMPORTANT**: Make sure that the `_config.yml` file includes all the folders
 
-5. Push the changes to the `ucc` repository
+5. Push any remaining changes to the `ucc` repository
 
 6. Deploy the site using the Github workflow [Build GitHub Page](https://github.com/ucc23/ucc/actions/workflows/jekyll-gh-pages.yml)
+
+7. Test live site both in Chrome and Firefox
+
 
 
 Libraries and services used:
