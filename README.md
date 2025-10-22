@@ -277,11 +277,12 @@ example, using a different `include` with fewer/different selected folders)
 
 ### 5.2 Live build
 
-1. Push changes (if any) to each of the `QXY` repositories. To do this, position
-the command line in the `UCC/` folder and run (change `YYMMDD` with version number):
+1. Push changes (if any) to each of the `plots/plots_*` repositories. To do this, position
+the command line in the `UCC/plots/` folder and run:
 
 ```
-for dir in Q*/; do (cd "$dir" && [ -d .git ] && git acp "version YYMMDD"); done
+$ cd UCC/plots/
+$ for dir in plots_*/; do (cd "$dir" && [ -d .git ] && git acp "updt plots"); done
 ```
 
 2. Create a 'New version' in the [Zenodo repository](https://zenodo.org/doi/10.5281/zenodo.8250523) 
@@ -303,3 +304,12 @@ Publish this new release and copy **its own url** (no the general repository url
 5. Push the changes to the `ucc` repository
 
 6. Deploy the site using the Github workflow [Build GitHub Page](https://github.com/ucc23/ucc/actions/workflows/jekyll-gh-pages.yml)
+
+
+Libraries and services used:
+
+- pako (https://github.com/nodeca/pako): loadCSV.js
+- d3 (https://github.com/d3/d3): map_search.js
+- d3-geo-projection (https://github.com/d3/d3-geo-projection): map_search.js
+- Plotly (https://github.com/plotly/plotly.py): posts.html
+- flatgithub.com: ARTICLES.md
