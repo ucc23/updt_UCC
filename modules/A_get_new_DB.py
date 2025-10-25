@@ -197,8 +197,8 @@ def get_ADS_data(ADS_bibcode: str) -> tuple[str, str, str]:
             else:
                 authors = authors_lst[0].split(",")[0] + " et al."
 
-            year = article.get("year")[0]
-            title = article.get("title")
+            year = article.get("year")
+            title = article.get("title")[0]
         else:
             raise ValueError(f"No article found with the given bibcode: {bibcode_int}")
     else:
