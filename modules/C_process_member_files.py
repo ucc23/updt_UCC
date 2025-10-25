@@ -54,9 +54,9 @@ def main():
         return
 
     logging.info(
-        f"\nProcessing:\n-B entries not in C : {len(B_not_in_C)}\n"
-        + f"-C entries not in B : {len(C_not_in_B)}\n"
-        + f"-Entries marked in C: {len(C_reprocess)}"
+        f"\nProcessing:\n-B entries not in C   : {len(B_not_in_C)}\n"
+        + f"-C entries not in B   : {len(C_not_in_B)}\n"
+        + f"-C entries re-process : {len(C_reprocess)}"
     )
 
     load_file = False
@@ -192,7 +192,15 @@ def load_data(
     # Load current CSV data files
     df_UCC_B = pd.read_csv(ucc_B_file)
     logging.info(f"\nFile {ucc_B_file} loaded ({len(df_UCC_B)} entries)")
-    df_UCC_C = pd.read_csv(ucc_C_file)
+    # df_UCC_C = pd.read_csv(ucc_C_file)
+    df_UCC_C = pd.read_csv(
+        ucc_C_file,
+        dtype={
+            "frame_limit": "string",
+            "shared_members": "string",
+            "shared_members_p": "string",
+        },
+    )
     logging.info(f"File {ucc_C_file} loaded ({len(df_UCC_C)} entries)")
 
     return gaia_frames_data, current_JSON, df_GCs, df_members, df_UCC_B, df_UCC_C
@@ -208,32 +216,6 @@ def detect_entries_to_process(
     C_reprocess --> Reprocess in C
 
     """
-
-    # fnames_B = df_UCC_B["fnames"].to_list()
-    # fnames_C = df_UCC_C["fnames"].to_list()
-
-    # # Detect entries in C that are not in B and thus must be removed
-    # remove_C_entries = []
-    # for fname_C in fnames_C:
-    #     if fname_C not in fnames_B:
-    #         remove_C_entries.append(fname_C)
-
-    # new_B_entries = []
-    # for i, fname_B in enumerate(fnames_B):
-    #     fname_B0 = fname_B.split(";")[0]
-
-    #     fnameB_found = False
-    #     for j, fname_C in enumerate(fnames_C[i:]):
-    #         fname_C = fname_C.split(";")
-    #         if fname_B0 in fname_C:
-    #             if fname_B0 == fname_C[0]:
-    #                 fnameB_found = True
-    #                 break
-    #             else:
-    #                 raise ValueError(f"({i}) {fname_B} != ({j}) {fname_C}")
-    #     if fnameB_found is False:
-    #         new_B_entries.append(fname_B0)
-
     # Entries that must be added to C
     B_not_in_C = df_UCC_B[~df_UCC_B["fnames"].isin(df_UCC_C["fnames"])]
 
@@ -874,10 +856,11 @@ def move_files(logging, temp_zenodo_fold: str) -> None:
     if os.path.isfile(file_path_temp):
         file_path = zenodo_folder + UCC_members_file
         # Save a copy to the archive folder first
+        date = pd.Timestamp.now().strftime("%y%m%d%H")
         archived_members = (
             data_folder
             + "ucc_archived_nogit/"
-            + UCC_members_file.replace(".parquet", "_backup.parquet")
+            + UCC_members_file.replace(".parquet", f"_{date}.parquet")
         )
         shutil.copy(file_path, archived_members)
         logging.info(file_path + " --> " + archived_members)
