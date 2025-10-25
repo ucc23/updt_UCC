@@ -277,7 +277,27 @@ def process_entries(
         for col in B_cols:
             df_UCC_updt[col][j] = df_UCC_B[col].iloc[k]
 
-    return pd.DataFrame(df_UCC_updt)
+    df_UCC_updt = pd.DataFrame(df_UCC_updt)
+    # Set dtype of columns
+    str_type = (
+        "fnames",
+        "DB",
+        "DB_i",
+        "Names",
+        "plot_used",
+        "process",
+        "frame_limit",
+        "C3",
+        "shared_members",
+        "shared_members_p",
+    )
+    for col in df_UCC_updt.columns:
+        if col in str_type:
+            df_UCC_updt[col] = df_UCC_updt[col].astype("string")
+        else:
+            df_UCC_updt[col] = df_UCC_updt[col].astype(float)
+
+    return df_UCC_updt
 
 
 def member_files_updt(
