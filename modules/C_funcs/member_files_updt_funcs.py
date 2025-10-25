@@ -632,10 +632,10 @@ def updt_UCC_new_cl_data(
     pmRA, pmDE = np.nanmedian(df_membs["pmRA"]), np.nanmedian(df_membs["pmDE"])
     e_pmRA, e_pmDE = np.nanmedian(df_membs["e_pmRA"]), np.nanmedian(df_membs["e_pmDE"])
     Rv, e_Rv, N_Rv = np.nan, np.nan, 0
-    if not np.isnan(df_membs["RV"].values).all():
+    if not np.isnan(df_membs["RV"]).all():
         Rv = np.nanmedian(df_membs["RV"])
         e_Rv = np.nanmedian(df_membs["e_RV"])
-        N_Rv = int(len(df_membs["RV"]) - np.isnan(df_membs["RV"].values).sum())
+        N_Rv = int(len(df_membs["RV"]) - np.isnan(df_membs["RV"]).sum())
 
     # Round values
     lon, lat = round(lon, N_digits), round(lat, N_digits)
