@@ -17,6 +17,47 @@ from .variables import (
     temp_folder,
 )
 
+# This is the structure for each database in the JSON file
+JSON_struct = {
+    "SMITH2500": {
+        "SCIX_url": "https://scixplorer.org/abs/xxxx",
+        "vizier_url": "N/A",
+        "authors": "Smith et al.",
+        "title": "Article title",
+        "year": "2050",
+        "received": "19101010",
+        "names": "Name",
+        "pos": {
+            "RA": [],
+            "DEC": [],
+            "plx": [],
+            "pmra": [],
+            "pmde": [],
+            "Rv": [],
+        },
+        "pars": {
+            "ext": [],
+            "diff_ext": [],
+            "dist": [],
+            "age": [],
+            "met": [],
+            "mass": [],
+            "bi_frac": [],
+            "bs_frac": [],
+        },
+        "e_pars": {
+            "e_ext": [],
+            "e_diff_ext": [],
+            "e_dist": [],
+            "e_age": [],
+            "e_met": [],
+            "e_mass": [],
+            "e_bi_frac": [],
+            "e_bs_frac": [],
+        },
+    }
+}
+
 
 def main(ADS_bibcode):
     """
@@ -44,10 +85,10 @@ def main(ADS_bibcode):
         current_JSON = json.load(f)
 
     # 2. Check if url is already listed in the current JSON file
-    ADS_url = "https://ui.adsabs.harvard.edu/abs/" + ADS_bibcode
+    SCIX_url = "https://scixplorer.org/abs/" + ADS_bibcode
     for db, vals in current_JSON.items():
-        if ADS_url == vals["ADS_url"]:
-            logging.info(f"The URL {ADS_url}\nis already in the JSON file under: {db}")
+        if SCIX_url == vals["SCIX_url"]:
+            logging.info(f"The URL {SCIX_url}\nis already in the JSON file under: {db}")
             if input("Move on? (y/n): ").lower() != "y":
                 sys.exit()
 
@@ -103,7 +144,7 @@ def main(ADS_bibcode):
 
     # 8. Update the JSON file and save the database as CSV.
     add_DB_to_JSON(
-        ADS_url,
+        SCIX_url,
         vizier_url,
         current_JSON,
         temp_JSON_file,
@@ -497,49 +538,3 @@ def add_DB_to_JSON(
     # Save to (temp) JSON file
     with open(temp_JSON_file, "w") as f:
         json.dump(new_json_dict, f, indent=2)  # Use indent for readability
-
-
-if __name__ == "__main__":
-    # This is the structure for each database in the JSON file
-    JSON_struct = {
-        "SMITH2500": {
-            "ADS_url": "https://ui.adsabs.harvard.edu/abs/xxxx",
-            "vizier_url": "N/A",
-            "authors": "Smith et al.",
-            "title": "Article title",
-            "year": "2050",
-            "names": "Name",
-            "pos": {
-                "RA": [],
-                "DEC": [],
-                "plx": [],
-                "pmra": [],
-                "pmde": [],
-                "Rv": [],
-            },
-            "pars": {
-                "ext": [],
-                "diff_ext": [],
-                "dist": [],
-                "age": [],
-                "met": [],
-                "mass": [],
-                "bi_frac": [],
-                "bs_frac": [],
-            },
-            "e_pars": {
-                "e_ext": [],
-                "e_diff_ext": [],
-                "e_dist": [],
-                "e_age": [],
-                "e_met": [],
-                "e_mass": [],
-                "e_bi_frac": [],
-                "e_bs_frac": [],
-            },
-        }
-    }
-
-
-if __name__ == "__main__":
-    main()
