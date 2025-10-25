@@ -363,17 +363,16 @@ def update_UCC_membs_data(
     members.
     """
     if len(C_not_in_B) > 0:
+        # Remove entries in C_not_in_B from df_members
         remove_entries = [_.split(";")[0] for _ in C_not_in_B["fnames"]]
-
-        # Remove entries from df_members in the 'name' column
         msk = ~df_members["name"].isin(remove_entries)
         df_members_new = pd.DataFrame(df_members[msk])
 
-        # Remove elements in C_not_in_B["fnames"] from df_UCC_C
+        # Remove entries in C_not_in_B from df_UCC_C
         msk = ~df_UCC_C["fnames"].isin(C_not_in_B["fnames"])
         df_UCC_C_new = pd.DataFrame(df_UCC_C[msk])
     else:
-        df_members_new = df_members
+        df_members_new = df_members.copy()
         df_UCC_C_new = df_UCC_C.copy()
 
     # Update df_UCC_C_new using data from df_UCC_C_updt
