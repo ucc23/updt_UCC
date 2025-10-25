@@ -71,6 +71,21 @@
     },
     "e_pars": {}
   },
+  "FROEBRICH2007": {
+    "ADS_url": "https://scixplorer.org/abs/2007MNRAS.374..399F",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2007MNRAS.374..399F",
+    "authors": "Froebrich et al.",
+    "title": "A systematic survey for infrared star clusters with |b|<20 using 2MASS",
+    "year": "2007",
+    "received": "20060917",
+    "names": "ID",
+    "pos": {
+      "RA": "RA_deg",
+      "DEC": "DEC_deg"
+    },
+    "pars": {},
+    "e_pars": {}
+  },
   "KOPOSOV2008": {
     "SCIX_url": "https://scixplorer.org/abs/2008A%26A...486..771K",
     "vizier_url": "N/A",
