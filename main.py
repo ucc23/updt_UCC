@@ -70,14 +70,13 @@ def get_ads_bibcode():
             print("❌ Bibcode seems too short. Please check and try again.")
             continue
 
-        # Confirm with user
-        print(f"\n📋 You entered: {bibcode}")
-        confirm = input("Is this correct? (y/N): ").strip().lower()
-
-        if confirm == "y":
-            return bibcode
-        else:
-            print("Let's try again...")
+        # # Confirm with user
+        # print(f"\n📋 You entered: {bibcode}")
+        # confirm = input("Is this correct? (y/N): ").strip().lower()
+        # if confirm == "y":
+        return bibcode
+        # else:
+        #     print("Let's try again...")
 
 
 def run_script(script_choice):
