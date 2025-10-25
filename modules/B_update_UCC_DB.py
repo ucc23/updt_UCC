@@ -10,7 +10,7 @@ from astropy.coordinates import angular_separation
 from rapidfuzz import fuzz, process
 from scipy.spatial.distance import cdist
 
-from .utils import diff_between_dfs, logger, radec2lonlat, save_df_UCC
+from .utils import logger, radec2lonlat, save_df_UCC
 from .variables import (
     GCs_cat,
     data_folder,
@@ -30,14 +30,12 @@ def main():
     logging = logger()
 
     # Generate paths and check for required folders and files
-    temp_database_folder, dbs_merged_current_file, temp_JSON_file = (
-        get_paths_check_paths(logging)
+    temp_database_folder, df_UCC_B_current_file, temp_JSON_file = get_paths_check_paths(
+        logging
     )
 
-    dbs_merged_current, df_GCs, all_dbs_data, dbs_merged_new, flag_interactive = (
-        load_data(
-            logging, dbs_merged_current_file, temp_JSON_file, temp_database_folder
-        )
+    df_GCs, all_dbs_data, df_UCC_B, flag_interactive = load_data(
+        logging, df_UCC_B_current_file, temp_JSON_file, temp_database_folder
     )
 
     for new_DB, (df_new, newDB_json) in all_dbs_data.items():
@@ -65,12 +63,13 @@ def main():
         new_DB_fnames = get_fnames_new_DB(logging, df_new, newDB_json)
 
         # Match the new DB with the UCC
-        db_matches = get_matches_new_DB(dbs_merged_new, new_DB_fnames)
+        db_matches = get_matches_new_DB(df_UCC_B, new_DB_fnames)
 
         # Check the entries in the new DB vs the entries in the UCC
         check_new_DB_vs_UCC(
             logging,
-            dbs_merged_new,
+            new_DB,
+            df_UCC_B,
             df_new,
             new_DB_fnames,
             db_matches,
@@ -82,35 +81,35 @@ def main():
             logging,
             new_DB,
             newDB_json,
-            dbs_merged_new,
+            df_UCC_B,
             df_new,
             new_DB_fnames,
             db_matches,
         )
 
         # Generate new UCC file with the new DB incorporated
-        dbs_merged_new = add_new_DB(dbs_merged_new, db_matches, df_new_db)
+        df_UCC_B = add_new_DB(df_UCC_B, db_matches, df_new_db)
 
     # Remove duplicate names and order by naming priority
-    dbs_merged_new = rm_name_dups_order(dbs_merged_new)
+    df_UCC_B = rm_name_dups_order(df_UCC_B)
 
     # Order DBs by years
-    dbs_merged_new = date_order_DBs(dbs_merged_new)
+    df_UCC_B = date_order_DBs(df_UCC_B)
 
     # Last sanity check. Check every individual fname for duplicates
-    if duplicates_fnames_check(logging, dbs_merged_new):
+    if duplicates_fnames_check(logging, df_UCC_B):
         raise ValueError("Duplicated entries found in 'fnames' column")
 
     #
-    diff_between_dfs(logging, dbs_merged_current, dbs_merged_new)
+    # diff_between_dfs(logging, dbs_merged_current, dbs_merged_new)
 
-    file_path = dbs_merged_current_file.replace(data_folder, temp_folder)
-    save_df_UCC(logging, dbs_merged_new, file_path, order_col="fnames")
+    file_path = df_UCC_B_current_file.replace(data_folder, temp_folder)
+    save_df_UCC(logging, df_UCC_B, file_path, order_col="fnames")
 
     if input("\nMove files to their final paths? (y/n): ").lower() == "y":
         move_files(
             logging,
-            dbs_merged_current_file,
+            df_UCC_B_current_file,
             temp_JSON_file,
             all_dbs_data,
             temp_database_folder,
@@ -124,7 +123,7 @@ def get_paths_check_paths(
 ) -> tuple[str, str, str]:
     """ """
     # Path to the current DBs merged file
-    dbs_merged_current_file = data_folder + merged_dbs_file
+    df_UCC_B_current_file = data_folder + merged_dbs_file
 
     # If file exists, read and return it
     # last_version = get_last_version_UCC(data_folder)
@@ -147,7 +146,7 @@ def get_paths_check_paths(
 
     return (
         temp_database_folder,
-        dbs_merged_current_file,
+        df_UCC_B_current_file,
         temp_JSON_file,
     )
 
@@ -159,17 +158,18 @@ def load_data(
     temp_database_folder: str,
 ) -> tuple[
     pd.DataFrame,
-    pd.DataFrame,
     dict,
     pd.DataFrame,
-    bool,
+    list,
 ]:
     """ """
-    # Load current UCC version
+    # Load current UCC file to extract the column names
     dbs_merged_current = pd.read_csv(dbs_merged_current_file)
     logging.info(
         f"\nUCC version {dbs_merged_current_file} loaded (N={len(dbs_merged_current)})"
     )
+    # Empty dataframe
+    df_UCC_B = pd.DataFrame(dbs_merged_current[0:0])
 
     # Load current JSON file
     with open(name_DBs_json) as f:
@@ -178,21 +178,37 @@ def load_data(
     # Load GCs data
     df_GCs = pd.read_csv(GCs_cat)
 
+    logging.info("\n=== Rebuilding the UCC ===\n")
+
+    # All DBs (assumes sorted by year)
+    all_dbs = list(current_JSON.keys())
+    # First entries
+    all_dbs = [_ for _ in all_dbs if _ not in ("DIAS2002", "BICA2019")]
+    all_dbs = ["DIAS2002", "BICA2019"] + all_dbs
+
     all_dbs_data = {}
+    # Load existing DBs
+    for DB in all_dbs:
+        df_new = pd.read_csv(dbs_folder + DB + ".csv")
+        logging.info(f"{DB} loaded (N={len(df_new)})")
+        newDB_json = current_JSON[DB]
+        all_dbs_data[DB] = [df_new, newDB_json]
+
+    current_dbs = current_JSON.keys()
+    flag_interactive = []
     if os.path.isfile(temp_JSON_file):
         logging.info("\n=== Adding new DBs to the UCC ===\n")
-        flag_interactive = True
 
         # Load new temp JSON file
         with open(temp_JSON_file) as f:
             temp_JSON = json.load(f)
 
         # Extract new DB's name(s)
-        new_DBs = list(set(temp_JSON.keys()) - set(current_JSON.keys()))
+        new_DBs = list(set(temp_JSON.keys()) - set(current_dbs))
 
         for new_DB in new_DBs:
             # Sanity check
-            if new_DB in current_JSON.keys():
+            if new_DB in current_dbs:
                 raise ValueError(
                     f"The DB '{new_DB}' is already in the current JSON file"
                 )
@@ -203,31 +219,10 @@ def load_data(
             newDB_json = temp_JSON[new_DB]
             # all_dbs_data.append([new_DB, df_new, newDB_json])
             all_dbs_data[new_DB] = [df_new, newDB_json]
-            logging.info(f"New DB {new_DB} loaded (N={len(df_new)})")
-
-        dbs_merged_new = dbs_merged_current.copy()
-
-    else:
-        logging.info("\n=== Rebuilding the UCC completely===\n")
-        flag_interactive = False
-
-        # All DBs (assumes sorted by year)
-        all_dbs = list(current_JSON.keys())
-        # First entries
-        all_dbs = [_ for _ in all_dbs if _ not in ("DIAS2002", "BICA2019")]
-        all_dbs = ["DIAS2002", "BICA2019"] + all_dbs
-
-        # Load all DBs
-        for new_DB in all_dbs:
-            df_new = pd.read_csv(dbs_folder + new_DB + ".csv")
+            flag_interactive.append(new_DB)
             logging.info(f"{new_DB} loaded (N={len(df_new)})")
-            newDB_json = current_JSON[new_DB]
-            all_dbs_data[new_DB] = [df_new, newDB_json]
 
-        # Empty dataframe
-        dbs_merged_new = pd.DataFrame(dbs_merged_current[0:0])
-
-    return dbs_merged_current, df_GCs, all_dbs_data, dbs_merged_new, flag_interactive
+    return df_GCs, all_dbs_data, df_UCC_B, flag_interactive
 
 
 def check_new_DB(
@@ -236,7 +231,7 @@ def check_new_DB(
     new_DB: str,
     df_new: pd.DataFrame,
     newDB_json: dict,
-    flag_interactive: bool,
+    flag_interactive: list,
 ) -> None:
     """Check new DB for required columns, bad characters in names, wrong VDBH/BH naming,
     and close GCs.
@@ -256,37 +251,41 @@ def check_new_DB(
     # Check for bad characters in name column
     all_bad_names = []
     for new_cl in df_new[newDB_json["names"]]:
-        if bool(re.search(r"[();*]", new_cl)):
+        if bool(re.search(r"[\[\]();*]", new_cl)):
             all_bad_names.append(new_cl)
     N_bad_names = len(all_bad_names)
     if N_bad_names > 0:
         logging.info(
             f"\nFound {N_bad_names} entries with bad characters in names '(, ), ;, *'"
         )
-        if flag_interactive:
+        if new_DB in flag_interactive:
             for new_cl in all_bad_names:
                 logging.info(f"  {new_cl}")  # bad char found
-        raise ValueError("Resolve the above issues before moving on.")
+            breakpoint()
+        # raise ValueError("Resolve the above issues before moving on.")
 
     # Check for 'vdBergh-Hagen', 'vdBergh' OCs
     if vdberg_check(logging, newDB_json, df_new):
-        if flag_interactive:
-            if input("Move on? (y/n): ").lower() != "y":
-                sys.exit()
+        if new_DB in flag_interactive:
+            # if input("Move on? (y/n): ").lower() != "y":
+            #     sys.exit()
+            breakpoint()
 
     if "RA" in newDB_json["pos"].keys():
         # Check for OCs very close to each other in the new DB
         if close_OC_inner_check(logging, newDB_json, df_new):
-            if flag_interactive:
-                if input("Move on? (y/n): ").lower() != "y":
-                    sys.exit()
+            if new_DB in flag_interactive:
+                # if input("Move on? (y/n): ").lower() != "y":
+                #     sys.exit()
+                breakpoint()
 
     if "GLON_" in df_new.keys():
         # Check for close GCs
         if GCs_check(logging, df_GCs, newDB_json, df_new):
-            if flag_interactive:
-                if input("Move on? (y/n): ").lower() != "y":
-                    sys.exit()
+            if new_DB in flag_interactive:
+                # if input("Move on? (y/n): ").lower() != "y":
+                #     sys.exit()
+                breakpoint()
 
 
 def vdberg_check(logging, newDB_json: dict, df_new: pd.DataFrame) -> bool:
@@ -636,7 +635,8 @@ def get_fnames_new_DB(
     if duplicates:
         for name, idxs in duplicates.items():
             logging.info(f"Duplicate '{name}' found in entries: {sorted(idxs)}")
-        raise ValueError("\nDuplicate fnames found in new DB entries")
+        # raise ValueError("\nDuplicate fnames found in new DB entries")
+        breakpoint()
 
     return new_DB_fnames
 
@@ -670,14 +670,14 @@ def normalize_name(name: str) -> str:
 
 
 def get_matches_new_DB(
-    df_UCC: pd.DataFrame, new_DB_fnames: list[list[str]], sep: str = ";"
+    df_UCC_B: pd.DataFrame, new_DB_fnames: list[list[str]], sep: str = ";"
 ) -> list[int | None]:
     """
     Get cluster matches for the new DB being added to the UCC
 
     Parameters
     ----------
-    df_UCC : pd.DataFrame
+    df_UCC_B : pd.DataFrame
         DataFrame of the UCC.
     new_DB_fnames : list
         List of lists, where each inner list contains the
@@ -709,7 +709,7 @@ def get_matches_new_DB(
 
     # Build lookup dictionary from fname -> UCC index
     fname_to_idx = {}
-    for idx, fnames in enumerate(df_UCC["fnames"]):
+    for idx, fnames in enumerate(df_UCC_B["fnames"]):
         for fname in fnames.split(sep):
             fname_to_idx[fname] = idx
 
@@ -723,11 +723,12 @@ def get_matches_new_DB(
 
 def check_new_DB_vs_UCC(
     logging,
-    dbs_merged_new,
+    new_DB,
+    df_UCC_B,
     df_new,
     new_DB_fnames,
     db_matches,
-    flag_interactive: bool,
+    flag_interactive: list,
 ) -> None:
     """
     - Checks for duplicate entries between the new database and the UCC.
@@ -736,8 +737,9 @@ def check_new_DB_vs_UCC(
     """
     # Check all fnames in the new DB against all fnames in the UCC
     # logging.info("\nChecking uniqueness of fnames")
-    if fnames_check_UCC_new_DB(logging, dbs_merged_new, new_DB_fnames):
-        raise ValueError("\nResolve the above issues before moving on")
+    if fnames_check_UCC_new_DB(logging, new_DB, df_UCC_B, new_DB_fnames):
+        # raise ValueError("\nResolve the above issues before moving on")
+        breakpoint()
 
     # # Check the first fname for all entries in the new DB
     # logging.info("\nChecking for entries that must be combined")
@@ -750,29 +752,29 @@ def check_new_DB_vs_UCC(
 
     if "GLON_" in df_new.keys():
         # Check for OCs very close to other OCs in the UCC
-        if close_OC_UCC_check(
-            logging, dbs_merged_new, new_DB_fnames, db_matches, df_new
-        ):
-            if flag_interactive:
-                if input("Move on? (y/n): ").lower() != "y":
-                    sys.exit()
+        if close_OC_UCC_check(logging, df_UCC_B, new_DB_fnames, db_matches, df_new):
+            if new_DB in flag_interactive:
+                # if input("Move on? (y/n): ").lower() != "y":
+                #     sys.exit()
+                breakpoint()
 
     # Check positions and flag for attention if required
     if positions_check(
         logging,
-        dbs_merged_new,
+        df_UCC_B,
         df_new,
         new_DB_fnames,
         db_matches,
     ):
-        if flag_interactive:
-            if input("\nMove on? (y/n): ").lower() != "y":
-                sys.exit()
+        if new_DB in flag_interactive:
+            # if input("\nMove on? (y/n): ").lower() != "y":
+            #     sys.exit()
+            breakpoint()
 
 
 def positions_check(
     logging,
-    dbs_merged_new: pd.DataFrame,
+    df_UCC_B: pd.DataFrame,
     df_new,
     new_DB_fnames,
     db_matches,
@@ -820,8 +822,8 @@ def positions_check(
             df_new["GLAT_"].to_numpy(),
         )
     df_UCC_glon, df_UCC_glat = (
-        dbs_merged_new["GLON"].to_numpy(),
-        dbs_merged_new["GLAT"].to_numpy(),
+        df_UCC_B["GLON"].to_numpy(),
+        df_UCC_B["GLAT"].to_numpy(),
     )
 
     ocs_attention = []
@@ -853,7 +855,11 @@ def positions_check(
 
 
 def fnames_check_UCC_new_DB(
-    logging, df_UCC: pd.DataFrame, new_DB_fnames: list[list[str]], sep: str = ";"
+    logging,
+    new_DB: str,
+    df_UCC_B: pd.DataFrame,
+    new_DB_fnames: list[list[str]],
+    sep: str = ";",
 ) -> bool:
     """
     Check that no fname associated to each entry in the new DB is listed in more than
@@ -876,7 +882,7 @@ def fnames_check_UCC_new_DB(
     # Create a dictionary to map filenames to their corresponding row indices
     # Using defaultdict eliminates the explicit check for key existence
     filename_map = defaultdict(list)
-    for i, fnames in enumerate(df_UCC["fnames"]):
+    for i, fnames in enumerate(df_UCC_B["fnames"]):
         for fname in fnames.split(sep):
             filename_map[fname].append(i)
 
@@ -900,11 +906,16 @@ def fnames_check_UCC_new_DB(
     if bad_entries:
         dup_flag = True
         logging.info(
-            f"\nFound {len(bad_entries)} entries in the new DB with duplicated fnames"
+            f"\nFound {len(bad_entries)} entries in {new_DB} with duplicated fnames in combined DB"
         )
         for k, v in bad_entries:
             new_db_entries = f"({k}) {', '.join(new_DB_fnames[k])}"
-            ucc_entries = ", ".join([f"({_}) {df_UCC.iloc[_]['fnames']}" for _ in v])
+            ucc_entries = ", ".join(
+                [
+                    f"({_}, {df_UCC_B.iloc[_]['DB']}) {df_UCC_B.iloc[_]['fnames']}"
+                    for _ in v
+                ]
+            )
             logging.info(f"{new_db_entries} --> {ucc_entries}")
 
     return dup_flag
@@ -914,7 +925,7 @@ def combine_UCC_new_DB(
     logging,
     new_DB: str,
     newDB_json: dict,
-    df_UCC: pd.DataFrame,
+    df_UCC_B: pd.DataFrame,
     df_new: pd.DataFrame,
     new_DB_fnames: list[list[str]],
     db_matches: list[int | None],
@@ -950,9 +961,9 @@ def combine_UCC_new_DB(
     """
     pos_cols = newDB_json["pos"]
     # Faster access below compared to using iloc
-    ucc_dict_rows = df_UCC.to_dict(orient="records")
+    ucc_dict_rows = df_UCC_B.to_dict(orient="records")
 
-    new_db_dict = {_: [] for _ in df_UCC.keys()}
+    new_db_dict = {_: [] for _ in df_UCC_B.keys()}
     # For each entry in the new DB
 
     for i_new_cl, (_, row_n) in enumerate(df_new.iterrows()):
@@ -1287,7 +1298,7 @@ def rm_name_dups_order(df_new_db: pd.DataFrame, sep: str = ";") -> pd.DataFrame:
 
 
 def add_new_DB(
-    df_UCC: pd.DataFrame,
+    df_UCC_B: pd.DataFrame,
     db_matches: list,
     df_new_db: pd.DataFrame,
 ) -> pd.DataFrame:
@@ -1297,7 +1308,7 @@ def add_new_DB(
     # Drop OCs from the UCC that are present in the new DB
     # Remove 'None' entries first from the indexes list
     idx_rm_comb_db = [_ for _ in db_matches if _ is not None]
-    df_UCC_no_new = df_UCC.drop(list(df_UCC.index[idx_rm_comb_db]))
+    df_UCC_no_new = df_UCC_B.drop(list(df_UCC_B.index[idx_rm_comb_db]))
     df_UCC_no_new.reset_index(drop=True, inplace=True)
 
     # Final UCC with the new DB incorporated
@@ -1306,12 +1317,12 @@ def add_new_DB(
     return dbs_merged_new
 
 
-def date_order_DBs(dbs_merged_new: pd.DataFrame, sep: str = ";") -> pd.DataFrame:
+def date_order_DBs(df_UCC_B: pd.DataFrame, sep: str = ";") -> pd.DataFrame:
     """
     Orders two semicolon-separated strings of database entries by the year extracted
     from each entry.
     """
-    DB_all, DB_i_all = dbs_merged_new["DB"], dbs_merged_new["DB_i"]
+    DB_all, DB_i_all = df_UCC_B["DB"], df_UCC_B["DB_i"]
 
     DB_all_sorted, DB_i_all_sorted = [], []
     for i, DBs in enumerate(DB_all):
@@ -1334,15 +1345,13 @@ def date_order_DBs(dbs_merged_new: pd.DataFrame, sep: str = ";") -> pd.DataFrame
         DB_all_sorted.append(sep.join(list(np.array(all_dbs)[idx])))
         DB_i_all_sorted.append(sep.join(list(np.array(all_dbs_i)[idx])))
 
-    dbs_merged_new["DB"] = DB_all_sorted
-    dbs_merged_new["DB_i"] = DB_i_all_sorted
+    df_UCC_B["DB"] = DB_all_sorted
+    df_UCC_B["DB_i"] = DB_i_all_sorted
 
-    return dbs_merged_new
+    return df_UCC_B
 
 
-def duplicates_fnames_check(
-    logging, dbs_merged_new: pd.DataFrame, sep: str = ";"
-) -> bool:
+def duplicates_fnames_check(logging, df_UCC_B: pd.DataFrame, sep: str = ";") -> bool:
     """
     Check for duplicate filenames across rows in 'dbs_merged_new' DataFrame.
 
@@ -1367,7 +1376,7 @@ def duplicates_fnames_check(
     # Create a dictionary to map filenames to their corresponding row indices
     filename_map = {}
     # Populate the dictionary
-    for i, fnames in enumerate(dbs_merged_new["fnames"]):
+    for i, fnames in enumerate(df_UCC_B["fnames"]):
         for fname in fnames.split(sep):
             if fname not in filename_map:
                 filename_map[fname] = []
