@@ -3,11 +3,11 @@ import json
 import sys
 from pathlib import Path
 
-from rapidfuzz import fuzz, process
 import numpy as np
 import pandas as pd
 import requests
 from astroquery.vizier import Vizier
+from rapidfuzz import fuzz
 
 from .utils import logger
 from .variables import (
@@ -386,9 +386,12 @@ def new_DB_columns_match(
         for key, vals in merged_dict.items():
             vals_ratios = []
             for val in vals:
-                ld1 = Levenshtein.ratio(col, val)
-                ld2 = Levenshtein.ratio(col.lower(), val.lower())
-                vals_ratios.append(max(ld1, ld2))
+                # ld1 = Levenshtein.ratio(col, val)
+                # ld2 = Levenshtein.ratio(col.lower(), val.lower())
+                # vals_ratios.append(max(ld1, ld2))
+                ld1 = fuzz.ratio(col, val)
+                ld2 = fuzz.ratio(col.lower(), val.lower())
+                vals_ratios.append(max(ld1, ld2) / 100)
             if vals_ratios:
                 ratio_max = max(vals_ratios)
                 if ratio_max > ratio_min:
