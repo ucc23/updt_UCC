@@ -22,10 +22,13 @@ from .variables import (
     GCs_cat,
     UCC_members_file,
     data_folder,
+    md_folder,
     merged_dbs_file,
     name_DBs_json,
     path_gaia_frames,
     path_gaia_frames_ranges,
+    plots_folder,
+    root_ucc_path,
     temp_folder,
     temp_members_folder,
     ucc_cat_file,
@@ -41,8 +44,8 @@ def main():
     # Generate paths and check for required folders and files
     ucc_B_file, ucc_C_file, temp_zenodo_fold = get_paths_check_paths(logging)
 
-    (gaia_frames_data, current_JSON, df_GCs, df_members, df_UCC_B, df_UCC_C) = (
-        load_data(logging, ucc_B_file, ucc_C_file)
+    gaia_frames_data, current_JSON, df_GCs, df_members, df_UCC_B, df_UCC_C = load_data(
+        logging, ucc_B_file, ucc_C_file
     )
 
     # Detect entries to be processed
@@ -75,7 +78,6 @@ def main():
     else:
         # Generate dataframe to store data extracted from the OCs to be processed
         df_UCC_C_updt = process_entries(df_UCC_B, B_not_in_C, C_reprocess)
-
         # Generate member files for new OCs and obtain their data
         df_UCC_C_updt = member_files_updt(
             logging, gaia_frames_data, df_GCs, df_UCC_C, df_UCC_C_updt
@@ -87,20 +89,31 @@ def main():
         df_members, C_not_in_B, df_UCC_C, df_UCC_C_updt
     )
     logging.info(
-        f"UCC database C updated: ({len(df_UCC_C_new)} entries; {len(df_members_new)} members)"
+        f"\nUCC database C updated: ({len(df_UCC_C_new)} entries; {len(df_members_new)} members)\n"
     )
 
-    # Updated members file
-    df_members_new = update_membs_file(logging, df_members_new)
-    logging.info(f"Zenodo '{UCC_members_file}' file updated")
+    # Concatenate all temporary DataFrames into one
+    df_comb = gen_comb_members_file(logging)
+    if df_comb.empty:
+        df_members_new = df_members.sort_values("name")
+    else:
+        # Add df_comb data into the members dataframe
+        df_members_new = update_membs_file(logging, df_members_new, df_comb)
+    logging.info(f"Zenodo '{UCC_members_file}' file updated\n")
 
     # Find shared members between OCs and update df_UCC_C_new dataframe
     df_UCC_C_final = find_shared_members(logging, df_UCC_C_new, df_members_new)
-    logging.info("Shared members data updated in UCC")
+    logging.info("Shared members data updated in UCC\n")
 
     # Check the 'fnames' columns in df_UCC_B and df_UCC_C_final dataframes are equal
     if not df_UCC_B["fnames"].to_list() == df_UCC_C_final["fnames"].to_list():
         raise ValueError("The 'fnames' columns in B and final C dataframes differ")
+
+    # Check that the 'name' column on the members file matches the fnames
+    fnames0 = [_.split(';')[0] for _ in df_UCC_C_final['fnames']]
+    names0 = df_members_new['name'].unique().tolist()
+    if not set(fnames0).issubset(set(names0)):
+        raise ValueError("'fnames' and 'name'  columns do not match")
 
     # Check that all entries in df_UCC_C_final have process='n'
     if any(df_UCC_C_final["process"] == "y"):
@@ -116,7 +129,7 @@ def main():
     update_files(logging, temp_zenodo_fold, df_UCC_B, df_UCC_C_final, df_members_new)
 
     if input("\nMove files to their final paths? (y/n): ").lower() == "y":
-        move_files(logging, temp_zenodo_fold)
+        move_files(logging, temp_zenodo_fold, df_UCC_C_final)
 
     # if input("\nRemove temporary files and folders? (y/n): ").lower() == "y":
     #     # shutil.rmtree(temp_fold)
@@ -395,18 +408,26 @@ def update_UCC_membs_data(
         df_members_new = df_members.copy()
         df_UCC_C_new = df_UCC_C.copy()
 
-    # Update df_UCC_C_new using data from df_UCC_C_updt
-    fnames_lst = list(df_UCC_C_new["fnames"])
-    for _, row in df_UCC_C_updt.iterrows():
-        fname = row["fnames"]
-        if fname in fnames_lst:
-            i = fnames_lst.index(fname)
-            for col in df_UCC_C_new.columns:
-                df_UCC_C_new.at[i, col] = row[col]
+    # # Update df_UCC_C_new using data from df_UCC_C_updt
+    # Ensure 'fnames' is the index in both DataFrames
+    A = df_UCC_C_new.set_index("fnames")
+    B = df_UCC_C_updt.set_index("fnames")
+    # Update existing rows in A with values from B
+    A.update(B)
+    # Identify new rows in B
+    new_rows = B.loc[~B.index.isin(A.index)]
+    # Drop completely empty columns
+    new_rows = new_rows.dropna(axis=1, how="all")
+    # Concatenate and sort
+    A = pd.concat([A, new_rows], axis=0)
+    # Restore 'fnames' as a column
+    df_UCC_C_new = A.reset_index()
 
-    # Reset indexes of both dataframes
+    # Reset indexes of both dataframes and restore column order
     df_members_new = df_members_new.reset_index(drop=True)
+    df_members_new = df_members_new.reindex(columns=df_members.columns)
     df_UCC_C_new = df_UCC_C_new.reset_index(drop=True)
+    df_UCC_C_new = df_UCC_C_new.reindex(columns=df_UCC_C.columns)
 
     return df_members_new, df_UCC_C_new
 
@@ -472,18 +493,14 @@ def gen_comb_members_file(logging) -> pd.DataFrame:
     return df_comb
 
 
-def update_membs_file(logging, df_members: pd.DataFrame) -> pd.DataFrame:
+def update_membs_file(
+    logging, df_members: pd.DataFrame, df_comb: pd.DataFrame
+) -> pd.DataFrame:
     """
     Update the parquet file containing estimated members from the
     Unified Cluster Catalog (UCC) dataset, formatted for storage in the Zenodo
     repository.
     """
-    # Concatenate all temporary DataFrames into one
-    df_comb = gen_comb_members_file(logging)
-
-    if df_comb.empty:
-        return df_members.copy()
-
     #
     logging.info("Updating members file...")
 
@@ -499,18 +516,18 @@ def update_membs_file(logging, df_members: pd.DataFrame) -> pd.DataFrame:
 
     # Concatenate df_comb with the extra df_members groups
     df_updated = pd.concat([df_comb, df1_extra], ignore_index=True)
-
+    df_updated = pd.DataFrame(df_updated).sort_values("name")
     logging.info(f"N_membs={len(df_members)} --> N_membs={len(df_updated)}")
 
-    return pd.DataFrame(df_updated)
+    return df_updated
 
 
-def find_shared_members(logging, df_UCC, df_members):
+def find_shared_members(logging, df_UCC_C_new, df_members):
     """ """
     logging.info("Finding shared members...")
 
     # Find OCs that intersect. This helps to speed up the process
-    intersection_map = find_intersections(df_UCC, df_members)
+    intersection_map = find_intersections(df_UCC_C_new, df_members)
 
     # Group members by 'fname'
     grouped = df_members.groupby("name")["Source"].apply(set)
@@ -550,19 +567,19 @@ def find_shared_members(logging, df_UCC, df_members):
     result_df = pd.DataFrame(results)
 
     # Order 'result_df' according to the fnames order in the 'df_UCC'
-    fnames = np.array([_.split(";")[0] for _ in df_UCC["fnames"]])
+    fnames = np.array([_.split(";")[0] for _ in df_UCC_C_new["fnames"]])
     result_df["fname"] = pd.Categorical(
         result_df["fname"], categories=fnames, ordered=True
     )
     result_df = result_df.sort_values("fname").reset_index(drop=True)
 
     # Update data columns for shared members
-    df_UCC[["shared_members", "shared_members_p"]] = result_df[
+    df_UCC_C_new[["shared_members", "shared_members_p"]] = result_df[
         ["shared_members", "shared_members_p"]
     ]
-    df_UCC = df_UCC.reset_index(drop=True)
+    df_UCC_C_final = df_UCC_C_new.reset_index(drop=True).sort_values("fnames")
 
-    return df_UCC
+    return df_UCC_C_final
 
 
 def find_intersections(df, df_members):
@@ -736,7 +753,7 @@ def get_UTI(current_JSON, df_UCC_B, df_UCC_C, max_dens=5):
     df_UCC_C["C_C3"] = np.round(C_C3, 2)
     df_UCC_C["C_lit"] = np.round(C_lit, 2)
     df_UCC_C["C_dup"] = np.round(C_dup, 2)
-    df_UCC_C["C_dup_f"] = np.round(C_dup_same_db, 2)
+    df_UCC_C["C_dup_same_db"] = np.round(C_dup_same_db, 2)
     df_UCC_C["UTI"] = np.round(UTI, 2)
 
     return df_UCC_C
@@ -855,7 +872,7 @@ def updt_readme(
     logging.info(f"Zenodo 'README' file: '{out_file_path}'")
 
 
-def move_files(logging, temp_zenodo_fold: str) -> None:
+def move_files(logging, temp_zenodo_fold: str, df_UCC_C_final: pd.DataFrame) -> None:
     """Move files to the appropriate folders"""
 
     # Move the README file
@@ -905,6 +922,29 @@ def move_files(logging, temp_zenodo_fold: str) -> None:
     ucc_temp = temp_folder + ucc_cat_file
     os.rename(ucc_temp, ucc_stored)
     logging.info(ucc_temp + " --> " + ucc_stored)
+
+    move_on = input("\nEnter 'y' to remove old md/webp files...")
+    if move_on.lower() != "y":
+        return
+
+    fnames0 = [_.split(";")[0] for _ in df_UCC_C_final["fnames"]]
+
+    for mdfile in os.listdir(root_ucc_path + md_folder):
+        mdfile = mdfile.split(".")[0]
+        if mdfile not in fnames0:
+            print("Removed:", md_folder + mdfile + ".md")
+            os.remove(root_ucc_path + md_folder + mdfile + ".md")
+
+    for root, dirs, files in os.walk(root_ucc_path + plots_folder):
+        # Exclude any .git directories from recursion
+        dirs[:] = [d for d in dirs if d != ".git"]
+        for name in files:
+            if not name.endswith(".webp"):
+                continue
+            webpfile = name.split(".")[0]
+            if webpfile not in fnames0:
+                print("Removed :", root + "/" + webpfile + ".webp")
+                os.remove(root + "/" + webpfile + ".webp")
 
 
 if __name__ == "__main__":
