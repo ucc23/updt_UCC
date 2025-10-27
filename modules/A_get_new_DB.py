@@ -485,7 +485,7 @@ def proper_json_struct(df_col_id):
 
 
 def add_DB_to_JSON(
-    ADS_url: str,
+    SCIX_url: str,
     vizier_url: str,
     current_JSON: dict,
     temp_JSON_file: str,
@@ -515,7 +515,7 @@ def add_DB_to_JSON(
 
     # Create 'new_db_json' dictionary with the new DB's params
     new_db_json = {}
-    new_db_json["ADS_url"] = ADS_url
+    new_db_json["SCIX_url"] = SCIX_url
     new_db_json["vizier_url"] = vizier_url
     new_db_json["authors"] = authors
     new_db_json["title"] = title
