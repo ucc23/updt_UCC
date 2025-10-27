@@ -635,7 +635,8 @@ def get_fnames_new_DB(
     if duplicates:
         for name, idxs in duplicates.items():
             logging.info(f"Duplicate '{name}' found in entries: {sorted(idxs)}")
-        # raise ValueError("\nDuplicate fnames found in new DB entries")
+        # raise ValueError
+        logging.info("\nDuplicate fnames found in new DB entries")
         breakpoint()
 
     return new_DB_fnames
@@ -738,7 +739,7 @@ def check_new_DB_vs_UCC(
     # Check all fnames in the new DB against all fnames in the UCC
     # logging.info("\nChecking uniqueness of fnames")
     if fnames_check_UCC_new_DB(logging, new_DB, df_UCC_B, new_DB_fnames):
-        # raise ValueError("\nResolve the above issues before moving on")
+        logging.info("\nResolve the above issues before moving on")
         breakpoint()
 
     # # Check the first fname for all entries in the new DB
@@ -754,8 +755,6 @@ def check_new_DB_vs_UCC(
         # Check for OCs very close to other OCs in the UCC
         if close_OC_UCC_check(logging, df_UCC_B, new_DB_fnames, db_matches, df_new):
             if new_DB in flag_interactive:
-                # if input("Move on? (y/n): ").lower() != "y":
-                #     sys.exit()
                 breakpoint()
 
     # Check positions and flag for attention if required
@@ -767,8 +766,6 @@ def check_new_DB_vs_UCC(
         db_matches,
     ):
         if new_DB in flag_interactive:
-            # if input("\nMove on? (y/n): ").lower() != "y":
-            #     sys.exit()
             breakpoint()
 
 
@@ -906,7 +903,7 @@ def fnames_check_UCC_new_DB(
     if bad_entries:
         dup_flag = True
         logging.info(
-            f"\nFound {len(bad_entries)} entries in {new_DB} with duplicated fnames in combined DB"
+            f"\nFound {len(bad_entries)} entries in {new_DB} with duplicated fnames in the combined DB"
         )
         for k, v in bad_entries:
             new_db_entries = f"({k}) {', '.join(new_DB_fnames[k])}"
@@ -965,7 +962,6 @@ def combine_UCC_new_DB(
 
     new_db_dict = {_: [] for _ in df_UCC_B.keys()}
     # For each entry in the new DB
-
     for i_new_cl, (_, row_n) in enumerate(df_new.iterrows()):
         # Rename certain entries (ESO, FSR, etc)
         oc_names = rename_standard(str(row_n[newDB_json["names"]]))
@@ -1116,8 +1112,8 @@ def extract_new_DB_coords(DB_ID, row_n, pos_cols):
         if "RA" in pos_cols:
             ra_n, dec_n = row_n[pos_cols["RA"]], row_n[pos_cols["DEC"]]
             lon_n, lat_n = row_n["GLON_"], row_n["GLAT_"]
-    # Don't use LOKTIN2017 Pms, Plx values
-    if DB_ID != "LOKTIN2017":
+    # Don't use these for Pms, Plx values
+    if DB_ID not in ('DIAS2002',  'KHARCHENKO2012', "LOKTIN2017"):
         if "plx" in pos_cols:
             plx_n = row_n[pos_cols["plx"]]
         if "pmra" in pos_cols:
