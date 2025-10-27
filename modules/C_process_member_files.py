@@ -85,21 +85,34 @@ def main():
 
     # Update the UCC with the new OCs member's data. Remove here entries in C that
     # are no longer in B in both the C and members dataframes
-    df_members_new, df_UCC_C_new = update_UCC_membs_data(
-        df_members, C_not_in_B, df_UCC_C, df_UCC_C_updt
+    df_UCC_C_new = update_C_cat(
+        logging, df_members, C_not_in_B, df_UCC_C, df_UCC_C_updt
     )
     logging.info(
         f"\nUCC database C updated: ({len(df_UCC_C_new)} entries; {len(df_members_new)} members)\n"
     )
 
-    # Concatenate all temporary DataFrames into one
-    df_comb = gen_comb_members_file(logging)
-    if df_comb.empty:
-        df_members_new = df_members.sort_values("name")
-    else:
-        # Add df_comb data into the members dataframe
-        df_members_new = update_membs_file(logging, df_members_new, df_comb)
-    logging.info(f"Zenodo '{UCC_members_file}' file updated\n")
+    df_members_new = update_membs_data(
+        logging, df_members, C_not_in_B, df_UCC_C, df_UCC_C_updt
+    )
+    logging.info(
+        f"\nUCC database C updated: ({len(df_UCC_C_new)} entries; {len(df_members_new)} members)\n"
+    )
+
+    # Check that the 'name' column on the members file matches the fnames
+    fnames0 = [_.split(";")[0] for _ in df_UCC_C_new["fnames"]]
+    names0 = df_members_new["name"].unique().tolist()
+    if not set(fnames0).issubset(set(names0)):
+        raise ValueError("'fnames' and 'name'  columns do not match")
+
+    # # Concatenate all temporary DataFrames into one
+    # df_comb = gen_comb_members_file(logging)
+    # if df_comb.empty:
+    #     df_members_new = df_members.sort_values("name")
+    # else:
+    #     # Add df_comb data into the members dataframe
+    #     df_members_new = update_membs_file(logging, df_members_new, df_comb)
+    # logging.info(f"Zenodo '{UCC_members_file}' file updated\n")
 
     # Find shared members between OCs and update df_UCC_C_new dataframe
     df_UCC_C_final = find_shared_members(logging, df_UCC_C_new, df_members_new)
@@ -109,18 +122,13 @@ def main():
     if not df_UCC_B["fnames"].to_list() == df_UCC_C_final["fnames"].to_list():
         raise ValueError("The 'fnames' columns in B and final C dataframes differ")
 
-    # Check that the 'name' column on the members file matches the fnames
-    fnames0 = [_.split(';')[0] for _ in df_UCC_C_final['fnames']]
-    names0 = df_members_new['name'].unique().tolist()
-    if not set(fnames0).issubset(set(names0)):
-        raise ValueError("'fnames' and 'name'  columns do not match")
-
     # Check that all entries in df_UCC_C_final have process='n'
     if any(df_UCC_C_final["process"] == "y"):
         raise ValueError("Some entries in final C dataframe still have process='y'")
 
     # Add UTI values
     df_UCC_C_final = get_UTI(current_JSON, df_UCC_B, df_UCC_C_final)
+    breakpoint()
 
     # Check differences between the original and final C dataframes
     diff_between_dfs(logging, df_UCC_C, df_UCC_C_final)
@@ -335,7 +343,7 @@ def member_files_updt(
             float(cl_row["Plx"]),  # This can be nan
         )
         fname0 = str(fnames).split(";")[0]
-        logging.info(f"\n{idx} Processing {fname0}")
+        logging.info(f"\n{idx + 1} Processing {fname0}")
 
         # Extract manual parameters if any
         N_clust, N_clust_max, N_box, frame_limit = np.nan, np.nan, np.nan, ""
@@ -386,6 +394,7 @@ def member_files_updt(
 
 
 def update_UCC_membs_data(
+    logging,
     df_members: pd.DataFrame,
     C_not_in_B: pd.DataFrame,
     df_UCC_C: pd.DataFrame,
@@ -423,11 +432,39 @@ def update_UCC_membs_data(
     # Restore 'fnames' as a column
     df_UCC_C_new = A.reset_index()
 
-    # Reset indexes of both dataframes and restore column order
-    df_members_new = df_members_new.reset_index(drop=True)
-    df_members_new = df_members_new.reindex(columns=df_members.columns)
+    # Reset indexes and restore column order
     df_UCC_C_new = df_UCC_C_new.reset_index(drop=True)
     df_UCC_C_new = df_UCC_C_new.reindex(columns=df_UCC_C.columns)
+
+    # df_members_new = df_members.copy()
+
+    # # Remove entries not in df_UCC_C_new from df_members
+    # keep_entries = [_.split(";")[0] for _ in df_UCC_C_new["fnames"]]
+    # msk = df_members["name"].isin(keep_entries)
+    # df_members_new = pd.DataFrame(df_members[msk])
+    # df_members_new = df_members_new.reset_index(drop=True)
+    # # Remove entries in df_UCC_C_updt from df_members
+    # remove_entries = [_.split(";")[0] for _ in df_UCC_C_updt["fnames"]]
+    # msk = ~df_members["name"].isin(remove_entries)
+    # df_members_new = pd.DataFrame(df_members_new[msk])
+    # df_members_new = df_members_new.reset_index(drop=True)
+    # # Reset indexes and restore column order
+    # df_members_new = df_members_new.reindex(columns=df_members.columns)
+
+    # Concatenate all temporary DataFrames into one
+    df_comb = gen_comb_members_file(logging)
+    if not df_comb.empty:
+        # Add df_comb data into the members dataframe
+        df_members_new = update_membs_file(logging, df_members_new, df_comb)
+    df_members_new = df_members.sort_values("name")
+
+    # # Remove entries not in df_UCC_C_new from df_members
+    # keep_entries = [_.split(";")[0] for _ in df_UCC_C_new["fnames"]]
+    # msk = df_members["name"].isin(keep_entries)
+    # df_members_new = pd.DataFrame(df_members[msk])
+    # df_members_new = df_members_new.reset_index(drop=True)
+
+    logging.info(f"Zenodo '{UCC_members_file}' file updated\n")
 
     return df_members_new, df_UCC_C_new
 
@@ -494,7 +531,7 @@ def gen_comb_members_file(logging) -> pd.DataFrame:
 
 
 def update_membs_file(
-    logging, df_members: pd.DataFrame, df_comb: pd.DataFrame
+    logging, df_members_new: pd.DataFrame, df_comb: pd.DataFrame
 ) -> pd.DataFrame:
     """
     Update the parquet file containing estimated members from the
@@ -505,19 +542,19 @@ def update_membs_file(
     logging.info("Updating members file...")
 
     # Get the list of names in each DataFrame
-    names_df1 = set(df_members["name"])
+    names_df1 = set(df_members_new["name"])
     names_df2 = set(df_comb["name"])
 
-    # Identify names in df_members not in df_comb
+    # Identify names in df_members_new not in df_comb
     extra_names = names_df1 - names_df2
 
-    # Filter df_members for those extra groups
-    df1_extra = df_members[df_members["name"].isin(extra_names)]  # pyright: ignore
+    # Filter df_members_new for those extra groups
+    df1_extra = df_members_new[df_members_new["name"].isin(extra_names)]  # pyright: ignore
 
     # Concatenate df_comb with the extra df_members groups
     df_updated = pd.concat([df_comb, df1_extra], ignore_index=True)
     df_updated = pd.DataFrame(df_updated).sort_values("name")
-    logging.info(f"N_membs={len(df_members)} --> N_membs={len(df_updated)}")
+    logging.info(f"N_membs={len(df_members_new)} --> N_membs={len(df_updated)}")
 
     return df_updated
 
@@ -923,7 +960,7 @@ def move_files(logging, temp_zenodo_fold: str, df_UCC_C_final: pd.DataFrame) -> 
     os.rename(ucc_temp, ucc_stored)
     logging.info(ucc_temp + " --> " + ucc_stored)
 
-    move_on = input("\nEnter 'y' to remove old md/webp files...")
+    move_on = input("\nEnter 'y' to remove old md/webp files: ")
     if move_on.lower() != "y":
         return
 
