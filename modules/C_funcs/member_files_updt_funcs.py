@@ -387,17 +387,16 @@ def check_close_cls(
         & (df_UCC["GLAT_m"] < b_max)
         & (df_UCC["Plx_m"] > plx_min)
     )
-    in_frame = df_UCC[["fnames", "GLON_m", "GLAT_m", "Plx_m", "pmRA_m", "pmDE_m"]][msk]
-    # Remove this OC from the dataframe
-    msk = in_frame["fnames"].str.split(";").str[0] != fname
-    # Drop columns
-    in_frame = in_frame[msk]  # .drop("fnames", axis=1)
+    in_frame = df_UCC[["fname", "GLON_m", "GLAT_m", "Plx_m", "pmRA_m", "pmDE_m"]][msk]
+    # # Remove this OC from the dataframe
+    # msk = in_frame["fname"] != fname
+    # in_frame = in_frame[msk]
     # Assign type of object
     in_frame["Type"] = ["o"] * len(in_frame)
     # Rename columns to match GCs
     in_frame.rename(
         columns={
-            "fnames": "Name",
+            "fname": "Name",
             "GLON_m": "GLON",
             "GLAT_m": "GLAT",
             "Plx_m": "plx",
@@ -699,12 +698,8 @@ def save_cl_datafile(
     ----------
     logging : logging.Logger
         Logger object for outputting information.
-    temp_fold : str
-        Path to the temporary folder.
-    members_folder : str
-        Path to the temporary members folder.
-    fnames : str
-        Name associated with the cluster file.
+    fname0 : str
+        Main name associated with the cluster file.
     """
 
     # Order by probabilities

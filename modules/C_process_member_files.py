@@ -1,7 +1,6 @@
 import csv
 import json
 import os
-import shutil
 import sys
 
 import numpy as np
@@ -49,9 +48,13 @@ def main():
     )
 
     # Detect entries to be processed
-    B_not_in_C, C_not_in_B, C_reprocess = detect_entries_to_process(df_UCC_B, df_UCC_C)
+    rename_C_fname, B_not_in_C, C_not_in_B, C_reprocess = detect_entries_to_process(
+        df_UCC_B, df_UCC_C
+    )
 
-    N_process = len(B_not_in_C) + len(C_not_in_B) + len(C_reprocess)
+    N_process = (
+        len(rename_C_fname) + len(B_not_in_C) + len(C_not_in_B) + len(C_reprocess)
+    )
     if N_process == 0:
         logging.info("\nNo new OCs to process")
         return
@@ -59,6 +62,7 @@ def main():
     logging.info(
         f"\nProcessing:\n-B entries not in C   : {len(B_not_in_C)}\n"
         + f"-C entries not in B   : {len(C_not_in_B)}\n"
+        + f"-C entries to rename  : {len(rename_C_fname)}\n"
         + f"-C entries re-process : {len(C_reprocess)}"
     )
 
@@ -83,44 +87,32 @@ def main():
             logging, gaia_frames_data, df_GCs, df_UCC_C, df_UCC_C_updt
         )
 
-    # Update the UCC with the new OCs member's data. Remove here entries in C that
-    # are no longer in B in both the C and members dataframes
-    df_UCC_C_new = update_C_cat(
-        logging, df_members, C_not_in_B, df_UCC_C, df_UCC_C_updt
-    )
-    logging.info(
-        f"\nUCC database C updated: ({len(df_UCC_C_new)} entries; {len(df_members_new)} members)\n"
-    )
+    df_UCC_C_new = update_C_cat(C_not_in_B, rename_C_fname, df_UCC_C, df_UCC_C_updt)
+    logging.info(f"\nUCC database C updated (N={len(df_UCC_C_new)})\n")
 
-    df_members_new = update_membs_data(
-        logging, df_members, C_not_in_B, df_UCC_C, df_UCC_C_updt
-    )
+    logging.info("Updating members file...")
+    # Concatenate all temporary DataFrames into one
+    df_comb = gen_comb_members_file(logging)
+    df_members_new = update_membs_file(rename_C_fname, C_not_in_B, df_members, df_comb)
     logging.info(
-        f"\nUCC database C updated: ({len(df_UCC_C_new)} entries; {len(df_members_new)} members)\n"
+        f"Zenodo '{UCC_members_file}' file updated (N={len(df_members)}->{len(df_members_new)})\n"
     )
 
     # Check that the 'name' column on the members file matches the fnames
-    fnames0 = [_.split(";")[0] for _ in df_UCC_C_new["fnames"]]
     names0 = df_members_new["name"].unique().tolist()
-    if not set(fnames0).issubset(set(names0)):
-        raise ValueError("'fnames' and 'name'  columns do not match")
-
-    # # Concatenate all temporary DataFrames into one
-    # df_comb = gen_comb_members_file(logging)
-    # if df_comb.empty:
-    #     df_members_new = df_members.sort_values("name")
-    # else:
-    #     # Add df_comb data into the members dataframe
-    #     df_members_new = update_membs_file(logging, df_members_new, df_comb)
-    # logging.info(f"Zenodo '{UCC_members_file}' file updated\n")
+    if not sorted(names0) == df_UCC_C_new["fname"].to_list():
+        raise ValueError("'fname' and 'name'  columns do not match")
 
     # Find shared members between OCs and update df_UCC_C_new dataframe
     df_UCC_C_final = find_shared_members(logging, df_UCC_C_new, df_members_new)
     logging.info("Shared members data updated in UCC\n")
 
+    # Sort df_UCC_B by fname column to match 'df_UCC_C_final'
+    df_UCC_B = df_UCC_B.sort_values("fname").reset_index(drop=True)
+
     # Check the 'fnames' columns in df_UCC_B and df_UCC_C_final dataframes are equal
-    if not df_UCC_B["fnames"].to_list() == df_UCC_C_final["fnames"].to_list():
-        raise ValueError("The 'fnames' columns in B and final C dataframes differ")
+    if not df_UCC_B["fname"].to_list() == df_UCC_C_final["fname"].to_list():
+        raise ValueError("The 'fname' columns in B and final C dataframes differ")
 
     # Check that all entries in df_UCC_C_final have process='n'
     if any(df_UCC_C_final["process"] == "y"):
@@ -128,7 +120,6 @@ def main():
 
     # Add UTI values
     df_UCC_C_final = get_UTI(current_JSON, df_UCC_B, df_UCC_C_final)
-    breakpoint()
 
     # Check differences between the original and final C dataframes
     diff_between_dfs(logging, df_UCC_C, df_UCC_C_final)
@@ -137,7 +128,7 @@ def main():
     update_files(logging, temp_zenodo_fold, df_UCC_B, df_UCC_C_final, df_members_new)
 
     if input("\nMove files to their final paths? (y/n): ").lower() == "y":
-        move_files(logging, temp_zenodo_fold, df_UCC_C_final)
+        move_files(logging, temp_zenodo_fold, rename_C_fname, df_UCC_C_final)
 
     # if input("\nRemove temporary files and folders? (y/n): ").lower() == "y":
     #     # shutil.rmtree(temp_fold)
@@ -172,7 +163,7 @@ def get_paths_check_paths(logging) -> tuple[str, str, str]:
     else:
         if len(os.listdir(temp_members_folder)) > 0:
             logging.warning(
-                f"WARNING: There are .parquet files in '{temp_members_folder}'. If left"
+                f"WARNING: There are .parquet files in '{temp_members_folder}'. If left "
                 + "there,\nthey will be used when the script combines the final members data"
             )
             if input("Move on? (y/n): ").lower() != "y":
@@ -229,37 +220,58 @@ def load_data(
 
 def detect_entries_to_process(
     df_UCC_B: pd.DataFrame, df_UCC_C: pd.DataFrame
-) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+) -> tuple[dict, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
 
     B_not_in_C  --> Add to C
     C_not_in_B  --> Remove from C
     C_reprocess --> Reprocess in C
+    rename_C_fname --> Rename in C
 
     """
+    df_UCC_B["fname"] = [_.split(";")[0] for _ in df_UCC_B["fnames"]]
+
     # Entries that must be added to C
-    B_not_in_C = df_UCC_B[~df_UCC_B["fnames"].isin(df_UCC_C["fnames"])]
+    B_not_in_C = df_UCC_B[~df_UCC_B["fname"].isin(df_UCC_C["fname"])]
 
     # Entries that must be removed from C
-    C_not_in_B = df_UCC_C[~df_UCC_C["fnames"].isin(df_UCC_B["fnames"])]
+    C_not_in_B = df_UCC_C[~df_UCC_C["fname"].isin(df_UCC_B["fname"])]
+
+    # Entries in B_not_in_C that just need renaming in C_not_in_B
+    rename_C_fname = {}
+    C_fname_lst = C_not_in_B["fname"].to_list()
+    for fnames in B_not_in_C["fnames"]:
+        fnames = fnames.split(";")
+        for fname in fnames:
+            if fname in C_fname_lst:
+                # This C entry needs ranaming: fname --> fnames[0]
+                rename_C_fname[fname] = fnames[0]
+                break
+
+    if len(rename_C_fname) > 0:
+        # Remove the entries that just need renaming
+        B_not_in_C = B_not_in_C[~B_not_in_C["fname"].isin(rename_C_fname.values())]
+
+    # Drop 'fnames' column from df_UCC_B
+    B_not_in_C = B_not_in_C.drop(columns=["fnames"])
 
     # Entries manually marked for re-processing in C
     msk = df_UCC_C["process"] == "y"
     C_reprocess = df_UCC_C[msk].copy()
 
-    # Check that these three dataframes don't share equal elements in their 'fnames' columns
+    # Check that these three dataframes don't share elements in their 'fname' columns
     df_names = ["B_not_in_C", "C_not_in_B", "C_reprocess"]
     for i, df1 in enumerate([B_not_in_C, C_not_in_B, C_reprocess]):
         for j, df2 in enumerate([B_not_in_C, C_not_in_B, C_reprocess]):
             if i >= j:
                 continue
-            shared = set(df1["fnames"]) & set(df2["fnames"])
+            shared = set(df1["fname"]) & set(df2["fname"])
             if len(shared) > 0:
                 raise ValueError(
                     f"{df_names[i]} and {df_names[j]} share {len(shared)} elements"
                 )
 
-    return pd.DataFrame(B_not_in_C), pd.DataFrame(C_not_in_B), pd.DataFrame(C_reprocess)
+    return rename_C_fname, B_not_in_C, C_not_in_B, C_reprocess
 
 
 def process_entries(
@@ -268,28 +280,28 @@ def process_entries(
     """ """
     # Extract all columns except "fnames"
     B_cols = list(B_not_in_C.keys())
-    B_cols.remove("fnames")
+    B_cols.remove("fname")
     C_cols = list(C_reprocess.keys())
-    C_cols.remove("fnames")
+    C_cols.remove("fname")
     all_cols = B_cols + C_cols
 
     # Generate empty dictionary with all the fnames to be processed
-    all_fnames = list(B_not_in_C["fnames"]) + list(C_reprocess["fnames"])
-    df_UCC_updt = {"fnames": all_fnames}
+    all_fnames = list(B_not_in_C["fname"]) + list(C_reprocess["fname"])
+    df_UCC_updt = {"fname": all_fnames}
     N_tot = len(all_fnames)
     for k in all_cols:
         df_UCC_updt[k] = [np.nan] * N_tot
 
     # Add data from the B_not_in_C dataframe
-    for i, fname in enumerate(B_not_in_C["fnames"]):
-        j = df_UCC_updt["fnames"].index(fname)
+    for i, fname in enumerate(B_not_in_C["fname"]):
+        j = df_UCC_updt["fname"].index(fname)
         for col in B_cols:
             df_UCC_updt[col][j] = B_not_in_C[col].iloc[i]
 
     # Add data from the C_reprocess dataframe and information from df_UCC_B
-    B_fnames_lst = list(df_UCC_B["fnames"])
-    for i, fname in enumerate(C_reprocess["fnames"]):
-        j = df_UCC_updt["fnames"].index(fname)
+    B_fnames_lst = list(df_UCC_B["fname"])
+    for i, fname in enumerate(C_reprocess["fname"]):
+        j = df_UCC_updt["fname"].index(fname)
         for col in C_cols:
             df_UCC_updt[col][j] = C_reprocess[col].iloc[i]
 
@@ -301,7 +313,7 @@ def process_entries(
     df_UCC_updt = pd.DataFrame(df_UCC_updt)
     # Set dtype of columns
     str_type = (
-        "fnames",
+        "fname",
         "DB",
         "DB_i",
         "Names",
@@ -330,10 +342,11 @@ def member_files_updt(
     if df_UCC_C_updt.empty:
         return df_UCC_C_updt
 
+    N_tot = len(df_UCC_C_updt)
     for idx, cl_row in df_UCC_C_updt.iterrows():
         # Extract some data
-        fnames, ra_c, dec_c, glon_c, glat_c, pmra_c, pmde_c, plx_c = (
-            cl_row["fnames"],
+        fname0, ra_c, dec_c, glon_c, glat_c, pmra_c, pmde_c, plx_c = (
+            cl_row["fname"],
             float(cl_row["RA_ICRS"]),
             float(cl_row["DE_ICRS"]),
             float(cl_row["GLON"]),
@@ -342,8 +355,7 @@ def member_files_updt(
             float(cl_row["pmDE"]),  # This can be nan
             float(cl_row["Plx"]),  # This can be nan
         )
-        fname0 = str(fnames).split(";")[0]
-        logging.info(f"\n{idx + 1} Processing {fname0}")
+        logging.info(f"\n{idx + 1}/{N_tot} Processing {fname0}")
 
         # Extract manual parameters if any
         N_clust, N_clust_max, N_box, frame_limit = np.nan, np.nan, np.nan, ""
@@ -393,34 +405,34 @@ def member_files_updt(
     return df_UCC_C_updt
 
 
-def update_UCC_membs_data(
-    logging,
-    df_members: pd.DataFrame,
+def update_C_cat(
     C_not_in_B: pd.DataFrame,
+    rename_C_fname: dict,
     df_UCC_C: pd.DataFrame,
     df_UCC_C_updt: pd.DataFrame,
-) -> tuple[pd.DataFrame, pd.DataFrame]:
+) -> pd.DataFrame:
     """
     Update the UCC database using the data extracted from the processed OCs'
     members.
     """
-    if len(C_not_in_B) > 0:
-        # Remove entries in C_not_in_B from df_members
-        remove_entries = [_.split(";")[0] for _ in C_not_in_B["fnames"]]
-        msk = ~df_members["name"].isin(remove_entries)
-        df_members_new = pd.DataFrame(df_members[msk])
+    df_UCC_C_new = df_UCC_C.copy()
 
-        # Remove entries in C_not_in_B from df_UCC_C
-        msk = ~df_UCC_C["fnames"].isin(C_not_in_B["fnames"])
-        df_UCC_C_new = pd.DataFrame(df_UCC_C[msk])
-    else:
-        df_members_new = df_members.copy()
-        df_UCC_C_new = df_UCC_C.copy()
+    # Rename entries
+    if len(rename_C_fname) > 0:
+        msk = df_UCC_C_new["fname"].isin(rename_C_fname.keys())
+        df_UCC_C_new.loc[msk, "fname"] = df_UCC_C_new.loc[msk, "fname"].map(
+            rename_C_fname
+        )
+
+    # Remove entries in C_not_in_B from df_UCC_C
+    if len(C_not_in_B) > 0:
+        msk = ~df_UCC_C_new["fname"].isin(C_not_in_B["fname"])
+        df_UCC_C_new = df_UCC_C_new[msk]
 
     # # Update df_UCC_C_new using data from df_UCC_C_updt
-    # Ensure 'fnames' is the index in both DataFrames
-    A = df_UCC_C_new.set_index("fnames")
-    B = df_UCC_C_updt.set_index("fnames")
+    # Ensure 'fname' is the index in both DataFrames
+    A = df_UCC_C_new.set_index("fname")
+    B = df_UCC_C_updt.set_index("fname")
     # Update existing rows in A with values from B
     A.update(B)
     # Identify new rows in B
@@ -433,40 +445,11 @@ def update_UCC_membs_data(
     df_UCC_C_new = A.reset_index()
 
     # Reset indexes and restore column order
-    df_UCC_C_new = df_UCC_C_new.reset_index(drop=True)
     df_UCC_C_new = df_UCC_C_new.reindex(columns=df_UCC_C.columns)
+    df_UCC_C_new = df_UCC_C_new.sort_values("fname")
+    df_UCC_C_new = df_UCC_C_new.reset_index(drop=True)
 
-    # df_members_new = df_members.copy()
-
-    # # Remove entries not in df_UCC_C_new from df_members
-    # keep_entries = [_.split(";")[0] for _ in df_UCC_C_new["fnames"]]
-    # msk = df_members["name"].isin(keep_entries)
-    # df_members_new = pd.DataFrame(df_members[msk])
-    # df_members_new = df_members_new.reset_index(drop=True)
-    # # Remove entries in df_UCC_C_updt from df_members
-    # remove_entries = [_.split(";")[0] for _ in df_UCC_C_updt["fnames"]]
-    # msk = ~df_members["name"].isin(remove_entries)
-    # df_members_new = pd.DataFrame(df_members_new[msk])
-    # df_members_new = df_members_new.reset_index(drop=True)
-    # # Reset indexes and restore column order
-    # df_members_new = df_members_new.reindex(columns=df_members.columns)
-
-    # Concatenate all temporary DataFrames into one
-    df_comb = gen_comb_members_file(logging)
-    if not df_comb.empty:
-        # Add df_comb data into the members dataframe
-        df_members_new = update_membs_file(logging, df_members_new, df_comb)
-    df_members_new = df_members.sort_values("name")
-
-    # # Remove entries not in df_UCC_C_new from df_members
-    # keep_entries = [_.split(";")[0] for _ in df_UCC_C_new["fnames"]]
-    # msk = df_members["name"].isin(keep_entries)
-    # df_members_new = pd.DataFrame(df_members[msk])
-    # df_members_new = df_members_new.reset_index(drop=True)
-
-    logging.info(f"Zenodo '{UCC_members_file}' file updated\n")
-
-    return df_members_new, df_UCC_C_new
+    return df_UCC_C_new
 
 
 def gen_comb_members_file(logging) -> pd.DataFrame:
@@ -531,32 +514,44 @@ def gen_comb_members_file(logging) -> pd.DataFrame:
 
 
 def update_membs_file(
-    logging, df_members_new: pd.DataFrame, df_comb: pd.DataFrame
+    rename_C_fname: dict,
+    C_not_in_B: pd.DataFrame,
+    df_members: pd.DataFrame,
+    df_comb: pd.DataFrame,
 ) -> pd.DataFrame:
     """
     Update the parquet file containing estimated members from the
     Unified Cluster Catalog (UCC) dataset, formatted for storage in the Zenodo
     repository.
     """
-    #
-    logging.info("Updating members file...")
+    df_updated = df_members.copy()
 
-    # Get the list of names in each DataFrame
-    names_df1 = set(df_members_new["name"])
-    names_df2 = set(df_comb["name"])
+    # Rename entries
+    if len(rename_C_fname) > 0:
+        msk = df_updated["name"].isin(rename_C_fname.keys())
+        df_updated.loc[msk, "name"] = df_updated.loc[msk, "name"].map(rename_C_fname)
 
-    # Identify names in df_members_new not in df_comb
-    extra_names = names_df1 - names_df2
+    # Remove entries in C_not_in_B
+    if len(C_not_in_B) > 0:
+        msk = ~df_updated["name"].isin(C_not_in_B["fname"])
+        df_updated = pd.DataFrame(df_updated[msk])
 
-    # Filter df_members_new for those extra groups
-    df1_extra = df_members_new[df_members_new["name"].isin(extra_names)]  # pyright: ignore
+    if not df_comb.empty:
+        # Get the list of names in each DataFrame
+        names_df1 = set(df_updated["name"])
+        names_df2 = set(df_comb["name"])
+        # Identify names in df_updated not in df_comb
+        extra_names = names_df1 - names_df2
+        # Filter df_updated for those extra groups
+        df1_extra = df_updated[df_updated["name"].isin(extra_names)]  # pyright: ignore
+        # Concatenate df_comb with the extra df_members groups
+        df_members_new = pd.concat([df_comb, df1_extra], ignore_index=True)
+        df_members_new = pd.DataFrame(df_members_new).sort_values("name")
+    else:
+        df_members_new = df_updated.copy()
+    df_members_new = df_members_new.sort_values("name").reset_index(drop=True)
 
-    # Concatenate df_comb with the extra df_members groups
-    df_updated = pd.concat([df_comb, df1_extra], ignore_index=True)
-    df_updated = pd.DataFrame(df_updated).sort_values("name")
-    logging.info(f"N_membs={len(df_members_new)} --> N_membs={len(df_updated)}")
-
-    return df_updated
+    return df_members_new
 
 
 def find_shared_members(logging, df_UCC_C_new, df_members):
@@ -603,23 +598,24 @@ def find_shared_members(logging, df_UCC_C_new, df_members):
     # Convert to DataFrame
     result_df = pd.DataFrame(results)
 
-    # Order 'result_df' according to the fnames order in the 'df_UCC'
-    fnames = np.array([_.split(";")[0] for _ in df_UCC_C_new["fnames"]])
     result_df["fname"] = pd.Categorical(
-        result_df["fname"], categories=fnames, ordered=True
+        result_df["fname"], categories=df_UCC_C_new["fname"], ordered=True
     )
     result_df = result_df.sort_values("fname").reset_index(drop=True)
+
+    if result_df["fname"].tolist() != df_UCC_C_new["fname"].tolist():
+        raise ValueError("The 'fname' columns do not match in 'find_shared_members'")
 
     # Update data columns for shared members
     df_UCC_C_new[["shared_members", "shared_members_p"]] = result_df[
         ["shared_members", "shared_members_p"]
     ]
-    df_UCC_C_final = df_UCC_C_new.reset_index(drop=True).sort_values("fnames")
+    df_UCC_C_final = df_UCC_C_new.sort_values("fname").reset_index(drop=True)
 
     return df_UCC_C_final
 
 
-def find_intersections(df, df_members):
+def find_intersections(df_C, df_members):
     """ """
 
     # Find OCs that contain duplicated element in any other OC, also to speed up
@@ -630,19 +626,16 @@ def find_intersections(df, df_members):
     ].unique()
 
     # Filter UCC df to only include OCs with shared sources
-    names = np.array([_.split(";")[0] for _ in df["fnames"]])
+    # names = np.array([_.split(";")[0] for _ in df_C["fnames"]])
     arr2_set = set(ocs_w_shared_sources)
-    msk = np.fromiter((x in arr2_set for x in names), dtype=bool)
-    df_msk = df[msk]
-
-    # Convert to NumPy arrays for fast computation
-    coords = df_msk[["GLON_m", "GLAT_m"]].to_numpy()
-    names = np.array([_.split(";")[0] for _ in df_msk["fnames"]])
+    msk = np.fromiter((x in arr2_set for x in df_C["fname"]), dtype=bool)
+    df_msk = df_C[msk]
 
     # The search region is two times the r_50 radius
     radii = 2 * df_msk["r_50"].to_numpy() / 60
 
     # Compute pairwise distances
+    coords = df_msk[["GLON_m", "GLAT_m"]].to_numpy()
     dists = cdist(coords, coords)
 
     # Compute pairwise sum of radii
@@ -654,6 +647,7 @@ def find_intersections(df, df_members):
     intersection_mask = (dists <= radii_sum) & not_self
 
     # Extract intersecting names
+    names = np.array(df_msk["fname"])
     results = []
     for i, name in enumerate(names):
         intersecting = names[intersection_mask[i]]
@@ -808,7 +802,7 @@ def update_files(
     logging.info("Update files:")
 
     # Save updated UCC to temporary CSV file
-    save_df_UCC(logging, df_UCC_C_final, temp_folder + ucc_cat_file, "fnames")
+    save_df_UCC(logging, df_UCC_C_final, temp_folder + ucc_cat_file, "fname")
 
     fpath = temp_zenodo_fold + zenodo_cat_fname
     updt_zenodo_csv(logging, df_UCC_B, df_UCC_C_final, fpath)
@@ -909,79 +903,135 @@ def updt_readme(
     logging.info(f"Zenodo 'README' file: '{out_file_path}'")
 
 
-def move_files(logging, temp_zenodo_fold: str, df_UCC_C_final: pd.DataFrame) -> None:
+def move_files(
+    logging, temp_zenodo_fold: str, rename_C_fname: dict, df_UCC_C_final: pd.DataFrame
+) -> None:
     """Move files to the appropriate folders"""
+    post_actions = []
 
-    # Move the README file
+    # Move README
     file_path_temp = temp_zenodo_fold + "README.txt"
     file_path = zenodo_folder + "README.txt"
-    os.rename(file_path_temp, file_path)
-    logging.info(file_path_temp + " --> " + file_path)
+    post_actions.append(("move", file_path_temp, file_path))
 
-    # Move the Zenodo catalogue file
+    # Move Zenodo catalogue
     file_path_temp = temp_zenodo_fold + zenodo_cat_fname
     file_path = zenodo_folder + zenodo_cat_fname
-    os.rename(file_path_temp, file_path)
-    logging.info(file_path_temp + " --> " + file_path)
+    post_actions.append(("move", file_path_temp, file_path))
 
-    # Move the final combined members parquet file
+    # Combined members parquet
     file_path_temp = temp_zenodo_fold + UCC_members_file
     if os.path.isfile(file_path_temp):
         file_path = zenodo_folder + UCC_members_file
-        # Save a copy to the archive folder first
         date = pd.Timestamp.now().strftime("%y%m%d%H")
         archived_members = (
             data_folder
             + "ucc_archived_nogit/"
             + UCC_members_file.replace(".parquet", f"_{date}.parquet")
         )
-        shutil.copy(file_path, archived_members)
-        logging.info(file_path + " --> " + archived_members)
-        # Now rename
-        os.rename(file_path_temp, file_path)
-        logging.info(file_path_temp + " --> " + file_path)
-    # Delete left over individual parquet files?
+        # Archive-copy
+        post_actions.append(("archive_parquet", file_path, archived_members))
+        # Move new parquet
+        post_actions.append(("move", file_path_temp, file_path))
 
-    # Generate '.gz' compressed file for the old C file and archive it
+    # Archive old C catalogue
     ucc_stored = data_folder + ucc_cat_file
-    df_OLD_C = pd.read_csv(ucc_stored)
     now_time = pd.Timestamp.now().strftime("%y%m%d%H")
     archived_C_file = (
         data_folder
         + "ucc_archived_nogit/"
         + ucc_cat_file.replace(".csv", f"_{now_time}.csv.gz")
     )
-    save_df_UCC(logging, df_OLD_C, archived_C_file, "fnames", "gzip")
-    # Remove old C csv file
-    os.remove(ucc_stored)
-    logging.info(ucc_stored + " --> " + archived_C_file)
+    post_actions.append(("archive_csv", ucc_stored, archived_C_file))
+    # # Remove old C file
+    # post_actions.append(("remove", ucc_stored, None))
     # Move new C file into place
     ucc_temp = temp_folder + ucc_cat_file
-    os.rename(ucc_temp, ucc_stored)
-    logging.info(ucc_temp + " --> " + ucc_stored)
+    post_actions.append(("move", ucc_temp, ucc_stored))
 
-    move_on = input("\nEnter 'y' to remove old md/webp files: ")
-    if move_on.lower() != "y":
-        return
-
-    fnames0 = [_.split(";")[0] for _ in df_UCC_C_final["fnames"]]
-
-    for mdfile in os.listdir(root_ucc_path + md_folder):
-        mdfile = mdfile.split(".")[0]
-        if mdfile not in fnames0:
-            print("Removed:", md_folder + mdfile + ".md")
-            os.remove(root_ucc_path + md_folder + mdfile + ".md")
-
+    # Collect rename operations
+    md_root = root_ucc_path + md_folder
+    for name in os.listdir(md_root):
+        mdfile = name.split(".")[0]
+        if mdfile in rename_C_fname:
+            old_fpath = os.path.join(md_root, mdfile + ".md")
+            new_fpath = os.path.join(md_root, rename_C_fname[mdfile] + ".md")
+            post_actions.append(("rename", old_fpath, new_fpath))
+    # now webp files
     for root, dirs, files in os.walk(root_ucc_path + plots_folder):
-        # Exclude any .git directories from recursion
-        dirs[:] = [d for d in dirs if d != ".git"]
+        dirs[:] = [d for d in dirs if d != ".git"]  # exclude .git
         for name in files:
             if not name.endswith(".webp"):
                 continue
             webpfile = name.split(".")[0]
-            if webpfile not in fnames0:
-                print("Removed :", root + "/" + webpfile + ".webp")
-                os.remove(root + "/" + webpfile + ".webp")
+            if webpfile in rename_C_fname:
+                old_fpath = os.path.join(root, webpfile + ".webp")
+                new_fname = rename_C_fname[webpfile]
+                new_root = root.replace(f"plots_{webpfile[0]}", f"plots_{new_fname[0]}")
+                new_fpath = os.path.join(new_root, new_fname + ".webp")
+                post_actions.append(("rename", old_fpath, new_fpath))
+
+    # Collect removal operations
+    fname_C = set(df_UCC_C_final["fname"].tolist())
+    # MD removals
+    for name in os.listdir(root_ucc_path + md_folder):
+        webname = name.rsplit(".", 1)[0]
+        if webname not in fname_C:
+            # remove_actions.append(os.path.join(root_ucc_path + md_folder, webname + ".md"))
+            post_actions.append(
+                (
+                    "remove",
+                    os.path.join(root_ucc_path + md_folder, webname + ".md"),
+                    None,
+                )
+            )
+    # WEBP removals
+    for root, dirs, files in os.walk(root_ucc_path + plots_folder):
+        dirs[:] = [d for d in dirs if d != ".git"]
+        for name in files:
+            if not name.endswith(".webp"):
+                continue
+            webname = name.rsplit(".", 1)[0]
+            if webname not in fname_C:
+                post_actions.append(
+                    ("remove", os.path.join(root, webname + ".webp"), None)
+                )
+
+    logging.info("\n=== ACTIONS ===")
+    for action_type, src, dst in post_actions:
+        if action_type == "move":
+            logging.info(f"MOVE:  {src} --> {dst}")
+        elif action_type == "archive_parquet":
+            logging.info(f"ARCHIVE: {src} --> {dst}")
+        elif action_type == "remove":
+            logging.info(f"REMOVE: {src}")
+        elif action_type == "archive_csv":
+            logging.info(f"ARCHIVE + GZIP: {src} --> {dst}")
+        elif action_type == "rename":
+            logging.info(f"RENAME: {src} --> {dst}")
+
+    if input("\nProceed with these changes? [y/N]: ").strip().lower() != "y":
+        logging.info("Aborted.")
+        return
+
+    for action_type, src, dst in post_actions:
+        if action_type == "move":
+            os.rename(src, dst)
+            logging.info(f"{src} --> {dst}")
+        elif action_type == "archive_parquet":
+            os.rename(src, dst)
+            logging.info(f"{src} --> {dst}")
+        elif action_type == "archive_csv":
+            df_OLD_C = pd.read_csv(src)
+            save_df_UCC(logging, df_OLD_C, dst, "fname", "gzip")
+            logging.info(f"{src} --> {dst} (archived)")
+        elif action_type == "remove":
+            if os.path.isfile(src):
+                os.remove(src)
+                logging.info(f"Removed: {src}")
+        elif action_type == "rename":
+            os.rename(src, dst)
+            logging.info(f"Renamed: {src} --> {dst}")
 
 
 if __name__ == "__main__":
