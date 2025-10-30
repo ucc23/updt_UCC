@@ -1,5 +1,6 @@
 import csv
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -199,6 +200,8 @@ def get_ADS_data(ADS_bibcode: str) -> tuple[str, str, str]:
 
             year = article.get("year")
             title = article.get("title")[0]
+            # Remove invalid characters from title
+            title = re.sub(r'[<>:"/\\|?*#&]', "", title)
         else:
             raise ValueError(f"No article found with the given bibcode: {bibcode_int}")
     else:
