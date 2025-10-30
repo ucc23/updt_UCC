@@ -104,7 +104,7 @@ def diff_between_dfs(
     logging,
     df_old: pd.DataFrame,
     df_new: pd.DataFrame,
-    order_col: str = "fnames",
+    order_col: str = "fname",
     # cols_exclude=None,
 ) -> None:
     """
