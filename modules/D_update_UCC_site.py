@@ -69,7 +69,7 @@ def main():
         temp_image_path,
     ) = load_paths(logging)
 
-    cols_from_B_to_C = ["Names", "DB", "DB_i"]
+    cols_from_B_to_C = ["Names", "DB", "DB_i", "fnames"]
 
     # Load required files
     (
@@ -291,10 +291,15 @@ def load_data(
     selected_columns = ["frame_limit", "shared_members", "shared_members_p"]
     df_UCC_C[selected_columns] = df_UCC_C[selected_columns].fillna("nan")
 
+    # Add required column
+    df_UCC_B["fname"] = [_.split(";")[0] for _ in df_UCC_B["fnames"]]
+    # Sort df_UCC_B by fname column to match 'df_UCC_C_final'
+    df_UCC_B = df_UCC_B.sort_values("fname").reset_index(drop=True)
+
     logging.info(f"File {ucc_C_file} loaded ({len(df_UCC_C)} entries)")
-    # Check the 'fnames' columns in df_UCC_B and df_UCC_C_final dataframes are equal
-    if not df_UCC_B["fnames"].equals(df_UCC_C["fnames"]):
-        raise ValueError("The 'fnames' columns in B and final C dataframes differ")
+    # Check the 'fname' columns in df_UCC_B and df_UCC_C_final dataframes are equal
+    if not df_UCC_B["fname"].to_list() == df_UCC_C["fname"].to_list():
+        raise ValueError("The 'fname' columns in B and final C dataframes differ")
     # Add required columns to df_UCC_C
     df_UCC = df_UCC_C.copy()
     df_UCC[cols_from_B_to_C] = df_UCC_B[cols_from_B_to_C]
@@ -346,16 +351,16 @@ def updt_ucc_cluster_files(
     """ """
     logging.info("\nGenerating md files")
 
-    fnames_all = [_.split(";")[0] for _ in df_UCC["fnames"]]
+    fname_all = df_UCC["fname"].to_list()
 
     N_total = 0
     # Iterate trough each entry in the UCC database
     for i_ucc, UCC_cl in df_UCC.iterrows():
-        fname0 = str(UCC_cl["fnames"]).split(";")[0]
+        fname0 = str(UCC_cl["fname"])
 
         # Generate full entry
         new_md_entry = ucc_entry.make(
-            current_JSON, DBs_full_data, df_UCC, UCC_cl, fnames_all, fname0
+            current_JSON, DBs_full_data, df_UCC, UCC_cl, fname_all, fname0
         )
 
         # Compare old md file (if it exists) with the new md file, for this cluster
@@ -387,7 +392,7 @@ def updt_ucc_cluster_plots(logging, df_UCC, df_members) -> pd.DataFrame:
     N_total = 0
     # Iterate trough each entry in the UCC database
     for i_ucc, UCC_cl in df_UCC.iterrows():
-        fname0 = str(UCC_cl["fnames"]).split(";")[0]
+        fname0 = str(UCC_cl["fname"])
         txt = ""
 
         # Make Aladin plot if image files does not exist. These images are not updated
@@ -462,7 +467,7 @@ def updt_UCC(df_UCC: pd.DataFrame) -> pd.DataFrame:
     names_url = []
     for _, cl in df.iterrows():
         name = str(cl["Name"]).split(";")[0]
-        fname = str(cl["fnames"]).split(";")[0]
+        fname = str(cl["fname"])
         url = "/_clusters/" + fname + "/"
         names_url.append(f"[{name}]({url})")
     df["ID_url"] = names_url
@@ -636,7 +641,7 @@ def updt_cls_CSV(logging, ucc_gz_CSV_path: str, df_UCC_edit: pd.DataFrame) -> st
     # Load the current compressed CSV file
     try:
         df_old = pd.read_csv(ucc_gz_CSV_path, compression="gzip")
-    except Exception as e:
+    except Exception as _:
         df_old = pd.DataFrame()
 
     # Update CSV if required
@@ -735,39 +740,39 @@ def file_checker(logging) -> None:
     """
     logging.info("\nChecking files\n")
     # Read stored final version
-    df_UCC_C = pd.read_csv(data_folder + ucc_cat_file, usecols=["fnames", "plot_used"])
+    df_UCC_C = pd.read_csv(data_folder + ucc_cat_file, usecols=["fname", "plot_used"])
     flag_error = False
 
     # Check that all entries in df_UCC_C have plot_used='y'
     if any(df_UCC_C["plot_used"] == "n"):
+        flag_error = True
         logging.warning("Some entries in final C dataframe still have plot_used='n'\n")
 
-    # Check the 'fnames' columns in df_UCC_B and df_UCC_C_final dataframes are equal
+    # Check the 'fname' columns in df_UCC_B and df_UCC_C_final dataframes are equal
     df_UCC_B = pd.read_csv(data_folder + merged_dbs_file, usecols=["fnames"])
-    df_UCC_fnames = df_UCC_C["fnames"].to_list()
-    if not df_UCC_B["fnames"].to_list() == df_UCC_fnames:
+    df_UCC_B_fname = sorted([_.split(";")[0] for _ in df_UCC_B["fnames"]])
+    df_UCC_fname = df_UCC_C["fname"].to_list()
+    if not df_UCC_B_fname == df_UCC_fname:
         flag_error = True
-        logging.warning("The 'fnames' columns in B and final C dataframes differ\n")
+        logging.warning("The 'fname' columns in B and final C dataframes differ\n")
 
-    ucc_fnames = sorted([_.split(";")[0] for _ in df_UCC_fnames])
-
-    # Check that all md_files match the elements in df_UCC_fnames
+    # Check that all md_files match the elements in df_UCC_fname
     md_files = os.listdir(root_ucc_path + md_folder)
     md_fnames = sorted([_[:-3] for _ in md_files])
     # Print to screen which elements are different in both lists
     for f in md_fnames:
-        if f not in ucc_fnames:
+        if f not in df_UCC_fname:
             logging.warning(f"{f} (.md) not in UCC catalog")
             flag_error = True
-    for f in ucc_fnames:
+    for f in df_UCC_fname:
         if f not in md_fnames:
             logging.warning(f"{f} (UCC) not in md files")
             flag_error = True
     logging.info("")
 
     for letter in "abcdefghijklmnopqrstuvwxyz":
-        # Count how many elements in df_UCC_fnames start with this letter
-        ucc_webp = [_ for _ in ucc_fnames if _.startswith(letter)]
+        # Extract elements in df_UCC_fname that start with this letter
+        ucc_webp = [_ for _ in df_UCC_fname if _.startswith(letter)]
         for fold in plots_sub_folders:
             letter_fold = root_ucc_path + plots_folder + f"plots_{letter}/" + fold
             if os.path.isdir(letter_fold):
@@ -783,6 +788,8 @@ def file_checker(logging) -> None:
 
     if flag_error:
         raise ValueError("\nErrors were detected associated to the files")
+
+    logging.warning("All checks passed\n")
 
 
 if __name__ == "__main__":
