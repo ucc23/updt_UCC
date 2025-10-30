@@ -1,13 +1,11 @@
 Some of these are intermediate versions of the UCC database that are not published.
 
-## 2509XXYY
 
-NOT DONE YET!
+## 25102509-25102915
 
-- Removed entries from the main catalogue: fsr0297, fsr0911, fsr1071, fsr1557, fsr1681,
-fsr0380. Added their alternative names from FROEBRICH2007 to their entries in BICA2019
-and re-processed BICA2019.
-
+- Added the FROEBRICH2007 database
+- Re-arranged some main fnames
+- Removed 'fnames' column from C and kept only the first fname
 
 
 ## 25101912
