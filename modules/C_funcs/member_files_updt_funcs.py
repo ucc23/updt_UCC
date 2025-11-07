@@ -3,9 +3,11 @@ import warnings
 
 import numpy as np
 import pandas as pd
+from astropy import units as u
+from astropy.coordinates import Galactocentric, SkyCoord
 from scipy.spatial.distance import cdist
 
-from ..utils import radec2lonlat
+from ..utils import plx_to_pc, radec2lonlat
 from ..variables import (
     gaia_max_mag,
     local_asteca_path,
@@ -655,6 +657,10 @@ def updt_UCC_new_cl_data(
     # Classification data
     C1, C2, C3 = get_classif(df_membs, df_field)
 
+    X_GC, Y_GC, Z_GC, R_GC = gc_values(
+        df_membs["RA_ICRS"], df_membs["DE_ICRS"], df_membs["Plx"]
+    )
+
     # Temp dict used to update the UCC
     dict_updt = {
         "plot_used": "n",  # Update to indicate a new plot is required
@@ -677,6 +683,10 @@ def updt_UCC_new_cl_data(
         "Rv_m": Rv,
         "e_Rv_m": e_Rv,
         "N_Rv": N_Rv,
+        "X_GC": X_GC,
+        "Y_GC": Y_GC,
+        "Z_GC": Z_GC,
+        "R_GC": R_GC,
     }
 
     # Update 'df_UCC_updt' with 'dict_updt' values
@@ -684,6 +694,34 @@ def updt_UCC_new_cl_data(
         df_UCC_C_updt.loc[idx, key] = val
 
     return df_UCC_C_updt
+
+
+def gc_values(ra, dec, plx, max_xyz=20):
+    """
+    PZPO:
+
+    Fig 8 shows several values for the PZPO:
+    https://ui.adsabs.harvard.edu/abs/2025AJ....169..211D/abstract
+    Global parallax zero point offset (selected by me): -0.02
+    """
+
+    d_pc = plx_to_pc(plx)
+
+    coords = SkyCoord(
+        ra=ra * u.deg,
+        dec=dec * u.deg,
+        distance=d_pc * u.pc,
+        frame="icrs",
+    )
+
+    gc = Galactocentric()  # galcen_distance=R_sun)
+    XYZ = coords.transform_to(gc)
+    X_GC = np.clip(XYZ.x.to(u.kpc).value, -max_xyz, max_xyz)
+    Y_GC = np.clip(XYZ.y.to(u.kpc).value, -max_xyz, max_xyz)
+    Z_GC = np.clip(XYZ.z.to(u.kpc).value, -max_xyz, max_xyz)
+    R_GC = np.sqrt(X_GC**2 + Y_GC**2 + Z_GC**2)
+
+    return X_GC, Y_GC, Z_GC, R_GC
 
 
 def save_cl_datafile(
