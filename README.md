@@ -59,6 +59,13 @@ on** as both might need manual intervention.
 - `temp_updt/data/databases_info.json`: Updated JSON file with new DB entry
 - `temp_updt/data/NEW_DB.csv`: New database in CSV format
 
+These two files will be loaded and updated by the B script, they must not be
+manually moved.
+
+**Remeber** to add the `received` parameter to the JSON file, this is not retrieved by
+the script.
+
+
 
 
 ## 2. Updating the UCC: first step
