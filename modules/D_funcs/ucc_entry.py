@@ -66,12 +66,14 @@ def make(current_JSON, DBs_full_data, df_UCC, UCC_cl, fnames_all, fname0):
         UCC_cl["N_50"],
         UCC_cl["Plx_m"],
         UCC_cl["shared_members_p"],
+        UCC_cl["Z_GC"],
         UCC_cl["C_N"],
         UCC_cl["C_dens"],
         UCC_cl["C_C3"],
         UCC_cl["C_lit"],
         UCC_cl["C_dup"],
         UCC_cl["C_dup_same_db"],
+        UCC_cl["UTI"],
     )
 
     # Get colors used by the 'CX' classification
@@ -181,12 +183,14 @@ def summarize_object(
     N_50,
     plx,
     shared_members_p,
+    Z_GC,
     C_N,
     C_dens,
     C_C3,
     C_lit,
     C_dup,
     C_dup_same_db,
+    UTI,
 ) -> str:
     """
     Summarize an astronomical object based on five normalized parameters.
@@ -215,11 +219,6 @@ def summarize_object(
     str
         Short textual summary.
     """
-    distance = level(
-        plx,
-        [10, 5, 2, 1],
-        ["very close", "close", "relatively close", "somewhat close", ""],
-    )
     members = level(
         C_N,
         [0.9, 0.75, 0.5, 0.25],
@@ -235,6 +234,31 @@ def summarize_object(
         [0.99, 0.7, 0.5, 0.2],
         ["very high", "high", "intermediate", "low", "very low"],
     )
+
+    distance = level(
+        plx,
+        [2, 1, 0.5, 0.2, 0.1],
+        [
+            "very close",
+            "close",
+            "relatively close",
+            "moderate",
+            "large",
+            "very large",
+        ],
+    )
+    z_position = level(
+        Z_GC,
+        [0.5, 0.05, -0.05, -0.5],
+        [
+            "well above the mid-plane",
+            "above the mid-plane",
+            "near the mid-plane",
+            "below the mid-plane",
+            "well below the mid-plane",
+        ],
+    )
+
     literature = level(
         C_lit,
         [0.9, 0.75, 0.5, 0.25],
@@ -247,12 +271,13 @@ def summarize_object(
         ],
     )
 
-    txt_dist = ""
-    if distance != "":
-        txt_dist = f"{distance}, "
-    summary = (
-        f"{name} is a {txt_dist}{members}, {density} object of {quality} C3 quality."
+    html_warn = (
+        """<br><br><span style="color: #99180f; font-weight: bold;">Warning: </span>"""
     )
+
+    summary = f"<b>{name}</b> is a {members}, {density} object of {quality} C3 quality."
+
+    summary += f" It is located at a {distance} distance from the Sun, {z_position}."
 
     first_lit_year = int(cl_DB.split(";")[0].split("_")[0][-4:])
     current_year = datetime.datetime.now().year
@@ -275,15 +300,20 @@ def summarize_object(
         else:
             summary += f" It is {literature} in the literature."
 
-    html_warn = (
-        """<br><br><span style="color: #99180f; font-weight: bold;">Warning: </span>"""
-    )
-
     summary = dupl_summary(shared_members_p, C_dup, C_dup_same_db, html_warn, summary)
 
     if N_50 < 25:
         summary += (
             html_warn + "contains less than 25 stars with <i>P>0.5</i> estimated."
+        )
+
+    uti_html = """<a href="/faq#what-is-the-uti-parameter"title="UTI parameter"><b>UTI</b></a>"""
+    if UTI < 0.25 and C_dup > 0.75 and C_lit < 0.3:
+        summary += (
+            html_warn
+            + f"the low {uti_html} value and no obvious signs of duplication (C_dup={C_dup}) "
+            + "indicates that this is quite probably an asterism, moving group, "
+            + "or artifact, and not a real open cluster."
         )
 
     return summary
@@ -318,9 +348,8 @@ def dupl_summary(shared_members_p, C_dup, C_dup_same_db, html_warn, summary):
             entr = "entries"
             if N_shared == 1:
                 N_shared, entr = "a", "entry"
-            # Generate summary components
             summary += (
-                f" This object shares a {member_level(1 - max_p)} percentage of members "
+                f"<br><br>This object shares a {member_level(1 - max_p)} percentage of members "
                 f"with {N_shared} later reported {entr}."
             )
             return summary
