@@ -353,10 +353,18 @@ def updt_ucc_cluster_files(
 
     fname_all = df_UCC["fname"].to_list()
 
+    ran_i = np.random.randint(0, len(df_UCC), size=10)
+
     N_total = 0
     # Iterate trough each entry in the UCC database
     for i_ucc, UCC_cl in df_UCC.iterrows():
         fname0 = str(UCC_cl["fname"])
+
+        # if fname0 not in ("ruprecht2", "ubc605", "blanco1", "melotte82"):
+        #     continue
+
+        if i_ucc not in ran_i:
+            continue
 
         # Generate full entry
         new_md_entry = ucc_entry.make(
@@ -386,16 +394,36 @@ def updt_ucc_cluster_files(
     logging.info(f"\nN={N_total} OCs processed")
 
 
-def updt_ucc_cluster_plots(logging, df_UCC, df_members) -> pd.DataFrame:
+def updt_ucc_cluster_plots(logging, df_UCC, df_members, min_UTI=0.5) -> pd.DataFrame:
     """ """
     logging.info("\nGenerating plot files")
+
+    # Velocities used for GC plot
+    vx, vy, vz, vR = ucc_plots.velocity(
+        df_UCC["RA_ICRS_m"].values,
+        df_UCC["DE_ICRS_m"].values,
+        df_UCC["Plx_m"].values,
+        df_UCC["pmRA_m"].values,
+        df_UCC["pmDE_m"].values,
+        df_UCC["Rv_m"].values,
+        df_UCC["X_GC"].values,
+        df_UCC["Y_GC"].values,
+        df_UCC["Z_GC"].values,
+        df_UCC["R_GC"].values,
+    )
+
+    # Good OCs used for GC plot
+    msk = df_UCC["UTI"] > min_UTI
+    Z_uti = df_UCC["Z_GC"][msk]
+    R_uti = df_UCC["R_GC"][msk]
+
     N_total = 0
     # Iterate trough each entry in the UCC database
     for i_ucc, UCC_cl in df_UCC.iterrows():
         fname0 = str(UCC_cl["fname"])
         txt = ""
 
-        # Make Aladin plot if image files does not exist. These images are not updated
+        # Make Aladin plot if image file does not exist. These images are not updated
         # Path to original image (if it exists)
         orig_aladin_path = (
             f"{root_ucc_path}{plots_folder}plots_{fname0[0]}/aladin/{fname0}.webp"
@@ -413,18 +441,39 @@ def updt_ucc_cluster_plots(logging, df_UCC, df_members) -> pd.DataFrame:
             )
             txt += " Aladin plot generated |"
 
-        # Make CMD plot
+        # Make GC and CMD plots
         # Check if this OC's plot should be updated or generated
         if UCC_cl["plot_used"] == "n":
             # Read members
             df_membs = df_members[df_members["name"] == fname0]
-            # Temp path were the image will be stored
+
+            # Temp path were the GC file will be stored
+            temp_plot_file = (
+                f"{temp_folder}{plots_folder}plots_{fname0[0]}/gcpos/{fname0}.webp"
+            )
+            ucc_plots.plot_gcpos(
+                temp_plot_file,
+                Z_uti,
+                R_uti,
+                UCC_cl["X_GC"],
+                UCC_cl["Y_GC"],
+                UCC_cl["Z_GC"],
+                UCC_cl["R_GC"],
+                vx[i_ucc],
+                vy[i_ucc],
+                vz[i_ucc],
+                vR[i_ucc],
+            )
+            txt += " GC plot generated |"
+
+            # Temp path were the CMD file will be stored
             temp_plot_file = (
                 f"{temp_folder}{plots_folder}plots_{fname0[0]}/UCC/{fname0}.webp"
             )
             ucc_plots.plot_CMD(temp_plot_file, df_membs)
             txt += " CMD plot generated |"
-            # Update value indicating that the plot was generated
+
+            # Update value indicating that the plots were generated
             df_UCC.loc[i_ucc, "plot_used"] = "y"
 
         if txt != "":

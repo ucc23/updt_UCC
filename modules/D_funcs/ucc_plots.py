@@ -3,10 +3,156 @@ from urllib.parse import urlencode
 
 import matplotlib.pyplot as plt
 import numpy as np
+from astropy import units as u
+from astropy.coordinates import Galactocentric, SkyCoord
 from astropy.io import fits
+from matplotlib.gridspec import GridSpec
+from matplotlib.patches import Circle
 from scipy import ndimage
 
-from ..variables import custom_style_path
+from ..utils import plx_to_pc
+from ..variables import custom_style_path, spiral_arms
+
+
+def velocity(ra, dec, plx, pmRA, pmDE, rad_v, x_gc, y_gc, z_gc, R_gc):
+    """
+    Draw the Galactocentric velocity vector projected in the XY plane.
+
+    ra, dec: degrees
+    distance_pc: pc
+    pmRA, pmDE: mas/yr
+    x_gc, y_gc, z_gc: Galactocentric X,Y,Z [kpc]
+    """
+
+    d_pc = plx_to_pc(plx)
+
+    # Replace 'nan' values with '0' in rad_v
+    rad_v = np.nan_to_num(rad_v, nan=0.0)
+
+    stars = SkyCoord(
+        ra=ra * u.deg,
+        dec=dec * u.deg,
+        distance=d_pc * u.pc,
+        pm_ra_cosdec=pmRA * u.mas / u.yr,
+        pm_dec=pmDE * u.mas / u.yr,
+        radial_velocity=rad_v * u.km / u.s,
+    )
+
+    stars_galcen = stars.transform_to(Galactocentric())
+
+    vx = stars_galcen.v_x.to(u.km / u.s).value
+    vy = stars_galcen.v_y.to(u.km / u.s).value
+    vz = stars_galcen.v_z.to(u.km / u.s).value
+    # Velocity projection in R:
+    vR = (x_gc * vx + y_gc * vy + z_gc * vz) / R_gc
+
+    return vx, vy, vz, vR
+
+
+def plot_gcpos(
+    plot_fpath,
+    Z_uti,
+    R_uti,
+    X,
+    Y,
+    Z,
+    R,
+    vx,
+    vy,
+    vz,
+    vR,
+    X_sun=-8.2,
+    Y_sun=0,
+    Z_sun=0,
+    R_sun=8.2,
+    R_MW=15.0,
+    dpi=150,
+):
+    """ """
+
+    plt.style.use(custom_style_path)
+
+    fig = plt.figure(figsize=(6, 3))  # Taller than wide
+    gs = GridSpec(1, 2, figure=fig, wspace=0.05)
+    plt.suptitle(f"({X:.2f}, {Y:.2f}, {Z:.2f}) [kpc]")
+
+    max_l = 7
+    scale_xy = min(abs(max_l / vx), abs(max_l / vy))
+    point_pos_X, point_pos_Y = abs(X), abs(Y)
+    arrow_point_pos_X, arrow_point_pos_Y = (
+        abs(X + vx * scale_xy),
+        abs(Y + vy * scale_xy),
+    )
+    rmax = max(
+        R_MW * 1.05,
+        1.05 * max(point_pos_X, arrow_point_pos_X, point_pos_Y, arrow_point_pos_Y),
+    )
+
+    ax1 = fig.add_subplot(gs[0])
+    # Plot spiral arms
+    for arm, coords in spiral_arms.items():
+        armx, army = np.array(coords).T
+        ax1.plot(armx, army, linestyle="--", label=arm, lw=2, zorder=3)
+    ax1.scatter(X_sun, Y_sun, marker="$\\odot$", c="y", ec="k", lw=0.5, s=150, zorder=5)
+    ax1.scatter(0, 0, marker="x", c="k", s=100, zorder=5)
+    ax1.scatter(X, Y, marker="o", c="orange", ec="k", s=80, zorder=10)
+    ax1.quiver(
+        X,
+        Y,
+        vx * scale_xy,
+        vy * scale_xy,
+        angles="xy",
+        scale_units="xy",
+        scale=1,
+        width=0.01,
+        zorder=9,
+    )
+    circle = Circle((0.0, 0.0), R_MW, fill=False, edgecolor="k")
+    ax1.add_patch(circle)
+    ax1.hlines(y=0, xmin=-R_MW, xmax=R_MW, color="k", linestyle=":", alpha=0.5)
+    ax1.vlines(x=0, ymin=-R_MW, ymax=R_MW, color="k", linestyle=":", alpha=0.5)
+    ax1.set_xlabel(r"X$_{GC}$ [kpc]")
+    ax1.set_ylabel(r"Y$_{GC}$ [kpc]", labelpad=1.5)
+    ax1.set_xlim(-rmax, rmax)
+    ax1.set_ylim(-rmax, rmax)
+
+    ax2 = fig.add_subplot(gs[1])
+    ax2.hlines(y=0, xmin=0, xmax=R_MW, color="k", linestyle="-", linewidth=3, alpha=0.5)
+    ax2.scatter(0, 0, marker="x", c="k", s=100, zorder=5)
+    ax2.scatter(R_sun, Z_sun, marker="$\\odot$", ec="k", lw=0.5, c="y", s=150, zorder=5)
+    ax2.scatter(R, Z, marker="o", c="orange", ec="k", s=80, zorder=10)
+    ax2.scatter(
+        R_uti, Z_uti, marker=".", c="cyan", ec="k", lw=0.5, s=30, alpha=0.5, zorder=2
+    )
+    max_l_R, max_l_z = 2, 0.5
+    scale_rz = min(abs(max_l_R / vR), abs(max_l_z / vz))
+    ax2.quiver(
+        R,
+        Z,
+        vR * scale_rz,
+        vz * scale_rz,
+        angles="xy",
+        scale_units="xy",
+        scale=1,
+        width=0.01,
+        zorder=9,
+    )
+    point_pos_R = abs(R)
+    arrow_point_pos_R = abs(R + vR * scale_rz)
+    xlim = max(16.0, 1.05 * max(point_pos_R, arrow_point_pos_R))
+    ax2.set_xlim(-0.5, xlim)
+    point_pos_z = abs(Z)
+    arrow_point_pos_z = abs(Z + vz * scale_rz)
+    ylim = max(1.0, 1.1 * max(point_pos_z, arrow_point_pos_z))
+    ax2.set_ylim(-ylim, ylim)
+    ax2.set_xlabel(r"R$_{GC}$ [kpc]")
+    ax2.set_ylabel(r"Z$_{GC}$ [kpc]", labelpad=1.5)
+    ax2.yaxis.tick_right()
+    ax2.yaxis.set_label_position("right")
+
+    plt.savefig(plot_fpath, dpi=dpi)
+    fig.clear()
+    plt.close(fig)
 
 
 def plot_CMD(
