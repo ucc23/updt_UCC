@@ -31,12 +31,12 @@ def display_menu():
     print("   └─ ⚠️  Requires NASA/ADS bibcode input")
 
     print("\nB) B_update_UCC_DB.py")
-    print("   └─ Update the UCC database")
-    print("   └─ Integrates new data with existing UCC catalog")
+    print("   └─ Update the UCC catalogue")
+    print("   └─ Integrates new data with existing UCC B databse")
 
     print("\nC) C_process_member_files.py")
-    print("   └─ Process member files and update catalogue")
-    print("   └─ Processes stellar membership using fastMP algorithm")
+    print("   └─ Processes stellar membership using fastMP algorithm (if any)")
+    print("   └─ Integrates new/modified data with existing UCC C databse")
 
     print("\nD) D_update_UCC_site.py")
     print("   └─ Update the website files")
@@ -70,13 +70,7 @@ def get_ads_bibcode():
             print("❌ Bibcode seems too short. Please check and try again.")
             continue
 
-        # # Confirm with user
-        # print(f"\n📋 You entered: {bibcode}")
-        # confirm = input("Is this correct? (y/N): ").strip().lower()
-        # if confirm == "y":
         return bibcode
-        # else:
-        #     print("Let's try again...")
 
 
 def run_script(script_choice):
@@ -94,7 +88,7 @@ def run_script(script_choice):
         print(f"\n❌ Error: Invalid script choice {script_choice}")
         return False
 
-    script_name = f"{script_choice}_script (imported as module)"
+    script_name = f"{script_choice}_script"
     print(f"\n🚀 Running {script_name}...")
     print("-" * 40)
 
@@ -112,7 +106,6 @@ def run_script(script_choice):
     print("-" * 40)
     print(f"✅ {script_name} completed successfully!")
     return True
-
 
 
 def get_user_choice():
@@ -135,42 +128,36 @@ def main():
     print("\n📋 Before running:")
     print("   • Make sure you have the required environment activated")
 
-    # Script mapping for display purposes
-    scripts = {
-        "A": "A_get_new_DB",
-        "B": "B_update_UCC_DB",
-        "C": "C_process_member_files",
-        "D": "D_update_UCC_site",
-    }
-
+    choice = ""
     while True:
-        display_menu()
-        choice = get_user_choice()
+        if choice == "":
+            display_menu()
+            choice = get_user_choice()
 
         if choice == "Q":
             print("\n👋 Goodbye!")
             sys.exit(0)
 
-        elif choice in scripts:
-            success = run_script(choice)
+        success = run_script(choice)
 
-            if success:
-                # Ask if user wants to continue to next script
-                if choice in ["A", "B", "C"]:  # Not for D (last script)
-                    next_script = chr(ord(choice) + 1)  # A->B, B->C, C->D
-                    continue_prompt = (
-                        input(f"\n❓ Run next script ({next_script}) now? (y/N): ")
-                        .strip()
-                        .lower()
-                    )
-                    if continue_prompt == "y":
-                        run_script(next_script)
-            else:
-                print(
-                    "\n⚠️  Script execution failed. Please check the error messages above."
-                )
+        if success is False:
+            print("\n⚠️  Script execution failed. Check the error messages above.")
+            sys.exit(0)
 
-            input("\nPress Enter to return to menu...")
+        if choice == "D":
+            print("\n👋 Final script completed. Goodbye!")
+            sys.exit(0)
+
+        # Ask if user wants to continue to next script
+        next_script = chr(ord(choice) + 1)  # A->B, B->C, C->D
+        if (
+            input(f"\n❓ Run next script ({next_script}) now? (y/N): ").strip().lower()
+            == "y"
+        ):
+            choice = next_script
+        else:
+            print("\n👋 Goodbye!")
+            sys.exit(0)
 
 
 if __name__ == "__main__":
