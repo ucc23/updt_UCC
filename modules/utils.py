@@ -80,6 +80,25 @@ def radec2lonlat(
     return lb.l.value, lb.b.value  # pyright: ignore
 
 
+def plx_to_pc(plx, PZPO=-0.02, min_plx=0.035, max_plx=200):
+    """
+    Ding et al. (2025), Fig 8 shows several PZPO values
+    https://ui.adsabs.harvard.edu/abs/2025AJ....169..211D/abstract
+
+    We use -0.02 as a reasonable value here.
+    """
+    # "the zero-point returned by the code should be subtracted from the parallax value"
+    # https://gitlab.com/icc-ub/public/gaiadr3_zeropoint
+    plx -= PZPO
+
+    # Clip to reasonable values
+    plx = np.clip(plx, min_plx, max_plx)
+    # Convert to pc
+    d_pc = 1000 / plx
+
+    return d_pc
+
+
 def round_columns(df: pd.DataFrame) -> pd.DataFrame:
     """ """
     # Detect available columns to round
@@ -95,6 +114,10 @@ def round_columns(df: pd.DataFrame) -> pd.DataFrame:
             "Plx" + f_id: 4,
             "pmRA" + f_id: 4,
             "pmDE" + f_id: 4,
+            "X_GC": 4,
+            "Y_GC": 4,
+            "Z_GC": 4,
+            "R_GC": 4,
         }
     )
     return df
