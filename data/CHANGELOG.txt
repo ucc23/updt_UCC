@@ -1,6 +1,31 @@
 Some of these are intermediate versions of the UCC database that are not published.
 
 
+## 25110710
+
+- HE2022_1 contains 14 entries named 'H21OC_*' that are 'hxhwl*' entries from
+He et al 2021. Renamed them as follows:
+  - H21OC_10 --> HXHWL 10, H21OC_10
+  - H21OC_12 --> HXHWL 12, H21OC_12
+  - H21OC_17 --> HXHWL 17, H21OC_17
+  - H21OC_18 --> HXHWL 18, H21OC_18
+  - H21OC_22 --> HXHWL 22, H21OC_22
+  - H21OC_26 --> HXHWL 26, H21OC_26
+  - H21OC_32 --> HXHWL 32, H21OC_32
+  - H21OC_33 --> HXHWL 33, H21OC_33
+  - H21OC_39 --> HXHWL 39, H21OC_39
+  - H21OC_42 --> HXHWL 42, H21OC_42
+  - H21OC_45 --> HXHWL 45, H21OC_45
+  - H21OC_5  --> HXHWL 5, H21OC_5
+  - H21OC_54 --> HXHWL 54, H21OC_54
+  - H21OC_69 --> HXHWL 69, H21OC_69
+
+
+## 25110314
+
+- Added (X_GC, Y_GC, Z_GC, R_GC) columns with Galactocentric coordinates
+
+
 ## 25102509-25102915
 
 - Added the FROEBRICH2007 database
