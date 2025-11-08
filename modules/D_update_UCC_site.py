@@ -353,18 +353,17 @@ def updt_ucc_cluster_files(
 
     fname_all = df_UCC["fname"].to_list()
 
-    ran_i = np.random.randint(0, len(df_UCC), size=10)
+    # ran_i = np.random.randint(0, len(df_UCC), size=10)
 
     N_total = 0
     # Iterate trough each entry in the UCC database
     for i_ucc, UCC_cl in df_UCC.iterrows():
         fname0 = str(UCC_cl["fname"])
 
-        # if fname0 not in ("ruprecht2", "ubc605", "blanco1", "melotte82"):
+        # if fname0 not in ("hxhwl10", ):
         #     continue
-
-        if i_ucc not in ran_i:
-            continue
+        # if i_ucc not in ran_i:
+        #     continue
 
         # Generate full entry
         new_md_entry = ucc_entry.make(
