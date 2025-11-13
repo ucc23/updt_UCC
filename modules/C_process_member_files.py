@@ -786,6 +786,11 @@ def get_UTI(current_JSON, df_UCC_B, df_UCC_C, max_dens=5):
     df_UCC_C["C_dup_same_db"] = np.round(C_dup_same_db, 2)
     df_UCC_C["UTI"] = np.round(UTI, 2)
 
+    # Flag entries that have bad values and are possibly asterisms, moving groups,
+    # or artifacts of some kind.
+    msk = (UTI < 0.25) & (C_dup > 0.75) & (C_lit < 0.3)
+    df_UCC_C.loc[msk, "bad_oc"] = "y"
+
     return df_UCC_C
 
 
@@ -844,6 +849,7 @@ def updt_zenodo_csv(
                 "shared_members",
                 "shared_members_p",
                 "UTI",
+                "bad_oc"
             ]
         ]
     )
