@@ -1,6 +1,6 @@
 # The Unified Cluster Catalogue (UCC)
 
-These files correspond to the 251107 version of the UCC database (https://ucc.ar),
+These files correspond to the 251113 version of the UCC database (https://ucc.ar),
 composed of 16609 clusters with a combined 1050966 members.
 If you find this data useful please cite its associated article
 ([Perren et al. 2023](https://ui.adsabs.harvard.edu/abs/2023MNRAS.526.4107P))
@@ -58,6 +58,9 @@ C3                  : Combined quality class
 shared_members      : Names of clusters with shared members
 shared_members_perc : Percentage of shared members for each cluster
 UTI                 : UCC Trust Index, a measure of the reliability of the cluster
+bad_oc              : Flag that indicates that this is likely an asterism,
+                      moving group or artifact (based on UTI value, duplication
+                      probability and presence in literature)
 ```
 
 Columns listed in the `UCC_members.parquet` file (one row per star):
