@@ -741,7 +741,6 @@ def get_UTI(current_JSON, df_UCC_B, df_UCC_C, max_dens=5):
         shared_members_p = list(map(float, cl["shared_members_p"].split(";")))
         date_received_cl = int(current_JSON[dbs[idx]]["received"])
 
-        # shared_p = [[], []]
         shared_p = {"n": 0.0, "y": 0.0}
         for j, f_year_shared in enumerate(fyears_shared):
             # shared_members_j, same_db = 0.0, 'n'
