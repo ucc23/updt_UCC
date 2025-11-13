@@ -1,6 +1,17 @@
 Some of these are intermediate versions of the UCC database that are not published.
 
 
+
+
+## 25111210
+
+- Added back five entries in DIAS2002 with class 'e' (embedded) that were originally
+  removed
+- Removed "DB XX" denomination from "Dutra-Bica" entries
+- Modified a few DBs in CASTRO2018 and LIUPANG2019 to add primary duplicated names
+- Renamed 74 entries after modifying the B script to
+
+
 ## 25110710
 
 - HE2022_1 contains 14 entries named 'H21OC_*' that are 'hxhwl*' entries from
