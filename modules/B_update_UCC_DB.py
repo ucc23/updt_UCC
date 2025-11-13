@@ -108,8 +108,6 @@ def main():
             temp_database_folder,
         )
 
-    logging.info("\nProceed with the next script")
-
 
 def get_paths_check_paths(
     logging,
@@ -1297,8 +1295,9 @@ def sort_year_importance(current_JSON, df_UCC_B):
             fnames = order_by_name(fnames)
 
             # Remove duplicates elements without affecting the order
-            names = list(dict.fromkeys(names))
-            fnames = list(dict.fromkeys(fnames))
+            fnames, rm_idx = rm_dups(fnames)
+            if rm_idx:
+                names = [_ for i, _ in enumerate(names) if i not in rm_idx]
             # Remove duplicates from DB and DB_i
             DB, rm_idx = rm_dups(DB)
             if rm_idx:
