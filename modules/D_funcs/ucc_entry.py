@@ -73,7 +73,7 @@ def make(current_JSON, DBs_full_data, df_UCC, UCC_cl, fnames_all, fname0):
         UCC_cl["C_lit"],
         UCC_cl["C_dup"],
         UCC_cl["C_dup_same_db"],
-        UCC_cl["UTI"],
+        UCC_cl["bad_oc"],
     )
 
     # Get colors used by the 'CX' classification
@@ -190,7 +190,7 @@ def summarize_object(
     C_lit,
     C_dup,
     C_dup_same_db,
-    UTI,
+    bad_oc,
 ) -> str:
     """
     Summarize an astronomical object based on five normalized parameters.
@@ -308,7 +308,7 @@ def summarize_object(
         )
 
     uti_html = """<a href="/faq#what-is-the-uti-parameter"title="UTI parameter"><b>UTI</b></a>"""
-    if UTI < 0.25 and C_dup > 0.75 and C_lit < 0.3:
+    if bad_oc == "y":
         summary += (
             html_warn
             + f"the low {uti_html} value and no obvious signs of duplication (C_dup={C_dup}) "
