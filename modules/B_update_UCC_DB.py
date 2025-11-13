@@ -25,7 +25,7 @@ from .variables import (
 
 def main():
     """
-    First function to update the UCC (Unified Cluster Catalogue) with a new database.
+    Function to update the UCC (Unified Cluster Catalogue) with a new database.
     """
     logging = logger()
 
@@ -34,7 +34,7 @@ def main():
         logging
     )
 
-    df_GCs, all_dbs_data, df_UCC_B, flag_interactive = load_data(
+    current_JSON, df_GCs, all_dbs_data, df_UCC_B, flag_interactive = load_data(
         logging, df_UCC_B_current_file, temp_JSON_file, temp_database_folder
     )
 
@@ -77,7 +77,7 @@ def main():
         )
 
         # Combine the new DB with the UCC
-        df_new_db = combine_UCC_new_DB(
+        df_UCC_B = combine_UCC_new_DB(
             logging,
             new_DB,
             newDB_json,
@@ -87,14 +87,7 @@ def main():
             db_matches,
         )
 
-        # Generate new UCC file with the new DB incorporated
-        df_UCC_B = add_new_DB(df_UCC_B, db_matches, df_new_db)
-
-    # Remove duplicate names and order by naming priority
-    df_UCC_B = rm_name_dups_order(df_UCC_B)
-
-    # Order DBs by years
-    df_UCC_B = date_order_DBs(df_UCC_B)
+    df_UCC_B = sort_year_importance(current_JSON, df_UCC_B)
 
     # Last sanity check. Check every individual fname for duplicates
     if duplicates_fnames_check(logging, df_UCC_B):
@@ -157,6 +150,7 @@ def load_data(
     temp_JSON_file: str,
     temp_database_folder: str,
 ) -> tuple[
+    dict,
     pd.DataFrame,
     dict,
     pd.DataFrame,
@@ -222,7 +216,7 @@ def load_data(
             flag_interactive.append(new_DB)
             logging.info(f"{new_DB} loaded (N={len(df_new)})")
 
-    return df_GCs, all_dbs_data, df_UCC_B, flag_interactive
+    return current_JSON, df_GCs, all_dbs_data, df_UCC_B, flag_interactive
 
 
 def check_new_DB(
@@ -633,10 +627,10 @@ def get_fnames_new_DB(
             else:
                 seen[item] = i
     if duplicates:
+        logging.info(f"\nFound {len(duplicates)} duplicate fnames in new DB entries:")
         for name, idxs in duplicates.items():
-            logging.info(f"Duplicate '{name}' found in entries: {sorted(idxs)}")
+            logging.info(f"'{name}' found in {len(idxs)} entries --> {sorted(idxs)}")
         # raise ValueError
-        logging.info("\nDuplicate fnames found in new DB entries")
         breakpoint()
 
     return new_DB_fnames
@@ -956,7 +950,6 @@ def combine_UCC_new_DB(
     pd.DataFrame
         Dataframe representing the updated database with new and modified entries.
     """
-    pos_cols = newDB_json["pos"]
     # Faster access below compared to using iloc
     ucc_dict_rows = df_UCC_B.to_dict(orient="records")
 
@@ -980,14 +973,25 @@ def combine_UCC_new_DB(
             oc_names,
             row_n,
             row_ucc,
-            pos_cols,
+            newDB_json["pos"],
         )
 
     N_new = db_matches.count(None)
     N_updt = len(db_matches) - N_new
+
+    # Drop OCs from the UCC that are present in the new DB
+    # Remove 'None' entries first from the indexes list
+    idx_rm_comb_db = [_ for _ in db_matches if _ is not None]
+    df_UCC_no_new = df_UCC_B.drop(list(df_UCC_B.index[idx_rm_comb_db]))
+    df_UCC_no_new.reset_index(drop=True, inplace=True)
+
+    # Final UCC with the new DB incorporated
+    dbs_merged_new = pd.concat(
+        [df_UCC_no_new, pd.DataFrame(new_db_dict)], ignore_index=True
+    )
     logging.info(f"\nNew entries: {N_new}, Updated entries: {N_updt}")
 
-    return pd.DataFrame(new_db_dict)
+    return dbs_merged_new
 
 
 def rename_standard(all_names: str, sep_in: str = ",", sep_out: str = ";") -> str:
@@ -1093,7 +1097,7 @@ def rename_standard(all_names: str, sep_in: str = ",", sep_out: str = ";") -> st
         if "OC-" in name:
             name = name.replace("OC-", "OC ")
 
-        # Removes duplicates such as "NGC_2516" and "NGC 2516"
+        # Use spaces not underscores
         name = name.replace("_", " ")
 
         new_names_rename.append(name)
@@ -1113,7 +1117,7 @@ def extract_new_DB_coords(DB_ID, row_n, pos_cols):
             ra_n, dec_n = row_n[pos_cols["RA"]], row_n[pos_cols["DEC"]]
             lon_n, lat_n = row_n["GLON_"], row_n["GLAT_"]
     # Don't use these for Pms, Plx values
-    if DB_ID not in ('DIAS2002',  'KHARCHENKO2012', "LOKTIN2017"):
+    if DB_ID not in ("DIAS2002", "KHARCHENKO2012", "LOKTIN2017"):
         if "plx" in pos_cols:
             plx_n = row_n[pos_cols["plx"]]
         if "pmra" in pos_cols:
@@ -1145,8 +1149,17 @@ def updt_new_DB(
         # Extract name(s) and fname(s) from new DB
         DB_ID, DB_i = new_DB, i_new_cl
         names, fnames = oc_names, sep.join(fnames_new_cl)
+        # Extend so that all four columns have the same number of entries. Necessary
+        # for later sorting
+        if len(fnames_new_cl) > 1:
+            DB_ID = sep.join([new_DB] * len(fnames_new_cl))
+            DB_i = sep.join([i_new_cl] * len(fnames_new_cl))
 
     else:  # This OC is already present in the UCC
+        if len(fnames_new_cl) > 1:
+            new_DB = sep.join([new_DB] * len(fnames_new_cl))
+            i_new_cl = sep.join([i_new_cl] * len(fnames_new_cl))
+
         # Attach name(s) and fname(s) present in new DB to the UCC
         DB_ID = row_ucc["DB"] + sep + new_DB
         DB_i = row_ucc["DB_i"] + sep + i_new_cl
@@ -1172,15 +1185,6 @@ def updt_new_DB(
             ra_n, dec_n = selected_center_coords[fnames_new_cl[idx[0]]]
             lon_n, lat_n = radec2lonlat(ra_n, dec_n)
 
-        # # Always update values unless nan
-        # vals_new = [ra_n, dec_n, lon_n, lat_n, plx_n, pmra_n, pmde_n]
-        # cols = ("RA_ICRS", "DE_ICRS", "GLON", "GLAT", "Plx", "pmRA", "pmDE")
-        # vals = [row_ucc[col] for col in cols]
-        # for i, val in enumerate(vals_new):
-        #     if np.isnan(val):
-        #         vals_new[i] = vals[i]
-        # ra_n, dec_n, lon_n, lat_n, plx_n, pmra_n, pmde_n = vals_new
-
     new_db_dict["DB"].append(DB_ID)
     new_db_dict["DB_i"].append(DB_i)
     new_db_dict["Names"].append(names)
@@ -1196,29 +1200,46 @@ def updt_new_DB(
     return new_db_dict
 
 
-def rm_name_dups_order(df_new_db: pd.DataFrame, sep: str = ";") -> pd.DataFrame:
+def sort_year_importance(current_JSON, df_UCC_B):
     """
-    Removes duplicate names from a semicolon-separated string, considering variations
-    with or without spaces and underscores, and orders according to given rules.
-
-    Removes duplicates of the kind:
-
-        Berkeley 102, Berkeley102, Berkeley_102
-
-    keeping only the name with the space.
-
-    Parameters
-    ----------
-    names : str
-        A semicolon-separated string of names.
-
-    Returns
-    -------
-    str
-        A semicolon-separated string of unique names, with duplicates removed.
+    The fnames are first sorted by year, then by importance ('naming_order' variable,
+    mostly for old clusters), and finally by the order in which they are stored in
+    the DBs.
     """
 
-    def rm_dups(strings: list[str]) -> tuple[list[str], list[int]]:
+    def order_by_name(items: np.ndarray) -> np.ndarray:
+        """
+        Return indexes that reorder a list, moving to the front elements that start
+        with any of the given prefixes. The prefixes earlier in the tuple have higher
+        priority.
+
+        Parameters
+        ----------
+        items : list of str
+            List of strings to reorder.
+
+        Returns
+        -------
+        np.ndarray[int]
+            Indexes that reorder the list accordingly.
+        """
+        idxs = []
+        for item in items:
+            idx = [np.inf]
+            for j, p in enumerate(naming_order):
+                if item.startswith(p):
+                    idx.append(j)
+                    break
+            idxs.append(min(idx))
+        # Return only the first index, it's the only one that matters
+        i_new = np.argsort(idxs)[0]
+        if i_new != 0:
+            # Swap the positions of the elements in '0' and i_new
+            items[0], items[i_new] = items[i_new], items[0]
+
+        return items
+
+    def rm_dups(strings: np.ndarray) -> tuple[list[str], list[int]]:
         """
         Remove duplicates from a list of strings and return unique values with their
         original indexes.
@@ -1247,102 +1268,52 @@ def rm_name_dups_order(df_new_db: pd.DataFrame, sep: str = ";") -> pd.DataFrame:
 
         return unique_strings, rm_idx
 
-    def order_by_name(items: list[str]) -> np.ndarray:
-        """
-        Return indexes that reorder a list, moving to the front elements that start
-        with any of the given prefixes. The prefixes earlier in the tuple have higher
-        priority.
+    new_rows = {
+        "Names": df_UCC_B["Names"].to_list(),
+        "fnames": df_UCC_B["fnames"].to_list(),
+        "DB": df_UCC_B["DB"].to_list(),
+        "DB_i": df_UCC_B["DB_i"].to_list(),
+    }
+    for k, row in df_UCC_B.iterrows():
+        dbs = row["DB"].split(";")
+        if len(dbs) > 1:
+            names = np.array(row["Names"].split(";"))
+            fnames = np.array(row["fnames"].split(";"))
+            DB = np.array(row["DB"].split(";"))
+            DB_i = np.array(row["DB_i"].split(";"))
 
-        Parameters
-        ----------
-        items : list of str
-            List of strings to reorder.
+            if len(set(dbs)) > 1:
+                # Sort by dates
+                ryears = []
+                for db in dbs:
+                    ryears.append(current_JSON[db]["received"])
+                isort = np.argsort(ryears)
+                names = names[isort]
+                fnames = fnames[isort]
+                DB = DB[isort]
+                DB_i = DB_i[isort]
 
-        Returns
-        -------
-        np.ndarray[int]
-            Indexes that reorder the list accordingly.
-        """
-        idxs = []
-        for item in items:
-            idx = [np.inf]
-            for j, p in enumerate(naming_order):
-                if item.startswith(p):
-                    idx.append(j)
-                    break
-            idxs.append(min(idx))
-        return np.argsort(idxs)
+            # Sort fnames by importance
+            fnames = order_by_name(fnames)
 
-    names_out, fnames_out = [], []
-    for i, fnames in enumerate(df_new_db["fnames"]):
-        # Remove duplicates from fnames
-        unq_fnames, rm_idx = rm_dups(fnames.split(sep))
-        # Remove same duplicates from names
-        unq_names = str(df_new_db["Names"][i]).split(sep)
-        if rm_idx:
-            unq_names = [_ for i, _ in enumerate(unq_names) if i not in rm_idx]
+            # Remove duplicates elements without affecting the order
+            names = list(dict.fromkeys(names))
+            fnames = list(dict.fromkeys(fnames))
+            # Remove duplicates from DB and DB_i
+            DB, rm_idx = rm_dups(DB)
+            if rm_idx:
+                DB_i = [_ for i, _ in enumerate(DB_i) if i not in rm_idx]
 
-        # Name ordering
-        idx_order = order_by_name(unq_fnames)
-        names_out.append(sep.join(unq_names[i] for i in idx_order))
-        fnames_out.append(sep.join(unq_fnames[i] for i in idx_order))
+            # Update corresponding row in df_UCC_B
+            new_rows["Names"][k] = ";".join(names)
+            new_rows["fnames"][k] = ";".join(fnames)
+            new_rows["DB"][k] = ";".join(DB)
+            new_rows["DB_i"][k] = ";".join(DB_i)
 
-    df_new_db["Names"] = names_out
-    df_new_db["fnames"] = fnames_out
-
-    return df_new_db
-
-
-def add_new_DB(
-    df_UCC_B: pd.DataFrame,
-    db_matches: list,
-    df_new_db: pd.DataFrame,
-) -> pd.DataFrame:
-    """
-    Adds a new database to the Unified Cluster Catalogue (UCC).
-    """
-    # Drop OCs from the UCC that are present in the new DB
-    # Remove 'None' entries first from the indexes list
-    idx_rm_comb_db = [_ for _ in db_matches if _ is not None]
-    df_UCC_no_new = df_UCC_B.drop(list(df_UCC_B.index[idx_rm_comb_db]))
-    df_UCC_no_new.reset_index(drop=True, inplace=True)
-
-    # Final UCC with the new DB incorporated
-    dbs_merged_new = pd.concat([df_UCC_no_new, df_new_db], ignore_index=True)
-
-    return dbs_merged_new
-
-
-def date_order_DBs(df_UCC_B: pd.DataFrame, sep: str = ";") -> pd.DataFrame:
-    """
-    Orders two semicolon-separated strings of database entries by the year extracted
-    from each entry.
-    """
-    DB_all, DB_i_all = df_UCC_B["DB"], df_UCC_B["DB_i"]
-
-    DB_all_sorted, DB_i_all_sorted = [], []
-    for i, DBs in enumerate(DB_all):
-        # Split lists
-        all_dbs = DBs.split(sep)
-        all_dbs_i = str(DB_i_all[i]).split(sep)
-
-        # Extract years from DBs
-        all_years = []
-        for db in all_dbs:
-            # Flip the year and DB name
-            db1, db2 = db, ""
-            if "_" in db:
-                db1, db2 = db.split("_")
-            year = db1[-4:] + db1[:-4] + db2
-            all_years.append(year)
-        # Sort and re-generate strings
-        idx = np.argsort(all_years)
-
-        DB_all_sorted.append(sep.join(list(np.array(all_dbs)[idx])))
-        DB_i_all_sorted.append(sep.join(list(np.array(all_dbs_i)[idx])))
-
-    df_UCC_B["DB"] = DB_all_sorted
-    df_UCC_B["DB_i"] = DB_i_all_sorted
+    df_UCC_B["Names"] = new_rows["Names"]
+    df_UCC_B["fnames"] = new_rows["fnames"]
+    df_UCC_B["DB"] = new_rows["DB"]
+    df_UCC_B["DB_i"] = new_rows["DB_i"]
 
     return df_UCC_B
 

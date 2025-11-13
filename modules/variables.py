@@ -34,43 +34,6 @@ naming_order = (
     "vdbh",  # 1975
     "bochum",  # 1975
     "ngc",
-    "kronberger",  # 2006
-    "dolidze",  # > 1950?
-    "auner",  # 2007
-    "hogg",
-    "carraro",
-    "lynga",
-    "johansson",
-    "mamajek",
-    "platais",
-    "harvard",
-    "czernik",
-    "koposov",
-    "blanco",
-    "westerlund",
-    "waterloo",
-    "eso",
-    "ascc",
-    "alessiteutsch",
-    "teutsch",
-    "alessi",
-    "king",
-    "saurer",
-    "vdb",
-    "stock",
-    "muzzio",
-    "fsr",
-    "juchert",
-    "antalova",
-    "stephenson",
-    "messineo1",
-    "patchick90",
-    "sai",
-    "coingaia",
-    "gulliver",
-    "dutrabica",
-    "ubc",
-    "feigelson1",
 )
 
 # The B script uses the first available coordinates for the entries, except
