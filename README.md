@@ -102,10 +102,6 @@ membership by the next script:
 ### Output
 
 - `UCC_cat_B.csv`: Updated version of this file (old one is archived)
-- `temp_updt/UCC_diff_new.csv`: Non-matching entries in the new database
-- `temp_updt/UCC_diff_old.csv`: Non-matching entries in the old database
-
-The last two files are meant to be viewed with a diff app (e.g.: Meld) side by side
 
 If new DBs were added then these files are moved from temporary folders to their
 final destination:
