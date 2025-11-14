@@ -397,11 +397,6 @@ def member_files_updt(
             temp_folder + "df_UCC_C_updt.csv", index=False, na_rep="nan"
         )
 
-    # This dataframe (and file) contains the data extracted from all the new entries,
-    # used to update the UCC
-    # df_UCC_updt = pd.DataFrame(df_UCC_C_updt)
-    # logging.info("\nTemp file df_UCC_C_updt saved")
-
     return df_UCC_C_updt
 
 
@@ -429,7 +424,7 @@ def update_C_cat(
         msk = ~df_UCC_C_new["fname"].isin(C_not_in_B["fname"])
         df_UCC_C_new = df_UCC_C_new[msk]
 
-    # # Update df_UCC_C_new using data from df_UCC_C_updt
+    # Update df_UCC_C_new using data from df_UCC_C_updt
     # Ensure 'fname' is the index in both DataFrames
     A = df_UCC_C_new.set_index("fname")
     B = df_UCC_C_updt.set_index("fname")
