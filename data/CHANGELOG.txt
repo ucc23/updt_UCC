@@ -2,6 +2,13 @@ Some of these are intermediate versions of the UCC database that are not publish
 
 
 
+## 25111417
+
+- Added UBC 32 as primary denomination of UPK 19 in SIM2019 (as explained in CASTRO2020)
+Four CASTRO2018 & CASTRO2019 UBC names were already identified as primary denominations
+to FoF entries in the new LIUPANG2019, so no change was required.
+- Modified LIUPANG2019 back to the previous version
+
 
 ## 25111410
 
