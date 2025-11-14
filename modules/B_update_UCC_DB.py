@@ -519,7 +519,7 @@ def GCs_check(
     df_GCs: pd.DataFrame,
     newDB_json: dict,
     df_new: pd.DataFrame,
-    search_rad: float = 15,
+    search_rad: float = 30,
 ) -> bool:
     """
     Check for nearby GCs for a new database
