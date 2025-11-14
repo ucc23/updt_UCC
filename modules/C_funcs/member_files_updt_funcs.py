@@ -657,9 +657,8 @@ def updt_UCC_new_cl_data(
     # Classification data
     C1, C2, C3 = get_classif(df_membs, df_field)
 
-    X_GC, Y_GC, Z_GC, R_GC = gc_values(
-        df_membs["RA_ICRS"], df_membs["DE_ICRS"], df_membs["Plx"]
-    )
+    # Galactocentric coordinates
+    X_GC, Y_GC, Z_GC, R_GC = gc_values(ra, dec, plx)
 
     # Temp dict used to update the UCC
     dict_updt = {
