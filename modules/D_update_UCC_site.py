@@ -681,6 +681,7 @@ def updt_cls_CSV(logging, ucc_gz_CSV_path: str, df_UCC_edit: pd.DataFrame) -> st
                 "r_50",
                 "C3",
                 "UTI",
+                "bad_oc",
             ]
         ]
     )
