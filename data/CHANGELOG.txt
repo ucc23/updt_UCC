@@ -3,6 +3,12 @@ Some of these are intermediate versions of the UCC database that are not publish
 
 
 
+## 25111410
+
+- Updated the LIUPANG2019 database with the complete one that includes their 
+entire Table 1 (almost 1500 new FoF entries)
+
+
 ## 25111210
 
 - Added back five entries in DIAS2002 with class 'e' (embedded) that were originally
