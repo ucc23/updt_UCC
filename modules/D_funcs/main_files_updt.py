@@ -24,42 +24,42 @@ def count_OCs_classes(C3, class_order):
     return OCs_per_class
 
 
-def count_shared_membs(df_UCC: pd.DataFrame) -> list:
-    """
-    Categorizes OCs with shared members into five groups based on the number of
-    OCs that share its members. Each group is represented by a mask array.
+# def count_shared_membs(df_UCC: pd.DataFrame) -> list:
+#     """
+#     Categorizes OCs with shared members into five groups based on the number of
+#     OCs that share its members. Each group is represented by a mask array.
 
-    Args:
-        df_UCC (pandas.DataFrame): A DataFrame containing a column named
-        "dups_fnames_m", where each entry is a string of file names separated by ";"
-        or NaN.
+#     Args:
+#         df_UCC (pandas.DataFrame): A DataFrame containing a column named
+#         "dups_fnames_m", where each entry is a string of file names separated by ";"
+#         or NaN.
 
-    Returns:
-        list: A list of five numpy boolean arrays. Each array corresponds to a mask
-              identifying rows with a specific range:
-              - Index 0: Rows with exactly 1 OC with shared members
-              - Index 1: Rows with exactly 2 OC with shared members
-              - Index 2: Rows with exactly 3 OC with shared members
-              - Index 3: Rows with exactly 4 OC with shared members
-              - Index 4: Rows with 5 or more OC with shared members
-    """
-    shared_msk = [np.full(len(df_UCC), False) for _ in range(5)]
-    for i, shared_fnames in enumerate(df_UCC["shared_members"]):
-        if str(shared_fnames) == "nan":
-            continue
-        N_dup = len(shared_fnames.split(";"))
-        if N_dup == 1:
-            shared_msk[0][i] = True
-        elif N_dup == 2:
-            shared_msk[1][i] = True
-        elif N_dup == 3:
-            shared_msk[2][i] = True
-        elif N_dup == 4:
-            shared_msk[3][i] = True
-        elif N_dup >= 5:
-            shared_msk[4][i] = True
+#     Returns:
+#         list: A list of five numpy boolean arrays. Each array corresponds to a mask
+#               identifying rows with a specific range:
+#               - Index 0: Rows with exactly 1 OC with shared members
+#               - Index 1: Rows with exactly 2 OC with shared members
+#               - Index 2: Rows with exactly 3 OC with shared members
+#               - Index 3: Rows with exactly 4 OC with shared members
+#               - Index 4: Rows with 5 or more OC with shared members
+#     """
+#     shared_msk = [np.full(len(df_UCC), False) for _ in range(5)]
+#     for i, shared_fnames in enumerate(df_UCC["shared_members"]):
+#         if str(shared_fnames) == "nan":
+#             continue
+#         N_dup = len(shared_fnames.split(";"))
+#         if N_dup == 1:
+#             shared_msk[0][i] = True
+#         elif N_dup == 2:
+#             shared_msk[1][i] = True
+#         elif N_dup == 3:
+#             shared_msk[2][i] = True
+#         elif N_dup == 4:
+#             shared_msk[3][i] = True
+#         elif N_dup >= 5:
+#             shared_msk[4][i] = True
 
-    return shared_msk
+#     return shared_msk
 
 
 def UTI_ranges(df_UCC: pd.DataFrame) -> list:
@@ -72,6 +72,18 @@ def UTI_ranges(df_UCC: pd.DataFrame) -> list:
     UTI_msk.append(list(df_UCC["UTI"] > N_limi))
 
     return UTI_msk
+
+
+def C_dup_ranges(df_UCC: pd.DataFrame) -> list:
+    """ """
+    Cdup_msk = [list(df_UCC["C_dup"] == 0.0)]
+    N_limi = 0.0
+    for N_limf in (0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9):
+        Cdup_msk.append(list((df_UCC["C_dup"] > N_limi) & (df_UCC["C_dup"] <= N_limf)))
+        N_limi = N_limf
+    Cdup_msk.append(list(df_UCC["C_dup"] > N_limi))
+
+    return Cdup_msk
 
 
 def count_N50membs(df_UCC: pd.DataFrame) -> list:
@@ -307,40 +319,61 @@ def updt_C3_classif_main_table(class_order, OCs_per_class, database_md_in: str):
 #     return database_md_updt
 
 
-def updt_shared_membs_main_table(shared_msk: list, database_md_in: str) -> str:
-    """
-    Updates a Markdown string with a summary table of duplicate counts, categorized
-    by the number of duplicates.
+# def updt_shared_membs_main_table(shared_msk: list, database_md_in: str) -> str:
+#     """
+#     Updates a Markdown string with a summary table of duplicate counts, categorized
+#     by the number of duplicates.
 
-    Args:
-        database_md_in (str): The Markdown string to be updated with the duplicates
-        table.
-        dups_msk (list): A list of numpy boolean arrays, where each array masks rows
-                         in `df_UCC` based on the number of duplicates.
+#     Args:
+#         database_md_in (str): The Markdown string to be updated with the duplicates
+#         table.
+#         dups_msk (list): A list of numpy boolean arrays, where each array masks rows
+#                          in `df_UCC` based on the number of duplicates.
 
-    Returns:
-        str: The updated Markdown string with the duplicates table inserted.
-    """
-    dups_table = "\n| OCs with shared members |   N  |\n"
-    dups_table += "|---------------------| :--: |\n"
+#     Returns:
+#         str: The updated Markdown string with the duplicates table inserted.
+#     """
+#     dups_table = "\n| OCs with shared members |   N  |\n"
+#     dups_table += "|---------------------| :--: |\n"
 
-    for i, msk in enumerate(shared_msk):
-        Nde = " N_shared ="
-        if i == 4:
-            Nde = "N_shared >="
-        dups_table += (
-            f"|     {Nde} {i + 1}      | [{msk.sum()}](/tables/Ns{i + 1}_table) |\n"
-        )
-    dups_table += "\n"
+#     for i, msk in enumerate(shared_msk):
+#         Nde = " N_shared ="
+#         if i == 4:
+#             Nde = "N_shared >="
+#         dups_table += (
+#             f"|     {Nde} {i + 1}      | [{msk.sum()}](/tables/Ns{i + 1}_table) |\n"
+#         )
+#     dups_table += "\n"
+
+#     delimeterA = "<!-- Begin table 4 -->\n"
+#     delimeterB = "<!-- End table 4 -->\n"
+#     database_md_updt = replace_text_between(
+#         database_md_in, dups_table, delimeterA, delimeterB
+#     )
+
+#     # if database_md_updt != database_md_in:
+#     #     logging.info("Table: shared members updated")
+
+#     return database_md_updt
+
+
+def updt_Cdup_main_table(Cdup_msk, database_md_in: str):
+    """ """
+    Cdup_table = "\n| C_dup |  N  | C_dup |  N  |\n"
+    Cdup_table += "| :--: | :-: | :--: | :-: |\n"
+    Cdup_table += f"| == 0.0 | [{sum(Cdup_msk[0])}](/tables/Cdup0_table) |"
+    for i, msk in enumerate(Cdup_msk[1:-1]):
+        fchar = "|\n" if i in (0, 2, 4, 6, 8) else "| "
+        N = f"[{sum(msk)}](/tables/Cdup{i + 1}_table)"
+        Cdup_table += f" ({0.0 + (i * 0.1):.1f}, {0.1 + (i * 0.1):.1f}] | {N} {fchar}"
+    Cdup_table += f"| 0.9 < | [{sum(Cdup_msk[-1])}](/tables/Cdup10_table) | -- | -- |\n"
+    Cdup_table += "\n"
 
     delimeterA = "<!-- Begin table 4 -->\n"
     delimeterB = "<!-- End table 4 -->\n"
     database_md_updt = replace_text_between(
-        database_md_in, dups_table, delimeterA, delimeterB
+        database_md_in, Cdup_table, delimeterA, delimeterB
     )
-
-    # if database_md_updt != database_md_in:
-    #     logging.info("Table: shared members updated")
 
     return database_md_updt
 
@@ -530,22 +563,48 @@ def updt_C3_classif_tables(df_updt, class_order: list) -> dict:
     return new_tables_dict
 
 
-def updt_shared_membs_tables(df_updt, dups_msk) -> dict:
-    """Update the shared members table files"""
-    header = header_default.format("shared_title", "/tables/shared_link_table/")
+def updt_Cdup_tables(df_updt, Cdup_msk) -> dict:
+    """Update the duplicates table files"""
+    header = header_default.format("cdup_title", "/tables/cdup_link_table/")
 
-    new_tables_dict = {}
-    for i, shared_N in enumerate(("Ns1", "Ns2", "Ns3", "Ns4", "Ns5")):
-        title = f"{shared_N} shared"
-        md_table = header.replace("shared_title", title).replace(
-            "shared_link", shared_N
-        )
-        msk = dups_msk[i]
-        md_table = generate_table(df_updt[msk], md_table)
+    # UTI==0 table
+    md_table = header.replace("cdup_title", "Cdup==0").replace("cdup_link", "Cdup0")
+    md_table = generate_table(df_updt[Cdup_msk[0]], md_table)
+    new_tables_dict = {"Cdup0": md_table}
 
-        new_tables_dict[shared_N] = md_table
+    Ni = 0
+    for i, Nf in enumerate((0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)):
+        title = f"Cdup ({Ni}, {Nf}]"
+        Nmembs = f"Cdup{i + 1}"
+        md_table = header.replace("cdup_title", title).replace("cdup_link", Nmembs)
+        md_table = generate_table(df_updt[Cdup_msk[i + 1]], md_table)
+        Ni = Nf
+        new_tables_dict[Nmembs] = md_table
+
+    # N>0.9 table
+    md_table = header.replace("cdup_title", "Cdup>0.9").replace("cdup_link", "Cdup10")
+    md_table = generate_table(df_updt[Cdup_msk[-1]], md_table)
+    new_tables_dict["Cdup10"] = md_table
 
     return new_tables_dict
+
+
+# def updt_shared_membs_tables(df_updt, dups_msk) -> dict:
+#     """Update the shared members table files"""
+#     header = header_default.format("shared_title", "/tables/shared_link_table/")
+
+#     new_tables_dict = {}
+#     for i, shared_N in enumerate(("Ns1", "Ns2", "Ns3", "Ns4", "Ns5")):
+#         title = f"{shared_N} shared"
+#         md_table = header.replace("shared_title", title).replace(
+#             "shared_link", shared_N
+#         )
+#         msk = dups_msk[i]
+#         md_table = generate_table(df_updt[msk], md_table)
+
+#         new_tables_dict[shared_N] = md_table
+
+#     return new_tables_dict
 
 
 # def updt_OCs_per_quad_tables(df_updt):
