@@ -8,19 +8,19 @@ import pandas as pd
 
 from .D_funcs import ucc_entry, ucc_plots
 from .D_funcs.main_files_updt import (
+    C_dup_ranges,
     UTI_ranges,
     count_N50membs,
     count_OCs_classes,
-    count_shared_membs,
     ucc_n_total_updt,
     updt_articles_table,
     updt_C3_classif_main_table,
     updt_C3_classif_tables,
+    updt_Cdup_main_table,
+    updt_Cdup_tables,
     updt_DBs_tables,
     updt_N50_main_table,
     updt_N50_tables,
-    updt_shared_membs_main_table,
-    updt_shared_membs_tables,
     updt_UTI_main_table,
     updt_UTI_tables,
 )
@@ -127,7 +127,8 @@ def main():
     # Mask with N50 members
     membs_msk = count_N50membs(df_UCC_edit)
     # Mask with OCs with shared members
-    shared_msk = count_shared_membs(df_UCC_edit)
+    # shared_msk = count_shared_membs(df_UCC_edit)
+    Cdup_msk = C_dup_ranges(df_UCC_edit)
 
     # Update DATABASE, TABLES, ARTCILES .md files
     if input("\nUpdate 'DATABASE, TABLES, ARTICLES' files? (y/n): ").lower() == "y":
@@ -143,7 +144,7 @@ def main():
             OCs_per_class,
             UTI_msk,
             membs_msk,
-            shared_msk,
+            Cdup_msk,
         )
 
     # Update tables files
@@ -158,7 +159,7 @@ def main():
             df_UCC_edit,
             UTI_msk,
             membs_msk,
-            shared_msk,
+            Cdup_msk,
         )
 
     # Update CSV file
@@ -531,12 +532,12 @@ def updt_UCC(df_UCC: pd.DataFrame) -> pd.DataFrame:
     dist_pc = np.clip(dist_pc, a_min=10, a_max=50000)
     df["dist_pc"] = np.round(dist_pc, 0)
 
-    df["Plx_m_round"] = np.round(df["Plx_m"], 2)
+    df["Plx_m_round"] = np.round(df["Plx_m"], 2)  # Used to display in tables
     df["C3_abcd"] = [ucc_entry.color_C3(_) for _ in df["C3"]]
 
     df["N_50"] = df["N_50"].astype(int)
 
-    df = df.sort_values("Name")
+    df = df.sort_values("Name").reset_index()
 
     return df
 
@@ -552,7 +553,7 @@ def update_main_pages(
     OCs_per_class,
     UTI_msk,
     membs_msk,
-    shared_msk,
+    Cdup_msk,
 ):
     """Update DATABASE, TABLES, ARTICLES .md files"""
     logging.info("\nUpdating DATABASE, TABLES, ARTICLES .md files")
@@ -576,7 +577,8 @@ def update_main_pages(
         class_order, OCs_per_class, tables_md_updt
     )
     # tables_md_updt = updt_OCs_per_quad_main_table(df_UCC, tables_md_updt)
-    tables_md_updt = updt_shared_membs_main_table(shared_msk, tables_md_updt)
+    # tables_md_updt = updt_shared_membs_main_table(shared_msk, tables_md_updt)
+    tables_md_updt = updt_Cdup_main_table(Cdup_msk, tables_md_updt)
     tables_md_updt = updt_N50_main_table(membs_msk, tables_md_updt)
     with open(temp_folder + tables_md_path, "w") as file:
         file.write(tables_md_updt)
@@ -605,7 +607,7 @@ def updt_indiv_tables_files(
     df_UCC_edit,
     UTI_msk,
     membs_msk,
-    shared_msk,
+    Cdup_msk,
 ):
     """ """
     logging.info("\nUpdating individual tables")
@@ -632,12 +634,10 @@ def updt_indiv_tables_files(
     general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
 
     #
-    new_tables_dict = updt_shared_membs_tables(df_UCC_edit, shared_msk)
-    general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
-
-    #
     # new_tables_dict = updt_OCs_per_quad_tables(df_UCC_edit)
-    # general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
+    # new_tables_dict = updt_shared_membs_tables(df_UCC_edit, shared_msk)
+    new_tables_dict = updt_Cdup_tables(df_UCC_edit, Cdup_msk)
+    general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
 
 
 def general_table_update(
