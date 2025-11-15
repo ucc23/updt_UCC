@@ -277,6 +277,8 @@ This will generate a full version of the site locally which can take a while. Fo
 faster build, avoid processing the files in the `_clusters, _tables` folder (for
 example, using a different `include` with fewer/different selected folders)
 
+Check the local version in both Chrome and Firefox.
+
 
 ### 5.2 Live build
 
