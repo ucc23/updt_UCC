@@ -1,8 +1,11 @@
 Some of these are intermediate versions of the UCC database that are not published.
 
 
+## 2511XXYY
 
-## 25111417
+
+
+## 25111417-25111510
 
 - Added UBC 32 as primary denomination of UPK 19 in SIM2019 (as explained in CASTRO2020)
 Four CASTRO2018 & CASTRO2019 UBC names were already identified as primary denominations
@@ -22,7 +25,7 @@ entire Table 1 (almost 1500 new FoF entries)
   removed
 - Removed "DB XX" denomination from "Dutra-Bica" entries
 - Modified a few DBs in CASTRO2018 and LIUPANG2019 to add primary duplicated names
-- Renamed 74 entries after modifying the B script to
+- Renamed 74 entries after modifying the B script to order fnames according to year
 
 
 ## 25110710
