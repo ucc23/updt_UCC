@@ -34,7 +34,7 @@ def main():
         logging
     )
 
-    current_JSON, df_GCs, all_dbs_data, df_UCC_B, flag_interactive = load_data(
+    new_JSON, df_GCs, all_dbs_data, df_UCC_B, flag_interactive = load_data(
         logging, df_UCC_B_current_file, temp_JSON_file, temp_database_folder
     )
 
@@ -87,7 +87,7 @@ def main():
             db_matches,
         )
 
-    df_UCC_B = sort_year_importance(current_JSON, df_UCC_B)
+    df_UCC_B = sort_year_importance(new_JSON, df_UCC_B)
 
     # Last sanity check. Check every individual fname for duplicates
     if duplicates_fnames_check(logging, df_UCC_B):
@@ -166,6 +166,7 @@ def load_data(
     # Load current JSON file
     with open(name_DBs_json) as f:
         current_JSON = json.load(f)
+    new_JSON = current_JSON
 
     # Load GCs data
     df_GCs = pd.read_csv(GCs_cat)
@@ -194,6 +195,7 @@ def load_data(
         # Load new temp JSON file
         with open(temp_JSON_file) as f:
             temp_JSON = json.load(f)
+        new_JSON = temp_JSON
 
         # Extract new DB's name(s)
         new_DBs = list(set(temp_JSON.keys()) - set(current_dbs))
@@ -214,7 +216,7 @@ def load_data(
             flag_interactive.append(new_DB)
             logging.info(f"{new_DB} loaded (N={len(df_new)})")
 
-    return current_JSON, df_GCs, all_dbs_data, df_UCC_B, flag_interactive
+    return new_JSON, df_GCs, all_dbs_data, df_UCC_B, flag_interactive
 
 
 def check_new_DB(
@@ -628,8 +630,8 @@ def get_fnames_new_DB(
         logging.info(f"\nFound {len(duplicates)} duplicate fnames in new DB entries:")
         for name, idxs in duplicates.items():
             logging.info(f"'{name}' found in {len(idxs)} entries --> {sorted(idxs)}")
-        # raise ValueError
         breakpoint()
+        sys.exit(0)
 
     return new_DB_fnames
 
@@ -1198,7 +1200,7 @@ def updt_new_DB(
     return new_db_dict
 
 
-def sort_year_importance(current_JSON, df_UCC_B):
+def sort_year_importance(new_JSON, df_UCC_B):
     """
     The fnames are first sorted by year, then by importance ('naming_order' variable,
     mostly for old clusters), and finally by the order in which they are stored in
@@ -1284,7 +1286,7 @@ def sort_year_importance(current_JSON, df_UCC_B):
                 # Sort by dates
                 ryears = []
                 for db in dbs:
-                    ryears.append(current_JSON[db]["received"])
+                    ryears.append(new_JSON[db]["received"])
                 isort = np.argsort(ryears)
                 names = names[isort]
                 fnames = fnames[isort]
