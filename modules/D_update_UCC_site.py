@@ -434,6 +434,7 @@ def updt_ucc_cluster_plots(logging, df_UCC, df_members, min_UTI=0.5) -> pd.DataF
                 f"{temp_folder}{plots_folder}plots_{fname0[0]}/aladin/{fname0}.webp"
             )
             ucc_plots.plot_aladin(
+                logging,
                 UCC_cl["RA_ICRS_m"],
                 UCC_cl["DE_ICRS_m"],
                 UCC_cl["r_50"],
