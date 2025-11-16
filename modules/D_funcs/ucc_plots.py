@@ -24,7 +24,7 @@ def velocity(ra, dec, plx, pmRA, pmDE, rad_v, x_gc, y_gc, z_gc, R_gc):
     x_gc, y_gc, z_gc: Galactocentric X,Y,Z [kpc]
     """
 
-    d_pc = plx_to_pc(plx)
+    d_pc = plx_to_pc(np.copy(plx))
 
     # Replace 'nan' values with '0' in rad_v
     rad_v = np.nan_to_num(rad_v, nan=0.0)
@@ -351,6 +351,7 @@ def diag_limits(phot_x, phot_y):
 
 
 def plot_aladin(
+    logging,
     ra,
     dec,
     r_50,
@@ -373,10 +374,10 @@ def plot_aladin(
     try:
         url = f"http://alasky.u-strasbg.fr/hips-image-services/hips2fits?{urlencode(query_params)}"
         hdul = fits.open(url)
+        rotated_img = ndimage.rotate(hdul[0].data.T, 90)
     except Exception as e:
-        return f"ERROR: {e}"
+        logging.error(f"Error generating Aladin plot for {plot_aladin_fpath}: {e}")
 
-    rotated_img = ndimage.rotate(hdul[0].data.T, 90)
     fig, ax = plt.subplots()
     plt.imshow(rotated_img)
     plt.axis("off")
