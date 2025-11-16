@@ -704,7 +704,7 @@ def gc_values(ra, dec, plx, max_xyz=20):
     Global parallax zero point offset (selected by me): -0.02
     """
 
-    d_pc = plx_to_pc(np.copy(plx))
+    d_pc = plx_to_pc(plx)
 
     coords = SkyCoord(
         ra=ra * u.deg,

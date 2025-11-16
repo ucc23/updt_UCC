@@ -24,7 +24,7 @@ def velocity(ra, dec, plx, pmRA, pmDE, rad_v, x_gc, y_gc, z_gc, R_gc):
     x_gc, y_gc, z_gc: Galactocentric X,Y,Z [kpc]
     """
 
-    d_pc = plx_to_pc(np.copy(plx))
+    d_pc = plx_to_pc(plx)
 
     # Replace 'nan' values with '0' in rad_v
     rad_v = np.nan_to_num(rad_v, nan=0.0)
