@@ -87,7 +87,7 @@ def plx_to_pc(plx, PZPO=-0.02, min_plx=0.035, max_plx=200):
 
     We use -0.02 as a reasonable value here.
     """
-    plx = np.copy(plx)
+    plx = np.array(plx) * 1.0
 
     # "the zero-point returned by the code should be subtracted from the parallax value"
     # https://gitlab.com/icc-ub/public/gaiadr3_zeropoint
