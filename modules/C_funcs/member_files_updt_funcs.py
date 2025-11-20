@@ -686,6 +686,7 @@ def updt_UCC_new_cl_data(
         "Y_GC": Y_GC,
         "Z_GC": Z_GC,
         "R_GC": R_GC,
+        "bad_oc": "n",
     }
 
     # Update 'df_UCC_updt' with 'dict_updt' values
