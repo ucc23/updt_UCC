@@ -45,6 +45,27 @@
       "e_met": "e_[Fe/H]"
     }
   },
+  "ALESSI2003": {
+    "SCIX_url": "https://scixplorer.org/abs/2003A%26A...410..565A",
+    "vizier_url": "N/A",
+    "authors": "Alessi et al.",
+    "title": "Searching for unknown open clusters in the Tycho-2 catalog",
+    "year": "2003",
+    "received": "20021206",
+    "names": "Name",
+    "pos": {
+      "RA": "RA_ICRS",
+      "DEC": "DE_ICRS",
+      "pmra": "pmra",
+      "pmde": "pmde"
+    },
+    "pars": {
+      "ext": "E(B-V)",
+      "dist": "d_pc",
+      "age": "logt"
+    },
+    "e_pars": {}
+  },
   "CHEN2003": {
     "SCIX_url": "https://scixplorer.org/abs/2003AJ....125.1397C",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2003AJ....125.1397C",
@@ -71,6 +92,66 @@
     },
     "e_pars": {}
   },
+  "MERCER2005": {
+    "SCIX_url": "https://scixplorer.org/abs/2005ApJ...635..560M",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2005ApJ...635..560M",
+    "authors": "Mercer et al.",
+    "title": "New Star Clusters Discovered in the GLIMPSE Survey",
+    "year": "2005",
+    "received": "20050610",
+    "names": "MCM2005b",
+    "pos": {
+      "RA": "_RA.icrs",
+      "DEC": "_DE.icrs"
+    },
+    "pars": {},
+    "e_pars": {}
+  },
+  "KRONBERGER2006": {
+    "SCIX_url": "https://scixplorer.org/abs/2006A%26A...447..921K",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2006A%26A...447..921K",
+    "authors": "Kronberger et al.",
+    "title": "New galactic open cluster candidates from DSS and 2MASS imagery",
+    "year": "2006",
+    "received": "20050817",
+    "names": "Name",
+    "pos": {
+      "RA": "RA_ICRS",
+      "DEC": "DE_ICRS"
+    },
+    "pars": {
+      "ext": "E(B-V)",
+      "dist": "Dist",
+      "age": "logt"
+    },
+    "e_pars": {
+      "e_ext": "e_E(B-V)",
+      "e_dist": "e_Dist",
+      "e_age": "e_logt"
+    }
+  },
+  "PISKUNOV2007": {
+    "SCIX_url": "https://scixplorer.org/abs/2007A%26A...468..151P",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2007A%26A...468..151P",
+    "authors": "Piskunov et al.",
+    "title": "Towards absolute scales for the radii and masses of open clusters",
+    "year": "2007",
+    "names": "Name",
+    "received": "20070110",
+    "pos": {
+      "RA": "_RA.icrs",
+      "DEC": "_DE.icrs"
+    },
+    "pars": {
+      "ext": "E(B-V)",
+      "dist": "Dist",
+      "age": "logt",
+      "mass": "logM"
+    },
+    "e_pars": {
+      "e_mass": "e_logM"
+    }
+  },
   "FROEBRICH2007": {
     "SCIX_url": "https://scixplorer.org/abs/2007MNRAS.374..399F",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2007MNRAS.374..399F",
@@ -85,6 +166,28 @@
     },
     "pars": {},
     "e_pars": {}
+  },
+  "PISKUNOV2008": {
+    "SCIX_url": "https://scixplorer.org/abs/2008A%26A...477..165P",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2008A%26A...477..165P",
+    "authors": "Piskunov et al.",
+    "title": "Tidal radii and masses of open clusters",
+    "year": "2008",
+    "names": "Name",
+    "received": "20070822",
+    "pos": {
+      "RA": "_RA.icrs",
+      "DEC": "_DE.icrs"
+    },
+    "pars": {
+      "ext": "E(B-V)",
+      "dist": "Dist",
+      "age": "logt",
+      "mass": ["logM", "logMA"]
+    },
+    "e_pars": {
+      "e_mass": ["e_logM", "e_logMA"]
+    }
   },
   "KOPOSOV2008": {
     "SCIX_url": "https://scixplorer.org/abs/2008A%26A...486..771K",

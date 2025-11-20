@@ -1,7 +1,13 @@
 Some of these are intermediate versions of the UCC database that are not published.
 
 
-## 2511XXYY
+## 25111711
+
+- Added Kronberger et al. 2006
+- Added Alessi et al. 2003
+- Added Mercer et al. 2005
+- Added Piskunov et al. 2007
+- Added Piskunov et al. 2008
 
 
 
