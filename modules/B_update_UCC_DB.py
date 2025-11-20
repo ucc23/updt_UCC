@@ -163,60 +163,44 @@ def load_data(
     # Empty dataframe
     df_UCC_B = pd.DataFrame(dbs_merged_current[0:0])
 
-    # Load current JSON file
-    with open(name_DBs_json) as f:
-        current_JSON = json.load(f)
-    new_JSON = current_JSON
-
     # Load GCs data
     df_GCs = pd.read_csv(GCs_cat)
 
-    logging.info("\n=== Rebuilding the UCC ===\n")
-
-    # All DBs (assumes sorted by year)
-    all_dbs = list(current_JSON.keys())
-    # First entries
-    all_dbs = [_ for _ in all_dbs if _ not in ("DIAS2002", "BICA2019")]
-    all_dbs = ["DIAS2002", "BICA2019"] + all_dbs
-
-    all_dbs_data = {}
-    # Load existing DBs
-    for DB in all_dbs:
-        df_new = pd.read_csv(dbs_folder + DB + ".csv")
-        logging.info(f"{DB} loaded (N={len(df_new)})")
-        newDB_json = current_JSON[DB]
-        all_dbs_data[DB] = [df_new, newDB_json]
-
-    current_dbs = current_JSON.keys()
-    flag_interactive = []
+    # Load current JSON file
+    with open(name_DBs_json) as f:
+        current_JSON = json.load(f)
+    new_DBs = []
     if os.path.isfile(temp_JSON_file):
         logging.info("\n=== Adding new DBs to the UCC ===\n")
-
         # Load new temp JSON file
         with open(temp_JSON_file) as f:
             temp_JSON = json.load(f)
         new_JSON = temp_JSON
-
         # Extract new DB's name(s)
-        new_DBs = list(set(temp_JSON.keys()) - set(current_dbs))
+        new_DBs = list(set(temp_JSON.keys()) - set(current_JSON.keys()))
+    else:
+        logging.info("\n=== Rebuilding the UCC ===\n")
+        new_JSON = current_JSON
 
-        for new_DB in new_DBs:
-            # Sanity check
-            if new_DB in current_dbs:
-                raise ValueError(
-                    f"The DB '{new_DB}' is already in the current JSON file"
-                )
+    all_dbs_data = {}
+    # Load existing DBs
+    for DB in new_JSON:
+        if DB in new_DBs:
+            df_new = pd.read_csv(temp_database_folder + DB + ".csv")
+        else:
+            df_new = pd.read_csv(dbs_folder + DB + ".csv")
+        logging.info(f"{DB} loaded (N={len(df_new)})")
+        newDB_json = new_JSON[DB]
+        all_dbs_data[DB] = [df_new, newDB_json]
 
-            # Load the DB
-            df_new = pd.read_csv(temp_database_folder + new_DB + ".csv")
-            # Load column data for the new catalogue
-            newDB_json = temp_JSON[new_DB]
-            # all_dbs_data.append([new_DB, df_new, newDB_json])
-            all_dbs_data[new_DB] = [df_new, newDB_json]
-            flag_interactive.append(new_DB)
-            logging.info(f"{new_DB} loaded (N={len(df_new)})")
+    # Re order 'all_dbs_data' dictionary so that the keys ["DIAS2002", "BICA2019"] are
+    # positioned first
+    all_dbs = [_ for _ in all_dbs_data.keys() if _ not in ("DIAS2002", "BICA2019")]
+    all_dbs = ["DIAS2002", "BICA2019"] + all_dbs
+    all_dbs_data = {k: all_dbs_data[k] for k in all_dbs}
 
-    return new_JSON, df_GCs, all_dbs_data, df_UCC_B, flag_interactive
+    # flag_interactive == new_DBs
+    return new_JSON, df_GCs, all_dbs_data, df_UCC_B, new_DBs
 
 
 def check_new_DB(
@@ -1231,15 +1215,9 @@ def sort_year_importance(new_JSON, df_UCC_B):
                     idx.append(j)
                     break
             idxs.append(min(idx))
-        # Return only the first index, it's the only one that matters
-        i_new = np.argsort(idxs)[0]
-        if i_new != 0:
-            # Swap the positions of the elements in '0' and i_new
-            items[0], items[i_new] = items[i_new], items[0]
+        return np.argsort(idxs, kind="stable")
 
-        return items
-
-    def rm_dups(strings: np.ndarray) -> tuple[list[str], list[int]]:
+    def rm_dups(strings: list | np.ndarray) -> tuple[list[str], list[int]]:
         """
         Remove duplicates from a list of strings and return unique values with their
         original indexes.
@@ -1287,14 +1265,16 @@ def sort_year_importance(new_JSON, df_UCC_B):
                 ryears = []
                 for db in dbs:
                     ryears.append(new_JSON[db]["received"])
-                isort = np.argsort(ryears)
+                isort = np.argsort(ryears, kind="stable")
                 names = names[isort]
                 fnames = fnames[isort]
                 DB = DB[isort]
                 DB_i = DB_i[isort]
 
-            # Sort fnames by importance
-            fnames = order_by_name(fnames)
+            # Sort by importance
+            i_new = order_by_name(fnames)
+            fnames = [fnames[_] for _ in i_new]
+            names = [names[_] for _ in i_new]
 
             # Remove duplicates elements without affecting the order
             fnames, rm_idx = rm_dups(fnames)
