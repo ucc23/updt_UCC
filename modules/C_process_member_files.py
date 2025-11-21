@@ -55,9 +55,6 @@ def main():
     N_process = (
         len(rename_C_fname) + len(B_not_in_C) + len(C_not_in_B) + len(C_reprocess)
     )
-    if N_process == 0:
-        logging.info("\nNo new OCs to process")
-        return
 
     logging.info(
         f"\nProcessing:\n-B entries not in C   : {len(B_not_in_C)}\n"
@@ -65,6 +62,10 @@ def main():
         + f"-C entries to rename  : {len(rename_C_fname)}\n"
         + f"-C entries re-process : {len(C_reprocess)}"
     )
+
+    if N_process == 0:
+        if input("\nNo new OCs to process. Process anyway? (y/n): ").lower() != "y":
+            sys.exit()
 
     load_file = False
     temp_UCC_updt_file = temp_folder + "df_UCC_C_updt.csv"
