@@ -211,6 +211,7 @@ def load_data(
             "frame_limit": "string",
             "shared_members": "string",
             "shared_members_p": "string",
+            "bad_oc": "string",
         },
     )
     logging.info(f"File {ucc_C_file} loaded ({len(df_UCC_C)} entries)")
@@ -323,6 +324,7 @@ def process_entries(
         "C3",
         "shared_members",
         "shared_members_p",
+        "bad_oc",
     )
     for col in df_UCC_updt.columns:
         if col in str_type:
@@ -844,7 +846,7 @@ def updt_zenodo_csv(
                 "shared_members",
                 "shared_members_p",
                 "UTI",
-                "bad_oc"
+                "bad_oc",
             ]
         ]
     )
