@@ -314,29 +314,20 @@ def get_Nmembs(
     my_field : asteca.Cluster
         ASteCA Cluster object
     """
-
     # If 'N_clust' was given, use it
     if not np.isnan(N_clust):
         my_field.N_cluster = int(N_clust)
         logging.info(f"  Using manual N_cluster={int(N_clust)}")
-    # Else, if 'N_clust_max' was given use it to cap the maximum number of members
-    elif not np.isnan(N_clust_max):
+        return
+    
+    # If 'N_clust_max' was given use it to cap the maximum number of members
+    if not np.isnan(N_clust_max):
         my_field.N_clust_max = int(N_clust_max)
         logging.info(f"  Using manual N_clust_max={int(N_clust_max)}")
 
     # Use default ASteCA method
     my_field.get_nmembers()
-
-    if my_field.N_cluster > my_field.N_clust_max:
-        if not np.isnan(N_clust_max):
-            my_field.N_cluster = my_field.N_clust_max
-            txt = f", using N_cluster={N_clust_max}"
-        else:
-            txt = f", using N_cluster={my_field.N_clust_min}"
-            my_field.N_cluster = my_field.N_clust_min
-        logging.info(f"  WARNING: {my_field.N_cluster} > {my_field.N_clust_max}" + txt)
-    else:
-        logging.info(f"  Estimated N_cluster={my_field.N_cluster}")
+    logging.info(f"  Using N_clust={int(my_field.N_cluster)}")
 
 
 def check_close_cls(
