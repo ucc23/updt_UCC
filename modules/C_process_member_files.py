@@ -18,8 +18,11 @@ from .utils import (
     save_df_UCC,
 )
 from .variables import (
+    C_dup_min,
+    C_lit_max,
     GCs_cat,
     UCC_members_file,
+    UTI_max,
     data_folder,
     md_folder,
     merged_dbs_file,
@@ -121,6 +124,9 @@ def main():
 
     # Add UTI values
     df_UCC_C_final = get_UTI(current_JSON, df_UCC_B, df_UCC_C_final)
+
+    # Identify "bad" OCs
+    df_UCC_C_final = get_bad_ocs(df_UCC_C_final)
 
     # Check differences between the original and final C dataframes
     diff_between_dfs(logging, df_UCC_C, df_UCC_C_final)
@@ -695,13 +701,14 @@ def get_UTI(current_JSON, df_UCC_B, df_UCC_C, max_dens=5):
     C_C3 = np.array([vals[a[0]] + vals[a[1]] for a in C3], dtype=float) * 0.5
 
     # Count number of times each OC is mentioned in the literature
+    N_lit_tot = len({s for cell in df_UCC_B["DB"] for s in cell.split(";")})
+    # Percentages that define the mapping ranges: 5%, 10%, 15%, 20%
+    Nvals = [int(N_lit_tot * _) for _ in (0.05, 0.1, 0.15, 0.2)]
     N_lit = np.array([len(_.split(";")) for _ in df_UCC_B["DB"]])
     C_lit = np.ones(len(N_lit))
-    min_lit = 2
-    C_lit[N_lit < min_lit] = 0.0
+    C_lit[N_lit < min(Nvals)] = 0.0
     # Define intervals and mapping ranges
     bounds = (0.25, 0.5, 0.75, 0.9)
-    Nvals = (min_lit, 5, 7, 10)
     for i in range(1, len(bounds)):
         normalize(N_lit, C_lit, Nvals[i - 1], Nvals[i], bounds[i - 1], bounds[i])
 
@@ -788,12 +795,17 @@ def get_UTI(current_JSON, df_UCC_B, df_UCC_C, max_dens=5):
     df_UCC_C["C_dup_same_db"] = np.round(C_dup_same_db, 2)
     df_UCC_C["UTI"] = np.round(UTI, 2)
 
-    # Flag entries that have bad values and are possibly asterisms, moving groups,
-    # or artifacts of some kind.
-    msk = (UTI < 0.25) & (C_dup > 0.75) & (C_lit < 0.3)
-    df_UCC_C.loc[msk, "bad_oc"] = "y"
-
     return df_UCC_C
+
+
+def get_bad_ocs(df):
+    """Flag entries that have bad values and are possibly asterisms, moving groups,
+    or artifacts of some kind.
+    """
+    msk = (df["UTI"] < UTI_max) & (df["C_dup"] > C_dup_min) & (df["C_lit"] < C_lit_max)
+    df.loc[msk, "bad_oc"] = "y"
+
+    return df
 
 
 def update_files(
@@ -830,6 +842,7 @@ def updt_zenodo_csv(
     """
     # Add column
     df_UCC_C["Name"] = df_UCC_B["Names"]
+    df_UCC_C["P_dup"] = np.round(1 - df_UCC_C["C_dup"], 2)
 
     # Re-order columns
     df_UCC_C = pd.DataFrame(
@@ -848,8 +861,7 @@ def updt_zenodo_csv(
                 "N_50",
                 "r_50",
                 "C3",
-                "shared_members",
-                "shared_members_p",
+                "P_dup",
                 "UTI",
                 "bad_oc",
             ]
@@ -866,7 +878,6 @@ def updt_zenodo_csv(
             "pmRA_m": "pmRA",
             "pmDE_m": "pmDE",
             "Rv_m": "Rv",
-            "shared_members_p": "shared_members_perc",
         },
         inplace=True,
     )

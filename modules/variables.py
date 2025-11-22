@@ -56,6 +56,11 @@ selected_center_coords = {
 }
 
 
+# Bad OCs parameters
+UTI_max = 0.25
+C_dup_min = 0.75
+C_lit_max = 0.3
+
 # Zenodo paths and names
 #
 # Path to the folder that stores the latest UCC version
