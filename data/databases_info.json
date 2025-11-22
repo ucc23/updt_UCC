@@ -12,12 +12,20 @@
       "DEC": "_DE"
     },
     "pars": {
-      "ext": "E_B-V_",
-      "dist": "DM0",
-      "age": "log_age_"
+      "ext": {
+        "Ebv": "E_B-V_"
+      },
+      "dist": {
+        "dm": "DM0"
+      },
+      "age": {
+        "loga": "log_age_"
+      }
     },
     "e_pars": {
-      "e_dist": "e_DM0"
+      "e_dist": {
+        "edm": "e_DM0"
+      }
     }
   },
   "DIAS2002": {
@@ -36,13 +44,23 @@
       "Rv": "RV"
     },
     "pars": {
-      "ext": "E(B-V)",
-      "dist": "Dist",
-      "age": "Age",
-      "met": "[Fe/H]"
+      "ext": {
+        "Ebv": "E(B-V)"
+      },
+      "dist": {
+        "dpc": "Dist"
+      },
+      "age": {
+        "loga": "Age"
+      },
+      "met": {
+        "feh": "[Fe/H]"
+      }
     },
     "e_pars": {
-      "e_met": "e_[Fe/H]"
+      "e_met": {
+        "efeh": "e_[Fe/H]"
+      }
     }
   },
   "ALESSI2003": {
@@ -60,9 +78,15 @@
       "pmde": "pmde"
     },
     "pars": {
-      "ext": "E(B-V)",
-      "dist": "d_pc",
-      "age": "logt"
+      "ext": {
+        "Ebv": "E(B-V)"
+      },
+      "dist": {
+        "dpc": "d_pc"
+      },
+      "age": {
+        "loga": "logt"
+      }
     },
     "e_pars": {}
   },
@@ -82,13 +106,21 @@
       "Rv": "RVel"
     },
     "pars": {
-      "ext": "E(B-V)",
-      "dist": "HDis",
-      "age": "Age",
-      "met": [
-        "[Fe/H]_1",
-        "[Fe/H]_2"
-      ]
+      "ext": {
+        "Ebv": "E(B-V)"
+      },
+      "dist": {
+        "dpc": "HDis"
+      },
+      "age": {
+        "agyr": "Age"
+      },
+      "met": {
+        "feh": [
+          "[Fe/H]_1",
+          "[Fe/H]_2"
+        ]
+      }
     },
     "e_pars": {}
   },
@@ -120,14 +152,26 @@
       "DEC": "DE_ICRS"
     },
     "pars": {
-      "ext": "E(B-V)",
-      "dist": "Dist",
-      "age": "logt"
+      "ext": {
+        "Ebv": "E(B-V)"
+      },
+      "dist": {
+        "dkpc": "Dist"
+      },
+      "age": {
+        "loga": "logt"
+      }
     },
     "e_pars": {
-      "e_ext": "e_E(B-V)",
-      "e_dist": "e_Dist",
-      "e_age": "e_logt"
+      "e_ext": {
+        "eEbv": "e_E(B-V)"
+      },
+      "e_dist": {
+        "edkpc": "e_Dist"
+      },
+      "e_age": {
+        "eloga": "e_logt"
+      }
     }
   },
   "PISKUNOV2007": {
@@ -143,13 +187,23 @@
       "DEC": "_DE.icrs"
     },
     "pars": {
-      "ext": "E(B-V)",
-      "dist": "Dist",
-      "age": "logt",
-      "mass": "logM"
+      "ext": {
+        "Ebv": "E(B-V)"
+      },
+      "dist": {
+        "dpc": "Dist"
+      },
+      "age": {
+        "loga": "logt"
+      },
+      "mass": {
+        "logm": "logM"
+      }
     },
     "e_pars": {
-      "e_mass": "e_logM"
+      "e_mass": {
+        "elogm": "e_logM"
+      }
     }
   },
   "FROEBRICH2007": {
@@ -180,13 +234,29 @@
       "DEC": "_DE.icrs"
     },
     "pars": {
-      "ext": "E(B-V)",
-      "dist": "Dist",
-      "age": "logt",
-      "mass": ["logM", "logMA"]
+      "ext": {
+        "Ebv": "E(B-V)"
+      },
+      "dist": {
+        "dpc": "Dist"
+      },
+      "age": {
+        "loga": "logt"
+      },
+      "mass": {
+        "logm": [
+          "logM",
+          "logMA"
+        ]
+      }
     },
     "e_pars": {
-      "e_mass": ["e_logM", "e_logMA"]
+      "e_mass": {
+        "elogm": [
+          "e_logM",
+          "e_logMA"
+        ]
+      }
     }
   },
   "KOPOSOV2008": {
@@ -202,14 +272,26 @@
       "DEC": "Dec_deg"
     },
     "pars": {
-      "ext": "E(B-V)",
-      "dist": "Distance",
-      "age": "Age"
+      "ext": {
+        "Ebv": "E(B-V)"
+      },
+      "dist": {
+        "dpc": "Distance"
+      },
+      "age": {
+        "loga": "Age"
+      }
     },
     "e_pars": {
-      "e_ext": "e_E(B-V)",
-      "e_dist": "e_Distance",
-      "e_age": "e_Age"
+      "e_ext": {
+        "eEbv": "e_E(B-V)"
+      },
+      "e_dist": {
+        "edpc": "e_Distance"
+      },
+      "e_age": {
+        "eloga": "e_Age"
+      }
     }
   },
   "GLUSHKOVA2010": {
@@ -225,14 +307,26 @@
       "DEC": "DEJ2000"
     },
     "pars": {
-      "ext": "E(B-V)",
-      "dist": "Dm",
-      "age": "Age"
+      "ext": {
+        "Ebv": "E(B-V)"
+      },
+      "dist": {
+        "dpc": "Dist"
+      },
+      "age": {
+        "loga": "Age"
+      }
     },
     "e_pars": {
-      "e_ext": "e_E(B-V)",
-      "e_dist": "e_Dm",
-      "e_age": "e_Age"
+      "e_ext": {
+        "eEbv": "e_E(B-V)"
+      },
+      "e_dist": {
+        "edpc": "e_Dist"
+      },
+      "e_age": {
+        "eloga": "e_Age"
+      }
     }
   },
   "BORISSOVA2011": {
@@ -265,15 +359,54 @@
       "pmde": "pm_dec"
     },
     "pars": {
-      "ext": "e_bv",
-      "dist": "distance",
-      "age": "log_age",
-      "met": "metallicity"
+      "ext": {
+        "Ebv": "e_bv"
+      },
+      "dist": {
+        "dpc": "distance"
+      },
+      "age": {
+        "loga": "log_age"
+      },
+      "met": {
+        "feh": "metallicity"
+      }
     },
     "e_pars": {
-      "e_age": "log_age_error",
-      "e_met": "metallicity_error"
+      "e_age": {
+        "loga": "log_age_error"
+      },
+      "e_met": {
+        "efeh": "metallicity_error"
+      }
     }
+  },
+  "ROSER2016": {
+    "SCIX_url": "https://scixplorer.org/abs/2016A%26A...595A..22R",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2016A%26A...595A..22R",
+    "authors": "Roser et al.",
+    "title": "Nine new open clusters within 500 pc from the Sun",
+    "year": "2016",
+    "received": "20160621",
+    "names": "Name",
+    "pos": {
+      "RA": "RAJ2000",
+      "DEC": "DEJ2000",
+      "pmra": "pmRA",
+      "pmde": "pmDE"
+    },
+    "pars": {
+      "ext": {
+        "Ebv": "E(B-V)"
+      },
+      "dist": {
+        "dpc": "Dist"
+      },
+      "age": {
+        "loga": "logt"
+      }
+    },
+    "e_pars": {}
   },
   "LOKTIN2017": {
     "SCIX_url": "https://scixplorer.org/abs/2017AstBu..72..257L",
@@ -291,14 +424,23 @@
       "Rv": "RV"
     },
     "pars": {
-      "ext": "E(B-V)",
-      "dist": "Dmod",
-      "age": "logt"
+      "ext": {
+        "Ebv": "E(B-V)"
+      },
+      "dist": {
+        "dpc": "Dist"
+      },
+      "age": {
+        "loga": "logt"
+      }
     },
     "e_pars": {
-      "e_ext": "e_E(B-V)",
-      "e_dist": "e_Dmod",
-      "e_age": "e_logt"
+      "e_ext": {
+        "eEbv": "e_E(B-V)"
+      },
+      "e_age": {
+        "eloga": "e_logt"
+      }
     }
   },
   "BORISSOVA2018": {
@@ -318,13 +460,17 @@
       "Rv": "RV"
     },
     "pars": {
-      "dist": "Dist"
+      "dist": {
+        "dkpc": "Dist"
+      }
     },
     "e_pars": {
-      "e_dist": [
-        "Distp5",
-        "Distp95"
-      ]
+      "e_dist": {
+        "edkpc": [
+          "Distp5",
+          "Distp95"
+        ]
+      }
     }
   },
   "CASTRO2018": {
@@ -346,6 +492,21 @@
     "pars": {},
     "e_pars": {}
   },
+  "BASTIAN2019": {
+    "SCIX_url": "https://scixplorer.org/abs/2019A&A...630L...8B",
+    "vizier_url": "N/A",
+    "authors": "Bastian",
+    "title": "Gaia 8 Discovery of a star cluster containing B Lyrae",
+    "year": "2019",
+    "received": "20190828",
+    "names": "name",
+    "pos": {
+      "RA": "ra",
+      "DEC": "dec"
+    },
+    "pars": {},
+    "e_pars": {}
+  },
   "ANGELO2019": {
     "SCIX_url": "https://scixplorer.org/abs/2019A%26A...624A...8A",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2019A%26A...624A...8A",
@@ -359,14 +520,26 @@
       "DEC": "DEJ2000"
     },
     "pars": {
-      "dist": "dsun",
-      "age": "Age",
-      "mass": "Mphot"
+      "dist": {
+        "dkpc": "dsun"
+      },
+      "age": {
+        "agyr": "Age"
+      },
+      "mass": {
+        "mass": "Mphot"
+      }
     },
     "e_pars": {
-      "e_dist": "e_dsun",
-      "e_age": "e_Age",
-      "e_mass": "e_Mphot"
+      "e_dist": {
+        "dkpc": "e_dsun"
+      },
+      "e_age": {
+        "eagyr": "e_Age"
+      },
+      "e_mass": {
+        "emass": "e_Mphot"
+      }
     }
   },
   "DIAS2019": {
@@ -386,16 +559,32 @@
       "Rv": "RV"
     },
     "pars": {
-      "ext": "E(B-V)",
-      "dist": "Dist",
-      "age": "logAge",
-      "met": "Z"
+      "ext": {
+        "Ebv": "E(B-V)"
+      },
+      "dist": {
+        "dpc": "Dist"
+      },
+      "age": {
+        "loga": "logAge"
+      },
+      "met": {
+        "z": "Z"
+      }
     },
     "e_pars": {
-      "e_ext": "e_E(B-V)",
-      "e_dist": "e_Dist",
-      "e_age": "e_logAge",
-      "e_met": "e_Z"
+      "e_ext": {
+        "eEbv": "e_E(B-V)"
+      },
+      "e_dist": {
+        "edpc": "e_Dist"
+      },
+      "e_age": {
+        "eloga": "e_logAge"
+      },
+      "e_met": {
+        "ez": "e_Z"
+      }
     }
   },
   "BICA2019": {
@@ -426,24 +615,38 @@
       "DEC": "DE_ICRS"
     },
     "pars": {
-      "ext": "AV",
-      "dist": "Dist",
-      "age": "logA",
-      "met": "Fe/H"
+      "ext": {
+        "Av": "AV"
+      },
+      "dist": {
+        "dm": "Dist"
+      },
+      "age": {
+        "loga": "logA"
+      },
+      "met": {
+        "feh": "Fe/H"
+      }
     },
     "e_pars": {
-      "e_ext": [
-        "e_logA",
-        "E_logA"
-      ],
-      "e_dist": [
-        "e_Dist",
-        "E_Dist"
-      ],
-      "e_age": [
-        "e_logA",
-        "E_logA"
-      ]
+      "e_ext": {
+        "eloga": [
+          "e_logA",
+          "E_logA"
+        ]
+      },
+      "e_dist": {
+        "edm": [
+          "e_Dist",
+          "E_Dist"
+        ]
+      },
+      "e_age": {
+        "eloga": [
+          "e_logA",
+          "E_logA"
+        ]
+      }
     }
   },
   "CASTRO2019": {
@@ -479,11 +682,17 @@
       "pmde": "pmDE"
     },
     "pars": {
-      "dist": "d_pc",
-      "age": "log(age)"
+      "dist": {
+        "dpc": "d_pc"
+      },
+      "age": {
+        "loga": "log(age)"
+      }
     },
     "e_pars": {
-      "e_dist": "e_dist"
+      "e_dist": {
+        "edpc": "e_dist"
+      }
     }
   },
   "LIUPANG2019": {
@@ -502,11 +711,17 @@
       "pmde": "pmDE"
     },
     "pars": {
-      "age": "Age",
-      "met": "Z"
+      "age": {
+        "agyr": "Age"
+      },
+      "met": {
+        "feh": "Z"
+      }
     },
     "e_pars": {
-      "e_age": "e_Age"
+      "e_age": {
+        "eagyr": "e_Age"
+      }
     }
   },
   "FERREIRA2019": {
@@ -524,16 +739,32 @@
       "pmde": "pmDE"
     },
     "pars": {
-      "ext": "E(B-V)",
-      "dist": "m-M",
-      "age": "logt",
-      "met": "[Fe/H]"
+      "ext": {
+        "Ebv": "E(B-V)"
+      },
+      "dist": {
+        "dkpc": "Dist"
+      },
+      "age": {
+        "loga": "logt"
+      },
+      "met": {
+        "feh": "[Fe/H]"
+      }
     },
     "e_pars": {
-      "e_ext": "e_E(B-V)",
-      "e_dist": "e_m-M",
-      "e_age": "e_logt",
-      "e_met": "e_[Fe/H]"
+      "e_ext": {
+        "eEbv": "e_E(B-V)"
+      },
+      "e_dist": {
+        "edkpc": "e_Dist"
+      },
+      "e_age": {
+        "eloga": "e_logt"
+      },
+      "e_met": {
+        "efeh": "e_[Fe/H]"
+      }
     }
   },
   "CANTAT2020": {
@@ -552,9 +783,15 @@
       "pmde": "pmDE"
     },
     "pars": {
-      "ext": "AVNN",
-      "dist": "DMNN",
-      "age": "AgeNN"
+      "ext": {
+        "Av": "AVNN"
+      },
+      "dist": {
+        "dpc": "DistPc"
+      },
+      "age": {
+        "loga": "AgeNN"
+      }
     },
     "e_pars": {}
   },
@@ -592,14 +829,26 @@
       "pmde": "pmDEcl"
     },
     "pars": {
-      "ext": "E(B-V)",
-      "dist": "m-M",
-      "age": "logt"
+      "ext": {
+        "Ebv": "E(B-V)"
+      },
+      "dist": {
+        "dpc": "Dist"
+      },
+      "age": {
+        "loga": "logt"
+      }
     },
     "e_pars": {
-      "e_ext": "e_E(B-V)",
-      "e_dist": "e_m-M",
-      "e_age": "e_logt"
+      "e_ext": {
+        "eEbv": "e_E(B-V)"
+      },
+      "e_dist": {
+        "edpc": "e_Dist"
+      },
+      "e_age": {
+        "eloga": "e_logt"
+      }
     }
   },
   "HAO2020": {
@@ -618,12 +867,20 @@
       "pmde": "pmde"
     },
     "pars": {
-      "ext": "AG",
-      "dist": "d_pc",
-      "age": "logt"
+      "ext": {
+        "Ag": "AG"
+      },
+      "dist": {
+        "dpc": "d_pc"
+      },
+      "age": {
+        "loga": "logt"
+      }
     },
     "e_pars": {
-      "e_dist": "e_d_pc"
+      "e_dist": {
+        "edpc": "e_d_pc"
+      }
     }
   },
   "DONOR2020": {
@@ -642,10 +899,14 @@
       "Rv": "HRV"
     },
     "pars": {
-      "met": "Fe/H"
+      "met": {
+        "feh": "Fe/H"
+      }
     },
     "e_pars": {
-      "e_met": "e_Fe/H"
+      "e_met": {
+        "efeh": "e_Fe/H"
+      }
     }
   },
   "DIAS2021": {
@@ -665,16 +926,32 @@
       "Rv": "RV"
     },
     "pars": {
-      "ext": "Av",
-      "dist": "Dist",
-      "age": "logage",
-      "met": "[Fe/H]"
+      "ext": {
+        "Av": "Av"
+      },
+      "dist": {
+        "dpc": "Dist"
+      },
+      "age": {
+        "loga": "logage"
+      },
+      "met": {
+        "feh": "[Fe/H]"
+      }
     },
     "e_pars": {
-      "e_ext": "e_Av",
-      "e_dist": "e_Dist",
-      "e_age": "e_logage",
-      "e_met": "e_[Fe/H]"
+      "e_ext": {
+        "eAv": "e_Av"
+      },
+      "e_dist": {
+        "edpc": "e_Dist"
+      },
+      "e_age": {
+        "eloga": "e_logage"
+      },
+      "e_met": {
+        "efeh": "e_[Fe/H]"
+      }
     }
   },
   "CASADO2021": {
@@ -693,10 +970,14 @@
       "pmde": "pmde"
     },
     "pars": {
-      "dist": "d_kpc"
+      "dist": {
+        "dkpc": "d_kpc"
+      }
     },
     "e_pars": {
-      "e_dist": "e_d_kpc"
+      "e_dist": {
+        "edkpc": "e_d_kpc"
+      }
     }
   },
   "FERREIRA2021": {
@@ -715,14 +996,26 @@
       "pmde": "pmDE"
     },
     "pars": {
-      "ext": "E(B-V)",
-      "dist": "Dmod",
-      "age": "logt"
+      "ext": {
+        "Ebv": "E(B-V)"
+      },
+      "dist": {
+        "dm": "Dmod"
+      },
+      "age": {
+        "loga": "logt"
+      }
     },
     "e_pars": {
-      "e_ext": "e_E(B-V)",
-      "e_dist": "e_Dmod",
-      "e_age": "e_logt"
+      "e_ext": {
+        "eEbv": "e_E(B-V)"
+      },
+      "e_dist": {
+        "edm": "e_Dmod"
+      },
+      "e_age": {
+        "eloga": "e_logt"
+      }
     }
   },
   "HUNT2021": {
@@ -759,14 +1052,31 @@
       "pmde": "pmDE"
     },
     "pars": {
-      "ext": "Avmag",
-      "dist": "Dist",
-      "age": "logAge"
+      "ext": {
+        "Av": "Avmag"
+      },
+      "dist": {
+        "dm": "dmode",
+        "dpc": "Dist"
+      },
+      "age": {
+        "loga": "logAge"
+      }
     },
     "e_pars": {
-      "e_ext": "e_Avmag",
-      "e_dist": "e_Dist",
-      "e_age": "e_logAge"
+      "e_ext": {
+        "eAv": "e_Avmag"
+      },
+      "e_dist": {
+        "edm": [
+          "dmode16",
+          "dmode84"
+        ],
+        "edpc": "e_Dist"
+      },
+      "e_age": {
+        "eloga": "e_logAge"
+      }
     }
   },
   "SANTOS2021": {
@@ -785,44 +1095,60 @@
       "pmde": "pmDE"
     },
     "pars": {
-      "ext": [
-        "AVPM",
-        "AVPf"
-      ],
-      "dist": [
-        "DPM",
-        "DPf"
-      ],
-      "age": [
-        "AgeM",
-        "AgeF"
-      ],
-      "met": [
-        "[Fe/H]M",
-        "[Fe/H]f"
-      ]
+      "ext": {
+        "Av": [
+          "AVPM",
+          "AVPf"
+        ]
+      },
+      "dist": {
+        "dpc": [
+          "DPM",
+          "DPf"
+        ]
+      },
+      "age": {
+        "agemyr": [
+          "AgeM",
+          "AgeF"
+        ]
+      },
+      "met": {
+        "feh": [
+          "[Fe/H]M",
+          "[Fe/H]f"
+        ]
+      }
     },
     "e_pars": {
-      "e_ext": [
-        "e_AVPM",
-        "e_AVPf_l",
-        "e_AVPf_h"
-      ],
-      "e_dist": [
-        "e_DPM",
-        "e_DPf_l",
-        "e_DPf_h"
-      ],
-      "e_age": [
-        "e_AgeM",
-        "e_AgeF_l",
-        "e_AgeF_h"
-      ],
-      "e_met": [
-        "e_[Fe/H]M",
-        "e_[Fe/H]f_l",
-        "e_[Fe/H]f_h"
-      ]
+      "e_ext": {
+        "eAv": [
+          "e_AVPM",
+          "e_AVPf_l",
+          "e_AVPf_h"
+        ]
+      },
+      "e_dist": {
+        "edpc": [
+          "e_DPM",
+          "e_DPf_l",
+          "e_DPf_h"
+        ]
+      },
+      "e_age": {
+        "eamyr": [
+          "e_AgeM",
+          "e_AgeF_l",
+          "e_AgeF_h"
+        ]
+      },
+      "e_met": {
+        "efeh": [
+          "e_[Fe/H]M",
+          "e_[Fe/H]f_l",
+          "e_[Fe/H]f_h"
+        ]
+      }
     }
   },
   "HE2021": {
@@ -841,10 +1167,18 @@
       "pmde": "pmDE"
     },
     "pars": {
-      "ext": "AG",
-      "dist": "m-M",
-      "age": "logAge",
-      "met": "Z"
+      "ext": {
+        "Ag": "AG"
+      },
+      "dist": {
+        "dm": "m-M"
+      },
+      "age": {
+        "loga": "logAge"
+      },
+      "met": {
+        "z": "Z"
+      }
     },
     "e_pars": {}
   },
@@ -865,9 +1199,15 @@
       "Rv": "RV"
     },
     "pars": {
-      "ext": "AV",
-      "dist": "Dist",
-      "age": "logAge"
+      "ext": {
+        "Av": "AV"
+      },
+      "dist": {
+        "dpc": "Dist"
+      },
+      "age": {
+        "loga": "logAge"
+      }
     },
     "e_pars": {}
   },
@@ -887,8 +1227,12 @@
       "pmde": "pmDE"
     },
     "pars": {
-      "dist": "Dist",
-      "age": "logAgeNN"
+      "dist": {
+        "dpc": "Dist"
+      },
+      "age": {
+        "loga": "logAgeNN"
+      }
     },
     "e_pars": {}
   },
@@ -908,11 +1252,21 @@
       "pmde": "pmDE"
     },
     "pars": {
-      "ext": "E(V-I)",
-      "dist": "m-M",
-      "age": "Age",
-      "met": "Z",
-      "bi_frac": "fbin"
+      "ext": {
+        "Evi": "E(V-I)"
+      },
+      "dist": {
+        "dm": "m-M"
+      },
+      "age": {
+        "agyr": "Age"
+      },
+      "met": {
+        "z": "Z"
+      },
+      "bi_frac": {
+        "bf": "fbin"
+      }
     },
     "e_pars": {}
   },
@@ -933,10 +1287,18 @@
       "Rv": "RV"
     },
     "pars": {
-      "ext": "AG",
-      "dist": "m-M",
-      "age": "logAge",
-      "met": "Z"
+      "ext": {
+        "Ag": "AG"
+      },
+      "dist": {
+        "dm": "m-M"
+      },
+      "age": {
+        "loga": "logAge"
+      },
+      "met": {
+        "z": "Z"
+      }
     },
     "e_pars": {}
   },
@@ -956,8 +1318,12 @@
       "pmde": "pmDE"
     },
     "pars": {
-      "ext": "A0",
-      "age": "logAge"
+      "ext": {
+        "Av": "A0"
+      },
+      "age": {
+        "loga": "logAge"
+      }
     },
     "e_pars": {}
   },
@@ -978,12 +1344,20 @@
       "Rv": "RV"
     },
     "pars": {
-      "ext": "AG",
-      "age": "age",
-      "met": "Z"
+      "ext": {
+        "Ag": "AG"
+      },
+      "age": {
+        "loga": "age"
+      },
+      "met": {
+        "z": "Z"
+      }
     },
     "e_pars": {
-      "e_age": "e_age"
+      "e_age": {
+        "eloga": "e_age"
+      }
     }
   },
   "PERREN2022": {
@@ -999,14 +1373,73 @@
       "DEC": "DE_ICRS"
     },
     "pars": {
-      "ext": "E(B-V)",
-      "dist": "dm",
-      "age": "logt",
-      "met": "FeH",
-      "mass": "Mass",
-      "bi_frac": "bfr"
+      "ext": {
+        "Ebv": "E(B-V)"
+      },
+      "dist": {
+        "dm": "dm"
+      },
+      "age": {
+        "loga": "logt"
+      },
+      "met": {
+        "feh": "FeH"
+      },
+      "mass": {
+        "mass": "Mass"
+      },
+      "bi_frac": {
+        "bf": "bfr"
+      }
     },
     "e_pars": {}
+  },
+  "CORDONI2023": {
+    "SCIX_url": "https://scixplorer.org/abs/2023A%26A...672A..29C",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=J/A+A/672/A29",
+    "authors": "Cordoni et al.",
+    "title": "Photometric binaries, mass functions, and structural parameters of 78 Galactic open clusters",
+    "year": "2023",
+    "received": "20221114",
+    "names": "Name",
+    "pos": {
+      "RA": "RAJ2000",
+      "DEC": "DEJ2000",
+      "plx": "plx",
+      "pmra": "pmRA",
+      "pmde": "pmDE"
+    },
+    "pars": {
+      "ext": {
+        "Av": "Av"
+      },
+      "dist": {
+        "dm": "Dist"
+      },
+      "age": {
+        "loga": "logAge"
+      },
+      "met": {
+        "feh": "[Fe/H]"
+      },
+      "mass": {
+        "mass": "mass-single"
+      },
+      "bi_frac": {
+        "bf": "fbin-tot"
+      },
+      "blue_str": {
+        "bs": "fbss-MS"
+      }
+    },
+    "e_pars": {
+      "e_bi_frac": {
+        "ebf": "e_fbin-tot"
+      },
+      "e_blue_str": {
+        "ebf": "e_fbss-MS"
+      }
+    }
   },
   "PIATTI2023": {
     "SCIX_url": "https://scixplorer.org/abs/2023MNRAS.518.6216P",
@@ -1018,16 +1451,32 @@
     "names": "Name",
     "pos": {},
     "pars": {
-      "age": "Log(t)",
-      "met": "[Fe/H]",
-      "mass": "Mass",
-      "bi_frac": "binar_fr"
+      "age": {
+        "loga": "Log(t)"
+      },
+      "met": {
+        "feh": "[Fe/H]"
+      },
+      "mass": {
+        "mass": "Mass"
+      },
+      "bi_frac": {
+        "bf": "binar_fr"
+      }
     },
     "e_pars": {
-      "e_age": "e_Log(t)",
-      "e_met": "e_[Fe/H]",
-      "e_mass": "e_Mass",
-      "e_bi_frac": "e_binar_fr"
+      "e_age": {
+        "eloga": "e_Log(t)"
+      },
+      "e_met": {
+        "efeh": "e_[Fe/H]"
+      },
+      "e_mass": {
+        "emass": "e_Mass"
+      },
+      "e_bi_frac": {
+        "ebf": "e_binar_fr"
+      }
     }
   },
   "CHI2023": {
@@ -1046,8 +1495,12 @@
       "pmde": "pmDE"
     },
     "pars": {
-      "age": "Age",
-      "met": "Z"
+      "age": {
+        "agyr": "Age"
+      },
+      "met": {
+        "z": "Z"
+      }
     },
     "e_pars": {}
   },
@@ -1067,10 +1520,18 @@
       "pmde": "pmDE"
     },
     "pars": {
-      "ext": "E(V-I)",
-      "dist": "m-M",
-      "met": "Z",
-      "bi_frac": "fbin"
+      "ext": {
+        "Evi": "E(V-I)"
+      },
+      "dist": {
+        "dm": "m-M"
+      },
+      "met": {
+        "z": "Z"
+      },
+      "bi_frac": {
+        "bf": "fbin"
+      }
     },
     "e_pars": {}
   },
@@ -1091,8 +1552,12 @@
       "Rv": "RV_mean"
     },
     "pars": {
-      "age": "logAge",
-      "met": "Z"
+      "age": {
+        "loga": "logAge"
+      },
+      "met": {
+        "z": "Z"
+      }
     },
     "e_pars": {}
   },
@@ -1113,9 +1578,15 @@
       "Rv": "rv"
     },
     "pars": {
-      "ext": "A0",
-      "dist": "m-M",
-      "age": "logAge"
+      "ext": {
+        "Av": "A0"
+      },
+      "dist": {
+        "dm": "m-M"
+      },
+      "age": {
+        "loga": "logAge"
+      }
     },
     "e_pars": {}
   },
@@ -1136,9 +1607,15 @@
       "Rv": "RVel"
     },
     "pars": {
-      "ext": "A0",
-      "dist": "m-M",
-      "age": "logA"
+      "ext": {
+        "Av": "A0"
+      },
+      "dist": {
+        "dm": "m-M"
+      },
+      "age": {
+        "loga": "logA"
+      }
     },
     "e_pars": {}
   },
@@ -1159,10 +1636,18 @@
       "Rv": "Rv"
     },
     "pars": {
-      "ext": "Av",
-      "dist": "d_kpc",
-      "age": "Age_Myr",
-      "met": "Z"
+      "ext": {
+        "Av": "Av"
+      },
+      "dist": {
+        "dkpc": "d_kpc"
+      },
+      "age": {
+        "amyr": "Age_Myr"
+      },
+      "met": {
+        "z": "Z"
+      }
     },
     "e_pars": {}
   },
@@ -1183,28 +1668,44 @@
       "Rv": "RV"
     },
     "pars": {
-      "ext": "AV50",
-      "diff_ext": "diffAV50",
-      "dist": "MOD50",
-      "age": "logAge50"
+      "ext": {
+        "Av": "AV50"
+      },
+      "diff_ext": {
+        "dAv": "diffAV50"
+      },
+      "dist": {
+        "dm": "MOD50"
+      },
+      "age": {
+        "loga": "logAge50"
+      }
     },
     "e_pars": {
-      "e_ext": [
-        "AV16",
-        "AV84"
-      ],
-      "e_diff_ext": [
-        "diffAV16",
-        "diffAV84"
-      ],
-      "e_dist": [
-        "MOD16",
-        "MOD84"
-      ],
-      "e_age": [
-        "logAge16",
-        "logAge84"
-      ]
+      "e_ext": {
+        "eAv": [
+          "AV16",
+          "AV84"
+        ]
+      },
+      "e_diff_ext": {
+        "edAv": [
+          "diffAV16",
+          "diffAV84"
+        ]
+      },
+      "e_dist": {
+        "edm": [
+          "MOD16",
+          "MOD84"
+        ]
+      },
+      "e_age": {
+        "eloga": [
+          "logAge16",
+          "logAge84"
+        ]
+      }
     }
   },
   "QIN2023": {
@@ -1224,9 +1725,15 @@
       "Rv": "RV"
     },
     "pars": {
-      "ext": "E(B-V)",
-      "dist": "m-M",
-      "age": "logt"
+      "ext": {
+        "Ebv": "E(B-V)"
+      },
+      "dist": {
+        "dm": "m-M"
+      },
+      "age": {
+        "loga": "logt"
+      }
     },
     "e_pars": {}
   },
@@ -1265,10 +1772,20 @@
       "Rv": "RV"
     },
     "pars": {
-      "mass": "MassJ"
+      "mass": {
+        "mass": [
+          "MassJ",
+          "MassTot"
+        ]
+      }
     },
     "e_pars": {
-      "e_mass": "e_MassJ"
+      "e_mass": {
+        "emass": [
+          "e_MassJ",
+          "e_MassTot"
+        ]
+      }
     }
   },
   "ALFONSO2024": {
@@ -1287,10 +1804,18 @@
       "pmde": "pmDE"
     },
     "pars": {
-      "ext": "AV",
-      "dist": "MOD",
-      "age": "logAge",
-      "met": "Z"
+      "ext": {
+        "Av": "AV"
+      },
+      "dist": {
+        "dm": "MOD"
+      },
+      "age": {
+        "loga": "logAge"
+      },
+      "met": {
+        "feh": "Z"
+      }
     },
     "e_pars": {}
   },
@@ -1308,28 +1833,44 @@
       "plx": "plx"
     },
     "pars": {
-      "ext": "AV50",
-      "dist": "dMod50",
-      "age": "logAge50",
-      "met": "[Fe/H]50"
+      "ext": {
+        "Av": "AV50"
+      },
+      "dist": {
+        "dm": "dMod50"
+      },
+      "age": {
+        "loga": "logAge50"
+      },
+      "met": {
+        "feh": "[Fe/H]50"
+      }
     },
     "e_pars": {
-      "e_ext": [
-        "AV16",
-        "AV84"
-      ],
-      "e_dist": [
-        "dMod16",
-        "dMod84"
-      ],
-      "e_age": [
-        "logAge16",
-        "logAge84"
-      ],
-      "e_met": [
-        "[Fe/H]16",
-        "[Fe/H]84"
-      ]
+      "e_ext": {
+        "eAv": [
+          "AV16",
+          "AV84"
+        ]
+      },
+      "e_dist": {
+        "edm": [
+          "dMod16",
+          "dMod84"
+        ]
+      },
+      "e_age": {
+        "eloga": [
+          "logAge16",
+          "logAge84"
+        ]
+      },
+      "e_met": {
+        "efeh": [
+          "[Fe/H]16",
+          "[Fe/H]84"
+        ]
+      }
     }
   },
   "HU2025": {
@@ -1345,24 +1886,28 @@
       "DEC": "DE_ICRS"
     },
     "pars": {
-      "met": [
-        "MA22",
-        "MA23f",
-        "MA23g",
-        "MZ23",
-        "MK24",
-        "MF24"
-      ]
+      "met": {
+        "feh": [
+          "MA22",
+          "MA23f",
+          "MA23g",
+          "MZ23",
+          "MK24",
+          "MF24"
+        ]
+      }
     },
     "e_pars": {
-      "e_met": [
-        "e_MA22",
-        "e_MA23f",
-        "e_MA23g",
-        "e_MZ23",
-        "e_MK24",
-        "e_MF24"
-      ]
+      "e_met": {
+        "efeh": [
+          "e_MA22",
+          "e_MA23f",
+          "e_MA23g",
+          "e_MZ23",
+          "e_MK24",
+          "e_MF24"
+        ]
+      }
     }
   }
 }
