@@ -1,6 +1,17 @@
 Some of these are intermediate versions of the UCC database that are not published.
 
 
+## 25112012-25112211
+
+- Added Roser et al. (2006)
+- Added Bastian 2019 (contains Gaia 8 only)
+- Added Cordoni et al. (2023)
+- Re-process MCM entries 3, 16 & 53 with N=25
+- Added 'NGC 1976' as main name of 'Trapezium' in Dambis 1999
+- Renamed 'XDOCC N' to 'XDOCC 0N' in  and Piatti (2003), Hunt & Reffert (2023),
+  Hunt & Reffert (2023), and Cavallo (2024)
+
+
 ## 25111711
 
 - Added Kronberger et al. 2006
