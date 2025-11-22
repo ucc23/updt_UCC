@@ -42,12 +42,6 @@ Once the JSON file with the entry for the new DB and the generated CSV file with
 DB data are stored in the temporary folder, **check carefully both files before moving
 on** as both might need manual intervention.
 
-**Important**:
-1. The column with the names of the new entries can contain several names; these must
-   be separated using a ','.
-2. The first name in the name(s) column (if there's more than one) will be used as
-   the `fname` for that entry
-
 ### Input
 
 - `ADS_bibcode`: NASA/ADS bibcode for the new DB
@@ -59,11 +53,15 @@ on** as both might need manual intervention.
 - `temp_updt/data/databases_info.json`: Updated JSON file with new DB entry
 - `temp_updt/data/NEW_DB.csv`: New database in CSV format
 
-These two files will be loaded and updated by the B script, they must not be
-manually moved.
+**Important**:
+The column with the names of the new entries can contain several names; these must
+be separated using a ','.
 
-**Remeber** to add the `received` parameter to the JSON file, this is not retrieved by
-the script.
+**Remeber to carefully check the keys for the new DB in the JSON file. They are auto
+detected by the script and they might need to be corrected and/or filled.**
+
+The output files will be loaded and updated by the B script, they must **not be
+manually moved**.
 
 
 
