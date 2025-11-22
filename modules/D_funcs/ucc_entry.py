@@ -533,21 +533,30 @@ def fpars_in_lit(
 
         txt_pars = ""
         # Add non-nan parameters
-        for k, par in DBs_json[db]["pars"].items():
+        for _, par in DBs_json[db]["pars"].items():
             # Some DBs have parameters as lists because they list more than one value
             # per parameter
-            if isinstance(par, list):
-                for par_i in par:
-                    par_v = str(df[par_i][int(DBs_i_w_pars[i])])[:max_chars]
+            for _, par_inner in par.items():
+                if isinstance(par_inner, list):
+                    for par_i in par_inner:
+                        ptxt = str(df[par_i][int(DBs_i_w_pars[i])])
+                        N_max_chars = max_chars
+                        if "," in ptxt or ";" in ptxt:
+                            N_max_chars = int(2 * max_chars)
+                        par_v = ptxt[:N_max_chars]
+                        par_v = par_v.replace(" ", "")
+                        if par_v != "" and par_v != "nan":
+                            txt_pars += par_i + "=" + par_v + ", "
+
+                else:
+                    ptxt = str(df[par_inner][int(DBs_i_w_pars[i])])
+                    N_max_chars = max_chars
+                    if "," in ptxt or ";" in ptxt:
+                        N_max_chars = int(2 * max_chars)
+                    par_v = ptxt[:N_max_chars]
                     par_v = par_v.replace(" ", "")
                     if par_v != "" and par_v != "nan":
-                        txt_pars += par_i + "=" + par_v + ", "
-
-            else:
-                par_v = str(df[par][int(DBs_i_w_pars[i])])[:max_chars]
-                par_v = par_v.replace(" ", "")
-                if par_v != "" and par_v != "nan":
-                    txt_pars += par + "=" + par_v + ", "
+                        txt_pars += par_inner + "=" + par_v + ", "
 
         if txt_pars != "":
             # Remove final ', '
