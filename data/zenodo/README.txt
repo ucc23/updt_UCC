@@ -1,7 +1,7 @@
 # The Unified Cluster Catalogue (UCC)
 
-These files correspond to the 251117 version of the UCC database (https://ucc.ar),
-composed of 16748 clusters with a combined 1057679 members.
+These files correspond to the 251122 version of the UCC database (https://ucc.ar),
+composed of 16747 clusters with a combined 1056496 members.
 If you find this data useful please cite its associated article
 ([Perren et al. 2023](https://ui.adsabs.harvard.edu/abs/2023MNRAS.526.4107P))
 using the following BibTex snippet:
@@ -55,8 +55,7 @@ N_Rv                : Number of members used to estimate the radial velocity
 N_50                : Number of estimated members with P>0.5
 r_50                : Radius that contains half the members (in arcmin)
 C3                  : Combined quality class
-shared_members      : Names of clusters with shared members
-shared_members_perc : Percentage of shared members for each cluster
+P_dup               : Probability that this entry is a duplicate of a previous one
 UTI                 : UCC Trust Index, a measure of the reliability of the cluster
 bad_oc              : Flag that indicates that this is likely an asterism,
                       moving group or artifact (based on UTI value, duplication
