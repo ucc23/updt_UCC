@@ -81,11 +81,20 @@ def main(ADS_bibcode):
     """
     logging = logger()
 
-    # 1. Load current JSON file
+    # Load current JSON file
     with open(name_DBs_json) as f:
         current_JSON = json.load(f)
 
-    # 2. Check if url is already listed in the current JSON file
+    # Print info to screen
+    pars_vals_all = dict(JSON_struct["SMITH2500"]["pars"])
+    for _, v in current_JSON.items():
+        for k, par in v["pars"].items():
+            pars_vals_all[k] += list(set(list(par.keys())))
+    logging.info("Available parameter keys in current JSON file:")
+    for k, v in pars_vals_all.items():
+        logging.info(f"{k:<10} : {', '.join(list(set(v)))}")
+
+    # Check if url is already listed in the current JSON file
     SCIX_url = "https://scixplorer.org/abs/" + ADS_bibcode
     for db, vals in current_JSON.items():
         if SCIX_url == vals["SCIX_url"]:
@@ -93,7 +102,7 @@ def main(ADS_bibcode):
             if input("Move on? (y/n): ").lower() != "y":
                 sys.exit()
 
-    # 3. Fetch publication authors and year from NASA/ADS
+    # Fetch publication authors and year from NASA/ADS
     logging.info("Fetching NASA/ADS data...")
     authors, year, title = get_ADS_data(ADS_bibcode)
     logging.info(f"Extracted author ({authors}), year ({year}) and title:")
@@ -103,7 +112,7 @@ def main(ADS_bibcode):
     DB_name = get_DB_name(current_JSON, authors, year)
     logging.info(f"New DB name obtained: {DB_name}")
 
-    # 5. Handle temporary database files and check for existing data.
+    # Handle temporary database files and check for existing data.
     # Temporary databases/ folder
     temp_database_folder = temp_folder + dbs_folder
     # Create folder if it does not exist
@@ -113,7 +122,7 @@ def main(ADS_bibcode):
     # Path to the new (temp) DB file
     temp_CSV_file = temp_database_folder + DB_name + ".csv"
 
-    # 6. Fetch Vizier data or allow manual input for Vizier IDs.
+    # Fetch Vizier data or allow manual input for Vizier IDs.
     vizier_url, quest = "N/A", "n"
     if Path(temp_CSV_file).is_file():
         quest = input("Load Vizier database from file (else download)? (y/n): ").lower()
@@ -131,7 +140,7 @@ def main(ADS_bibcode):
                 f"https://vizier.cds.unistra.fr/viz-bin/VizieR?-source={ADS_bibcode}"
             )
 
-    # 7. Extract the names, positions, parameters, and uncertainties column names from
+    # Extract the names, positions, parameters, and uncertainties column names from
     # the current JSON
     names_dict, pos_dict, pars_dict, e_pars_dict = current_JSON_vals(current_JSON)
     # Extract the matches for each column in the new DB
@@ -143,7 +152,7 @@ def main(ADS_bibcode):
         logging.info("Column names for temp JSON file extracted")
     names, pos_dict, pars_dict, e_pars_dict = proper_json_struct(df_col_id)
 
-    # 8. Update the JSON file and save the database as CSV.
+    # Update the JSON file and save the database as CSV.
     add_DB_to_JSON(
         SCIX_url,
         vizier_url,
@@ -279,23 +288,6 @@ def get_CDS_table(logging, ADS_bibcode: str) -> list:
 
     return table_url
 
-    # # Download selected table(s), if any
-    # df_all = None
-    # if len(table_url) > 0:
-    #     # No limit to number of rows or columns
-    #     viz = Vizier(row_limit=-1, columns=["all"])
-    #     df_all = []
-    #     for turl in table_url:
-    #         # Download table
-    #         try:
-    #             cat = viz.get_catalogs(turl)  # pyright: ignore
-    #             # Convert to pandas before storing
-    #             df_all.append(cat.values()[0].to_pandas())
-    #         except Exception as e:
-    #             logging.info(f"Could not extract the data from {turl}\n{str(e)}")
-    #
-    # return df_all
-
 
 def get_DB_from_Vizier(logging, table_url: list) -> list | None:
     """
@@ -389,12 +381,19 @@ def current_JSON_vals(current_JSON):
                 # If this object from the current JSON file contains the key, extract
                 # its value
                 if key in obj_id.keys():
-                    # If this is a list, add
-                    if isinstance(obj_id[key], list):
-                        pdict[key] += obj_id[key]
-                    else:
-                        # If it is not a list, append
+                    if isinstance(obj_id[key], str):  # _id='pos'
                         pdict[key].append(obj_id[key])
+                    elif isinstance(obj_id[key], dict):  # _id='pars','e_pars'
+                        for _, v in obj_id[key].items():
+                            if isinstance(v, list):
+                                pdict[key] += v
+                            else:
+                                pdict[key].append(v)
+                    else:
+                        raise ValueError(
+                            f"Unknown type {type(obj_id[key])} for key {key}"
+                        )
+
             pdict[key] = list(set(pdict[key]))
         all_dicts.append(pdict)
 
@@ -430,9 +429,6 @@ def new_DB_columns_match(
         for key, vals in merged_dict.items():
             vals_ratios = []
             for val in vals:
-                # ld1 = Levenshtein.ratio(col, val)
-                # ld2 = Levenshtein.ratio(col.lower(), val.lower())
-                # vals_ratios.append(max(ld1, ld2))
                 ld1 = fuzz.ratio(col, val)
                 ld2 = fuzz.ratio(col.lower(), val.lower())
                 vals_ratios.append(max(ld1, ld2) / 100)
@@ -464,24 +460,42 @@ def new_DB_columns_match(
 
 
 def proper_json_struct(df_col_id):
-    """ """
-    # Generate the proper structure for storing in the JSON file
+    """Generate the proper structure for storing in the JSON file"""
     names = "None"
-    if df_col_id is not None:
-        if "names" in df_col_id.keys():
-            names = df_col_id["names"]
+    all_dicts = [{}, {}, {}]
+    if df_col_id is None:
+        return names, *all_dicts
 
-    all_dicts = []
-    for _id in ("pos", "pars", "e_pars"):
+    if "names" in df_col_id:
+        names = df_col_id["names"]
+
+    # Positions
+    posdict = {}
+    for val in JSON_struct["SMITH2500"]["pos"].keys():
+        if val in df_col_id:
+            posdict[val] = df_col_id[val]
+    all_dicts = [posdict]
+
+    # Parameters and their uncertainties. We use default values here, these need
+    # manual checking once the JSON file is updated
+    def_pars = {
+        "ext": "Ebv",
+        "diff_ext": "dAv",
+        "dist": "dm",
+        "age": "loga",
+        "met": "feh",
+        "mass": "mass",
+        "bi_frac": "bf",
+        "blue_str": "bs",
+    }
+    for _id in ("pars", "e_pars"):
         pdict = {}
         for val in JSON_struct["SMITH2500"][_id].keys():
-            try:
-                if df_col_id is not None:
-                    pdict[val] = df_col_id[val]
-                else:
-                    pdict[val] = "None"
-            except KeyError:
-                pass
+            if val in df_col_id:
+                if _id == "pars":
+                    pdict[val] = {def_pars[val]: df_col_id[val]}
+                elif _id == "e_pars":
+                    pdict[val] = {"e" + def_pars[val[2:]]: df_col_id[val]}
         all_dicts.append(pdict)
 
     return names, *all_dicts
@@ -523,6 +537,7 @@ def add_DB_to_JSON(
     new_db_json["authors"] = authors
     new_db_json["title"] = title
     new_db_json["year"] = year
+    new_db_json["received"] = "DATE_HERE"
     new_db_json["names"] = names
     new_db_json["pos"] = pos_dict
     new_db_json["pars"] = pars_dict

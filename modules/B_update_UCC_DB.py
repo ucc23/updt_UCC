@@ -214,15 +214,22 @@ def check_new_DB(
     """Check new DB for required columns, bad characters in names, wrong VDBH/BH naming,
     and close GCs.
     """
-    # Check for required columns
-    cols = [newDB_json["names"]]
-    for entry in ("pos", "pars", "e_pars"):
-        for _, v in newDB_json[entry].items():
-            if isinstance(v, list):
-                cols += v
-            else:
-                cols.append(v)
-    missing_cols = [col for col in cols if col not in df_new.columns]
+    # Extract required columns
+    read_cols = [newDB_json["names"]]
+    for _, v in newDB_json["pos"].items():
+        if isinstance(v, list):
+            read_cols += v
+        else:
+            read_cols.append(v)
+    # Parameters (and their uncertainties are dictionaries)
+    for entry in ("pars", "e_pars"):
+        for _, pdict in newDB_json[entry].items():
+            for _, v in pdict.items():
+                if isinstance(v, list):
+                    read_cols += v
+                else:
+                    read_cols.append(v)
+    missing_cols = [col for col in read_cols if col not in df_new.columns]
     if len(missing_cols) > 0:
         raise ValueError(f"Missing required columns in {new_DB}: {missing_cols}")
 
