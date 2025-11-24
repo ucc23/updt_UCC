@@ -90,7 +90,11 @@ def main():
     df_UCC_B = sort_year_importance(new_JSON, df_UCC_B)
 
     # Last sanity check. Check every individual fname for duplicates
-    if duplicates_fnames_check(logging, df_UCC_B):
+    exit_flag = duplicates_fnames_check(logging, df_UCC_B)
+    if exit_flag:
+        logging.info("\nDuplicated entries found in 'fnames' column")
+        breakpoint()
+    if exit_flag:
         raise ValueError("Duplicated entries found in 'fnames' column")
 
     #
@@ -439,7 +443,7 @@ def close_OC_check(
     ID_call: str,
     leven_rad: float,
     sep: str,
-    rad_dup: float = 15,
+    rad_dup: float = 10,
 ):
     """ """
     idxs = np.arange(0, len(col_1))
