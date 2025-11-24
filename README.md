@@ -88,6 +88,11 @@ membership by the next script:
 
 > "RA_ICRS","DE_ICRS","GLON","GLAT","Plx","pmRA","pmDE"
 
+The following OCs should be renamed as:
+
+> BH, VDBergh-Hagen --> VDBH
+> VDBergh           --> VDB
+
 
 ### Input
 
