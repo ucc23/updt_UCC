@@ -44,7 +44,7 @@ JSON_struct = {
             "met": [],
             "mass": [],
             "bi_frac": [],
-            "bs_frac": [],
+            "blue_str": [],
         },
         "e_pars": {
             "e_ext": [],
@@ -93,6 +93,7 @@ def main(ADS_bibcode):
     logging.info("Available parameter keys in current JSON file:")
     for k, v in pars_vals_all.items():
         logging.info(f"{k:<10} : {', '.join(list(set(v)))}")
+    logging.info("")
 
     # Check if url is already listed in the current JSON file
     SCIX_url = "https://scixplorer.org/abs/" + ADS_bibcode
