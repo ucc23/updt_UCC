@@ -10,7 +10,7 @@ from astropy.coordinates import angular_separation
 from rapidfuzz import fuzz, process
 from scipy.spatial.distance import cdist
 
-from .utils import logger, radec2lonlat, save_df_UCC
+from .utils import diff_between_dfs, logger, radec2lonlat, save_df_UCC
 from .variables import (
     GCs_cat,
     data_folder,
@@ -34,8 +34,8 @@ def main():
         logging
     )
 
-    new_JSON, df_GCs, all_dbs_data, df_UCC_B, flag_interactive = load_data(
-        logging, df_UCC_B_current_file, temp_JSON_file, temp_database_folder
+    new_JSON, df_GCs, all_dbs_data, df_UCC_B_old, df_UCC_B, flag_interactive = (
+        load_data(logging, df_UCC_B_current_file, temp_JSON_file, temp_database_folder)
     )
 
     for new_DB, (df_new, newDB_json) in all_dbs_data.items():
@@ -64,6 +64,16 @@ def main():
 
         # Match the new DB with the UCC
         db_matches = get_matches_new_DB(df_UCC_B, new_DB_fnames)
+        N_new = db_matches.count(None)
+        logging.info(f"\nFound {N_new} new entries")
+        N_max, N_print = 50, 0
+        for i, idx in enumerate(db_matches):
+            if idx is None:
+                logging.info(f"{i}    {new_DB_fnames[i][0]}")
+                N_print += 1
+            if N_print == N_max:
+                logging.info(f"... (only first {N_max} entries shown)")
+                break
 
         # Check the entries in the new DB vs the entries in the UCC
         check_new_DB_vs_UCC(
@@ -98,7 +108,7 @@ def main():
         raise ValueError("Duplicated entries found in 'fnames' column")
 
     #
-    # diff_between_dfs(logging, dbs_merged_current, dbs_merged_new)
+    diff_between_dfs(logging, df_UCC_B_old, df_UCC_B, order_col="fnames")
 
     file_path = df_UCC_B_current_file.replace(data_folder, temp_folder)
     save_df_UCC(logging, df_UCC_B, file_path, order_col="fnames")
@@ -156,6 +166,7 @@ def load_data(
     pd.DataFrame,
     dict,
     pd.DataFrame,
+    pd.DataFrame,
     list,
 ]:
     """ """
@@ -204,7 +215,7 @@ def load_data(
     all_dbs_data = {k: all_dbs_data[k] for k in all_dbs}
 
     # flag_interactive == new_DBs
-    return new_JSON, df_GCs, all_dbs_data, df_UCC_B, new_DBs
+    return new_JSON, df_GCs, all_dbs_data, dbs_merged_current, df_UCC_B, new_DBs
 
 
 def check_new_DB(
@@ -834,8 +845,11 @@ def positions_check(
             f"\nEntries with coords far from those in the UCC (N={len(ocs_attention)})"
         )
         logging.info(f"{'DB_idx':<6} {'name':<20} {'d [arcmin]':<5}")
-        for i, fname, d_arcmin in ocs_attention:
+        N_max = 50
+        for i, fname, d_arcmin in ocs_attention[:N_max]:
             logging.info(f"{i:<6} {fname:<20} {d_arcmin:<5.0f}")
+        if len(ocs_attention) > N_max:
+            logging.info(f"... (only first {N_max} entries shown)")
 
     return attention_flag
 
@@ -867,32 +881,43 @@ def fnames_check_UCC_new_DB(
     """
     # Create a dictionary to map filenames to their corresponding row indices
     # Using defaultdict eliminates the explicit check for key existence
-    filename_map = defaultdict(list)
+    fname_ucc_map = defaultdict(list)
     for i, fnames in enumerate(df_UCC_B["fnames"]):
         for fname in fnames.split(sep):
-            filename_map[fname].append(i)
+            fname_ucc_map[fname].append(i)
 
     # Find matches between UCC fnames and new_DB_fnames
     fnames_ucc_idxs = {}
     for k, fnames in enumerate(new_DB_fnames):
         fnames_ucc_idxs[k] = []
         for fname in fnames:
-            if fname in filename_map:  # Check if the filename exists in df_fnames
-                # 'filename_map[fname]' will always contain a single element
-                fnames_ucc_idxs[k].append(filename_map[fname][0])
+            # Check if the filename exists in df_fnames
+            if fname in fname_ucc_map:
+                # 'fname_ucc_map[fname]' will always contain a single element
+                f_ucc_idx = fname_ucc_map[fname][0]
+                fnames_ucc_idxs[k].append(f_ucc_idx)
 
-    # Extract bad entries
+    # Check if any new entry has more than one entry in the UCC associated to it
     bad_entries = []
     for k, v in fnames_ucc_idxs.items():
         if len(list(set(v))) > 1:
             bad_entries.append([k, v])
 
-    # Check if any new entry has more than one entry in the UCC associated to it
+    # Check if the 'fnames_ucc_idxs' dictionary contains repeated elements
+    locations = defaultdict(set)
+    for key, lst in fnames_ucc_idxs.items():
+        for item in lst:
+            locations[item].add(key)
+    # Items that occur in more than one key
+    duplicates = {item: keys for item, keys in locations.items() if len(keys) > 1}
+
     dup_flag = False
+
     if bad_entries:
         dup_flag = True
         logging.info(
-            f"\nFound {len(bad_entries)} entries in {new_DB} with duplicated fnames in the combined DB"
+            f"\nFound {len(bad_entries)} entries in {new_DB} with duplicated "
+            + "fnames in the combined DB"
         )
         for k, v in bad_entries:
             new_db_entries = f"({k}) {', '.join(new_DB_fnames[k])}"
@@ -903,6 +928,16 @@ def fnames_check_UCC_new_DB(
                 ]
             )
             logging.info(f"{new_db_entries} --> {ucc_entries}")
+
+    if duplicates:
+        dup_flag = True
+        logging.info(
+            f"\nFound {len(duplicates)} entries in {new_DB} with duplicated "
+            + "fnames in the combined DB"
+        )
+        for k, v in duplicates.items():
+            new_db_entries = "; ".join([", ".join(new_DB_fnames[_]) for _ in v])
+            logging.info(f"({v}) {new_db_entries} --> ({k}) {df_UCC_B['fnames'][k]}")
 
     return dup_flag
 
