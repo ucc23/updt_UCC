@@ -130,7 +130,7 @@ def diff_between_dfs(
     df_old: pd.DataFrame,
     df_new: pd.DataFrame,
     order_col: str = "fname",
-    # cols_exclude=None,
+    add_context=True,
 ) -> None:
     """
     Order by (lon, lat) and change NaN as "nan".
@@ -143,6 +143,29 @@ def diff_between_dfs(
         df_new (pd.DataFrame): Second DataFrame to compare.
         cols_exclude (list | None): List of columns to exclude from the diff
     """
+
+    def get_clean_context_rows(source_rows, diff_indices):
+        """
+        Returns a list of rows containing the differences and their immediate
+        neighbors (above/below), sorted by original order, without duplicates.
+        """
+        indices_to_keep = set()
+
+        for i in diff_indices:
+            # Add the difference row
+            indices_to_keep.add(i)
+            # Add the row above (if exists)
+            if i > 0:
+                indices_to_keep.add(i - 1)
+            # Add the row below (if exists)
+            if i < len(source_rows) - 1:
+                indices_to_keep.add(i + 1)
+
+        # Sort indices to maintain the original file order
+        sorted_indices = sorted(indices_to_keep)
+
+        return [source_rows[i] for i in sorted_indices]
+
     df_old = df_old.copy().sort_values(by=order_col).reset_index(drop=True)
     df_new = df_new.copy().sort_values(by=order_col).reset_index(drop=True)
     df_new = round_columns(df_new)
@@ -154,20 +177,32 @@ def diff_between_dfs(
     # Convert lists to sets for quick comparison
     set1, set2 = set(map(tuple, rows1)), set(map(tuple, rows2))
 
-    # Get non-matching rows in original order
-    non_matching1 = [row for row in rows1 if tuple(row) not in set2]
-    non_matching2 = [row for row in rows2 if tuple(row) not in set1]
+    if add_context:
+        # Get indices of non-matching rows
+        diff_indices1 = [i for i, row in enumerate(rows1) if tuple(row) not in set2]
+        diff_indices2 = [i for i, row in enumerate(rows2) if tuple(row) not in set1]
+        non_matching1 = []
+        if len(diff_indices1) > 0:
+            non_matching1 = get_clean_context_rows(rows1, diff_indices1)
+        non_matching2 = []
+        if len(diff_indices2) > 0:
+            non_matching2 = get_clean_context_rows(rows2, diff_indices2)
+    else:
+        # Get non-matching rows in original order
+        non_matching1 = [row for row in rows1 if tuple(row) not in set2]
+        non_matching2 = [row for row in rows2 if tuple(row) not in set1]
 
     if len(non_matching1) == 0 and len(non_matching2) == 0:
         logging.info("\nNo differences found\n")
         return
 
+    # Write to files
     if len(non_matching1) > 0:
-        # Write intertwined lines to the output file
         with open(temp_folder + "UCC_diff_old.csv", "w", newline="") as out:
             writer = csv.writer(out)
             for row in non_matching1:
                 writer.writerow(row)
+
     if len(non_matching2) > 0:
         with open(temp_folder + "UCC_diff_new.csv", "w", newline="") as out:
             writer = csv.writer(out)
