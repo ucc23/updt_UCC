@@ -443,6 +443,55 @@
       }
     }
   },
+  "SOUBIRAN2018": {
+    "SCIX_url": "https://scixplorer.org/abs/2018A%26A...619A.155S",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2018A%26A...619A.155S",
+    "authors": "Soubiran et al.",
+    "title": "Open cluster kinematics with Gaia DR2",
+    "year": "2018",
+    "received": "20180803",
+    "names": "ID",
+    "pos": {
+      "RA": "RA_ICRS",
+      "DEC": "DE_ICRS",
+      "Rv": "RV"
+    },
+    "pars": {
+      "dist": {
+        "dpc": "dmode"
+      }
+    },
+    "e_pars": {}
+  },
+  "CANTAT2018": {
+    "SCIX_url": "https://scixplorer.org/abs/2018A%26A...618A..93C",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2018A%26A...618A..93C",
+    "authors": "Cantat-Gaudin et al.",
+    "title": "A Gaia DR2 view of the open cluster population in the Milky Way",
+    "year": "2018",
+    "received": "20180522",
+    "names": "Cluster",
+    "pos": {
+      "RA": "RAJ2000",
+      "DEC": "DEJ2000",
+      "plx": "plx",
+      "pmra": "pmRA",
+      "pmde": "pmDE"
+    },
+    "pars": {
+      "dist": {
+        "dm": "dmode"
+      }
+    },
+    "e_pars": {
+      "e_dist": {
+        "edm": [
+          "d16",
+          "d84"
+        ]
+      }
+    }
+  },
   "BORISSOVA2018": {
     "SCIX_url": "https://scixplorer.org/abs/2018MNRAS.481.3902B",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2018MNRAS.481.3902B",
@@ -490,6 +539,28 @@
       "Rv": "RV"
     },
     "pars": {},
+    "e_pars": {}
+  },
+  "CANTAT2019": {
+    "SCIX_url": "https://scixplorer.org/abs/2019A%26A...624A.126C",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2019A%26A...624A.126C",
+    "authors": "Cantat-Gaudin et al.",
+    "title": "Gaia DR2 unravels incompleteness of nearby cluster population new open clusters in the direction of Perseus",
+    "year": "2019",
+    "received": "20181018",
+    "names": "Cluster",
+    "pos": {
+      "RA": "RAJ2000",
+      "DEC": "DEJ2000",
+      "plx": "plx",
+      "pmra": "pmRA*",
+      "pmde": "pmDE"
+    },
+    "pars": {
+      "dist": {
+        "dpc": "d"
+      }
+    },
     "e_pars": {}
   },
   "BASTIAN2019": {
@@ -908,6 +979,37 @@
         "efeh": "e_Fe/H"
       }
     }
+  },
+  "RAIN2021": {
+    "SCIX_url": "https://scixplorer.org/abs/2021A%26A...650A..67R",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2021A%26A...650A..67R",
+    "authors": "Rain et al.",
+    "title": "A new, Gaia-based, catalogue of blue straggler stars in open clusters",
+    "year": "2021",
+    "received": "20201206",
+    "names": "Cluster",
+    "pos": {
+      "RA": "RAJ2000",
+      "DEC": "DEJ2000",
+      "plx": "plx",
+      "pmra": "pmRA",
+      "pmde": "pmDE"
+    },
+    "pars": {
+      "ext": {
+        "Ebv": "E(B-V)"
+      },
+      "dist": {
+        "dpc": "Dist"
+      },
+      "age": {
+        "loga": "log(Age)"
+      },
+      "blue_str": {
+        "bs": "NBSS"
+      }
+    },
+    "e_pars": {}
   },
   "DIAS2021": {
     "SCIX_url": "https://scixplorer.org/abs/2021MNRAS.504..356D",
@@ -1755,6 +1857,28 @@
     "pars": {},
     "e_pars": {}
   },
+  "CELLI2024": {
+    "SCIX_url": "https://scixplorer.org/abs/2024A%26A...686A.118C",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2024A%26A...686A.118C",
+    "authors": "Celli et al.",
+    "title": "Mass and wind luminosity of young Galactic open clusters in Gaia DR2",
+    "year": "2024",
+    "received": "20231109",
+    "names": "Cluster",
+    "pos": {
+      "RA": "_RA",
+      "DEC": "_DE"
+    },
+    "pars": {
+      "age": {
+        "amyr": "Age"
+      },
+      "mass": {
+        "mass": "Mc"
+      }
+    },
+    "e_pars": {}
+  },
   "HUNT2024": {
     "SCIX_url": "https://scixplorer.org/abs/2024A%26A...686A..42H",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2024A%26A...686A..42H",
@@ -1870,6 +1994,47 @@
           "[Fe/H]16",
           "[Fe/H]84"
         ]
+      }
+    }
+  },
+  "ALMEIDA2025": {
+    "SCIX_url": "https://scixplorer.org/abs/2025A%26A...693A.305A",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2025A%26A...693A.305A",
+    "authors": "Almeida et al.",
+    "title": "Open cluster dissolution rate and the initial cluster mass function in the solar neighbourhood Modelling the age and mass distributions of clusters observed by Gaia",
+    "year": "2025",
+    "received": "20240809",
+    "names": "Name",
+    "pos": {
+      "RA": "RA_ICRS",
+      "DEC": "DE_ICRS"
+    },
+    "pars": {
+      "ext": {
+        "Av": "AV"
+      },
+      "dist": {
+        "dpc": "Dist"
+      },
+      "age": {
+        "loga": "logAge"
+      },
+      "mass": {
+        "mass": "MassRk"
+      }
+    },
+    "e_pars": {
+      "e_ext": {
+        "eAv": "e_AV"
+      },
+      "e_dist": {
+        "edpc": "e_Dist"
+      },
+      "e_age": {
+        "eloga": "e_logAge"
+      },
+      "e_mass": {
+        "emass": "e_MassRk"
       }
     }
   },

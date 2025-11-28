@@ -1,6 +1,19 @@
 Some of these are intermediate versions of the UCC database that are not published.
 
 
+## 25112409-25112810
+
+- Added Soubiran et al (2018)
+- Added Cantat-Gaudin et al (2018)
+- Added Cantat-Gaudin et al (2019)
+- Added Rain et al (2021)
+- Added Celli et al. (2024)
+- Added Almeida et al (2025)
+- Removed FSR_1758 from Froebrich (2007) (it's a GC)
+- Renamed in Loktin (2017): MWSC0 192 --> MWSC 192
+- Cavallo et al 2024: added 'VDBH' to 'BH' entries
+
+
 ## 25112012-25112211
 
 - Added Roser et al. (2016)
@@ -19,7 +32,6 @@ Some of these are intermediate versions of the UCC database that are not publish
 - Added Mercer et al. 2005
 - Added Piskunov et al. 2007
 - Added Piskunov et al. 2008
-
 
 
 ## 25111417-25111510
