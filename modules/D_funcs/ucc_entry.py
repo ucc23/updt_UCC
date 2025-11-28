@@ -426,9 +426,15 @@ def positions_in_lit(DBs_json, DBs_full_data, row_UCC):
         if row_in.replace("--", "").replace("|", "").strip() != "":
             # Add reference
             ref_url = f"[{DBs_json[db]['authors']} ({DBs_json[db]['year']})]({DBs_json[db]['SCIX_url']})"
+            # The spaces at the beginning is to add proper spacing to the final .md file
             table += "    |" + ref_url + " | "
             # Close and add row
             table += row_in[:-1] + "\n"
+
+    #
+    table += (
+        """    | <label for="toggle-pos-rows" class="toggle-btn"></label> | | | | | | |"""
+    ) + "\n"
 
     # Add UCC positions
     table += "    | **UCC** |"

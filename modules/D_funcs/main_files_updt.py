@@ -103,6 +103,32 @@ def count_N50membs(df_UCC: pd.DataFrame) -> list:
     return membs_msk
 
 
+def count_fund_pars(df_UCC: pd.DataFrame, current_JSON: dict) -> dict:
+    """ """
+    # Identify which entries in the 'current_JSON' dictionary contain a non empty 'pars' key
+    DB_fp = {}
+    for DB_id, DB_data in current_JSON.items():
+        if len(DB_data["pars"]) == 0:
+            DB_fp[DB_id] = 0
+        else:
+            DB_fp[DB_id] = 1
+
+    Cfp_arr = []
+    for cl_dbs in df_UCC["DB"]:
+        N_fp = 0
+        for db in cl_dbs.split(";"):
+            N_fp += DB_fp[db]
+        Cfp_arr.append(N_fp)
+    Cfp_arr = np.array(Cfp_arr)
+
+    Cfp_msk = {"0": Cfp_arr == 0, "1": Cfp_arr == 1}
+    for r in ((2, 5), (6, 10), (11, 15)):
+        Cfp_msk[str(r[0]) + "_" + str(r[1])] = (Cfp_arr >= r[0]) & (Cfp_arr <= r[1])
+    Cfp_msk["15"] = Cfp_arr > 15
+
+    return Cfp_msk
+
+
 # def pc_radius(
 #     angular_radius_arcmin: np.ndarray, parallax_mas: np.ndarray
 # ) -> np.ndarray:
@@ -357,6 +383,31 @@ def updt_C3_classif_main_table(class_order, OCs_per_class, database_md_in: str):
 #     return database_md_updt
 
 
+def updt_fund_params_main_table(Cfp_msk, database_md_in: str):
+    """ """
+    Cfp_table = "\n| N_fp |  N  | N_fp |  N  |\n"
+    Cfp_table += "| :--: | :-: | :--: | :-: |\n|"
+
+    for i, (k, v) in enumerate(Cfp_msk.items()):
+        if "_" in k:
+            k1 = "[" + k.replace("_", ", ") + "]"
+        elif i == len(Cfp_msk) - 1:
+            k1 = ">" + k
+        else:
+            k1 = k
+        fchar = "|\n" if i in (1, 3, 5) else "| "
+        Cfp_table += f" {k1} | [{v.sum()}](/tables/Nfp_{k.replace('_', '')}_table) {fchar}"
+    Cfp_table += "\n"
+
+    delimeterA = "<!-- Begin table 3 -->\n"
+    delimeterB = "<!-- End table 3 -->\n"
+    database_md_updt = replace_text_between(
+        database_md_in, Cfp_table, delimeterA, delimeterB
+    )
+
+    return database_md_updt
+
+
 def updt_Cdup_main_table(Cdup_msk, database_md_in: str):
     """ """
     Cdup_table = "\n| C_dup |  N  | C_dup |  N  |\n"
@@ -552,13 +603,34 @@ def updt_C3_classif_tables(df_updt, class_order: list) -> dict:
     new_tables_dict = {}
     for C3_N in range(16):
         title = f"{class_order[C3_N]} classification"
-        md_table = header.replace("C3_title", title).replace(
-            "C3_link", class_order[C3_N]
-        )
-        msk = df_updt["C3"] == class_order[C3_N]
+        table_name = class_order[C3_N]
+        md_table = header.replace("C3_title", title).replace("C3_link", table_name)
+        msk = df_updt["C3"] == table_name
         md_table = generate_table(df_updt[msk], md_table)
 
-        new_tables_dict[class_order[C3_N]] = md_table
+        new_tables_dict[table_name] = md_table
+
+    return new_tables_dict
+
+
+def updt_fund_params_table(df_updt, Cfp_msk: dict) -> dict:
+    """Update the fundamental parameters table files"""
+    header = header_default.format("Nfp_title", "/tables/Nfp_link_table/")
+
+    new_tables_dict = {}
+    for i, (k, v) in enumerate(Cfp_msk.items()):
+        if "_" in k:
+            k1 = "=[" + k.replace("_", ", ") + "]"
+        elif i == len(Cfp_msk) - 1:
+            k1 = ">" + k
+        else:
+            k1 = "=" + k
+
+        title = f"N_fp{k1} fundamental parameters"
+        table_name = f"Nfp_{k.replace('_', '')}"
+        md_table = header.replace("Nfp_title", title).replace("Nfp_link", table_name)
+        md_table = generate_table(df_updt[v], md_table)
+        new_tables_dict[table_name] = md_table
 
     return new_tables_dict
 

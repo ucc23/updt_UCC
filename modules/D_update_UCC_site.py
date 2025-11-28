@@ -10,6 +10,7 @@ from .D_funcs import ucc_entry, ucc_plots
 from .D_funcs.main_files_updt import (
     C_dup_ranges,
     UTI_ranges,
+    count_fund_pars,
     count_N50membs,
     count_OCs_classes,
     ucc_n_total_updt,
@@ -17,6 +18,8 @@ from .D_funcs.main_files_updt import (
     updt_C3_classif_main_table,
     updt_C3_classif_tables,
     updt_Cdup_main_table,
+    updt_fund_params_main_table,
+    updt_fund_params_table,
     updt_Cdup_tables,
     updt_DBs_tables,
     updt_N50_main_table,
@@ -126,7 +129,8 @@ def main():
     UTI_msk = UTI_ranges(df_UCC_edit)
     # Mask with N50 members
     membs_msk = count_N50membs(df_UCC_edit)
-    # Mask with OCs with shared members
+    # Mask with OCs with fundamental parameters
+    Cfp_msk = count_fund_pars(df_UCC_edit, current_JSON)
     # shared_msk = count_shared_membs(df_UCC_edit)
     Cdup_msk = C_dup_ranges(df_UCC_edit)
 
@@ -144,6 +148,7 @@ def main():
             OCs_per_class,
             UTI_msk,
             membs_msk,
+            Cfp_msk,
             Cdup_msk,
         )
 
@@ -159,6 +164,7 @@ def main():
             df_UCC_edit,
             UTI_msk,
             membs_msk,
+            Cfp_msk,
             Cdup_msk,
         )
 
@@ -361,7 +367,7 @@ def updt_ucc_cluster_files(
     for i_ucc, UCC_cl in df_UCC.iterrows():
         fname0 = str(UCC_cl["fname"])
 
-        # if fname0 not in ("hxhwl10", ):
+        # if fname0 not in ("coingaia37", "markarian50", "ryu12"):
         #     continue
         # if i_ucc not in ran_i:
         #     continue
@@ -554,6 +560,7 @@ def update_main_pages(
     OCs_per_class,
     UTI_msk,
     membs_msk,
+    Cfp_msk,
     Cdup_msk,
 ):
     """Update DATABASE, TABLES, ARTICLES .md files"""
@@ -579,6 +586,7 @@ def update_main_pages(
     )
     # tables_md_updt = updt_OCs_per_quad_main_table(df_UCC, tables_md_updt)
     # tables_md_updt = updt_shared_membs_main_table(shared_msk, tables_md_updt)
+    tables_md_updt = updt_fund_params_main_table(Cfp_msk, tables_md_updt)
     tables_md_updt = updt_Cdup_main_table(Cdup_msk, tables_md_updt)
     tables_md_updt = updt_N50_main_table(membs_msk, tables_md_updt)
     with open(temp_folder + tables_md_path, "w") as file:
@@ -608,6 +616,7 @@ def updt_indiv_tables_files(
     df_UCC_edit,
     UTI_msk,
     membs_msk,
+    Cfp_msk,
     Cdup_msk,
 ):
     """ """
@@ -626,17 +635,15 @@ def updt_indiv_tables_files(
     new_tables_dict = updt_UTI_tables(df_UCC_edit, UTI_msk)
     general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
 
-    # Update page with N members
     new_tables_dict = updt_N50_tables(df_UCC_edit, membs_msk)
     general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
 
-    #
     new_tables_dict = updt_C3_classif_tables(df_UCC_edit, class_order)
     general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
 
-    #
-    # new_tables_dict = updt_OCs_per_quad_tables(df_UCC_edit)
-    # new_tables_dict = updt_shared_membs_tables(df_UCC_edit, shared_msk)
+    new_tables_dict = updt_fund_params_table(df_UCC_edit, Cfp_msk)
+    general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
+
     new_tables_dict = updt_Cdup_tables(df_UCC_edit, Cdup_msk)
     general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
 
