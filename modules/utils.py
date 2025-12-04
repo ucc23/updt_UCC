@@ -131,7 +131,7 @@ def diff_between_dfs(
     df_new: pd.DataFrame,
     order_col: str = "fname",
     add_context=True,
-) -> None:
+) -> bool:
     """
     Order by (lon, lat) and change NaN as "nan".
 
@@ -193,8 +193,9 @@ def diff_between_dfs(
         non_matching2 = [row for row in rows2 if tuple(row) not in set1]
 
     if len(non_matching1) == 0 and len(non_matching2) == 0:
-        logging.info("\nNo differences found\n")
-        return
+        logging.info("No differences found\n")
+        # Return boolean indicating if any differences where found
+        return False
 
     # Write to files
     if len(non_matching1) > 0:
@@ -202,14 +203,71 @@ def diff_between_dfs(
             writer = csv.writer(out)
             for row in non_matching1:
                 writer.writerow(row)
+        logging.info("File 'UCC_diff_old.csv' saved")
 
     if len(non_matching2) > 0:
         with open(temp_folder + "UCC_diff_new.csv", "w", newline="") as out:
             writer = csv.writer(out)
             for row in non_matching2:
                 writer.writerow(row)
+        logging.info("File 'UCC_diff_new.csv' saved")
 
-    logging.info("\nFiles 'UCC_diff_xxx.csv' saved\n")
+    logging.info("")
+
+    return True
+
+
+def final_fname_compare(logging, old_df, new_df, N_max=50):
+    """ """
+    fnames_old = [_.split(";") for _ in old_df["fnames"]]
+    fnames_new = [_.split(";") for _ in new_df["fnames"]]
+    fname0_old = [_[0] for _ in fnames_old]
+    fname0_new = [_[0] for _ in fnames_new]
+
+    # Build a lookup: each secondary name --> the full entry it appears in
+    lookup_new = {}
+    for full in fnames_new:
+        for name in full:
+            lookup_new[name] = full
+
+    # Compute differences
+    set_new0 = set(fname0_new)
+    diffs_1 = []
+    for name0 in fname0_old:
+        if name0 not in set_new0:
+            full = lookup_new.get(name0)
+            if full:
+                diffs_1.append(f"{name0} --> {';'.join(full)}")
+    N_diff = len(diffs_1)
+    if N_diff > 0:
+        logging.info(f"Found {N_diff} fnames in old df that changed in new:\n")
+        for _ in diffs_1[:N_max]:
+            logging.info(_)
+        if N_diff > N_max:
+            logging.info(f"... and {N_diff - N_max} more differences")
+
+    fnames_old_set = {x for sub in fnames_old for x in sub}
+    fnames_new_set = {x for sub in fnames_new for x in sub}
+    new_vs_old = list(set(fname0_new) - fnames_old_set)
+    old_vs_new = list(set(fname0_old) - fnames_new_set)
+
+    def dif_missig(sets_id):
+        missing = new_vs_old
+        if sets_id[0] == "old":
+            missing = old_vs_new
+        N_missing = len(missing)
+        if N_missing > 0:
+            logging.info(
+                f"\nFound {N_missing} fnames in {sets_id[0]} df that are not in {sets_id[1]}:"
+            )
+            for fmiss in missing[:N_max]:
+                logging.info(f"{fmiss}")
+            if N_missing > N_max:
+                logging.info(f"... and {N_missing - N_max} more differences")
+
+    dif_missig(("new", "old"))
+    dif_missig(("old", "new"))
+    logging.info("")
 
 
 def save_df_UCC(
@@ -218,8 +276,14 @@ def save_df_UCC(
     """ """
     df = round_columns(df)
 
-    # Order by 'order_col'
-    df = df.sort_values(by=order_col).reset_index(drop=True)
+    if order_col == "fnames":
+        fnames0 = [_.split(";")[0] for _ in df["fnames"]]
+        idx = np.argsort(fnames0)
+        df = df.reindex(idx)
+    else:
+        # Order by 'order_col'
+        df = df.sort_values(by=order_col).reset_index(drop=True)
+
     # Save UCC to CSV file
     if compression == "gzip":
         df.to_csv(

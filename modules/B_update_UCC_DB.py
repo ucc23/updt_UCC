@@ -10,7 +10,13 @@ from astropy.coordinates import angular_separation
 from rapidfuzz import fuzz, process
 from scipy.spatial.distance import cdist
 
-from .utils import diff_between_dfs, logger, radec2lonlat, save_df_UCC
+from .utils import (
+    diff_between_dfs,
+    final_fname_compare,
+    logger,
+    radec2lonlat,
+    save_df_UCC,
+)
 from .variables import (
     GCs_cat,
     data_folder,
@@ -38,6 +44,14 @@ def main():
         load_data(logging, df_UCC_B_current_file, temp_JSON_file, temp_database_folder)
     )
 
+    skip_check_flag = False
+    if input("\nSkip check for non new DBs? (y/n): ").lower() == "y":
+        skip_check_flag = True
+
+    # from pyinstrument import Profiler
+    # profiler = Profiler()
+    # profiler.start()
+
     for new_DB, (df_new, newDB_json) in all_dbs_data.items():
         logging.info("\n" + "-" * 40)
         logging.info(f"Adding {new_DB} to the UCC")
@@ -50,41 +64,33 @@ def main():
             )
 
         # Check the new DB for basic requirements
-        check_new_DB(
-            logging,
-            df_GCs,
-            new_DB,
-            df_new,
-            newDB_json,
-            flag_interactive,
-        )
+        if skip_check_flag is False:
+            check_new_DB(
+                logging,
+                df_GCs,
+                new_DB,
+                df_new,
+                newDB_json,
+                flag_interactive,
+            )
 
         # Standardize names in the new DB
         new_DB_fnames = get_fnames_new_DB(logging, df_new, newDB_json)
 
         # Match the new DB with the UCC
-        db_matches = get_matches_new_DB(df_UCC_B, new_DB_fnames)
-        N_new = db_matches.count(None)
-        logging.info(f"\nFound {N_new} new entries")
-        N_max, N_print = 50, 0
-        for i, idx in enumerate(db_matches):
-            if idx is None:
-                logging.info(f"{i}    {new_DB_fnames[i][0]}")
-                N_print += 1
-            if N_print == N_max:
-                logging.info(f"... (only first {N_max} entries shown)")
-                break
+        db_matches = get_matches_new_DB(logging, df_UCC_B, new_DB_fnames)
 
         # Check the entries in the new DB vs the entries in the UCC
-        check_new_DB_vs_UCC(
-            logging,
-            new_DB,
-            df_UCC_B,
-            df_new,
-            new_DB_fnames,
-            db_matches,
-            flag_interactive,
-        )
+        if skip_check_flag is False:
+            check_new_DB_vs_UCC(
+                logging,
+                new_DB,
+                df_UCC_B,
+                df_new,
+                new_DB_fnames,
+                db_matches,
+                flag_interactive,
+            )
 
         # Combine the new DB with the UCC
         df_UCC_B = combine_UCC_new_DB(
@@ -97,6 +103,13 @@ def main():
             db_matches,
         )
 
+    # profiler.stop()
+    # profiler.open_in_browser()
+
+    logging.info("\n\n---------------------")
+    logging.info("---------------------")
+    logging.info("Merging of DBs completed\n")
+
     df_UCC_B = sort_year_importance(new_JSON, df_UCC_B)
 
     # Last sanity check. Check every individual fname for duplicates
@@ -107,8 +120,12 @@ def main():
     if exit_flag:
         raise ValueError("Duplicated entries found in 'fnames' column")
 
-    #
-    diff_between_dfs(logging, df_UCC_B_old, df_UCC_B, order_col="fnames")
+    # Generate diff files to open with Meld or similar
+    diff_found = diff_between_dfs(logging, df_UCC_B_old, df_UCC_B, order_col="fnames")
+
+    # Compare changes in 'fnames' columns between old and new df
+    if diff_found:
+        final_fname_compare(logging, df_UCC_B_old, df_UCC_B)
 
     file_path = df_UCC_B_current_file.replace(data_folder, temp_folder)
     save_df_UCC(logging, df_UCC_B, file_path, order_col="fnames")
@@ -671,7 +688,7 @@ def normalize_name(name: str) -> str:
 
 
 def get_matches_new_DB(
-    df_UCC_B: pd.DataFrame, new_DB_fnames: list[list[str]], sep: str = ";"
+    logging, df_UCC_B: pd.DataFrame, new_DB_fnames: list[list[str]], sep: str = ";"
 ) -> list[int | None]:
     """
     Get cluster matches for the new DB being added to the UCC
@@ -718,6 +735,20 @@ def get_matches_new_DB(
     for cl_fnames in new_DB_fnames:
         found = next((fname_to_idx[f] for f in cl_fnames if f in fname_to_idx), None)
         db_matches.append(found)
+
+    N_new = db_matches.count(None)
+    if N_new > 0:
+        logging.info(f"\nFound {N_new} new entries")
+        N_max, N_print = 50, 0
+        for i, idx in enumerate(db_matches):
+            if idx is None:
+                logging.info(f"{i}    {new_DB_fnames[i][0]}")
+                N_print += 1
+            if N_print == N_max:
+                logging.info(f"... (only first {N_max} entries shown)")
+                break
+    else:
+        logging.info("\nNo new entries found")
 
     return db_matches
 
@@ -917,7 +948,7 @@ def fnames_check_UCC_new_DB(
         dup_flag = True
         logging.info(
             f"\nFound {len(bad_entries)} entries in {new_DB} with duplicated "
-            + "fnames in the combined DB"
+            + "fnames in the combined DB:"
         )
         for k, v in bad_entries:
             new_db_entries = f"({k}) {', '.join(new_DB_fnames[k])}"
@@ -932,12 +963,14 @@ def fnames_check_UCC_new_DB(
     if duplicates:
         dup_flag = True
         logging.info(
-            f"\nFound {len(duplicates)} entries in {new_DB} with duplicated "
-            + "fnames in the combined DB"
+            f"\nFound {len(duplicates)} entries in {new_DB} with combined "
+            + "fnames in the combined DB:"
         )
         for k, v in duplicates.items():
             new_db_entries = "; ".join([", ".join(new_DB_fnames[_]) for _ in v])
-            logging.info(f"({v}) {new_db_entries} --> ({k}) {df_UCC_B['fnames'][k]}")
+            u_dbs = ",".join(list(set(df_UCC_B["DB"][k].split(";"))))
+            u_fnames = ",".join(list(set(df_UCC_B["fnames"][k].split(";"))))
+            logging.info(f"{tuple(v)} {new_db_entries} --> ({k}) {u_dbs}: {u_fnames}")
 
     return dup_flag
 
@@ -980,19 +1013,20 @@ def combine_UCC_new_DB(
     pd.DataFrame
         Dataframe representing the updated database with new and modified entries.
     """
-    # Faster access below compared to using iloc
+    # Convert df_new to records once (O(N) operation) to avoid Series creation overhead
+    new_db_rows = df_new.to_dict(orient="records")
     ucc_dict_rows = df_UCC_B.to_dict(orient="records")
 
     new_db_dict = {_: [] for _ in df_UCC_B.keys()}
-    # For each entry in the new DB
-    for i_new_cl, (_, row_n) in enumerate(df_new.iterrows()):
-        # Rename certain entries (ESO, FSR, etc)
+
+    # Iterate over the list of dictionaries
+    for i_new_cl, row_n in enumerate(new_db_rows):
+        # row_n is now a standard dict, but key access syntax remains valid
         oc_names = rename_standard(str(row_n[newDB_json["names"]]))
 
         row_ucc = {}
         ucc_index = db_matches[i_new_cl]
-        if ucc_index is not None:  # The cluster is already present in the UCC
-            # Row in UCC where this match is located
+        if ucc_index is not None:
             row_ucc = ucc_dict_rows[ucc_index]
 
         new_db_dict = updt_new_DB(
@@ -1138,22 +1172,22 @@ def rename_standard(all_names: str, sep_in: str = ",", sep_out: str = ";") -> st
 
 def extract_new_DB_coords(DB_ID, row_n, pos_cols):
     """ """
-    ra_n, dec_n, lon_n, lat_n = [np.nan] * 4
-    plx_n, pmra_n, pmde_n = [np.nan] * 3
+    ra_n, dec_n, lon_n, lat_n, plx_n, pmra_n, pmde_n = [np.nan] * 7
 
-    # Don't use KHARCHENKO2012 for coordinates
-    if DB_ID != "KHARCHENKO2012":
-        if "RA" in pos_cols:
-            ra_n, dec_n = row_n[pos_cols["RA"]], row_n[pos_cols["DEC"]]
-            lon_n, lat_n = row_n["GLON_"], row_n["GLAT_"]
-    # Don't use these for Pms, Plx values
-    if DB_ID not in ("DIAS2002", "KHARCHENKO2012", "LOKTIN2017"):
-        if "plx" in pos_cols:
-            plx_n = row_n[pos_cols["plx"]]
-        if "pmra" in pos_cols:
-            pmra_n = row_n[pos_cols["pmra"]]
-        if "pmde" in pos_cols:
-            pmde_n = row_n[pos_cols["pmde"]]
+    if "RA" in pos_cols:
+        ra_n, dec_n = row_n[pos_cols["RA"]], row_n[pos_cols["DEC"]]
+        lon_n, lat_n = row_n["GLON_"], row_n["GLAT_"]
+
+    # Don't use these for PMs or Plx values
+    if DB_ID in ("DIAS2002", "LOKTIN2017") or "KHARCHENKO" in DB_ID:
+        return ra_n, dec_n, lon_n, lat_n, plx_n, pmra_n, pmde_n
+
+    if "plx" in pos_cols:
+        plx_n = row_n[pos_cols["plx"]]
+    if "pmra" in pos_cols:
+        pmra_n = row_n[pos_cols["pmra"]]
+    if "pmde" in pos_cols:
+        pmde_n = row_n[pos_cols["pmde"]]
 
     return ra_n, dec_n, lon_n, lat_n, plx_n, pmra_n, pmde_n
 
@@ -1164,7 +1198,7 @@ def updt_new_DB(
     i_new_cl: str,
     fnames_new_cl: list[str],
     oc_names: str,
-    row_n: pd.Series,
+    row_n: dict,
     row_ucc: dict,
     pos_cols: dict,
     sep: str = ";",
@@ -1205,7 +1239,7 @@ def updt_new_DB(
                 vals[i] = vals_new[i]
         ra_n, dec_n, lon_n, lat_n, plx_n, pmra_n, pmde_n = vals
 
-        # If this is one of the OCs with selected center values, replace here
+        # If this is one of the OCs with manually fixed center values, replace here
         idx = [
             i
             for i, val in enumerate(fnames_new_cl)
@@ -1320,7 +1354,9 @@ def sort_year_importance(new_JSON, df_UCC_B):
             # Sort by importance
             i_new = order_by_name(fnames)
             fnames = [fnames[_] for _ in i_new]
-            names = [names[_] for _ in i_new]
+            names = [
+                str(names[_]) for _ in i_new
+            ]  # str() added to avoid Pyright warning
 
             # Remove duplicates elements without affecting the order
             fnames, rm_idx = rm_dups(fnames)
@@ -1431,6 +1467,8 @@ def move_files(
     # Remove old B csv file
     os.remove(dbs_merged_current_file)
     logging.info(dbs_merged_current_file + " --> " + archived_B_file)
+    logging.info("NOTICE: UCC_cat_B archiving NOT APPLIED")
+
     # Move new B file into place
     ucc_temp = temp_folder + merged_dbs_file
     os.rename(ucc_temp, dbs_merged_current_file)
