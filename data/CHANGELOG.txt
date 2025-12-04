@@ -1,6 +1,27 @@
 Some of these are intermediate versions of the UCC database that are not published.
 
 
+## 25113010-25120411
+
+Remove KHARCHENKO2012 (HEARSAC compilation) and replace by the actual articles
+(and a few more) from Kharchenko et al. spanning 2003 to 2023.
+
+Steps:
+
+1. Remove KHARCHENKO2012, UCC cat is reduced from 16746 to 16550 entries
+2. Add Kharchenko 2003
+3. Add Kharchenko 2005
+4. Add Kharchenko 2005_1
+5. Added Kharchenko 2007
+6. Added Kharchenko 2012
+7. Added Kharchenko 2013
+8. Added Schmeja 2014
+9. Added Scholz 2015
+10. Added Kharchenko 2016
+11. Added Yen et al 2018
+12. Added Just et al 2023
+
+
 ## 25112409-25112810
 
 - Added Soubiran et al (2018)

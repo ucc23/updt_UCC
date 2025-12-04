@@ -63,6 +63,30 @@
       }
     }
   },
+  "KHARCHENKO2003": {
+    "SCIX_url": "https://scixplorer.org/abs/2003ARep...47..263K",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2003ARep...47..263K",
+    "authors": "Kharchenko et al.",
+    "title": "The Subsystem of Open Clusters in the Post-Hipparcos Era Cluster Structural Parameters and Proper Motions",
+    "year": "2003",
+    "received": "20030101",
+    "names": "Name",
+    "pos": {
+      "RA": "RAJ2000",
+      "DEC": "DEJ2000",
+      "pmra": "pmRA",
+      "pmde": "pmDE"
+    },
+    "pars": {
+      "ext": {
+        "Ebv": "E(B-V)"
+      },
+      "dist": {
+        "dpc": "Dist"
+      }
+    },
+    "e_pars": {}
+  },
   "ALESSI2003": {
     "SCIX_url": "https://scixplorer.org/abs/2003A%26A...410..565A",
     "vizier_url": "N/A",
@@ -124,6 +148,62 @@
     },
     "e_pars": {}
   },
+  "KHARCHENKO2005_1": {
+    "SCIX_url": "https://scixplorer.org/abs/2005A%26A...440..403K",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2005A%26A...440..403K",
+    "authors": "Kharchenko et al.",
+    "title": "109 new Galactic open clusters",
+    "year": "2005",
+    "received": "20050121",
+    "names": "ASCC",
+    "pos": {
+      "RA": "RAJ2000",
+      "DEC": "DEJ2000",
+      "pmra": "pmRA",
+      "pmde": "pmDE",
+      "Rv": "RV"
+    },
+    "pars": {
+      "ext": {
+        "Ebv": "E(B-V)"
+      },
+      "dist": {
+        "dpc": "Dist"
+      },
+      "age": {
+        "loga": "logt"
+      }
+    },
+    "e_pars": {}
+  },
+  "KHARCHENKO2005": {
+    "SCIX_url": "https://scixplorer.org/abs/2005A%26A...438.1163K",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2005A%26A...438.1163K",
+    "authors": "Kharchenko et al.",
+    "title": "Astrophysical parameters of Galactic open clusters",
+    "year": "2005",
+    "received": "20041213",
+    "names": "Name",
+    "pos": {
+      "RA": "RAdeg",
+      "DEC": "DEJ2000",
+      "pmra": "pmRA",
+      "pmde": "pmDE",
+      "Rv": "RV"
+    },
+    "pars": {
+      "ext": {
+        "Ebv": "E(B-V)"
+      },
+      "dist": {
+        "dpc": "Dist"
+      },
+      "age": {
+        "loga": "logt"
+      }
+    },
+    "e_pars": {}
+  },
   "MERCER2005": {
     "SCIX_url": "https://scixplorer.org/abs/2005ApJ...635..560M",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2005ApJ...635..560M",
@@ -173,6 +253,23 @@
         "eloga": "e_logt"
       }
     }
+  },
+  "KHARCHENKO2007": {
+    "SCIX_url": "https://scixplorer.org/abs/2007AN....328..889K",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2007AN....328..889K",
+    "authors": "Kharchenko et al.",
+    "title": "Astrophysical supplements to the ASCC-2.5 Ia. Radial velocities of 55000 stars and mean radial velocities of 516 Galactic open clusters and associations",
+    "year": "2007",
+    "received": "20070125",
+    "names": "Name",
+    "pos": {
+      "RA": "RAdeg",
+      "DEC": "DEJ2000",
+      "pmra": "Radcl",
+      "Rv": "RV"
+    },
+    "pars": {},
+    "e_pars": {}
   },
   "PISKUNOV2007": {
     "SCIX_url": "https://scixplorer.org/abs/2007A%26A...468..151P",
@@ -351,35 +448,165 @@
     "title": "Global survey of star clusters in the Milky Way. I. The pipeline and fundamental parameters in the second quadrant",
     "year": "2012",
     "received": "20111222",
-    "names": "name",
+    "names": "Name",
     "pos": {
-      "RA": "ra",
-      "DEC": "dec",
-      "pmra": "pm_ra",
-      "pmde": "pm_dec"
+      "RA": "RAJ2000",
+      "DEC": "DEJ2000",
+      "pmra": "pmRA",
+      "pmde": "pmDE",
+      "Rv": "RV"
     },
     "pars": {
       "ext": {
-        "Ebv": "e_bv"
+        "Ebv": "E(B-V)"
       },
       "dist": {
-        "dpc": "distance"
+        "dpc": "d"
       },
       "age": {
-        "loga": "log_age"
+        "loga": "logt"
       },
       "met": {
-        "feh": "metallicity"
+        "feh": "[Fe/H]"
       }
     },
     "e_pars": {
       "e_age": {
-        "loga": "log_age_error"
-      },
-      "e_met": {
-        "efeh": "metallicity_error"
+        "eloga": "e_logt"
       }
     }
+  },
+  "KHARCHENKO2013": {
+    "SCIX_url": "https://scixplorer.org/abs/2013A%26A...558A..53K",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2013A%26A...558A..53K",
+    "authors": "Kharchenko et al.",
+    "title": "Global survey of star clusters in the Milky Way. II. The catalogue of basic parameters",
+    "year": "2013",
+    "received": "20130717",
+    "names": "Name",
+    "pos": {
+      "RA": "RAJ2000",
+      "DEC": "DEJ2000",
+      "pmra": "pmRA",
+      "pmde": "pmDE",
+      "Rv": "RV"
+    },
+    "pars": {
+      "ext": {
+        "Ebv": "E(B-V)"
+      },
+      "dist": {
+        "dpc": "d"
+      },
+      "age": {
+        "loga": "logt"
+      },
+      "met": {
+        "feh": "[Fe/H]"
+      }
+    },
+    "e_pars": {
+      "e_age": {
+        "eloga": "e_logt"
+      },
+      "e_met": {
+        "efeh": "e_[Fe/H]"
+      }
+    }
+  },
+  "SCHMEJA2014": {
+    "SCIX_url": "https://scixplorer.org/abs/2014A%26A...568A..51S",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2014A%26A...568A..51S",
+    "authors": "Schmeja et al.",
+    "title": "Global survey of star clusters in the Milky Way. III. 139 new open clusters at high Galactic latitudes",
+    "year": "2014",
+    "received": "20130920",
+    "names": "Name",
+    "pos": {
+      "RA": "RAJ2000",
+      "DEC": "DEJ2000",
+      "pmra": "pmRA",
+      "pmde": "pmDE"
+    },
+    "pars": {
+      "ext": {
+        "Ebv": "E(B-V)"
+      },
+      "dist": {
+        "dpc": "d"
+      },
+      "age": {
+        "loga": "logt"
+      }
+    },
+    "e_pars": {
+      "e_age": {
+        "eloga": "e_logt"
+      }
+    }
+  },
+  "SCHOLZ2015": {
+    "SCIX_url": "https://scixplorer.org/abs/2015A%26A...581A..39S",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2015A%26A...581A..39S",
+    "authors": "Scholz et al.",
+    "title": "Global survey of star clusters in the Milky Way. IV. 63 new open clusters detected by proper motions",
+    "year": "2015",
+    "received": "20150414",
+    "names": "Name",
+    "pos": {
+      "RA": "RAJ2000",
+      "DEC": "DEJ2000",
+      "pmra": "pmRA",
+      "pmde": "pmDE",
+      "Rv": "RV"
+    },
+    "pars": {
+      "ext": {
+        "Ebv": "E(B-V)"
+      },
+      "dist": {
+        "dpc": "d"
+      },
+      "age": {
+        "loga": "logt"
+      },
+      "met": {
+        "feh": "[Fe/H]"
+      }
+    },
+    "e_pars": {
+      "e_age": {
+        "eloga": "e_logt"
+      },
+      "e_met": {
+        "efeh": "e_[Fe/H]"
+      }
+    }
+  },
+  "KHARCHENKO2016": {
+    "SCIX_url": "https://scixplorer.org/abs/2016A%26A...585A.101K",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2016A%26A...585A.101K",
+    "authors": "Kharchenko et al.",
+    "title": "Global survey of star clusters in the Milky Way. V. Integrated JHKSUBSSUB magnitudes and luminosity functions",
+    "year": "2016",
+    "received": "20150901",
+    "names": "Name",
+    "pos": {
+      "RA": "_RA.icrs",
+      "DEC": "_DE.icrs"
+    },
+    "pars": {
+      "ext": {
+        "Ebv": "E(B-V)"
+      },
+      "dist": {
+        "dpc": "d"
+      },
+      "age": {
+        "loga": "logt"
+      }
+    },
+    "e_pars": {}
   },
   "ROSER2016": {
     "SCIX_url": "https://scixplorer.org/abs/2016A%26A...595A..22R",
@@ -440,6 +667,47 @@
       },
       "e_age": {
         "eloga": "e_logt"
+      }
+    }
+  },
+  "YEN2018": {
+    "SCIX_url": "https://scixplorer.org/abs/2018A%26A...615A..12Y",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2018A%26A...615A..12Y",
+    "authors": "Yen et al.",
+    "title": "Reanalysis of nearby open clusters using Gaia DR1TGAS and HSOY",
+    "year": "2018",
+    "received": "20170906",
+    "names": "Name",
+    "pos": {
+      "RA": "RA_deg",
+      "DEC": "DE_deg",
+      "plx": "plx",
+      "pmra": "pmRA",
+      "pmde": "pmDE"
+    },
+    "pars": {
+      "ext": {
+        "Ebv": "E(B-V)"
+      },
+      "dist": {
+        "dpc": "d"
+      },
+      "age": {
+        "loga": "logt"
+      }
+    },
+    "e_pars": {
+      "e_ext": {
+        "eEbv": "e_E(B-V)"
+      },
+      "e_dist": {
+        "edpc": "e_d"
+      },
+      "e_age": {
+        "eloga": [
+          "e_logt",
+          "E_logt"
+        ]
       }
     }
   },
@@ -1495,6 +1763,32 @@
       }
     },
     "e_pars": {}
+  },
+  "JUST2023": {
+    "SCIX_url": "https://scixplorer.org/abs/2023A%26A...672A.187J",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2023A%26A...672A.187J",
+    "authors": "Just et al.",
+    "title": "Global survey of star clusters in the Milky Way. VII. Tidal parameters and mass function",
+    "year": "2023",
+    "received": "20220809",
+    "names": "Name",
+    "pos": {
+      "RA": "_RA.icrs",
+      "DEC": "_DE.icrs"
+    },
+    "pars": {
+      "age": {
+        "loga": "logt"
+      },
+      "mass": {
+        "logm": "logmt"
+      }
+    },
+    "e_pars": {
+      "e_mass": {
+        "elogm": "e_logmt"
+      }
+    }
   },
   "CORDONI2023": {
     "SCIX_url": "https://scixplorer.org/abs/2023A%26A...672A..29C",
