@@ -1,6 +1,15 @@
 Some of these are intermediate versions of the UCC database that are not published.
 
 
+## 25120412-25120517
+
+- Added Nizovkina et al. 2025
+- Added Carrasco-Varela et al. 2025
+- Added Zhang et al. 2024
+- Added Monteiro et al. 2019
+
+
+
 ## 25113010-25120411
 
 Remove KHARCHENKO2012 (HEARSAC compilation) and replace by the actual articles
