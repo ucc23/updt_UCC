@@ -8,15 +8,8 @@ A -> B -> C -> D
 Each script must be run in order for proper UCC database maintenance.
 """
 
+import importlib
 import sys
-
-# Import modules
-from modules import (
-    A_get_new_DB,
-    B_update_UCC_DB,
-    C_process_member_files,
-    D_update_UCC_site,
-)
 
 
 def display_menu():
@@ -74,37 +67,37 @@ def get_ads_bibcode():
 
 
 def run_script(script_choice):
-    """Run the specified script as a module and handle errors."""
-    # Map script choices to module functions
-    module_map = {
-        "A": A_get_new_DB,
-        "B": B_update_UCC_DB,
-        "C": C_process_member_files,
-        "D": D_update_UCC_site,
+    """Dynamically import and run the selected script module."""
+    module_names = {
+        "A": "A_get_new_DB",
+        "B": "B_update_UCC_DB",
+        "C": "C_process_member_files",
+        "D": "D_update_UCC_site",
     }
 
-    module = module_map.get(script_choice)
-    if not module:
+    module_name = module_names.get(script_choice)
+    if not module_name:
         print(f"\n❌ Error: Invalid script choice {script_choice}")
         return False
 
-    script_name = f"{script_choice}_script"
-    print(f"\n🚀 Running {script_name}...")
-    print("-" * 40)
+    print(f"\n🚀 Running {script_choice}_script...")
 
-    # Special handling for script A - requires ADS_bibcode parameter
+    try:
+        mod = importlib.import_module(f"modules.{module_name}")
+    except ImportError as e:
+        print(f"❌ Failed to import module {module_name}: {e}")
+        return False
+
     if script_choice == "A":
         ads_bibcode = get_ads_bibcode()
         if not ads_bibcode:
             print("❌ Operation cancelled - ADS bibcode is required")
             return False
-        module.main(ads_bibcode)
+        mod.main(ads_bibcode)
     else:
-        # Run the module's main function
-        module.main()
+        mod.main()
 
-    print("-" * 40)
-    print(f"✅ {script_name} completed successfully!")
+    print(f"✅ {script_choice}_script completed successfully!")
     return True
 
 
