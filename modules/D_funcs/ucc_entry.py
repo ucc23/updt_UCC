@@ -14,6 +14,7 @@ style: style
 title_flag: true
 more_names: {more_names}
 fname: {fname}
+members_file: "{members_file}"
 fov: {fov}
 ra_icrs: {ra_icrs}
 de_icrs: {de_icrs}
@@ -54,11 +55,17 @@ shared_table: |
 
 def make(current_JSON, DBs_full_data, df_UCC, UCC_cl, fnames_all, fname0):
     """ """
+    cmap = cm.get_cmap("RdYlGn")
+
     cl_names = UCC_cl["Names"].split(";")
 
     more_names = ""
     if len(cl_names) > 1:
         more_names = "; ".join(cl_names[1:])
+
+    glon_bins = np.linspace(0, 360, 91)
+    glon_i = np.searchsorted(glon_bins, UCC_cl["GLON_m"])
+    members_file = str(int(glon_bins[glon_i - 1])) + "_" + str(int(glon_bins[glon_i]))
 
     UTI_summary = summarize_object(
         cl_names[0],
@@ -117,6 +124,7 @@ def make(current_JSON, DBs_full_data, df_UCC, UCC_cl, fnames_all, fname0):
         title=cl_names[0],
         more_names=more_names,
         fname=fname0,
+        members_file=members_file,
         fov=str(round(2 * (UCC_cl["r_50"] / 60.0), 3)),
         ra_icrs=str(UCC_cl["RA_ICRS_m"]),
         de_icrs=str(UCC_cl["DE_ICRS_m"]),
@@ -125,12 +133,12 @@ def make(current_JSON, DBs_full_data, df_UCC, UCC_cl, fnames_all, fname0):
         r50=str(UCC_cl["r_50"]),
         plx=str(UCC_cl["Plx_m"]),
         UTI="1.0" if UCC_cl["UTI"] == 1.0 else f"{UCC_cl['UTI']:.2f}",
-        UTI_COLOR=UTI_to_hex(UCC_cl["UTI"]),
-        UTI_C_N_COL=UTI_to_hex(UCC_cl["C_N"]),
-        UTI_C_dens_COL=UTI_to_hex(UCC_cl["C_dens"]),
-        UTI_C_C3_COL=UTI_to_hex(UCC_cl["C_C3"]),
-        UTI_C_lit_COL=UTI_to_hex(UCC_cl["C_lit"]),
-        UTI_C_dup_COL=UTI_to_hex(UCC_cl["C_dup"]),
+        UTI_COLOR=UTI_to_hex(UCC_cl["UTI"], cmap),
+        UTI_C_N_COL=UTI_to_hex(UCC_cl["C_N"], cmap),
+        UTI_C_dens_COL=UTI_to_hex(UCC_cl["C_dens"], cmap),
+        UTI_C_C3_COL=UTI_to_hex(UCC_cl["C_C3"], cmap),
+        UTI_C_lit_COL=UTI_to_hex(UCC_cl["C_lit"], cmap),
+        UTI_C_dup_COL=UTI_to_hex(UCC_cl["C_dup"], cmap),
         UTI_C_N=str(UCC_cl["C_N"]),
         UTI_C_dens=str(UCC_cl["C_dens"]),
         UTI_C_C3=str(UCC_cl["C_C3"]),
@@ -151,7 +159,7 @@ def make(current_JSON, DBs_full_data, df_UCC, UCC_cl, fnames_all, fname0):
     return contents
 
 
-def UTI_to_hex(x: float, soft: float = 0.65) -> str:
+def UTI_to_hex(x: float, cmap, soft: float = 0.65) -> str:
     """
     Map a value in [0, 1] to a pastel hex color using the RdYlGn colormap.
 
@@ -165,11 +173,8 @@ def UTI_to_hex(x: float, soft: float = 0.65) -> str:
     str
         Hex color code.
     """
-    # Clamp to [0, 1]
-    x = max(0.0, min(1.0, x))
-
     # Get color from colormap (RGBA in [0,1])
-    rgba = cm.RdYlGn(x)
+    rgba = cmap(max(0.0, min(1.0, x)))
 
     # Convert to pastel by blending toward white
     pastel = tuple(soft + (1 - soft) * c for c in rgba[:3])  # soften colors
