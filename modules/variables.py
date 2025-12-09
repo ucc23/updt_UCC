@@ -130,6 +130,8 @@ dbs_tables_folder = tables_folder + "dbs/"
 images_folder = ucc_path + "images/"
 # Assets folder
 assets_folder = ucc_path + "assets/"
+# Member files folder
+members_files_folder = assets_folder + 'members/'
 # Path to the compressed CSV file with clusters data
 clusters_csv_path = "clusters_*.csv.gz"
 clusters_manifest_path = "clusters_manifest.json"

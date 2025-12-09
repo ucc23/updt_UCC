@@ -1,6 +1,7 @@
 import csv
 import json
 import os
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
 import numpy as np
@@ -18,10 +19,10 @@ from .D_funcs.main_files_updt import (
     updt_C3_classif_main_table,
     updt_C3_classif_tables,
     updt_Cdup_main_table,
-    updt_fund_params_main_table,
-    updt_fund_params_table,
     updt_Cdup_tables,
     updt_DBs_tables,
+    updt_fund_params_main_table,
+    updt_fund_params_table,
     updt_N50_main_table,
     updt_N50_tables,
     updt_UTI_main_table,
@@ -41,6 +42,7 @@ from .variables import (
     dbs_tables_folder,
     images_folder,
     md_folder,
+    members_files_folder,
     merged_dbs_file,
     name_DBs_json,
     pages_folder,
@@ -70,6 +72,7 @@ def main():
         temp_entries_path,
         ucc_entries_path,
         temp_image_path,
+        temp_members_files_folder,
     ) = load_paths(logging)
 
     cols_from_B_to_C = ["Names", "DB", "DB_i", "fnames"]
@@ -173,6 +176,10 @@ def main():
     if input("\nUpdate clusters CSV file? (y/n): ").lower() == "y":
         new_clusters_csv_path = updt_cls_CSV(logging, ucc_gz_CSV_path, df_UCC_edit)
 
+    #
+    if input("\nUpdate members csv.gz files? (y/n): ").lower() == "y":
+        updt_members_files(temp_members_files_folder, df_UCC, df_members)
+
     if input("\nMove files to their final destination? (y/n): ").lower() == "y":
         move_files(logging, ucc_gz_CSV_path, new_clusters_csv_path)
 
@@ -184,6 +191,7 @@ def main():
 def load_paths(
     logging,
 ) -> tuple[
+    str,
     str,
     str,
     str,
@@ -263,6 +271,12 @@ def load_paths(
     else:
         logging.info(f"Folder exists: {temp_folder + data_folder}")
 
+    temp_members_files_folder = temp_folder + members_files_folder
+    if not os.path.exists(temp_members_files_folder):
+        os.makedirs(temp_members_files_folder)
+    else:
+        logging.info(f"Folder exists: {temp_members_files_folder}")
+
     return (
         ucc_gz_CSV_path,
         temp_dbs_tables_path,
@@ -272,6 +286,7 @@ def load_paths(
         temp_entries_path,
         ucc_entries_path,
         temp_image_path,
+        temp_members_files_folder,
     )
 
 
@@ -725,6 +740,47 @@ def updt_cls_CSV(logging, ucc_gz_CSV_path: str, df_UCC_edit: pd.DataFrame) -> st
         logging.info(f"File '{ucc_gz_CSV_path}' not updated (no changes)")
 
     return new_clusters_csv_path
+
+
+def write_bin(args):
+    """Function to write a single bin to disk"""
+    out_fname, df_bin = args
+    # out_fname = f"{temp_members_files_folder}/membs_{bin_label}.csv.gz"
+    df_bin.to_csv(out_fname, index=False, compression="gzip")
+    return out_fname
+
+
+def updt_members_files(temp_members_files_folder, df_ucc, df_membs):
+    """ """
+    # Assign GLON bins to clusters
+    edges = [int(_) for _ in np.linspace(0, 360, 91)]
+    labels = [
+        f"{temp_members_files_folder}/membs_{edges[i]}_{edges[i + 1]}.csv.gz"
+        for i in range(len(edges) - 1)
+    ]
+
+    df_ucc["bin"] = pd.cut(
+        df_ucc["GLON_m"],
+        bins=edges,
+        labels=labels,
+        include_lowest=True,
+        right=True,
+    )
+
+    cluster_to_bin = df_ucc.set_index("fname")["bin"]
+
+    # Map members to bins
+    membs = pd.DataFrame(df_membs)
+    membs["bin"] = membs["name"].map(cluster_to_bin)
+    membs = membs.dropna(subset=["bin"])
+
+    # Group and write in parallel
+    groups = list(membs.groupby("bin", sort=False, observed=True))
+
+    print(f"Writing {len(groups)} .csv.gz files in parallel...")
+    with ProcessPoolExecutor() as exe:
+        for _ in exe.map(write_bin, groups):
+            pass
 
 
 def move_files(logging, ucc_gz_CSV_path: str, new_clusters_csv_path: str) -> None:
