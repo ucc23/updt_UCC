@@ -61,6 +61,47 @@ UTI_max = 0.25
 C_dup_min = 0.75
 C_lit_max = 0.3
 
+
+# Order used to store the fundamental parameters in the B database
+fpars_order = (
+    "dist",
+    "ext",
+    "diff_ext",
+    "age",
+    "met",
+    "mass",
+    "bi_frac",
+    "blue_str",
+)
+# Used to generate the per OC fundamental parameters tables
+# MUST MATCH the 'fpars_order' order beyond the second column
+fpars_headers = (
+    "Reference",
+    "Year",
+    "Dist [Kpc]",
+    "Av [mag]",
+    "DAv [mag]",
+    "Age [Myr]",
+    "[Fe/H] [dex]",
+    "Mass [Msun]",
+    "Bfr",
+    "BSS",
+)
+
+# Coefficients to transform fundamental parameters
+#
+# Ag is always assumed to be Gaia's G band. The coefficient in Av=1.2*Ag
+# comes from the sources:
+# Jordi et al 2010; https://www.aanda.org/articles/aa/full_html/2010/15/aa15441-10/aa15441-10.html
+# Wang & Chen 2019; https://iopscience.iop.org/article/10.3847/1538-4357/ab1c61
+
+# Conversion from Evi is also taken from Wang & Chen 2019
+c_z_sun = 0.0152
+c_Ag = 1.2
+c_Ebv = 3.1
+c_Evi = 2.5
+
+
 # Zenodo paths and names
 #
 # Path to the folder that stores the latest UCC version
@@ -131,7 +172,7 @@ images_folder = ucc_path + "images/"
 # Assets folder
 assets_folder = ucc_path + "assets/"
 # Member files folder
-members_files_folder = assets_folder + 'members/'
+members_files_folder = assets_folder + "members/"
 # Path to the compressed CSV file with clusters data
 clusters_csv_path = "clusters_*.csv.gz"
 clusters_manifest_path = "clusters_manifest.json"

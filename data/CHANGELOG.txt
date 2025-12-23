@@ -1,6 +1,12 @@
 Some of these are intermediate versions of the UCC database that are not published.
 
 
+## 251222-
+
+- Added 'fund_pars' column to B database
+
+
+
 ## 25120412-25120517
 
 - Added Nizovkina et al. 2025

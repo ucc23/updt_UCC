@@ -812,12 +812,12 @@
     },
     "pars": {
       "dist": {
-        "dm": "dmode"
+        "dpc": "dmode"
       }
     },
     "e_pars": {
       "e_dist": {
-        "edm": [
+        "edpc": [
           "d16",
           "d84"
         ]
@@ -1284,7 +1284,7 @@
         "Av": "AVNN"
       },
       "dist": {
-        "dpc": "DistPc"
+        "dm": "DMNN"
       },
       "age": {
         "loga": "AgeNN"
@@ -1510,7 +1510,7 @@
         ]
       },
       "age": {
-        "agemyr": [
+        "amyr": [
           "AgeM",
           "AgeF"
         ]
@@ -1573,7 +1573,7 @@
         "Av": "Avmag"
       },
       "dist": {
-        "dm": "dmode",
+        "dkpc": "dmode",
         "dpc": "Dist"
       },
       "age": {
@@ -1585,7 +1585,7 @@
         "eAv": "e_Avmag"
       },
       "e_dist": {
-        "edm": [
+        "edkpc": [
           "dmode16",
           "dmode84"
         ],
@@ -2104,7 +2104,7 @@
         "loga": "logAge"
       },
       "met": {
-        "z": "Z"
+        "feh": "Z"
       }
     },
     "e_pars": {}
@@ -2431,8 +2431,8 @@
         "feh": "[Fe/H]"
       },
       "blue_str": {
-        "bs_n": "NBSS",
-        "bs_f": "fBSS/MS"
+        "bs_f": "fBSS/MS",
+        "bs_n": "NBSS"
       }
     },
     "e_pars": {

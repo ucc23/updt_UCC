@@ -57,11 +57,62 @@ on** as both might need manual intervention.
 The column with the names of the new entries can contain several names; these must
 be separated using a ','.
 
-**Remeber to carefully check the keys for the new DB in the JSON file. They are auto
+**Remember to carefully check the keys for the new DB in the JSON file. They are auto
 detected by the script and they might need to be corrected and/or filled.**
 
 The output files will be loaded and updated by the B script, they must **not be
 manually moved**.
+
+
+### JSON file format
+
+The format of the `databases_info.json` file is mostly self-explanatory with the
+exception of the parameters section. This can have different formats depending on the
+database structure. There are three possible formats:
+
+
+1. **Default**
+
+The default formatting corresponds to a single column with a given formatting/units
+for each parameter:
+
+"pars": {
+  "par_general": {
+    "par_format": "par_db_col"
+  },
+  ...
+}
+
+For some databases the "par_db_col" can contain multiple values separated by a
+',' or ';'. Eg: KRONBERGER2006, ROSER2016, NIZOVKINA2025
+
+
+2. **Duplicate values, different units**
+
+The "par_general" parameter is present in more tan one column with different
+units (eg, obtained by different methods). Eg: JAEHNIG2021, CARRASCO2025
+
+"pars": {
+  "par_general": {
+    "par_format_0": "par_db_col_0",
+    "par_format_1": "par_db_col_1",
+  },
+  ...
+}
+
+
+3. **Duplicate units**
+
+There is more than one column with the same "par_format" units for the
+same parameter. Eg: CHEN2003, PISKUNOV2008, SANTOS2021, HUNT2024, ZHANG2024, HU2025
+
+"pars": {
+  "par_general": {
+    "par_format": ["par_db_col_0", "par_db_col_1"],
+  },
+  ...
+}
+
 
 
 
