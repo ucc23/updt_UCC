@@ -1187,7 +1187,7 @@ def transf_par(par_n2, par_v, flag_mult):
     elif par_n2 == "dm":
         return par_v.apply(
             lambda x: fmt(
-                x, lambda _: f"{10 ** (0.2 * float(_)) / 1000:.2f}{flag_mult}"
+                x, lambda _: f"{10 ** (0.2 * (float(_) + 5)) / 1000:.2f}{flag_mult}"
             )
         ).tolist()
 
