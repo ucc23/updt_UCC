@@ -75,7 +75,7 @@ def main():
         temp_members_files_folder,
     ) = load_paths(logging)
 
-    cols_from_B_to_C = ["Names", "DB", "DB_i", "fnames"]
+    cols_from_B_to_C = ["Names", "DB", "DB_i", "fnames", "fund_pars"]
 
     # Load required files
     (
@@ -558,6 +558,7 @@ def updt_UCC(df_UCC: pd.DataFrame) -> pd.DataFrame:
     df["C3_abcd"] = [ucc_entry.color_C3(_) for _ in df["C3"]]
 
     df["N_50"] = df["N_50"].astype(int)
+    df["P_dup"] = np.round(1 - df["C_dup"], 2)
 
     df = df.sort_values("Name").reset_index()
 
@@ -703,6 +704,7 @@ def updt_cls_CSV(logging, ucc_gz_CSV_path: str, df_UCC_edit: pd.DataFrame) -> st
                 "N_50",
                 "r_50",
                 "C3",
+                "P_dup",
                 "UTI",
                 "bad_oc",
             ]
