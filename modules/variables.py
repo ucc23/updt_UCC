@@ -78,7 +78,7 @@ fpars_order = (
 fpars_headers = (
     "Reference",
     "Year",
-    "Dist [Kpc]",
+    "Dist [kpc]",
     "Av [mag]",
     "DAv [mag]",
     "Age [Myr]",
