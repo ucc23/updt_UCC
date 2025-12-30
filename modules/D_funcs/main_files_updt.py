@@ -396,7 +396,9 @@ def updt_fund_params_main_table(Cfp_msk, database_md_in: str):
         else:
             k1 = k
         fchar = "|\n" if i in (1, 3, 5) else "| "
-        Cfp_table += f" {k1} | [{v.sum()}](/tables/Nfp_{k.replace('_', '')}_table) {fchar}"
+        Cfp_table += (
+            f" {k1} | [{v.sum()}](/tables/Nfp_{k.replace('_', '')}_table) {fchar}"
+        )
     Cfp_table += "\n"
 
     delimeterA = "<!-- Begin table 3 -->\n"
@@ -480,7 +482,7 @@ def updt_N50_main_table(membs_msk, database_md_in: str):
 #         yield {k: data[k] for k in islice(it, SIZE)}
 
 
-def updt_articles_table(df_UCC, current_JSON, database_md_in):
+def updt_articles_table(df_UCC, current_JSON, database_md_in, max_chars_title=50):
     """Update the table with the catalogues used in the UCC"""
     # Count DB occurrences in UCC
     N_in_DB = {_: 0 for _ in current_JSON.keys()}
@@ -494,7 +496,7 @@ def updt_articles_table(df_UCC, current_JSON, database_md_in):
     for DB, DB_data in current_JSON.items():
         row = ""
         title = DB_data["title"].replace("'", "").replace('"', "")
-        short_title = title[:25] + "..."
+        short_title = title[:max_chars_title] + "..."
         ref_url = f"""<a href="{DB_data["SCIX_url"]}" target="_blank" title="{title}">{short_title}</a>"""
         viz_url = f"""<a href="{DB_data["vizier_url"]}" target="_blank"> <img src="/images/vizier.png " alt="Vizier url"></a>"""
         if DB_data["vizier_url"] == "N/A":
