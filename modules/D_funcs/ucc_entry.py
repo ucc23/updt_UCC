@@ -1,16 +1,16 @@
-import datetime
 from pathlib import Path
 
 import matplotlib.cm as cm
 import matplotlib.colors as mcolors
 import numpy as np
 
-from ..variables import plots_folder, root_ucc_path
+from ..variables import fpars_headers, fpars_order, plots_folder, root_ucc_path
+from .summary import summarize_object
 
 header = """---
-layout: post
+layout: layout_cluster
+style: style_cluster
 title: {title}
-style: style
 title_flag: true
 more_names: {more_names}
 fname: {fname}
@@ -34,27 +34,36 @@ UTI_C_dens: {UTI_C_dens}
 UTI_C_C3: {UTI_C_C3}
 UTI_C_lit: {UTI_C_lit}
 UTI_C_dup: {UTI_C_dup}
+UTI_C_N_desc: {UTI_C_N_desc}
+UTI_C_dens_desc: {UTI_C_dens_desc}
+UTI_C_C3_desc: {UTI_C_C3_desc}
+UTI_C_lit_desc: {UTI_C_lit_desc}
+UTI_C_dup_desc: {UTI_C_dup_desc}
 UTI_summary: |
-    {UTI_summary}
+{UTI_summary}
 class3: |
-    {class3}
+{class3}
 r_50_val: {r_50_val}
 N_50_val: {N_50_val}
 scix_url: {scix_url}
 posit_table: |
-    {posit_table}
+{posit_table}
 cds_radec: {cds_radec}
 carousel: {carousel}
 fpars_table: |
-    {fpars_table}
+{fpars_table}
+note_asterisk: {note_asterisk}
 shared_table: |
-    {shared_table}
+{shared_table}
 ---
 """
 
 
-def make(current_JSON, DBs_full_data, df_UCC, UCC_cl, fnames_all, fname0):
-    """ """
+def make(current_JSON, DBs_full_data, df_UCC, UCC_cl, fnames_all, fname0, tsp="    "):
+    """
+    tsp: table spacing, added to the header to properly render tables and summary in
+    .md files
+    """
     cmap = cm.get_cmap("RdYlGn")
 
     cl_names = UCC_cl["Names"].split(";")
@@ -67,10 +76,24 @@ def make(current_JSON, DBs_full_data, df_UCC, UCC_cl, fnames_all, fname0):
     glon_i = np.searchsorted(glon_bins, UCC_cl["GLON_m"])
     members_file = str(int(glon_bins[glon_i - 1])) + "_" + str(int(glon_bins[glon_i]))
 
-    UTI_summary = summarize_object(
+    # Generate fundamental parameters table
+    fpars_table, fpars_dict, note_asterisk = fpars_in_lit(
+        current_JSON,
+        UCC_cl["DB"],
+        UCC_cl["fund_pars"],
+        tsp,
+    )
+
+    (
+        UTI_summary,
+        UTI_C_N_desc,
+        UTI_C_dens_desc,
+        UTI_C_C3_desc,
+        UTI_C_lit_desc,
+        UTI_C_dup_desc,
+    ) = summarize_object(
         cl_names[0],
         UCC_cl["DB"],
-        UCC_cl["N_50"],
         UCC_cl["Plx_m"],
         UCC_cl["shared_members_p"],
         UCC_cl["Z_GC"],
@@ -81,10 +104,12 @@ def make(current_JSON, DBs_full_data, df_UCC, UCC_cl, fnames_all, fname0):
         UCC_cl["C_dup"],
         UCC_cl["C_dup_same_db"],
         UCC_cl["bad_oc"],
+        fpars_dict,
+        tsp,
     )
 
     # Get colors used by the 'CX' classification
-    abcd_c = color_C3(UCC_cl["C3"])
+    abcd_c = tsp + color_C3(UCC_cl["C3"])
 
     cds_dec = (
         "+" + str(UCC_cl["DE_ICRS_m"])
@@ -94,7 +119,7 @@ def make(current_JSON, DBs_full_data, df_UCC, UCC_cl, fnames_all, fname0):
     cds_radec = f"{UCC_cl['RA_ICRS_m']},{cds_dec}"
 
     # Generate table with positional data: (ra, dec, plx, pmra, pmde, Rv)
-    posit_table = positions_in_lit(current_JSON, DBs_full_data, UCC_cl)
+    posit_table = positions_in_lit(current_JSON, DBs_full_data, UCC_cl, tsp)
 
     # Check present plots. The order here determines the order in which plots will be
     # shown: UCC --> HUNT23 --> CANTAT20
@@ -112,13 +137,8 @@ def make(current_JSON, DBs_full_data, df_UCC, UCC_cl, fnames_all, fname0):
         if plot_fpath.is_file() is True:
             carousel += "_" + _db
 
-    # Generate fundamental parameters table
-    fpars_table = fpars_in_lit(
-        current_JSON, DBs_full_data, UCC_cl["DB"], UCC_cl["DB_i"]
-    )
-
     # Generate table with OCs that share members with this one
-    shared_table = table_shared_members(df_UCC, fnames_all, UCC_cl)
+    shared_table = table_shared_members(df_UCC, fnames_all, UCC_cl, tsp)
 
     contents = header.format(
         title=cl_names[0],
@@ -144,6 +164,11 @@ def make(current_JSON, DBs_full_data, df_UCC, UCC_cl, fnames_all, fname0):
         UTI_C_C3=str(UCC_cl["C_C3"]),
         UTI_C_lit=str(UCC_cl["C_lit"]),
         UTI_C_dup=str(UCC_cl["C_dup"]),
+        UTI_C_N_desc=UTI_C_N_desc,
+        UTI_C_dens_desc=UTI_C_dens_desc,
+        UTI_C_C3_desc=UTI_C_C3_desc,
+        UTI_C_lit_desc=UTI_C_lit_desc,
+        UTI_C_dup_desc=UTI_C_dup_desc,
         UTI_summary=UTI_summary,
         class3=abcd_c,
         r_50_val=str(UCC_cl["r_50"]),
@@ -153,6 +178,7 @@ def make(current_JSON, DBs_full_data, df_UCC, UCC_cl, fnames_all, fname0):
         cds_radec=cds_radec,
         carousel=carousel,
         fpars_table=fpars_table,
+        note_asterisk=note_asterisk,
         shared_table=shared_table,
     )
 
@@ -182,230 +208,26 @@ def UTI_to_hex(x: float, cmap, soft: float = 0.65) -> str:
     return mcolors.to_hex(pastel)
 
 
-def summarize_object(
-    name,
-    cl_DB,
-    N_50,
-    plx,
-    shared_members_p,
-    Z_GC,
-    C_N,
-    C_dens,
-    C_C3,
-    C_lit,
-    C_dup,
-    C_dup_same_db,
-    bad_oc,
-) -> str:
-    """
-    Summarize an astronomical object based on five normalized parameters.
-
-    Parameters
-    ----------
-    name : float
-        Name of the object
-    last_lit_year : int
-        Latest year this object was mentioned in the literature
-    N_50 : int
-        Number of members with P>0.5
-    C_N : float
-        Number of estimated true members (1 = many).
-    C_dens : float
-        Stellar density (1 = dense).
-    C_C3 : float
-        Normalized C3 parameter (1 = best class AA, 0 = worst DD).
-    C_lit : float
-        Presence in literature (1 = frequently mentioned).
-    C_dup : float
-        Probability of duplication (1 = not a duplicate).
-
-    Returns
-    -------
-    str
-        Short textual summary.
-    """
-    members = level(
-        C_N,
-        [0.9, 0.75, 0.5, 0.25],
-        ["very rich", "rich", "moderately populated", "poorly populated", "sparse"],
-    )
-    density = level(
-        C_dens,
-        [0.9, 0.75, 0.5, 0.25],
-        ["very dense", "dense", "moderately dense", "loose", "very loose"],
-    )
-    quality = level(
-        C_C3,
-        [0.99, 0.7, 0.5, 0.2],
-        ["very high", "high", "intermediate", "low", "very low"],
-    )
-
-    distance = level(
-        plx,
-        [2, 1, 0.5, 0.2, 0.1],
-        [
-            "very close",
-            "close",
-            "relatively close",
-            "moderate",
-            "large",
-            "very large",
-        ],
-    )
-    z_position = level(
-        Z_GC,
-        [0.5, 0.05, -0.05, -0.5],
-        [
-            "well above the mid-plane",
-            "above the mid-plane",
-            "near the mid-plane",
-            "below the mid-plane",
-            "well below the mid-plane",
-        ],
-    )
-
-    literature = level(
-        C_lit,
-        [0.9, 0.75, 0.5, 0.25],
-        [
-            "very well-studied",
-            "well-studied",
-            "moderately studied",
-            "poorly studied",
-            "rarely studied",
-        ],
-    )
-
-    html_warn = (
-        """<br><br><span style="color: #99180f; font-weight: bold;">Warning: </span>"""
-    )
-
-    summary = f"<b>{name}</b> is a {members}, {density} object of {quality} C3 quality."
-
-    summary += f" It is located at a {distance} distance from the Sun, {z_position}."
-
-    first_lit_year = int(cl_DB.split(";")[0].split("_")[0][-4:])
-    current_year = datetime.datetime.now().year
-    years_gap_first = current_year - first_lit_year
-    if years_gap_first <= 3:
-        # The FIRST article associated to this entry is recent
-        txt = ""
-        if literature in ("well-studied", "moderately studied"):
-            txt = f"but it is {literature} "
-        summary += f" It was recently reported {txt}in the literature."
-    else:
-        # The FIRST article associated to this entry is NOT recent
-        last_lit_year = int(cl_DB.split(";")[-1].split("_")[0][-4:])
-        years_gap_last = current_year - last_lit_year
-
-        if years_gap_last > 5:
-            # This is an OC that has not been revisited in a while
-            summary += f" It is {literature} in the literature, "
-            summary += f"with no articles listed in the last {years_gap_last} years."
-        else:
-            summary += f" It is {literature} in the literature."
-
-    summary = dupl_summary(shared_members_p, C_dup, C_dup_same_db, html_warn, summary)
-
-    if N_50 < 25:
-        summary += (
-            html_warn + "contains less than 25 stars with <i>P>0.5</i> estimated."
-        )
-
-    uti_html = """<a href="/faq#what-is-the-uti-parameter"title="UTI parameter"><b>UTI</b></a>"""
-    if bad_oc == "y":
-        summary += (
-            html_warn
-            + f"the low {uti_html} value and no obvious signs of duplication (C_dup={C_dup}) "
-            + "indicates that this is quite probably an asterism, moving group, "
-            + "or artifact, and not a real open cluster."
-        )
-
-    return summary
-
-
-def level(value, thresholds, labels):
-    for t, lbl in zip(thresholds, labels):
-        if value >= t:
-            return lbl
-    return labels[-1]
-
-
-def dupl_summary(shared_members_p, C_dup, C_dup_same_db, html_warn, summary):
+def positions_in_lit(DBs_json, DBs_full_data, row_UCC, tsp):
     """ """
-
-    def member_level(
-        value,
-        thresholds=[0.9, 0.75, 0.5, 0.25],
-        labels=["very small", "small", "moderate", "significant", "large"],
-    ):
-        return level(value, thresholds, labels)
-
-    # If this unique object contains shared members with other entries
-    if C_dup == 1.0 and C_dup_same_db == 1.0:
-        if str(shared_members_p) == "nan":
-            # Return with no duplication info added
-            return summary
-        else:
-            shared_members_p = shared_members_p.split(";")
-            max_p = max(map(float, shared_members_p)) / 100.0
-            N_shared = len(shared_members_p)
-            entr = "entries"
-            if N_shared == 1:
-                N_shared, entr = "a", "entry"
-            summary += (
-                f"<br><br>This object shares a {member_level(1 - max_p)} percentage of members "
-                f"with {N_shared} later reported {entr}."
-            )
-            return summary
-
-    if C_dup == 1.0 and C_dup_same_db < 1.0:
-        # Only same DB duplicates found
-        summary += (
-            f"<br><br>This object shares a {member_level(C_dup_same_db)} percentage "
-            "of members with at least one entry reported in the same catalogue."
-        )
-        return summary
-
-    duplication, dup_warn = level(
-        C_dup,
-        [0.95, 0.75, 0.5, 0.25, 0.1],
-        [
-            ("a unique", ""),
-            ("very likely a unique", "<br><br>"),
-            ("likely a unique", "<br><br>"),
-            ("possibly a duplicated", html_warn),
-            ("likely a duplicate", html_warn),
-            ("very likely a duplicate", html_warn),
-        ],
-    )
-    dup_amount = member_level(C_dup)
-    # Duplicates found in different DBs only (C_dup<1.0 & C_dup_same_db==1.0)
-    prev_or_same_db = "previously reported entry."
-    if C_dup < 1.0 and C_dup_same_db < 1.0:
-        # Duplicates found in different AND same DBs
-        prev_or_same_db = prev_or_same_db[:-1] + (
-            f", and a {member_level(C_dup_same_db)} percentage with at least "
-            "one entry reported in the same catalogue."
-        )
-
-    summary += "{}This is {} object, ".format(dup_warn, duplication)
-    summary += "which shares a {} percentage of members with at least one {}".format(
-        dup_amount, prev_or_same_db
-    )
-    return summary
-
-
-def positions_in_lit(DBs_json, DBs_full_data, row_UCC):
-    """ """
-    DBs_i_sort = row_UCC["DB_i"].split(";")
+    DBs_sort = row_UCC["DB"].split(";")[::-1]
+    DBs_i_sort = row_UCC["DB_i"].split(";")[::-1]
 
     table = (
-        "| Reference    | RA    | DEC   | Plx  | pmRA  | pmDE   |  Rv  |\n"
-        + "    | :---         | :---: | :---: | :---: | :---: | :---: | :---: |\n"
+        f"{tsp}| Reference | Year | RA [deg] | DEC [deg] | Plx [mas] | pmRA [mas/yr] | pmDE [mas/yr] | Rv [km/s] |\n"
+        + "    | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n"
     )
 
-    for i, db in enumerate(row_UCC["DB"].split(";")):
+    # Add UCC positions
+    table += f"{tsp}| **UCC** | -- |"
+    for col in ("RA_ICRS_m", "DE_ICRS_m", "Plx_m", "pmRA_m", "pmDE_m", "Rv_m"):
+        val = "--"
+        if row_UCC[col] != "" and not np.isnan(row_UCC[col]):
+            val = str(round(float(row_UCC[col]), 3))
+        table += val + " | "
+    table = table[:-1] + "\n"
+
+    for i, db in enumerate(DBs_sort):
         # Full 'db' database
         df = DBs_full_data[db]
 
@@ -430,38 +252,102 @@ def positions_in_lit(DBs_json, DBs_full_data, row_UCC):
         # See if the row contains any values
         if row_in.replace("--", "").replace("|", "").strip() != "":
             # Add reference
-            ref_url = f"[{DBs_json[db]['authors']} ({DBs_json[db]['year']})]({DBs_json[db]['SCIX_url']})"
+            ref_url = f"[{DBs_json[db]['authors']}]({DBs_json[db]['SCIX_url']})"
+            year = DBs_json[db]["year"]
             # The spaces at the beginning is to add proper spacing to the final .md file
-            table += "    |" + ref_url + " | "
+            table += tsp + "|" + ref_url + " | " + year + " | "
             # Close and add row
             table += row_in[:-1] + "\n"
 
-    #
-    table += (
-        """    | <label for="toggle-pos-rows" class="toggle-btn"></label> | | | | | | |"""
-    ) + "\n"
+    table = table[:-2]
 
-    # Add UCC positions
-    table += "    | **UCC** |"
-    for col in ("RA_ICRS_m", "DE_ICRS_m", "Plx_m", "pmRA_m", "pmDE_m", "Rv_m"):
-        val = "--"
-        if row_UCC[col] != "" and not np.isnan(row_UCC[col]):
-            val = str(round(float(row_UCC[col]), 3))
-        table += val + " | "
+    # #
+    # table += (
+    #     """    | <label for="toggle-pos-rows" class="toggle-btn"></label> | | | | | | |"""
+    # ) + "\n"
 
     return table
 
 
-def table_shared_members(df_UCC, fnames_all, row):
+def fpars_in_lit(
+    DBs_json: dict,
+    DBs: str,
+    fund_pars: str,
+    tsp: str,
+):
+    """
+    DBs_json: JSON that contains the data for all DBs
+    DBs_full_data: dictionary of pandas.DataFrame for all DBs
+    DBs: DBs where this cluster is present
+    DBs_i: Indexes where this cluster is present in each DB
+    """
+
+    # Reverse years order to show the most recent first
+    DBs_lst, fund_pars_lst = DBs.split(";")[::-1], fund_pars.split(";")[::-1]
+
+    rows = []
+    for i, db in enumerate(DBs_lst):
+        row = [f"[{DBs_json[db]['authors']}]({DBs_json[db]['SCIX_url']})"]
+        row.append(DBs_json[db]["year"])
+        # The order is given by the 'fpars_order' variable
+        for par in fund_pars_lst[i].split(","):
+            row.append(par)
+        # Filter rows where all columns after the year are '--'
+        if not all(v == "--" for v in row[2:]):
+            rows.append(row)
+
+    if not rows:
+        # Return empty values
+        return "", {}, "false"
+
+    def clean(x):
+        return np.nan if x == "--" else float(x.replace("*", ""))
+
+    cols = zip(*(row[2:] for row in rows))
+    pars_dict = {par: [clean(x) for x in col] for par, col in zip(fpars_order, cols)}
+
+    def md_row(row):
+        return "| " + " | ".join(row) + " |"
+
+    align = [":---"] + [":---:"] * (len(fpars_headers) - 1)
+    table = [
+        md_row(fpars_headers),
+        "| " + " | ".join(align) + " |",
+        *(md_row(r) for r in rows),
+    ]
+    table = "\n".join(tsp + line for line in table)
+
+    #
+    note_asterisk = "false"
+    if "*" in table:
+        note_asterisk = "true"
+
+    return table, pars_dict, note_asterisk
+
+
+def color_C3(abcd):
+    """ """
+    abcd_c = ""
+    line = r"""<span style="color: {}; font-weight: bold;">{}</span>"""
+    cc = {"A": "green", "B": "#FFC300", "C": "red", "D": "purple"}
+    for letter in abcd:
+        abcd_c += line.format(cc[letter], letter)  # + '\n'
+    return abcd_c
+
+
+def table_shared_members(df_UCC, fnames_all, row, tsp):
     """ """
     shared_members_tab = ""
 
     if str(row["shared_members"]) == "nan":
         return shared_members_tab
 
-    shared_members_tab = """| Cluster | <span title="Percentage of members that this OC shares with the ones listed">%</span>   | RA   | DEC   | Plx   | pmRA  | pmDE  | Rv | UTI |\n"""
+    shared_members_tab = (
+        tsp
+        + """| Cluster | <span title="Percentage of members that this OC shares with the ones listed">%</span>   | RA   | DEC   | Plx   | pmRA  | pmDE  | Rv | UTI |\n"""
+    )
     shared_members_tab += (
-        """    | :-: | :-: |:-: | :-: | :-: | :-: | :-: | :-: | :-: |\n"""
+        tsp + "| :-: | :-: |:-: | :-: | :-: | :-: | :-: | :-: | :-: |\n"
     )
 
     shared_fnames = row["shared_members"].split(";")
@@ -495,7 +381,7 @@ def table_shared_members(df_UCC, fnames_all, row):
 
         ra, dec, plx, pmRA, pmDE, Rv, UTI, perc = vals
 
-        shared_members_tab += f"    |[{name}](/_clusters/{fname}/)| "
+        shared_members_tab += f"{tsp}|[{name}](/_clusters/{fname}/)| "
         shared_members_tab += f"{perc} | "
         shared_members_tab += f"{ra} | "
         shared_members_tab += f"{dec} | "
@@ -509,88 +395,3 @@ def table_shared_members(df_UCC, fnames_all, row):
     shared_members_tab = shared_members_tab[:-1]
 
     return shared_members_tab
-
-
-def fpars_in_lit(
-    DBs_json: dict, DBs_full_data: dict, DBs: str, DBs_i: str, max_chars=7
-):
-    """
-    DBs_json: JSON that contains the data for all DBs
-    DBs_full_data: dictionary of pandas.DataFrame for all DBs
-    DBs: DBs where this cluster is present
-    DBs_i: Indexes where this cluster is present in each DB
-    """
-    DBs_lst, DBs_i_lst = DBs.split(";"), DBs_i.split(";")
-
-    # Select DBs with parameters
-    DBs_w_pars, DBs_i_w_pars = [], []
-    for i, db in enumerate(DBs_lst):
-        # If this database contains any estimated fundamental parameters
-        if (not DBs_json[db]["pars"]) is False:
-            DBs_w_pars.append(db)
-            DBs_i_w_pars.append(DBs_i_lst[i])
-
-    table = ""
-    if len(DBs_w_pars) == 0:
-        return table
-
-    txt = ""
-    for i, db in enumerate(DBs_w_pars):
-        # Full 'db' database
-        df = DBs_full_data[db]
-        # Add reference
-        ref_url = f"[{DBs_json[db]['authors']} ({DBs_json[db]['year']})]({DBs_json[db]['SCIX_url']})"
-        txt_db = "    | " + ref_url + " | "
-
-        txt_pars = ""
-        # Add non-nan parameters
-        for _, par in DBs_json[db]["pars"].items():
-            # Some DBs have parameters as lists because they list more than one value
-            # per parameter
-            for _, par_inner in par.items():
-                if isinstance(par_inner, list):
-                    for par_i in par_inner:
-                        ptxt = str(df[par_i][int(DBs_i_w_pars[i])])
-                        N_max_chars = max_chars
-                        if "," in ptxt or ";" in ptxt:
-                            N_max_chars = int(2 * max_chars)
-                        par_v = ptxt[:N_max_chars]
-                        par_v = par_v.replace(" ", "")
-                        if par_v != "" and par_v != "nan":
-                            txt_pars += par_i + "=" + par_v + ", "
-
-                else:
-                    ptxt = str(df[par_inner][int(DBs_i_w_pars[i])])
-                    N_max_chars = max_chars
-                    if "," in ptxt or ";" in ptxt:
-                        N_max_chars = int(2 * max_chars)
-                    par_v = ptxt[:N_max_chars]
-                    par_v = par_v.replace(" ", "")
-                    if par_v != "" and par_v != "nan":
-                        txt_pars += par_inner + "=" + par_v + ", "
-
-        if txt_pars != "":
-            # Remove final ', '
-            txt_pars = txt_pars[:-2]
-            # Add quotes
-            txt_pars = "`" + txt_pars + "`"
-            # Combine and close row
-            txt += txt_db + txt_pars + " |\n"
-
-    if txt != "":
-        # If any parameter was added, add header to the table
-        txt0 = """| Reference |  Values |\n    | :---  |  :---:  |\n"""
-        # [:-1] -> Remove final new line
-        table = txt0 + txt[:-1]
-
-    return table
-
-
-def color_C3(abcd):
-    """ """
-    abcd_c = ""
-    line = r"""<span style="color: {}; font-weight: bold;">{}</span>"""
-    cc = {"A": "green", "B": "#FFC300", "C": "red", "D": "purple"}
-    for letter in abcd:
-        abcd_c += line.format(cc[letter], letter)  # + '\n'
-    return abcd_c
