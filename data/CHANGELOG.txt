@@ -1,9 +1,9 @@
 Some of these are intermediate versions of the UCC database that are not published.
 
 
-## 251222-
+## 251222-260102
 
-- Added 'fund_pars' column to B database
+- Major changes to the site's look and feel. No changes to OCs database
 
 
 

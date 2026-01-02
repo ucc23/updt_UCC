@@ -126,8 +126,10 @@ def summarize_object(
     UTI_C_N_desc = members.capitalize()
     UTI_C_dens_desc = density.capitalize()
     UTI_C_C3_desc = quality.capitalize() + " quality"
-    UTI_C_lit_desc = literature.capitalize()
-    UTI_C_dup_desc = duplicate.replace("a ", "").capitalize()
+    UTI_C_lit_desc = literature.replace("</u>", "").replace("<u>", "").capitalize()
+    UTI_C_dup_desc = (
+        duplicate.replace("</u>", "").replace("<u>", "").replace("a ", "").capitalize()
+    )
 
     return (
         summary,

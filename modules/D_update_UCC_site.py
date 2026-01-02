@@ -262,6 +262,7 @@ def load_paths(
             out_path = temp_folder + plots_folder + f"plots_{letter}/" + fold
             if not os.path.exists(out_path):
                 os.makedirs(out_path)
+            else:
                 plots_fold_exist = True
     if plots_fold_exist:
         logging.info(
@@ -408,6 +409,11 @@ def updt_ucc_cluster_files(
 
     current_year = datetime.datetime.now().year
 
+    # ran_i = np.random.randint(0, len(df_UCC), size=500)
+
+    # from pyinstrument import Profiler
+    # profiler = Profiler()
+    # profiler.start()
 
     N_total = 0
     # Iterate trough each entry in the UCC database
@@ -416,9 +422,11 @@ def updt_ucc_cluster_files(
         UCC_cl = dict(zip(cols, UCC_cl))
         fname0 = str(UCC_cl["fname"])
 
-        # if fname0 not in ("coingaia37", "markarian50", "ryu12"):
+        # if fname0 not in ("alessi20",):
         #     continue
-        # if i_ucc not in ran_i:
+        # if "ngc" not in fname0:
+        #     continue
+        # if i_ucc not in ran_i or "cwnu" in fname0 or "cwwdl" in fname0:
         #     continue
 
         # Generate full entry
@@ -455,6 +463,21 @@ def updt_ucc_cluster_files(
             logging.info(f"{N_total} -> {fname0}: " + txt + f" ({i_ucc})")
 
     logging.info(f"\nN={N_total} OCs processed")
+
+    # profiler.stop()
+    # profiler.open_in_browser()
+
+    # # Delete all files in folder2 and move all files from folder1 to folder2
+    # folder1 = "/home/gabriel/Github/UCC/updt_UCC/temp_updt/ucc/_clusters"
+    # folder2 = "/home/gabriel/Github/UCC/ucc/_clusters2"
+    # for file in os.listdir(folder2):
+    #     file_path = os.path.join(folder2, file)
+    #     os.remove(file_path)
+    # for file in os.listdir(folder1):
+    #     file_path = os.path.join(folder1, file)
+    #     new_file_path = os.path.join(folder2, file)
+    #     os.rename(file_path, new_file_path)
+    # print("\nAll files moved")
 
 
 def updt_ucc_cluster_plots(logging, df_UCC, df_members, min_UTI=0.5) -> pd.DataFrame:
