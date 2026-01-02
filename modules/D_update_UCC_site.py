@@ -619,7 +619,7 @@ def update_main_pages(
     UTI_msk,
     membs_msk,
     Cfp_msk,
-    Cdup_msk,
+    Pdup_msk,
 ):
     """Update DATABASE, TABLES, ARTICLES .md files"""
     logging.info("\nUpdating DATABASE, TABLES, ARTICLES .md files")
@@ -645,7 +645,7 @@ def update_main_pages(
     # tables_md_updt = updt_OCs_per_quad_main_table(df_UCC, tables_md_updt)
     # tables_md_updt = updt_shared_membs_main_table(shared_msk, tables_md_updt)
     tables_md_updt = updt_fund_params_main_table(Cfp_msk, tables_md_updt)
-    tables_md_updt = updt_Cdup_main_table(Cdup_msk, tables_md_updt)
+    tables_md_updt = updt_Pdup_main_table(Pdup_msk, tables_md_updt)
     tables_md_updt = updt_N50_main_table(membs_msk, tables_md_updt)
     with open(temp_folder + tables_md_path, "w") as file:
         file.write(tables_md_updt)
@@ -675,7 +675,7 @@ def updt_indiv_tables_files(
     UTI_msk,
     membs_msk,
     Cfp_msk,
-    Cdup_msk,
+    Pdup_msk,
 ):
     """ """
     logging.info("\nUpdating individual tables")
@@ -702,7 +702,7 @@ def updt_indiv_tables_files(
     new_tables_dict = updt_fund_params_table(df_UCC_edit, Cfp_msk)
     general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
 
-    new_tables_dict = updt_Cdup_tables(df_UCC_edit, Cdup_msk)
+    new_tables_dict = updt_Pdup_tables(df_UCC_edit, Pdup_msk)
     general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
 
 
