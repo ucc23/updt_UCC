@@ -11,7 +11,7 @@ import pandas as pd
 
 from .D_funcs import ucc_entry, ucc_plots
 from .D_funcs.main_files_updt import (
-    C_dup_ranges,
+    P_dup_ranges,
     UTI_ranges,
     count_fund_pars,
     count_N50membs,
@@ -20,13 +20,13 @@ from .D_funcs.main_files_updt import (
     updt_articles_table,
     updt_C3_classif_main_table,
     updt_C3_classif_tables,
-    updt_Cdup_main_table,
-    updt_Cdup_tables,
     updt_DBs_tables,
     updt_fund_params_main_table,
     updt_fund_params_table,
     updt_N50_main_table,
     updt_N50_tables,
+    updt_Pdup_main_table,
+    updt_Pdup_tables,
     updt_UTI_main_table,
     updt_UTI_tables,
 )
@@ -137,7 +137,7 @@ def main():
     # Mask with OCs with fundamental parameters
     Cfp_msk = count_fund_pars(df_UCC_edit, current_JSON)
     # shared_msk = count_shared_membs(df_UCC_edit)
-    Cdup_msk = C_dup_ranges(df_UCC_edit)
+    Pdup_msk = P_dup_ranges(df_UCC_edit)
 
     # Update DATABASE, TABLES, ARTCILES .md files
     if input("\nUpdate 'DATABASE, TABLES, ARTICLES' files? (y/n): ").lower() == "y":
@@ -154,7 +154,7 @@ def main():
             UTI_msk,
             membs_msk,
             Cfp_msk,
-            Cdup_msk,
+            Pdup_msk,
         )
 
     # Update tables files
@@ -170,7 +170,7 @@ def main():
             UTI_msk,
             membs_msk,
             Cfp_msk,
-            Cdup_msk,
+            Pdup_msk,
         )
 
     # Update CSV file
