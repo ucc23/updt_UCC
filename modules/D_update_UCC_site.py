@@ -1,9 +1,11 @@
 import csv
+import datetime
 import json
 import os
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
+import matplotlib.cm as cm
 import numpy as np
 import pandas as pd
 
@@ -362,6 +364,33 @@ def load_data(
     )
 
 
+def UTI_to_hex(df_UCC):
+    """Convert UTI value and C coefficients to hex colors"""
+
+    def build_lut(cmap, n=256, soft=0.65):
+        xs = np.linspace(0, 1, n)
+        rgb = cmap(xs)[:, :3]
+        rgb = soft + (1 - soft) * rgb
+        return (rgb * 255).astype(np.uint8)
+
+    cmap = cm.get_cmap("RdYlGn")
+    lut = build_lut(cmap)
+
+    def UTI_to_hex_array(x):
+        idx = np.clip((x * (len(lut) - 1)).astype(int), 0, len(lut) - 1)
+        return [f"#{r:02x}{g:02x}{b:02x}" for r, g, b in lut[idx]]
+
+    UTI_colors = {
+        "UTI": UTI_to_hex_array(df_UCC["UTI"]),
+        "C_N": UTI_to_hex_array(df_UCC["C_N"]),
+        "C_dens": UTI_to_hex_array(df_UCC["C_dens"]),
+        "C_C3": UTI_to_hex_array(df_UCC["C_C3"]),
+        "C_lit": UTI_to_hex_array(df_UCC["C_lit"]),
+        "C_dup": UTI_to_hex_array(df_UCC["C_dup"]),
+    }
+    return UTI_colors
+
+
 def updt_ucc_cluster_files(
     logging,
     ucc_entries_path,
@@ -375,11 +404,16 @@ def updt_ucc_cluster_files(
 
     fname_all = df_UCC["fname"].to_list()
 
-    # ran_i = np.random.randint(0, len(df_UCC), size=10)
+    UTI_colors = UTI_to_hex(df_UCC)
+
+    current_year = datetime.datetime.now().year
+
 
     N_total = 0
     # Iterate trough each entry in the UCC database
-    for i_ucc, UCC_cl in df_UCC.iterrows():
+    cols = df_UCC.columns
+    for i_ucc, UCC_cl in enumerate(df_UCC.itertuples(index=False, name=None)):
+        UCC_cl = dict(zip(cols, UCC_cl))
         fname0 = str(UCC_cl["fname"])
 
         # if fname0 not in ("coingaia37", "markarian50", "ryu12"):
@@ -389,7 +423,15 @@ def updt_ucc_cluster_files(
 
         # Generate full entry
         new_md_entry = ucc_entry.make(
-            current_JSON, DBs_full_data, df_UCC, UCC_cl, fname_all, fname0
+            current_year,
+            current_JSON,
+            DBs_full_data,
+            df_UCC,
+            UCC_cl,
+            fname_all,
+            UTI_colors,
+            i_ucc,
+            fname0,
         )
 
         # Compare old md file (if it exists) with the new md file, for this cluster

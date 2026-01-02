@@ -1,7 +1,5 @@
 from pathlib import Path
 
-import matplotlib.cm as cm
-import matplotlib.colors as mcolors
 import numpy as np
 
 from ..variables import fpars_headers, fpars_order, plots_folder, root_ucc_path
@@ -59,12 +57,22 @@ shared_table: |
 """
 
 
-def make(current_JSON, DBs_full_data, df_UCC, UCC_cl, fnames_all, fname0, tsp="    "):
+def make(
+    current_year,
+    current_JSON,
+    DBs_full_data,
+    df_UCC,
+    UCC_cl,
+    fnames_all,
+    UTI_colors,
+    i_ucc,
+    fname0,
+    tsp="    ",
+):
     """
     tsp: table spacing, added to the header to properly render tables and summary in
     .md files
     """
-    cmap = cm.get_cmap("RdYlGn")
 
     cl_names = UCC_cl["Names"].split(";")
 
@@ -77,7 +85,8 @@ def make(current_JSON, DBs_full_data, df_UCC, UCC_cl, fnames_all, fname0, tsp=" 
     members_file = str(int(glon_bins[glon_i - 1])) + "_" + str(int(glon_bins[glon_i]))
 
     # Generate fundamental parameters table
-    fpars_table, fpars_dict, note_asterisk = fpars_in_lit(
+    fpars_table, recent_year_i, fpars_dict, note_asterisk = fpars_in_lit(
+        current_year,
         current_JSON,
         UCC_cl["DB"],
         UCC_cl["fund_pars"],
@@ -92,6 +101,7 @@ def make(current_JSON, DBs_full_data, df_UCC, UCC_cl, fnames_all, fname0, tsp=" 
         UTI_C_lit_desc,
         UTI_C_dup_desc,
     ) = summarize_object(
+        current_year,
         cl_names[0],
         UCC_cl["DB"],
         UCC_cl["Plx_m"],
@@ -104,6 +114,7 @@ def make(current_JSON, DBs_full_data, df_UCC, UCC_cl, fnames_all, fname0, tsp=" 
         UCC_cl["C_dup"],
         UCC_cl["C_dup_same_db"],
         UCC_cl["bad_oc"],
+        recent_year_i,
         fpars_dict,
         tsp,
     )
@@ -153,12 +164,12 @@ def make(current_JSON, DBs_full_data, df_UCC, UCC_cl, fnames_all, fname0, tsp=" 
         r50=str(UCC_cl["r_50"]),
         plx=str(UCC_cl["Plx_m"]),
         UTI="1.0" if UCC_cl["UTI"] == 1.0 else f"{UCC_cl['UTI']:.2f}",
-        UTI_COLOR=UTI_to_hex(UCC_cl["UTI"], cmap),
-        UTI_C_N_COL=UTI_to_hex(UCC_cl["C_N"], cmap),
-        UTI_C_dens_COL=UTI_to_hex(UCC_cl["C_dens"], cmap),
-        UTI_C_C3_COL=UTI_to_hex(UCC_cl["C_C3"], cmap),
-        UTI_C_lit_COL=UTI_to_hex(UCC_cl["C_lit"], cmap),
-        UTI_C_dup_COL=UTI_to_hex(UCC_cl["C_dup"], cmap),
+        UTI_COLOR=UTI_colors["UTI"][i_ucc],
+        UTI_C_N_COL=UTI_colors["C_N"][i_ucc],
+        UTI_C_dens_COL=UTI_colors["C_dens"][i_ucc],
+        UTI_C_C3_COL=UTI_colors["C_C3"][i_ucc],
+        UTI_C_lit_COL=UTI_colors["C_lit"][i_ucc],
+        UTI_C_dup_COL=UTI_colors["C_dup"][i_ucc],
         UTI_C_N=str(UCC_cl["C_N"]),
         UTI_C_dens=str(UCC_cl["C_dens"]),
         UTI_C_C3=str(UCC_cl["C_C3"]),
@@ -185,27 +196,27 @@ def make(current_JSON, DBs_full_data, df_UCC, UCC_cl, fnames_all, fname0, tsp=" 
     return contents
 
 
-def UTI_to_hex(x: float, cmap, soft: float = 0.65) -> str:
-    """
-    Map a value in [0, 1] to a pastel hex color using the RdYlGn colormap.
+# def UTI_to_hex(x: float, cmap, soft: float = 0.65) -> str:
+#     """
+#     Map a value in [0, 1] to a pastel hex color using the RdYlGn colormap.
 
-    Parameters
-    ----------
-    x : float
-        Value between 0 and 1.
+#     Parameters
+#     ----------
+#     x : float
+#         Value between 0 and 1.
 
-    Returns
-    -------
-    str
-        Hex color code.
-    """
-    # Get color from colormap (RGBA in [0,1])
-    rgba = cmap(max(0.0, min(1.0, x)))
+#     Returns
+#     -------
+#     str
+#         Hex color code.
+#     """
+#     # Get color from colormap (RGBA in [0,1])
+#     rgba = cmap(max(0.0, min(1.0, x)))
 
-    # Convert to pastel by blending toward white
-    pastel = tuple(soft + (1 - soft) * c for c in rgba[:3])  # soften colors
+#     # Convert to pastel by blending toward white
+#     pastel = tuple(soft + (1 - soft) * c for c in rgba[:3])  # soften colors
 
-    return mcolors.to_hex(pastel)
+#     return mcolors.to_hex(pastel)
 
 
 def positions_in_lit(DBs_json, DBs_full_data, row_UCC, tsp):
@@ -270,10 +281,12 @@ def positions_in_lit(DBs_json, DBs_full_data, row_UCC, tsp):
 
 
 def fpars_in_lit(
+    current_year: int,
     DBs_json: dict,
     DBs: str,
     fund_pars: str,
     tsp: str,
+    recent_years=5,
 ):
     """
     DBs_json: JSON that contains the data for all DBs
@@ -286,9 +299,14 @@ def fpars_in_lit(
     DBs_lst, fund_pars_lst = DBs.split(";")[::-1], fund_pars.split(";")[::-1]
 
     rows = []
+    # Index of last value in pars_years that is equal to (current_year - recent_years)
+    recent_year_i = -1
     for i, db in enumerate(DBs_lst):
         row = [f"[{DBs_json[db]['authors']}]({DBs_json[db]['SCIX_url']})"]
-        row.append(DBs_json[db]["year"])
+        year = DBs_json[db]["year"]
+        row.append(year)
+        if int(year) >= current_year - recent_years:
+            recent_year_i = i
         # The order is given by the 'fpars_order' variable
         for par in fund_pars_lst[i].split(","):
             row.append(par)
@@ -298,7 +316,7 @@ def fpars_in_lit(
 
     if not rows:
         # Return empty values
-        return "", {}, "false"
+        return "", recent_year_i, {}, "false"
 
     def clean(x):
         return np.nan if x == "--" else float(x.replace("*", ""))
@@ -322,7 +340,7 @@ def fpars_in_lit(
     if "*" in table:
         note_asterisk = "true"
 
-    return table, pars_dict, note_asterisk
+    return table, recent_year_i, pars_dict, note_asterisk
 
 
 def color_C3(abcd):

@@ -1,5 +1,3 @@
-import datetime
-
 import numpy as np
 
 HTML_WARN = '<span style="color: #99180f; font-weight: bold;">Warning: </span>'
@@ -22,6 +20,7 @@ def level(value, thresholds, labels):
 
 
 def summarize_object(
+    current_year,
     name,
     cl_DB,
     plx,
@@ -34,6 +33,7 @@ def summarize_object(
     C_dup,
     C_dup_same_db,
     bad_oc,
+    recent_year_i,
     fpars_dict,
     tsp,
 ) -> tuple[str, str, str, str, str, str]:
@@ -103,9 +103,11 @@ def summarize_object(
         f"{tsp}<b>{name}</b> is a {members}, {density} object of {quality} {HTML_C3}."
     )
 
-    fpars_summ, fpars_note = fpars_summary(fpars_dict, plx, plx_dist, z_position)
+    fpars_summ, fpars_note = fpars_summary(
+        recent_year_i, fpars_dict, plx, plx_dist, z_position
+    )
     summary += " " + fpars_summ
-    summary += " " + lit_summary(cl_DB, literature)
+    summary += " " + lit_summary(current_year, cl_DB, literature)
 
     dup_summ, dup_note = dupl_summary(
         shared_members_p, C_dup, C_dup_same_db, duplicate, dup_warn
@@ -137,7 +139,9 @@ def summarize_object(
     )
 
 
-def fpars_summary(params: dict, plx, plx_dist, plx_z_dist) -> tuple[str, str]:
+def fpars_summary(
+    recent_year_i: int, params: dict, plx, plx_dist, plx_z_dist
+) -> tuple[str, str]:
     """Summarize fundamental astrophysical parameters."""
 
     labels = {
@@ -151,33 +155,76 @@ def fpars_summary(params: dict, plx, plx_dist, plx_z_dist) -> tuple[str, str]:
         "blue_str": "blue stragglers",
     }
 
-    medians = {}
-    large_spread = []
+    medians, large_spread = {}, []
     for name, vals in params.items():
-        arr = np.array([np.nan if v is None else v for v in vals], dtype=float)
+        if name in ("diff_ext", "bi_frac"):
+            # Not used in the parameters summary, skip median and spread check
+            continue
+
+        arr = np.array(vals, dtype=float)
         valid = arr[np.isfinite(arr)]
         if valid.size == 0:
+            continue
+
+        if valid.size == 1:
+            medians[name] = valid[0]
+            continue
+
+        if name == "blue_str":
+            # BSS values can be either fractions or total number, skip spread check
             continue
 
         median = np.median(valid)
         medians[name] = median
 
-        if name == "blue_str":
-            # BSS values can be either fractions or total number, so skip spread check
+        # Estimate large spread for recent sources
+        arr_recent = np.array(vals[:recent_year_i], dtype=float)
+        valid_recent = arr_recent[np.isfinite(arr_recent)]
+        if valid_recent.size == 0:
             continue
 
-        mn, mx = valid.min(), valid.max()
-        iqr = np.percentile(valid, 75) - np.percentile(valid, 25)
+        mx, mn = valid_recent.max(), valid_recent.min()
+        if mx == 0:
+            mx += 0.01
+        rel_range = mn / mx
 
-        # Special case for young ages
-        limit = 0.75 if name == "age" and median < 100 else 0.5
-        # Special case for the FeH or the Av which can have 0.0 median
-        if name == "met" or (name == "ext" and median <= 0):
-            if (mx - mn) > limit:
-                large_spread.append(labels[name])
-        else:
-            if iqr / abs(median) > limit:
-                large_spread.append(labels[name])
+        flag_spread = False
+
+        if name == "met":
+            flag_spread = (mx - mn) > 0.3
+        elif name == "age":
+            if mx < 50:  # very young clusters
+                flag_spread = rel_range < 0.1
+            if mx < 100:  # young clusters
+                flag_spread = rel_range < 0.15
+            elif mx < 250:  # young clusters
+                flag_spread = rel_range < 0.2
+            else:
+                flag_spread = rel_range < 0.3
+        elif name == "dist":
+            if mx < 0.5:  # very nearby clusters
+                flag_spread = rel_range < 0.1
+            elif mx < 1.0:  # nearby clusters
+                flag_spread = rel_range < 0.2
+            else:
+                flag_spread = rel_range < 0.3
+        elif name == "ext":
+            if mx < 0.5:  # very low extinction
+                flag_spread = rel_range < 0.05
+            elif mx < 1:  # low extinction
+                flag_spread = rel_range < 0.15
+            else:
+                flag_spread = rel_range < 0.3
+        elif name == "mass":
+            if mx < 500:  # very low-mass clusters / associations
+                flag_spread = rel_range < 0.1
+            elif mx < 1e3:  # low-mass clusters / associations
+                flag_spread = rel_range < 0.2
+            else:
+                flag_spread = rel_range < 0.3
+
+        if flag_spread:
+            large_spread.append(labels[name])
 
     dist_flag, fpars_note = "", ""
     if "dist" in medians:
@@ -263,7 +310,7 @@ def fpars_summary(params: dict, plx, plx_dist, plx_z_dist) -> tuple[str, str]:
         else:
             joined = ", ".join(large_spread[:-1]) + f", and {large_spread[-1]}"
         spread_txt = (
-            ", but with a <u>large variance across sources</u> "
+            ", but with a <u>large variance across recent sources</u> "
             f"for the {joined} parameter{'s' if len(large_spread) > 1 else ''}"
         )
 
@@ -280,13 +327,12 @@ def fpars_summary(params: dict, plx, plx_dist, plx_z_dist) -> tuple[str, str]:
     return fpars_summ, fpars_note
 
 
-def lit_summary(cl_DB, literature, year_gap=3) -> str:
+def lit_summary(current_year, cl_DB, literature, year_gap=3) -> str:
     """ """
     parts = cl_DB.split(";")
     first_lit_year = int(parts[0].split("_")[0][-4:])
     last_lit_year = int(parts[-1].split("_")[0][-4:])
 
-    current_year = datetime.datetime.now().year
     years_gap_first = current_year - first_lit_year
     years_gap_last = current_year - last_lit_year
 
