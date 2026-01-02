@@ -74,16 +74,16 @@ def UTI_ranges(df_UCC: pd.DataFrame) -> list:
     return UTI_msk
 
 
-def C_dup_ranges(df_UCC: pd.DataFrame) -> list:
+def P_dup_ranges(df_UCC: pd.DataFrame) -> list:
     """ """
-    Cdup_msk = [list(df_UCC["C_dup"] == 0.0)]
+    Pdup_msk = [list(df_UCC["P_dup"] == 0.0)]
     N_limi = 0.0
     for N_limf in (0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9):
-        Cdup_msk.append(list((df_UCC["C_dup"] > N_limi) & (df_UCC["C_dup"] <= N_limf)))
+        Pdup_msk.append(list((df_UCC["P_dup"] > N_limi) & (df_UCC["P_dup"] <= N_limf)))
         N_limi = N_limf
-    Cdup_msk.append(list(df_UCC["C_dup"] > N_limi))
+    Pdup_msk.append(list(df_UCC["P_dup"] > N_limi))
 
-    return Cdup_msk
+    return Pdup_msk
 
 
 def count_N50membs(df_UCC: pd.DataFrame) -> list:
@@ -410,22 +410,22 @@ def updt_fund_params_main_table(Cfp_msk, database_md_in: str):
     return database_md_updt
 
 
-def updt_Cdup_main_table(Cdup_msk, database_md_in: str):
+def updt_Pdup_main_table(Pdup_msk, database_md_in: str):
     """ """
-    Cdup_table = "\n| C_dup |  N  | C_dup |  N  |\n"
-    Cdup_table += "| :--: | :-: | :--: | :-: |\n"
-    Cdup_table += f"| == 0.0 | [{sum(Cdup_msk[0])}](/tables/Cdup0_table) |"
-    for i, msk in enumerate(Cdup_msk[1:-1]):
+    Pdup_table = "\n| P_dup |  N  | P_dup |  N  |\n"
+    Pdup_table += "| :--: | :-: | :--: | :-: |\n"
+    Pdup_table += f"| == 0.0 | [{sum(Pdup_msk[0])}](/tables/Pdup0_table) |"
+    for i, msk in enumerate(Pdup_msk[1:-1]):
         fchar = "|\n" if i in (0, 2, 4, 6, 8) else "| "
-        N = f"[{sum(msk)}](/tables/Cdup{i + 1}_table)"
-        Cdup_table += f" ({0.0 + (i * 0.1):.1f}, {0.1 + (i * 0.1):.1f}] | {N} {fchar}"
-    Cdup_table += f"| 0.9 < | [{sum(Cdup_msk[-1])}](/tables/Cdup10_table) | -- | -- |\n"
-    Cdup_table += "\n"
+        N = f"[{sum(msk)}](/tables/Pdup{i + 1}_table)"
+        Pdup_table += f" ({0.0 + (i * 0.1):.1f}, {0.1 + (i * 0.1):.1f}] | {N} {fchar}"
+    Pdup_table += f"| 0.9 < | [{sum(Pdup_msk[-1])}](/tables/Pdup10_table) | -- | -- |\n"
+    Pdup_table += "\n"
 
     delimeterA = "<!-- Begin table 4 -->\n"
     delimeterB = "<!-- End table 4 -->\n"
     database_md_updt = replace_text_between(
-        database_md_in, Cdup_table, delimeterA, delimeterB
+        database_md_in, Pdup_table, delimeterA, delimeterB
     )
 
     return database_md_updt
@@ -637,28 +637,27 @@ def updt_fund_params_table(df_updt, Cfp_msk: dict) -> dict:
     return new_tables_dict
 
 
-def updt_Cdup_tables(df_updt, Cdup_msk) -> dict:
+def updt_Pdup_tables(df_updt, Pdup_msk) -> dict:
     """Update the duplicates table files"""
-    header = header_default.format("cdup_title", "/tables/cdup_link_table/")
+    header = header_default.format("pdup_title", "/tables/pdup_link_table/")
 
-    # UTI==0 table
-    md_table = header.replace("cdup_title", "Cdup==0").replace("cdup_link", "Cdup0")
-    md_table = generate_table(df_updt[Cdup_msk[0]], md_table)
-    new_tables_dict = {"Cdup0": md_table}
+    md_table = header.replace("pdup_title", "Pdup==0").replace("pdup_link", "Pdup0")
+    md_table = generate_table(df_updt[Pdup_msk[0]], md_table)
+    new_tables_dict = {"Pdup0": md_table}
 
     Ni = 0
     for i, Nf in enumerate((0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)):
-        title = f"Cdup ({Ni}, {Nf}]"
-        Nmembs = f"Cdup{i + 1}"
-        md_table = header.replace("cdup_title", title).replace("cdup_link", Nmembs)
-        md_table = generate_table(df_updt[Cdup_msk[i + 1]], md_table)
+        title = f"Pdup ({Ni}, {Nf}]"
+        Nmembs = f"Pdup{i + 1}"
+        md_table = header.replace("pdup_title", title).replace("pdup_link", Nmembs)
+        md_table = generate_table(df_updt[Pdup_msk[i + 1]], md_table)
         Ni = Nf
         new_tables_dict[Nmembs] = md_table
 
     # N>0.9 table
-    md_table = header.replace("cdup_title", "Cdup>0.9").replace("cdup_link", "Cdup10")
-    md_table = generate_table(df_updt[Cdup_msk[-1]], md_table)
-    new_tables_dict["Cdup10"] = md_table
+    md_table = header.replace("pdup_title", "Pdup>0.9").replace("pdup_link", "Pdup10")
+    md_table = generate_table(df_updt[Pdup_msk[-1]], md_table)
+    new_tables_dict["Pdup10"] = md_table
 
     return new_tables_dict
 
@@ -713,8 +712,8 @@ def updt_Cdup_tables(df_updt, Cdup_msk) -> dict:
 
 def generate_table(df_m, md_table):
     """ """
-    md_table += "| Name | RA | DEC | Plx | N50 | r50 | C3 | UTI |\n"
-    md_table += "| --- | :-: | :-: | :-: | :-: | :-: | :-: | :-: |\n"
+    md_table += "| Name | RA | DEC | Plx | N50 | r50 | C3 | P<sub>dup</sub> | UTI |\n"
+    md_table += "| --- | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: |\n"
 
     for i, row in df_m.iterrows():
         for col in (
@@ -727,6 +726,7 @@ def generate_table(df_m, md_table):
             "N_50",
             "r_50",
             "C3_abcd",
+            "P_dup",
             "UTI",
         ):
             md_table += "| " + str(row[col]) + " "
