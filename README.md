@@ -266,7 +266,7 @@ Files uploaded to Zenodo:
 
 ## 4. Updating the site
 
-The `D_update_UCC_site.py` script applies the required changes to update the ucc.ar
+The `E_update_UCC_site.py` script applies the required changes to update the ucc.ar
 site. It processes the **entire** UCC catalogue and searches for modifications that
 need to be applied to update the site.
 

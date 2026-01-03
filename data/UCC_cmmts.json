@@ -1,0 +1,19 @@
+{
+    "xxx9999": {
+        "summary": "NGC 9999 is ...",
+        "comments": [
+            {
+                "name": "Smith et al.",
+                "url": "htps://example.com",
+                "year": "2023",
+                "comment": "This object..."
+            },
+            {
+                "name": "Doe et al.",
+                "url": "htps://example2.com",
+                "year": "2024",
+                "comment": "Further studies..."
+            }
+        ]
+    }
+}
