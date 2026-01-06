@@ -55,6 +55,9 @@ selected_center_coords = {
     "collinder471": (332.563, 73.032),  # HUNT2023
 }
 
+UCC_cmmts_folder = "json_cmmts/"
+UCC_cmmts_file = "UCC_summ_cmmts.json"
+
 
 # Bad OCs parameters
 UTI_max = 0.25

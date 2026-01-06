@@ -1,5 +1,4 @@
 import csv
-import datetime
 import json
 import os
 from concurrent.futures import ProcessPoolExecutor
@@ -9,8 +8,8 @@ import matplotlib.cm as cm
 import numpy as np
 import pandas as pd
 
-from .D_funcs import ucc_entry, ucc_plots
-from .D_funcs.main_files_updt import (
+from .E_funcs import ucc_entry, ucc_plots
+from .E_funcs.main_files_updt import (
     P_dup_ranges,
     UTI_ranges,
     count_fund_pars,
@@ -32,6 +31,7 @@ from .D_funcs.main_files_updt import (
 )
 from .utils import logger
 from .variables import (
+    UCC_cmmts_file,
     UCC_members_file,
     articles_md_path,
     assets_folder,
@@ -83,6 +83,7 @@ def main():
     (
         df_UCC,
         current_JSON,
+        UCC_summ_cmmts,
         DBs_full_data,
         database_md,
         articles_md,
@@ -99,6 +100,7 @@ def main():
             DBs_full_data,
             df_UCC,
             current_JSON,
+            UCC_summ_cmmts,
         )
 
     # Update per cluster webp files. If no changes are expected, this step can be skipped
@@ -296,7 +298,7 @@ def load_paths(
 def load_data(
     logging,
     cols_from_B_to_C,
-) -> tuple[pd.DataFrame, dict, dict, str, str, str, pd.DataFrame]:
+) -> tuple[pd.DataFrame, dict, dict, dict, str, str, str, pd.DataFrame]:
     """ """
 
     # Load current CSV data files
@@ -333,6 +335,9 @@ def load_data(
     with open(name_DBs_json) as f:
         current_JSON = json.load(f)
 
+    with open(f"{data_folder}{UCC_cmmts_file}", "r") as f:
+        UCC_summ_cmmts = json.load(f)
+
     # Read the data for every DB in the UCC as a pandas DataFrame
     DBs_full_data = {}
     for k, v in current_JSON.items():
@@ -357,6 +362,7 @@ def load_data(
     return (
         df_UCC,
         current_JSON,
+        UCC_summ_cmmts,
         DBs_full_data,
         database_md,
         articles_md,
@@ -399,6 +405,7 @@ def updt_ucc_cluster_files(
     DBs_full_data,
     df_UCC,
     current_JSON,
+    UCC_summ_cmmts,
 ):
     """ """
     logging.info("\nGenerating md files")
@@ -407,9 +414,7 @@ def updt_ucc_cluster_files(
 
     UTI_colors = UTI_to_hex(df_UCC)
 
-    current_year = datetime.datetime.now().year
-
-    # ran_i = np.random.randint(0, len(df_UCC), size=500)
+    ran_i = np.random.randint(0, len(df_UCC), size=500)
 
     # from pyinstrument import Profiler
     # profiler = Profiler()
@@ -422,8 +427,8 @@ def updt_ucc_cluster_files(
         UCC_cl = dict(zip(cols, UCC_cl))
         fname0 = str(UCC_cl["fname"])
 
-        # if fname0 not in ("alessi20",):
-        #     continue
+        if fname0 not in ("basel5", "loden1"):
+            continue
         # if "ngc" not in fname0:
         #     continue
         # if i_ucc not in ran_i or "cwnu" in fname0 or "cwwdl" in fname0:
@@ -431,15 +436,15 @@ def updt_ucc_cluster_files(
 
         # Generate full entry
         new_md_entry = ucc_entry.make(
-            current_year,
+            fname0,
+            i_ucc,
+            UCC_summ_cmmts,
             current_JSON,
             DBs_full_data,
             df_UCC,
             UCC_cl,
             fname_all,
             UTI_colors,
-            i_ucc,
-            fname0,
         )
 
         # Compare old md file (if it exists) with the new md file, for this cluster
@@ -467,17 +472,18 @@ def updt_ucc_cluster_files(
     # profiler.stop()
     # profiler.open_in_browser()
 
-    # # Delete all files in folder2 and move all files from folder1 to folder2
-    # folder1 = "/home/gabriel/Github/UCC/updt_UCC/temp_updt/ucc/_clusters"
-    # folder2 = "/home/gabriel/Github/UCC/ucc/_clusters2"
-    # for file in os.listdir(folder2):
-    #     file_path = os.path.join(folder2, file)
-    #     os.remove(file_path)
-    # for file in os.listdir(folder1):
-    #     file_path = os.path.join(folder1, file)
-    #     new_file_path = os.path.join(folder2, file)
-    #     os.rename(file_path, new_file_path)
-    # print("\nAll files moved")
+    # Delete all files in folder2 and move all files from folder1 to folder2
+    folder1 = "/home/gabriel/Github/UCC/updt_UCC/temp_updt/ucc/_clusters"
+    folder2 = "/home/gabriel/Github/UCC/ucc/_clusters2"
+    for file in os.listdir(folder2):
+        file_path = os.path.join(folder2, file)
+        os.remove(file_path)
+    for file in os.listdir(folder1):
+        file_path = os.path.join(folder1, file)
+        new_file_path = os.path.join(folder2, file)
+        os.rename(file_path, new_file_path)
+    print("\nAll files moved")
+    breakpoint()
 
 
 def updt_ucc_cluster_plots(logging, df_UCC, df_members, min_UTI=0.5) -> pd.DataFrame:

@@ -141,12 +141,12 @@ def main():
             print("\n⚠️  Script execution failed. Check the error messages above.")
             sys.exit(0)
 
-        if choice == "D":
+        if choice == "E":
             print("\n👋 Final script completed. Goodbye!")
             sys.exit(0)
 
         # Ask if user wants to continue to next script
-        next_script = chr(ord(choice) + 1)  # A->B, B->C, C->D
+        next_script = chr(ord(choice) + 1)  # A->B, B->C, C->D, D->E
         if (
             input(f"\n❓ Run next script ({next_script}) now? (y/N): ").strip().lower()
             == "y"
