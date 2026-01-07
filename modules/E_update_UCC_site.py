@@ -414,7 +414,7 @@ def updt_ucc_cluster_files(
 
     UTI_colors = UTI_to_hex(df_UCC)
 
-    ran_i = np.random.randint(0, len(df_UCC), size=500)
+    # ran_i = np.random.randint(0, len(df_UCC), size=100)
 
     # from pyinstrument import Profiler
     # profiler = Profiler()
@@ -427,9 +427,9 @@ def updt_ucc_cluster_files(
         UCC_cl = dict(zip(cols, UCC_cl))
         fname0 = str(UCC_cl["fname"])
 
-        if fname0 not in ("basel5", "loden1"):
-            continue
-        # if "ngc" not in fname0:
+        # if fname0 not in ("basel5", "loden1"):
+        #     continue
+        # if "melotte" not in fname0:
         #     continue
         # if i_ucc not in ran_i or "cwnu" in fname0 or "cwwdl" in fname0:
         #     continue
@@ -472,18 +472,18 @@ def updt_ucc_cluster_files(
     # profiler.stop()
     # profiler.open_in_browser()
 
-    # Delete all files in folder2 and move all files from folder1 to folder2
-    folder1 = "/home/gabriel/Github/UCC/updt_UCC/temp_updt/ucc/_clusters"
-    folder2 = "/home/gabriel/Github/UCC/ucc/_clusters2"
-    for file in os.listdir(folder2):
-        file_path = os.path.join(folder2, file)
-        os.remove(file_path)
-    for file in os.listdir(folder1):
-        file_path = os.path.join(folder1, file)
-        new_file_path = os.path.join(folder2, file)
-        os.rename(file_path, new_file_path)
-    print("\nAll files moved")
-    breakpoint()
+    # # Delete all files in folder2 and move all files from folder1 to folder2
+    # folder1 = "/home/gabriel/Github/UCC/updt_UCC/temp_updt/ucc/_clusters"
+    # folder2 = "/home/gabriel/Github/UCC/ucc/_clusters2"
+    # for file in os.listdir(folder2):
+    #     file_path = os.path.join(folder2, file)
+    #     os.remove(file_path)
+    # for file in os.listdir(folder1):
+    #     file_path = os.path.join(folder1, file)
+    #     new_file_path = os.path.join(folder2, file)
+    #     os.rename(file_path, new_file_path)
+    # print("\nAll files moved")
+    # breakpoint()
 
 
 def updt_ucc_cluster_plots(logging, df_UCC, df_members, min_UTI=0.5) -> pd.DataFrame:
