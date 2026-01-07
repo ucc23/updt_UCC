@@ -9,8 +9,8 @@ par_idx, par_min, par_max = 0, 0.1, 10  # dist [kpc]
 par_idx, par_min, par_max = 1, 0.0, 10  # ext
 # par_idx, par_min, par_max = 2, 0., 5  # diff_ext
 # par_idx, par_min, par_max = 3, 1., 10000  # age
-par_idx, par_min, par_max = 4, -2, 1  # met
-# par_idx, par_min, par_max = 5, 0, 5000  # mass
+# par_idx, par_min, par_max = 4, -2, 1  # met
+par_idx, par_min, par_max = 5, 0, 10000  # mass
 # par_idx, par_min, par_max = 7, 0, 10  # blue_str
 
 
@@ -41,6 +41,6 @@ print(f"Max par val: {max_par_val}")
 
 all_par_vals = np.clip(all_par_vals, a_min=par_min, a_max=par_max)
 
-plt.hist(all_par_vals, bins=30)
+plt.hist(all_par_vals, bins=100)
 plt.show()
 breakpoint()
