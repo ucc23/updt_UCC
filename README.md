@@ -266,6 +266,16 @@ Files uploaded to Zenodo:
 
 ## 4. Updating the site
 
+Updating the site requires running two scripts: `D_summ_cmmts.py` and
+`E_update_UCC_site.py`.
+
+The `D_summ_cmmts.py` script generates a file containing a natural language summary
+of the objects' characteristics, comments assigned to each object in different articles,
+and other relevant information (descriptors). The json files with comments are
+stored in the `data/json_cmmts/` folder (must be manually generated). The result of
+running this script is the `UCC_summ_cmmts.json` file which is used by the next script
+to generate the site content.
+
 The `E_update_UCC_site.py` script applies the required changes to update the ucc.ar
 site. It processes the **entire** UCC catalogue and searches for modifications that
 need to be applied to update the site.

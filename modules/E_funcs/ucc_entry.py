@@ -38,6 +38,13 @@ UTI_C_lit_desc: {UTI_C_lit_desc}
 UTI_C_dup_desc: {UTI_C_dup_desc}
 summary: |
 {summary}
+badge_dist: "{badge_dist}"
+badge_ext: "{badge_ext}"
+badge_mass: "{badge_mass}"
+badge_feh: "{badge_feh}"
+badge_age: "{badge_age}"
+badge_bss: "{badge_bss}"
+badge_nofpars: {badge_nofpars}
 comments: |
 {comments}
 class3: |
@@ -96,6 +103,16 @@ def make(
     UTI_C_N_desc, UTI_C_dens_desc, UTI_C_C3_desc, UTI_C_lit_desc, UTI_C_dup_desc = (
         UCC_summ_cmmts[fname0]["descriptors"]
     )
+    badge_dist, badge_ext, badge_mass, badge_feh, badge_age, badge_bss = [
+        UCC_summ_cmmts[fname0]["fpars_badges"].get(k, "")
+        for k in ("dist", "ext", "mass", "feh", "age", "bss")
+    ]
+    nofpars = "false"
+    if all(
+        b == ""
+        for b in [badge_dist, badge_ext, badge_mass, badge_feh, badge_age, badge_bss]
+    ):
+        nofpars = "true"
     comments = ""
     if "comments" in UCC_summ_cmmts[fname0]:
         for cmmt in UCC_summ_cmmts[fname0]["comments"]:
@@ -166,6 +183,13 @@ def make(
         UTI_C_lit_desc=UTI_C_lit_desc,
         UTI_C_dup_desc=UTI_C_dup_desc,
         summary=summary,
+        badge_dist=badge_dist,
+        badge_ext=badge_ext,
+        badge_mass=badge_mass,
+        badge_feh=badge_feh,
+        badge_age=badge_age,
+        badge_bss=badge_bss,
+        badge_nofpars=nofpars,
         comments=comments,
         class3=abcd_c,
         r_50_val=str(UCC_cl["r_50"]),

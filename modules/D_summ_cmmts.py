@@ -48,13 +48,17 @@ def main():
             else:
                 logging.info("File does not exist. Try again.")
 
-    df_UCC, fnames_B, B_lookup, UCC_summ_cmmts, DBs_JSON, new_JSON = load_data(fpath_json)
+    df_UCC, fnames_B, B_lookup, UCC_summ_cmmts, DBs_JSON, new_JSON = load_data(
+        fpath_json
+    )
 
     fnames_check(logging, fnames_B, UCC_summ_cmmts)
 
     if input("Update all summaries? (y/n): ").lower() == "y":
-        summaries, descriptors = get_summaries(df_UCC, DBs_JSON)
-        UCC_summ_cmmts = update_summary(logging, UCC_summ_cmmts, summaries, descriptors)
+        summaries, descriptors, fpars_badges = get_summaries(df_UCC, DBs_JSON)
+        UCC_summ_cmmts = update_summary(
+            logging, UCC_summ_cmmts, summaries, descriptors, fpars_badges
+        )
 
     if fname_json is not None:
         #
@@ -112,19 +116,21 @@ def load_data(fpath_json) -> tuple[pd.DataFrame, list, dict, dict, dict, dict]:
     with open(name_DBs_json) as f:
         DBs_JSON = json.load(f)
 
-    # Check for duplicate clusters keys in JSON and raise error if any (json.load()
-    # silently drops duplicates, hence the check here)
-    with open(f"{fpath_json}.json", "r") as f:
-        raw_json = json.load(f, object_pairs_hook=list)
-    clusters = dict(raw_json).get("clusters")
-    if isinstance(clusters, list):
-        seen = set()
-        dups = {k for k, _ in clusters if k in seen or seen.add(k)}
-        if dups:
-            raise ValueError(f'Duplicate keys in "clusters": {", ".join(sorted(dups))}')
-
     new_JSON = {}
     if fpath_json is not None:
+        # Check for duplicate clusters keys in JSON and raise error if any (json.load()
+        # silently drops duplicates, hence the check here)
+        with open(f"{fpath_json}.json", "r") as f:
+            raw_json = json.load(f, object_pairs_hook=list)
+        clusters = dict(raw_json).get("clusters")
+        if isinstance(clusters, list):
+            seen = set()
+            dups = {k for k, _ in clusters if k in seen or seen.add(k)}
+            if dups:
+                raise ValueError(
+                    f'Duplicate keys in "clusters": {", ".join(sorted(dups))}'
+                )
+
         with open(f"{fpath_json}.json", "r") as f:
             new_JSON = json.load(f)
 
@@ -148,7 +154,6 @@ def fnames_check(logging, fnames_B, UCC_summ_cmmts):
             logging.info("Removed entries not in merged DBs file.")
         else:
             sys.exit(f"Please update {UCC_cmmts_file} accordingly and rerun.")
-
 
 
 def get_comments(
@@ -194,7 +199,7 @@ def get_summaries(df_UCC, DBs_JSON):
     """
     current_year = datetime.datetime.now().year
 
-    summaries, descriptors = {}, {}
+    summaries, descriptors, fpars_badges = {}, {}, {}
     # Iterate trough each entry in the UCC database
     cols = df_UCC.columns
     for UCC_cl in df_UCC.itertuples(index=False, name=None):
@@ -228,7 +233,7 @@ def get_summaries(df_UCC, DBs_JSON):
             UCC_cl["fund_pars"],
         )
 
-        fpars_summ, fpars_note = fpars_summary(
+        fpars_summ, fpars_note, fpars_badges_lst = fpars_summary(
             recent_year_i, fpars_dict, UCC_cl["Plx_m"], plx_dist, z_position
         )
 
@@ -270,7 +275,9 @@ def get_summaries(df_UCC, DBs_JSON):
             UTI_C_dup_desc,
         )
 
-    return summaries, descriptors
+        fpars_badges[fname0] = fpars_badges_lst
+
+    return summaries, descriptors, fpars_badges
 
 
 def level(value, thresholds, labels):
@@ -431,7 +438,7 @@ def fpars_in_lit(
 
 def fpars_summary(
     recent_year_i: int, params: dict, plx, plx_dist, plx_z_dist
-) -> tuple[str, str]:
+) -> tuple[str, str, dict]:
     """Summarize fundamental astrophysical parameters."""
 
     labels = {
@@ -516,7 +523,9 @@ def fpars_summary(
         if flag_spread:
             large_spread.append(labels[name])
 
-    dist_flag, fpars_note = "", ""
+    fpars_badges = {}
+
+    dist_flag, fpars_note, dist_txt = "", "", ""
     if "dist" in medians:
         plx_kpc = 1 / plx
         if abs(plx_kpc / medians["dist"] - 1) > 0.3:
@@ -528,6 +537,21 @@ def fpars_summary(
                 f"(~{medians['dist']:.2f} kpc).</p>"
             )
 
+        if medians["dist"] < 0.5:
+            dist_txt = "Very close"
+        elif medians["dist"] < 1:
+            dist_txt = "Close"
+        elif medians["dist"] < 3:
+            dist_txt = "Relatively close"
+        elif medians["dist"] < 5:
+            dist_txt = "Distant"
+        elif medians["dist"] < 10:
+            dist_txt = "Very distant"
+        else:
+            dist_txt = "Extremely distant"
+
+    fpars_badges["dist"] = dist_txt
+
     ext_txt = ""
     if "ext" in medians:
         Av = medians["ext"]
@@ -537,6 +561,17 @@ def fpars_summary(
             ext_txt = ", affected by very high extinction"
         elif Av > 3:
             ext_txt = ", affected by high extinction"
+        elif Av > 1:
+            ext_txt = ", affected by moderate extinction"
+        else:
+            ext_txt = ", affected by low extinction"
+
+        fpars_badges["ext"] = (
+            ext_txt.replace(", affected by ", "")
+            .replace("<u>", "")
+            .replace("</u>", "")
+            .capitalize()
+        )
 
     fpars_summ = (
         f"Its parallax locates it at a {plx_dist}{dist_flag} distance, "
@@ -545,51 +580,78 @@ def fpars_summary(
 
     if not medians:
         fpars_summ += " No fundamental parameter values are available for this object."
-        return fpars_summ, fpars_note
+        return fpars_summ, fpars_note, {}
 
     descriptors = []
 
     if (mass := medians.get("mass")) is not None:
-        if mass > 20000:
-            descriptors.append("<u>extremely</u> massive")
+        if mass > 10000:
+            mass_txt = "<u>extremely</u> massive"
         elif mass > 5000:
-            descriptors.append("very massive")
-        elif mass > 2000:
-            descriptors.append("massive")
+            mass_txt = "very massive"
+        elif mass > 1000:
+            mass_txt = "massive"
+        elif mass < 50:
+            mass_txt = "low-mass"
+        else:
+            mass_txt = ""
+
+        if mass_txt != "":
+            descriptors.append(mass_txt)
+            fpars_badges["mass"] = (
+                mass_txt.replace("<u>", "")
+                .replace("</u>", "")
+                .replace("-", " ")
+                .capitalize()
+            )
 
     if (feh := medians.get("met")) is not None:
         if feh > 1:
-            descriptors.append("very metal-rich")
+            feh_txt = "very metal-rich"
         elif feh >= 0.5:
-            descriptors.append("metal-rich")
+            feh_txt = "metal-rich"
         elif feh > -0.5:
-            descriptors.append("near-solar metallicity")
+            feh_txt = "near-solar metallicity"
         elif feh > -1:
-            descriptors.append("metal-poor")
+            feh_txt = "metal-poor"
         elif feh > -2:
-            descriptors.append("very metal-poor")
+            feh_txt = "very metal-poor"
         else:
-            descriptors.append("<u>extremely</u> metal-poor")
+            feh_txt = "<u>extremely</u> metal-poor"
+
+        descriptors.append(feh_txt)
+        fpars_badges["feh"] = (
+            feh_txt.replace("<u>", "").replace("</u>", "").capitalize()
+        )
 
     if (age := medians.get("age")) is not None:
         if age < 20:
-            descriptors.append("very young")
+            age_txt = "very young"
         elif age < 100:
-            descriptors.append("young")
+            age_txt = "young"
         elif age < 1000:
-            descriptors.append("intermediate-age")
+            age_txt = "intermediate-age"
         elif age < 5000:
-            descriptors.append("old")
+            age_txt = "old"
         elif age < 10000:
-            descriptors.append("very old")
+            age_txt = "very old"
         else:
-            descriptors.append("<u>extremely</u> old")
+            age_txt = "<u>extremely</u> old"
+
+        descriptors.append(age_txt)
+        fpars_badges["age"] = (
+            age_txt.replace("-", " ")
+            .replace("<u>", "")
+            .replace("</u>", "")
+            .capitalize()
+        )
 
     if medians.get("blue_str", 0) > 0:
         fpars_note += (
             '<p class="note"><strong>Note:</strong> '
             "This object contains blue stragglers according to at least one source.</p>"
         )
+        fpars_badges["bss"] = "Contains BSS"
 
     spread_txt = ""
     if large_spread:
@@ -614,7 +676,7 @@ def fpars_summary(
         "Parameters</a>)."
     )
 
-    return fpars_summ, fpars_note
+    return fpars_summ, fpars_note, fpars_badges
 
 
 def lit_summary(current_year, cl_DB, literature, year_gap=3) -> str:
@@ -706,7 +768,7 @@ def dupl_summary(shared_members_p, C_dup, C_dup_same_db, duplicate, dup_warn):
     return dup_summary, dupl_note
 
 
-def update_summary(logging, UCC_summ_cmmts, summaries, descriptors):
+def update_summary(logging, UCC_summ_cmmts, summaries, descriptors, fpars_badges):
     """ """
     N_updated, N_new = 0, 0
     for fname0, summary in summaries.items():
@@ -714,12 +776,14 @@ def update_summary(logging, UCC_summ_cmmts, summaries, descriptors):
             # Update summary
             UCC_summ_cmmts[fname0]["summary"] = summary
             UCC_summ_cmmts[fname0]["descriptors"] = descriptors[fname0]
+            UCC_summ_cmmts[fname0]["fpars_badges"] = fpars_badges[fname0]
             N_updated += 1
         else:
             # Create new entry
             UCC_summ_cmmts[fname0] = {
                 "summary": summary,
                 "descriptors": descriptors[fname0],
+                "fpars_badges": fpars_badges[fname0],
             }
             N_new += 1
     logging.info(f"Updated summaries for {N_updated} objects.")
