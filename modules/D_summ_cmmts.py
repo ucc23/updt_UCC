@@ -55,7 +55,12 @@ def main():
     fnames_check(logging, fnames_B, UCC_summ_cmmts)
 
     if input("Update all summaries? (y/n): ").lower() == "y":
+        # from pyinstrument import Profiler
+        # profiler = Profiler()
+        # profiler.start()
         summaries, descriptors, fpars_badges = get_summaries(df_UCC, DBs_JSON)
+        # profiler.stop()
+        # profiler.open_in_browser()
         UCC_summ_cmmts = update_summary(
             logging, UCC_summ_cmmts, summaries, descriptors, fpars_badges
         )
