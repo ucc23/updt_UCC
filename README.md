@@ -18,8 +18,8 @@ and in its associated [Zenodo repository](https://doi.org/10.5281/zenodo.8250523
   one with the four diagrams, one for Aladin, and plots for the HUNT23 and/or CANTAT20
   members when available. The plots are loaded by the public site from this repository.
 
-- The [arxiv](https://github.com/ucc23/arxiv) repository contains the script and workflow that generate the JSON
-  file loaded by the [arXiv](https://ucc.ar/arxiv/) section of the public site.
+The UCC update process is managed through five main scripts that perform the
+required tasks in sequence, as described in the following sections.
 
 
 
@@ -70,28 +70,29 @@ The format of the `databases_info.json` file is mostly self-explanatory with the
 exception of the parameters section. This can have different formats depending on the
 database structure. There are three possible formats:
 
-
 1. **Default**
 
 The default formatting corresponds to a single column with a given formatting/units
 for each parameter:
 
+```
 "pars": {
   "par_general": {
     "par_format": "par_db_col"
   },
   ...
 }
+```
 
 For some databases the "par_db_col" can contain multiple values separated by a
 ',' or ';'. Eg: KRONBERGER2006, ROSER2016, NIZOVKINA2025
-
 
 2. **Duplicate values, different units**
 
 The "par_general" parameter is present in more tan one column with different
 units (eg, obtained by different methods). Eg: JAEHNIG2021, CARRASCO2025
 
+```
 "pars": {
   "par_general": {
     "par_format_0": "par_db_col_0",
@@ -99,19 +100,21 @@ units (eg, obtained by different methods). Eg: JAEHNIG2021, CARRASCO2025
   },
   ...
 }
-
+```
 
 3. **Duplicate units**
 
 There is more than one column with the same "par_format" units for the
 same parameter. Eg: CHEN2003, PISKUNOV2008, SANTOS2021, HUNT2024, ZHANG2024, HU2025
 
+```
 "pars": {
   "par_general": {
     "par_format": ["par_db_col_0", "par_db_col_1"],
   },
   ...
 }
+```
 
 
 
@@ -125,13 +128,10 @@ The `B_update_UCC` script handles two possible cases:
 2. Rebuilding the entire UCC
 
 The case is decided by the script according to whether it finds a temporary
-`databases_info.json` file with new DBs to add.
-
-The final `UCC_cat_B.csv` file contains the following main columns:
-
+`databases_info.json` file with new DBs to add. The final `UCC_cat_B.csv` file
+contains the following main columns:
 
 > "fnames","DB","DB_i","Names"
-
 
 which are the main identifiers for each entry in the UCC. Along with these columns,
 the file also contains the following columns which are used only as centers to estimate
@@ -139,11 +139,8 @@ membership by the next script:
 
 > "RA_ICRS","DE_ICRS","GLON","GLAT","Plx","pmRA","pmDE"
 
-The following OCs should be renamed as:
-
-> BH, VDBergh-Hagen --> VDBH
-> VDBergh           --> VDB
-
+and finally the `fund_pars` column which contains the fundamental parameters for
+each entry extracted from each DB where it is present.
 
 ### Input
 
@@ -164,18 +161,6 @@ final destination:
 - `data/NEW_DB.csv`: New database in CSV format
 
 
-Notice
-------
-
-If main fnames are changed in this file, these changes need to be manually
-propagated to:
-
-- the `UCC_cat_C.csv` file
-- the `UCC_members.parquet` file
-- the plot files in the `plots/` folder, and
-- the site files in the `ucc/_clusters/` folder
-
-This is done using the `BC_fnames_renaming.py` script.
 
 
 
@@ -184,15 +169,15 @@ This is done using the `BC_fnames_renaming.py` script.
 
 The `C_process_member_files.py` script generates the `UCC_cat_C.csv` file and updates
 the parquet file with all the identified members. It also generates the required files
-for uploading to the Zenodo repository. These files need to be manually uploaded to a
-new Zenodo release.
+for uploading to the Zenodo repository (these files need to be manually uploaded to a
+new Zenodo release).
 
 The `UCC_cat_C.csv` file contains columns that represent the following information:
 
 ```
 - fnames: names of each entry (must match those in the B file)
-- plots_used: (y/n) tells the D script if an entry plot needs to be generated/updated
-- process: (y/n) manual flag that indicates whether to process this entry
+- plots_used: (y/n) tells the E script if an entry plot needs to be generated/updated
+- process: (y/n) manual flag that indicates whether to (re)process this entry
 - N_clust: Fixed number of cluster members (has precedence over N_clust_max)
 - N_clust_max: Maximum number of cluster members
 - N_box: Multiplier value for the box size used to search for members
@@ -203,14 +188,7 @@ coordinates; 'pmb' (bottom), 'pmt' (top), 'pml' (left), 'pmr' (right) for (pmra,
 for each.
 ```
 The rest of the columns are generated using information taken from the estimated members
-for each entry:
-
-> "r_50","C1","C2","C3","N_50","GLON_m","GLAT_m","RA_ICRS_m","DE_ICRS_m","Plx_m",
-> "e_Plx_m","pmRA_m","e_pmRA_m","pmDE_m","e_pmDE_m","Rv_m","e_Rv_m","N_Rv",
-> "shared_members","shared_members_p","C_N","C_dens","C_C3","C_lit","C_dup",
-> "C_dup_same_db","UTI"
-
-This script perform the following main operations:
+for each entry. This script perform the following main operations:
 
 ### 3.1. Change detection
 Compares two versions of the UCC catalog: a source catalog (`UCC_cat_B.csv`) and the
@@ -249,18 +227,20 @@ After processing all the necessary clusters, the script updates the main UCC dat
 - `data/databases_info.json`: Current UCC database JSON file
 - `Gaia data files`: Gaia data files for a given release
 - `databases/globulars.csv`: Globular clusters data file
-- `zenodo/README.txt`: README file
+- `zenodo/README.txt`: Zenodo README file
 - `zenodo/UCC_members.parquet`: File with estimated member for all the clusters
+  (**FILE NOT TRACKED BECAUSE IT IS TOO LARGE**)
 
 ### Output
 
 - `data/df_UCC_C_updt.csv`: Updated version (previous version is archived)
-
-Files uploaded to Zenodo:
 - `zenodo/README.txt`: Updated version
-- `zenodo/UCC_cat.csv`: A simplified CSV version of the main catalog, formatted for
-  public release on Zenodo
-- `zenodo/UCC_members.parquet`: Updated (**FILE NOT TRACKED BECAUSE IT IS TOO LARGE**)
+- `zenodo/UCC_cat.csv`: Updated (and simplified) version of the UCC catalog
+- `zenodo/UCC_members.parquet`: Updated version
+
+The last three files are uploaded to Zenodo to generate a new release.
+
+
 
 
 
