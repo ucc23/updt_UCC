@@ -325,6 +325,7 @@ def process_entries(
         "DB",
         "DB_i",
         "Names",
+        "fund_pars",
         "plot_used",
         "process",
         "frame_limit",
