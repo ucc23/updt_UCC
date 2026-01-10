@@ -1,0 +1,3 @@
+fname,ra,dec,plx,pmra,pmde,cmmt
+"ubc602","","",0.34,-1.22,-0.524,"Bad plx+pms in CANTAT2020, use HUNT2023"
+"dolidze50",241.403,-20.485,"","","","Listed as remnant in Kharchenko articles with these coords"

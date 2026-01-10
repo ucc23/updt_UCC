@@ -36,25 +36,12 @@ naming_order = (
     "ngc",
 )
 
-# The B script uses the first available coordinates for the entries, except
-# those from KHARCHENKO2012 which are always ignored by default. These entries
-# have bad coordinates in their first appearances, so we fix them here
-selected_center_coords = {
-    "ascc72": (193.741, -60.949),  # BICA2019
-    "fsr0839": (91.013, 30.27),  # KHARCHENKO2012
-    "dolidze50": (241.403, -20.485),  # KHARCHENKO2012
-    "fsr0124": (286.733, 13.245),  # KHARCHENKO2012
-    "loden995": (208.575, -64.95),  # KHARCHENKO2012
-    "ruprecht53": (122.68, -26.94),  # KHARCHENKO2012
-    "ngc7762": (357.465, 68.025),  # KHARCHENKO2012
-    "ngc6664": (279.132, -8.21),  # KHARCHENKO2012
-    "ngc2184": (91.69, -2.0),  # CANTAT2020
-    "ruprecht19": (111.48, -21.844),  # CANTAT2020
-    "ruprecht167": (215.15, -58.858),  # CANTAT2020
-    "upk45": (291.696, 0.212),  # CANTAT2020
-    "collinder471": (332.563, 73.032),  # HUNT2023
-}
+# The B script uses the first available coordinates for the entries. The entries
+# in this file have bad coordinates in their first appearances, so we fix them
+selected_centers_f = data_folder + "manual_centers.csv"
 
+
+#
 UCC_cmmts_folder = "json_cmmts/"
 UCC_cmmts_file = "UCC_summ_cmmts.json"
 
