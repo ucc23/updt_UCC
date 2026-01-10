@@ -319,7 +319,7 @@ def get_Nmembs(
         my_field.N_cluster = int(N_clust)
         logging.info(f"  Using manual N_cluster={int(N_clust)}")
         return
-    
+
     # If 'N_clust_max' was given use it to cap the maximum number of members
     if not np.isnan(N_clust_max):
         my_field.N_clust_max = int(N_clust_max)
@@ -413,20 +413,32 @@ def check_close_cls(
     in_frame_gcs["Type"] = ["g"] * len(in_frame_gcs)
 
     # Combine DataFrames
-    in_frame_all = pd.concat(
-        [pd.DataFrame(in_frame_gcs), in_frame], axis=0, ignore_index=True
-    )
+    frames = []
+    df1 = pd.DataFrame(in_frame_gcs)
+    if not df1.empty and not df1.isna().all().all():
+        frames.append(df1)
+    if not in_frame.empty and not in_frame.isna().all().all():
+        frames.append(in_frame)
 
-    # Insert row at the top with the cluster under analysis
-    new_row = {
-        "Name": fname,
-        "GLON": glon_c,
-        "GLAT": glat_c,
-        "plx": plx_c,
-        "pmRA": pmra_c,
-        "pmDE": pmde_c,
-    }
-    in_frame_all = pd.concat([pd.DataFrame([new_row]), in_frame_all], ignore_index=True)
+    new_row = pd.DataFrame(
+        [
+            {
+                "Name": fname,
+                "GLON": glon_c,
+                "GLAT": glat_c,
+                "plx": plx_c,
+                "pmRA": pmra_c,
+                "pmDE": pmde_c,
+                "Type": "o",
+            }
+        ]
+    )
+    if frames:
+        frames_concat = pd.concat(frames, ignore_index=True)
+        # Insert row at the top with the cluster under analysis
+        in_frame_all = pd.concat([new_row, frames_concat], ignore_index=True)
+    else:
+        in_frame_all = new_row
 
     # Fetch duplicate probability
     dups_prob_i = []
@@ -458,9 +470,9 @@ def check_close_cls(
     in_frame_all = in_frame_all[
         ["Name", "P_d", "GLON", "GLAT", "plx", "pmRA", "pmDE", "Type"]
     ]
-    if len(in_frame_all) > 0:
+    if len(in_frame_all) > 1:
         logging.info(
-            f"  WARNING: {len(in_frame_all)} extra OCs/GCs in frame: "
+            f"  WARNING: {len(in_frame_all)} OCs/GCs in frame: "
             + f"[{glon_c:.3f}, {glat_c:.3f}], {plx_c:.3f}"
         )
         for row in in_frame_all.to_string(index=False).split("\n")[:11]:
@@ -527,7 +539,7 @@ def center_check(
     )
     # Store information on the OCs that require attention
     if d_arcmin > rad_max:
-        warnings.warn(f"Distance between centers: {d_arcmin:.1f}")
+        warnings.warn(f"\nWARNING: Distance between centers {d_arcmin:.1f} [arcmin]")
 
     # pyright issue due to: https://github.com/numpy/numpy/issues/28076
     # return lonlat_c_m, vpd_c_m, plx_c_m  # pyright: ignore
