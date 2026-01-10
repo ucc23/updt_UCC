@@ -181,11 +181,14 @@ The `UCC_cat_C.csv` file contains columns that represent the following informati
 - N_clust: Fixed number of cluster members (has precedence over N_clust_max)
 - N_clust_max: Maximum number of cluster members
 - N_box: Multiplier value for the box size used to search for members
-- frame_limit: A string in the format "x_111.1,y_222.2" where "x" and "y" are one of the
-characters: 'b' (bottom), 't' (top), 'l' (left), 'r' (right) for (GLON, GLAT)
-coordinates; 'pmb' (bottom), 'pmt' (top), 'pml' (left), 'pmr' (right) for (pmra, pmde);
-'plxl' (left), 'plxr' (right) for parallax; and the numbers are the limiting values
-for each.
+- frame_limit: A string in the format "x_111.1" where "x" is one of the characters:
+
+  - 'b' (bottom), 't' (top), 'l' (left), 'r' (right) for (GLON, GLAT) coordinates
+  - 'pmb' (bottom), 'pmt' (top), 'pml' (left), 'pmr' (right) for (pmra, pmde)
+  - 'plxl' (left), 'plxr' (right) for parallax
+
+and the numbers are the limiting values for each. A single limit can be provided (eg,
+"x_111.1") or several separated by a ',' (eg, "x_111.1,y_222.2,...").
 ```
 The rest of the columns are generated using information taken from the estimated members
 for each entry. This script perform the following main operations:
@@ -224,9 +227,10 @@ After processing all the necessary clusters, the script updates the main UCC dat
 
 - `data/df_UCC_B_updt.csv`: Current UCC database (produced by the B script)
 - `data/df_UCC_C_updt.csv`: Current version of this file
+- `data/manual_centers.csv`: Manual centers for selected OCs
+- `databases/globulars.csv`: Globular clusters data file
 - `data/databases_info.json`: Current UCC database JSON file
 - `Gaia data files`: Gaia data files for a given release
-- `databases/globulars.csv`: Globular clusters data file
 - `zenodo/README.txt`: Zenodo README file
 - `zenodo/UCC_members.parquet`: File with estimated member for all the clusters
   (**FILE NOT TRACKED BECAUSE IT IS TOO LARGE**)
