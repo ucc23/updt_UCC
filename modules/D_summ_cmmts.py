@@ -533,7 +533,10 @@ def fpars_summary(
     dist_flag, fpars_note, dist_txt = "", "", ""
     if "dist" in medians:
         plx_kpc = 1 / plx
-        if abs(plx_kpc / medians["dist"] - 1) > 0.3:
+        ratio_lim = 0.3
+        if plx_kpc < 0.5 and medians["dist"] < 0.5:
+            ratio_lim = 0.5
+        if abs(plx_kpc / medians["dist"] - 1) > ratio_lim:
             dist_flag = "<sup><b>*</b></sup>"
             fpars_note = (
                 '<p class="note"><strong>(*):</strong> '
