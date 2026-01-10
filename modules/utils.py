@@ -9,7 +9,7 @@ import pandas as pd
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from modules.variables import data_folder, temp_folder
+from modules.variables import temp_folder
 
 
 def logger():
@@ -24,7 +24,7 @@ def logger():
 
     # Name of log file using the date
     x = datetime.date.today()
-    out_file = data_folder + "logs/" + str(x).replace("-", "_") + ".log"
+    out_file = "logs/" + str(x).replace("-", "_") + ".log"
 
     # Set up logging module
     level = logging.INFO
