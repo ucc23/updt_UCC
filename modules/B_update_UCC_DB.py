@@ -20,6 +20,7 @@ from .utils import (
     save_df_UCC,
 )
 from .variables import (
+    DB_coords_hierarchy,
     GCs_cat,
     c_Ag,
     c_Ebv,
@@ -31,7 +32,7 @@ from .variables import (
     merged_dbs_file,
     name_DBs_json,
     naming_order,
-    selected_center_coords,
+    selected_centers_f,
     temp_folder,
 )
 
@@ -55,6 +56,7 @@ def main():
         new_JSON,
         df_GCs,
         gcs_fnames,
+        selected_center_coords,
         all_dbs_data,
         df_UCC_B_old,
         df_UCC_B,
@@ -128,6 +130,7 @@ def main():
         # Combine the new DB with the UCC
         df_UCC_B = combine_UCC_new_DB(
             logging,
+            selected_center_coords,
             new_DB,
             newDB_json,
             df_UCC_B,
@@ -213,6 +216,7 @@ def load_data(
     pd.DataFrame,
     dict,
     dict,
+    dict,
     pd.DataFrame,
     pd.DataFrame,
     list,
@@ -225,9 +229,19 @@ def load_data(
     )
     # Empty dataframe
     df_UCC_B = pd.DataFrame(dbs_merged_current[0:0])
+    # Add 'DB_coords_used' empty column
+    df_UCC_B["DB_coords_used"] = ""
 
     # Load GCs data
     df_GCs = pd.read_csv(GCs_cat)
+
+    # Load selected centers coordinates
+    selected_center_coords = (
+        pd.read_csv(selected_centers_f)  # , keep_default_na=False)
+        .set_index("fname")
+        .apply(lambda r: r.tolist(), axis=1)
+        .to_dict()
+    )
 
     # Extract GCs fnames
     names_gcs = list(df_GCs["Name"] + ", " + df_GCs["OName"])
@@ -287,6 +301,7 @@ def load_data(
         new_JSON,
         df_GCs,
         gcs_fnames,
+        selected_center_coords,
         all_dbs_data,
         dbs_merged_current,
         df_UCC_B,
@@ -1158,6 +1173,7 @@ def transf_par(par_n2, par_v, flag_mult):
 
 def combine_UCC_new_DB(
     logging,
+    selected_center_coords: dict,
     new_DB: str,
     newDB_json: dict,
     df_UCC_B: pd.DataFrame,
@@ -1211,8 +1227,15 @@ def combine_UCC_new_DB(
             row_ucc = ucc_dict_rows[ucc_index]
 
         # Extract coordinates from new DB
-        ra_n, dec_n, lon_n, lat_n, plx_n, pmra_n, pmde_n = extract_new_DB_coords(
-            new_DB, row_n, newDB_json["pos"]
+        ra_n, dec_n, lon_n, lat_n, plx_n, pmra_n, pmde_n, DB_used = (
+            extract_new_DB_coords(
+                new_DB,
+                row_n,
+                newDB_json["pos"],
+                new_DB_fnames[i_new_cl],
+                row_ucc,
+                selected_center_coords,
+            )
         )
 
         new_db_dict = updt_new_DB(
@@ -1230,6 +1253,7 @@ def combine_UCC_new_DB(
             plx_n,
             pmra_n,
             pmde_n,
+            DB_used,
         )
 
     N_new = db_matches.count(None)
@@ -1250,26 +1274,75 @@ def combine_UCC_new_DB(
     return dbs_merged_new
 
 
-def extract_new_DB_coords(DB_ID, row_n, pos_cols):
+def extract_new_DB_coords(
+    DB_ID,
+    row_n,
+    pos_cols,
+    fnames_new_cl,
+    row_ucc,
+    selected_center_coords,
+    cols=("RA_ICRS", "DE_ICRS", "GLON", "GLAT", "Plx", "pmRA", "pmDE"),
+):
     """ """
-    ra_n, dec_n, lon_n, lat_n, plx_n, pmra_n, pmde_n = [np.nan] * 7
+    # Extract manually fixed centers (if any)
+    ra_f, dec_f, lon_f, lat_f, plx_f, pmra_f, pmde_f = [np.nan] * 7
+    for fname in fnames_new_cl:
+        if fname in selected_center_coords:
+            ra_f, dec_f, plx_f, pmra_f, pmde_f, _ = selected_center_coords[fname]
+            if not np.isnan(ra_f):
+                lon_f, lat_f = radec2lonlat(ra_f, dec_f)
+            break
 
+    # Extract values from new DB
+    ra_db, dec_db, lon_db, lat_db, plx_db, pmra_db, pmde_db = [np.nan] * 7
     if "RA" in pos_cols:
-        ra_n, dec_n = row_n[pos_cols["RA"]], row_n[pos_cols["DEC"]]
-        lon_n, lat_n = row_n["GLON_"], row_n["GLAT_"]
-
-    # Don't use these for PMs or Plx values
-    if DB_ID in ("DIAS2002", "LOKTIN2017") or "KHARCHENKO" in DB_ID:
-        return ra_n, dec_n, lon_n, lat_n, plx_n, pmra_n, pmde_n
-
+        ra_db, dec_db = row_n[pos_cols["RA"]], row_n[pos_cols["DEC"]]
+        lon_db, lat_db = row_n["GLON_"], row_n["GLAT_"]
     if "plx" in pos_cols:
-        plx_n = row_n[pos_cols["plx"]]
+        plx_db = row_n[pos_cols["plx"]]
     if "pmra" in pos_cols:
-        pmra_n = row_n[pos_cols["pmra"]]
+        pmra_db = row_n[pos_cols["pmra"]]
     if "pmde" in pos_cols:
-        pmde_n = row_n[pos_cols["pmde"]]
+        pmde_db = row_n[pos_cols["pmde"]]
 
-    return ra_n, dec_n, lon_n, lat_n, plx_n, pmra_n, pmde_n
+    def updt_nans(primary, fallback):
+        return [p if not np.isnan(p) else s for p, s in zip(primary, fallback)]
+
+    # Always prefer manually fixed values over DB values
+    new_DB_vals = updt_nans(
+        [ra_f, dec_f, lon_f, lat_f, plx_f, pmra_f, pmde_f],
+        [ra_db, dec_db, lon_db, lat_db, plx_db, pmra_db, pmde_db],
+    )
+    # Default: use new DB values
+    DB_used = DB_ID
+    ra_n, dec_n, lon_n, lat_n, plx_n, pmra_n, pmde_n = new_DB_vals
+
+    # If this entry already has assigned values in the UCC
+    if row_ucc:
+        db_prev = row_ucc["DB_coords_used"]
+        z_prev = DB_coords_hierarchy.get(db_prev, 100)
+        z_new = DB_coords_hierarchy.get(DB_ID, 100)
+        ucc_vals = [row_ucc[c] for c in cols]
+
+        if z_prev < z_new:
+            # If the previous DB has higher priority (smaller z), keep UCC values
+            DB_used = db_prev
+            ra_n, dec_n, lon_n, lat_n, plx_n, pmra_n, pmde_n = updt_nans(
+                ucc_vals, new_DB_vals
+            )
+        else:
+            # If the z values are larger or equal, update with new DB values
+            if all(np.isnan(new_DB_vals)):
+                # If the new DB has no values, keep UCC values
+                DB_used = db_prev
+                ra_n, dec_n, lon_n, lat_n, plx_n, pmra_n, pmde_n = ucc_vals
+            else:
+                # Update with new DB values
+                ra_n, dec_n, lon_n, lat_n, plx_n, pmra_n, pmde_n = updt_nans(
+                    new_DB_vals, ucc_vals
+                )
+
+    return ra_n, dec_n, lon_n, lat_n, plx_n, pmra_n, pmde_n, DB_used
 
 
 def updt_new_DB(
@@ -1287,6 +1360,7 @@ def updt_new_DB(
     plx_n,
     pmra_n,
     pmde_n,
+    DB_used,
     sep: str = ";",
 ):
     """ """
@@ -1306,34 +1380,20 @@ def updt_new_DB(
     # Use this padding for a smaller fund_pars column. Will be removed when sorting
     fund_exp = expand(i_fund_pars, N, "-")
 
-    # OC not present in UCC
     if len(row_ucc) == 0:
+        # OC not present in UCC
         DB_ID = new_DB_exp
         DB_i = i_new_cl_exp
         names = oc_names
         fnames = fnames_joined
         fund_pars = fund_exp
-    # OC already present in UCC
     else:
+        # OC already present in UCC
         DB_ID = row_ucc["DB"] + sep + new_DB_exp
         DB_i = row_ucc["DB_i"] + sep + i_new_cl_exp
         names = row_ucc["Names"] + sep + oc_names
         fnames = row_ucc["fnames"] + sep + fnames_joined
         fund_pars = row_ucc["fund_pars"] + sep + fund_exp
-
-        # Only update values if nan is in place, else keep the FIRST values stored
-        cols = ("RA_ICRS", "DE_ICRS", "GLON", "GLAT", "Plx", "pmRA", "pmDE")
-        new_vals = [ra_n, dec_n, lon_n, lat_n, plx_n, pmra_n, pmde_n]
-        old_vals = [row_ucc[c] for c in cols]
-        vals = [nv if np.isnan(ov) else ov for ov, nv in zip(old_vals, new_vals)]
-        ra_n, dec_n, lon_n, lat_n, plx_n, pmra_n, pmde_n = vals
-
-        # Manually fixed centers
-        for fname in fnames_new_cl:
-            if fname in selected_center_coords:
-                ra_n, dec_n = selected_center_coords[fname]
-                lon_n, lat_n = radec2lonlat(ra_n, dec_n)
-                break
 
     # Append to output dictionary
     new_db_dict["DB"].append(DB_ID)
@@ -1347,6 +1407,7 @@ def updt_new_DB(
     new_db_dict["Plx"].append(plx_n)
     new_db_dict["pmRA"].append(pmra_n)
     new_db_dict["pmDE"].append(pmde_n)
+    new_db_dict["DB_coords_used"].append(DB_used)
     new_db_dict["fund_pars"].append(fund_pars)
 
     return new_db_dict

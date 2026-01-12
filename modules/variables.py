@@ -36,9 +36,23 @@ naming_order = (
     "ngc",
 )
 
-# The B script uses the first available coordinates for the entries. The entries
-# in this file have bad coordinates in their first appearances, so we fix them
+# Exceptions to the rule below
 selected_centers_f = data_folder + "manual_centers.csv"
+# Hierarchy of databases for selecting coordinates, smaller is preferred
+# Exceptions are stored in the file above.
+DB_coords_hierarchy = {
+    "CANTAT2020": 0,
+    "HUNT2023": 1,
+    "LOKTIN2017": 995,
+    "KHARCHENKO2016": 996,
+    "KHARCHENKO2013": 997,
+    "KHARCHENKO2012": 998,
+    "PISKUNOV2007": 998,
+    "PISKUNOV2008": 998,
+    "KHARCHENKO2005": 999,
+    "HE2022": 1000,
+    "HE2022_1": 1000,
+}
 
 
 #
