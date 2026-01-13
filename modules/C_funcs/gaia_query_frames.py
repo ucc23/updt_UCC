@@ -110,37 +110,37 @@ def query_run(
     # Apply manual frame limits if any
     if frame_lims:
         for fm in frame_lims:
-            if fm[0] == 'b':
-                msk = all_frames['GLAT'] > fm[1]
+            if fm[0] == "b":
+                msk = all_frames["GLAT"] > fm[1]
                 all_frames = all_frames[msk]
-            elif fm[0] == 't':
-                msk = all_frames['GLAT'] < fm[1]
+            elif fm[0] == "t":
+                msk = all_frames["GLAT"] < fm[1]
                 all_frames = all_frames[msk]
-            elif fm[0] == 'l':
-                msk = all_frames['GLON'] > fm[1]
+            elif fm[0] == "l":
+                msk = all_frames["GLON"] > fm[1]
                 all_frames = all_frames[msk]
-            elif fm[0] == 'r':
-                msk = all_frames['GLON'] < fm[1]
-                all_frames = all_frames[msk]
-
-            elif fm[0] == 'plxl':
-                msk = all_frames['Plx'] > fm[1]
-                all_frames = all_frames[msk]
-            elif fm[0] == 'plxr':
-                msk = all_frames['Plx'] < fm[1]
+            elif fm[0] == "r":
+                msk = all_frames["GLON"] < fm[1]
                 all_frames = all_frames[msk]
 
-            elif fm[0] == 'pmb':
-                msk = all_frames['pmDE'] > fm[1]
+            elif fm[0] == "plxl":
+                msk = all_frames["Plx"] > fm[1]
                 all_frames = all_frames[msk]
-            elif fm[0] == 'pmt':
-                msk = all_frames['pmDE'] < fm[1]
+            elif fm[0] == "plxr":
+                msk = all_frames["Plx"] < fm[1]
                 all_frames = all_frames[msk]
-            elif fm[0] == 'pml':
-                msk = all_frames['pmRA'] > fm[1]
+
+            elif fm[0] == "pmb":
+                msk = all_frames["pmDE"] > fm[1]
                 all_frames = all_frames[msk]
-            elif fm[0] == 'pmr':
-                msk = all_frames['pmRA'] < fm[1]
+            elif fm[0] == "pmt":
+                msk = all_frames["pmDE"] < fm[1]
+                all_frames = all_frames[msk]
+            elif fm[0] == "pml":
+                msk = all_frames["pmRA"] > fm[1]
+                all_frames = all_frames[msk]
+            elif fm[0] == "pmr":
+                msk = all_frames["pmRA"] < fm[1]
                 all_frames = all_frames[msk]
 
             else:
@@ -316,7 +316,7 @@ def query(
     min_G_flux = 10 ** ((max_mag - Zp_G) / (-2.5))
 
     all_frames = []
-    for i, file in enumerate(data_in_files):
+    for file in data_in_files:
         data = pd.read_parquet(frames_path + file)
 
         mx = (data["ra"] >= xmin_cl) & (data["ra"] <= xmax_cl)
