@@ -311,7 +311,7 @@ Before updating the live site, generate a local site build and check the results
 If this is a new installation, update the gems with:
 
 ```
-$ bundle update --bundler
+$ bundle update --all
 ```
 
 To build a local version of the site, position a terminal in the `/ucc` folder
