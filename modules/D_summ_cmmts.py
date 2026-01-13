@@ -35,7 +35,7 @@ def main():
     logging = logger()
 
     fpath_json, fname_json = None, None
-    if input(f"Add comments to {UCC_cmmts_file}? (y/n): ").lower() == "y":
+    if input(f"Add new JSON with comments to {UCC_cmmts_file}? (y/n): ").lower() == "y":
         while True:
             fname_json = input(
                 f"Enter name of JSON file in {data_folder}{UCC_cmmts_folder}: "
@@ -272,13 +272,13 @@ def get_summaries(df_UCC, DBs_JSON):
             .replace("a ", "")
             .capitalize()
         )
-        descriptors[fname0] = (
+        descriptors[fname0] = [
             UTI_C_N_desc,
             UTI_C_dens_desc,
             UTI_C_C3_desc,
             UTI_C_lit_desc,
             UTI_C_dup_desc,
-        )
+        ]
 
         fpars_badges[fname0] = fpars_badges_lst
 
@@ -778,14 +778,19 @@ def dupl_summary(shared_members_p, C_dup, C_dup_same_db, duplicate, dup_warn):
 
 def update_summary(logging, UCC_summ_cmmts, summaries, descriptors, fpars_badges):
     """ """
-    N_updated, N_new = 0, 0
+    N_summ_updt, N_desc_updt, N_fbadges_updt, N_new = 0, 0, 0, 0
     for fname0, summary in summaries.items():
         if fname0 in UCC_summ_cmmts:
             # Update summary
-            UCC_summ_cmmts[fname0]["summary"] = summary
-            UCC_summ_cmmts[fname0]["descriptors"] = descriptors[fname0]
-            UCC_summ_cmmts[fname0]["fpars_badges"] = fpars_badges[fname0]
-            N_updated += 1
+            if summary != UCC_summ_cmmts[fname0]["summary"]:
+                UCC_summ_cmmts[fname0]["summary"] = summary
+                N_summ_updt += 1
+            if descriptors[fname0] != UCC_summ_cmmts[fname0]["descriptors"]:
+                UCC_summ_cmmts[fname0]["descriptors"] = descriptors[fname0]
+                N_desc_updt += 1
+            if fpars_badges[fname0] != UCC_summ_cmmts[fname0]["fpars_badges"]:
+                UCC_summ_cmmts[fname0]["fpars_badges"] = fpars_badges[fname0]
+                N_fbadges_updt += 1
         else:
             # Create new entry
             UCC_summ_cmmts[fname0] = {
@@ -794,8 +799,10 @@ def update_summary(logging, UCC_summ_cmmts, summaries, descriptors, fpars_badges
                 "fpars_badges": fpars_badges[fname0],
             }
             N_new += 1
-    logging.info(f"Updated summaries for {N_updated} objects.")
-    logging.info(f"Added summaries for {N_new} new objects.")
+    logging.info(f"Updated summaries for {N_summ_updt} objects")
+    logging.info(f"Updated descriptors for {N_desc_updt} objects")
+    logging.info(f"Updated parameters badges for {N_fbadges_updt} objects")
+    logging.info(f"Added summaries for {N_new} new objects\n")
 
     return UCC_summ_cmmts
 
