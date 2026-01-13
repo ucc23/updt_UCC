@@ -465,7 +465,7 @@ def make_N_vs_year_plot(file_out_name, df_UCC, fontsize=7, dpi=300):
     values = [33, 640, min_N] + list(np.clip(c_sum, a_min=min_N, a_max=np.inf))
 
     fig = plt.figure(figsize=(4, 2.5))
-    plt.plot(years, values, alpha=0.5, lw=3, marker="o", ms=7, color="maroon", zorder=5)
+    plt.plot(years, values, alpha=0.5, lw=3, marker="o", ms=4, color="maroon", zorder=5)
 
     plt.annotate(
         "Messier",
@@ -515,6 +515,8 @@ def make_N_vs_year_plot(file_out_name, df_UCC, fontsize=7, dpi=300):
     plt.ylim(20, 250000)
     plt.xticks(fontsize=fontsize)
     plt.yticks(fontsize=fontsize)
+    plt.xlabel("Year of publication", fontsize=fontsize)
+    plt.ylabel("Number of catalogued OCs", fontsize=fontsize)
     plt.yscale("log")
     fig.tight_layout()
 
