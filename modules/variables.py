@@ -49,6 +49,7 @@ DB_coords_hierarchy = {
     "KHARCHENKO2012": 998,
     "PISKUNOV2007": 998,
     "PISKUNOV2008": 998,
+    "KHARCHENKO2007": 999,
     "KHARCHENKO2005": 999,
     "HE2022": 1000,
     "HE2022_1": 1000,
@@ -193,7 +194,7 @@ tables_md_path = pages_folder + "TABLES.md"
 plots_folder = "plots/"
 plots_sub_folders = ("UCC", "aladin", "gcpos")  # , "HUNT23", "CANTAT20"
 # This is a modified style that removes the Latex dependence from 'scienceplots'
-custom_style_path = "modules/D_funcs/science2.mplstyle"
+custom_style_path = "modules/E_funcs/science2.mplstyle"
 
 
 # New spiral arms
