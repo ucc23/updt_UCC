@@ -333,6 +333,7 @@ def process_entries(
         "shared_members",
         "shared_members_p",
         "bad_oc",
+        "DB_coords_used",
     )
     for col in df_UCC_updt.columns:
         if col in str_type:
