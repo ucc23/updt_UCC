@@ -70,6 +70,7 @@ def make(
     i_ucc,
     UCC_summ_cmmts,
     current_JSON,
+    members_files_mapping,
     DBs_full_data,
     df_UCC,
     UCC_cl,
@@ -88,9 +89,7 @@ def make(
     if len(cl_names) > 1:
         more_names = "; ".join(cl_names[1:])
 
-    glon_bins = np.linspace(0, 360, 91)
-    glon_i = np.searchsorted(glon_bins, UCC_cl["GLON_m"])
-    members_file = str(int(glon_bins[glon_i - 1])) + "_" + str(int(glon_bins[glon_i]))
+    members_file = members_files_mapping[fname0]
 
     # Generate fundamental parameters table
     fpars_table = fpars_in_lit(current_JSON, UCC_cl["DB"], UCC_cl["fund_pars"], tsp)

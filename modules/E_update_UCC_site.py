@@ -10,24 +10,24 @@ import pandas as pd
 
 from .E_funcs import ucc_entry, ucc_plots
 from .E_funcs.main_files_updt import (
-    P_dup_ranges,
-    UTI_ranges,
-    count_fund_pars,
-    count_N50membs,
     count_OCs_classes,
     ucc_n_total_updt,
     updt_articles_table,
-    updt_C3_classif_main_table,
-    updt_C3_classif_tables,
     updt_DBs_tables,
-    updt_fund_params_main_table,
-    updt_fund_params_table,
-    updt_N50_main_table,
-    updt_N50_tables,
-    updt_Pdup_main_table,
-    updt_Pdup_tables,
-    updt_UTI_main_table,
-    updt_UTI_tables,
+    # P_dup_ranges,
+    # UTI_ranges,
+    # count_fund_pars,
+    # count_N50membs,
+    # updt_C3_classif_main_table,
+    # updt_C3_classif_tables,
+    # updt_fund_params_main_table,
+    # updt_fund_params_table,
+    # updt_N50_main_table,
+    # updt_N50_tables,
+    # updt_Pdup_main_table,
+    # updt_Pdup_tables,
+    # updt_UTI_main_table,
+    # updt_UTI_tables,
 )
 from .utils import logger
 from .variables import (
@@ -51,8 +51,8 @@ from .variables import (
     plots_folder,
     plots_sub_folders,
     root_ucc_path,
-    tables_folder,
-    tables_md_path,
+    # tables_folder,
+    # tables_md_path,
     temp_folder,
     ucc_cat_file,
     ucc_path,
@@ -69,8 +69,6 @@ def main():
         ucc_gz_CSV_path,
         temp_dbs_tables_path,
         ucc_dbs_tables_path,
-        ucc_tables_path,
-        temp_tables_path,
         temp_entries_path,
         ucc_entries_path,
         temp_image_path,
@@ -87,9 +85,9 @@ def main():
         DBs_full_data,
         database_md,
         articles_md,
-        tables_md,
         df_members,
-    ) = load_data(logging, cols_from_B_to_C)
+        members_files_mapping,
+    ) = load_data(logging, cols_from_B_to_C, temp_members_files_folder)
 
     # Update per cluster md files. If no changes are expected, this step can be skipped
     if input("\nUpdate md files? (y/n): ").lower() == "y":
@@ -100,6 +98,7 @@ def main():
             DBs_full_data,
             df_UCC,
             current_JSON,
+            members_files_mapping,
             UCC_summ_cmmts,
         )
 
@@ -133,16 +132,17 @@ def main():
     #
     df_UCC_edit = updt_UCC(df_UCC)
     #
-    UTI_msk = UTI_ranges(df_UCC_edit)
-    # Mask with N50 members
-    membs_msk = count_N50membs(df_UCC_edit)
-    # Mask with OCs with fundamental parameters
-    Cfp_msk = count_fund_pars(df_UCC_edit, current_JSON)
-    # shared_msk = count_shared_membs(df_UCC_edit)
-    Pdup_msk = P_dup_ranges(df_UCC_edit)
 
-    # Update DATABASE, TABLES, ARTCILES .md files
-    if input("\nUpdate 'DATABASE, TABLES, ARTICLES' files? (y/n): ").lower() == "y":
+    # UTI_msk = UTI_ranges(df_UCC_edit)
+    # # Mask with N50 members
+    # membs_msk = count_N50membs(df_UCC_edit)
+    # # Mask with OCs with fundamental parameters
+    # Cfp_msk = count_fund_pars(df_UCC_edit, current_JSON)
+    # # shared_msk = count_shared_membs(df_UCC_edit)
+    # Pdup_msk = P_dup_ranges(df_UCC_edit)
+
+    # Update DATABASE, ARTCILES .md files
+    if input("\nUpdate 'DATABASE, ARTICLES' files? (y/n): ").lower() == "y":
         N_members_UCC = len(df_members)
         update_main_pages(
             logging,
@@ -151,29 +151,33 @@ def main():
             df_UCC_edit,
             database_md,
             articles_md,
-            tables_md,
-            OCs_per_class,
-            UTI_msk,
-            membs_msk,
-            Cfp_msk,
-            Pdup_msk,
         )
 
     # Update tables files
-    if input("\nUpdate individual tables files? (y/n): ").lower() == "y":
-        updt_indiv_tables_files(
+    if input("\nUpdate DBs tables? (y/n): ").lower() == "y":
+        updt_dbs_tables(
             logging,
             temp_dbs_tables_path,
             ucc_dbs_tables_path,
-            ucc_tables_path,
-            temp_tables_path,
             current_JSON,
             df_UCC_edit,
-            UTI_msk,
-            membs_msk,
-            Cfp_msk,
-            Pdup_msk,
         )
+
+    # # Update tables files
+    # if input("\nUpdate individual tables files? (y/n): ").lower() == "y":
+    #     updt_indiv_tables_files(
+    #         logging,
+    #         temp_dbs_tables_path,
+    #         ucc_dbs_tables_path,
+    #         ucc_tables_path,
+    #         temp_tables_path,
+    #         current_JSON,
+    #         df_UCC_edit,
+    #         UTI_msk,
+    #         membs_msk,
+    #         Cfp_msk,
+    #         Pdup_msk,
+    #     )
 
     # Update CSV file
     new_clusters_csv_path = ""
@@ -182,7 +186,7 @@ def main():
 
     #
     if input("\nUpdate members csv.gz files? (y/n): ").lower() == "y":
-        updt_members_files(temp_members_files_folder, df_UCC, df_members)
+        updt_members_files(df_UCC, df_members)
 
     if input("\nMove files to their final destination? (y/n): ").lower() == "y":
         move_files(logging, ucc_gz_CSV_path, new_clusters_csv_path)
@@ -195,8 +199,6 @@ def main():
 def load_paths(
     logging,
 ) -> tuple[
-    str,
-    str,
     str,
     str,
     str,
@@ -238,8 +240,8 @@ def load_paths(
     # Root path to the ucc table files for each DB
     ucc_dbs_tables_path = root_ucc_path + dbs_tables_folder
 
-    ucc_tables_path = root_ucc_path + tables_folder
-    temp_tables_path = temp_folder + tables_folder
+    # ucc_tables_path = root_ucc_path + tables_folder
+    # temp_tables_path = temp_folder + tables_folder
 
     # Temp path to the ucc cluster folder where each md entry is stored
     temp_entries_path = temp_folder + md_folder
@@ -286,8 +288,6 @@ def load_paths(
         ucc_gz_CSV_path,
         temp_dbs_tables_path,
         ucc_dbs_tables_path,
-        ucc_tables_path,
-        temp_tables_path,
         temp_entries_path,
         ucc_entries_path,
         temp_image_path,
@@ -298,7 +298,8 @@ def load_paths(
 def load_data(
     logging,
     cols_from_B_to_C,
-) -> tuple[pd.DataFrame, dict, dict, dict, str, str, str, pd.DataFrame]:
+    temp_members_files_folder,
+) -> tuple[pd.DataFrame, dict, dict, dict, str, str, pd.DataFrame, dict]:
     """ """
 
     # Load current CSV data files
@@ -351,13 +352,36 @@ def load_data(
     with open(root_ucc_path + articles_md_path) as file:
         articles_md = file.read()
 
-    # Load TABLES.md file
-    with open(root_ucc_path + tables_md_path) as file:
-        tables_md = file.read()
+    # # Load TABLES.md file
+    # with open(root_ucc_path + tables_md_path) as file:
+    #     tables_md = file.read()
 
     # Load current members file
     zenodo_members_file = zenodo_folder + UCC_members_file
     df_members = pd.read_parquet(zenodo_members_file)
+
+    # Assign GLON bins to clusters
+    edges = [int(_) for _ in np.linspace(0, 360, 91)]
+    labels = [
+        f"{temp_members_files_folder}membs_{edges[i]}_{edges[i + 1]}.csv.gz"
+        for i in range(len(edges) - 1)
+    ]
+    df_UCC["bin"] = pd.cut(
+        df_UCC["GLON_m"],
+        bins=edges,
+        labels=labels,
+        include_lowest=True,
+        right=True,
+    )
+    members_files_mapping = (
+        df_UCC.assign(
+            bin=df_UCC["bin"]
+            .str.removeprefix(f"{temp_members_files_folder}membs_")
+            .str.removesuffix(".csv.gz")
+        )
+        .set_index("fname")["bin"]
+        .to_dict()
+    )
 
     return (
         df_UCC,
@@ -366,8 +390,8 @@ def load_data(
         DBs_full_data,
         database_md,
         articles_md,
-        tables_md,
         df_members,
+        members_files_mapping,
     )
 
 
@@ -405,6 +429,7 @@ def updt_ucc_cluster_files(
     DBs_full_data,
     df_UCC,
     current_JSON,
+    members_files_mapping,
     UCC_summ_cmmts,
 ):
     """ """
@@ -440,6 +465,7 @@ def updt_ucc_cluster_files(
             i_ucc,
             UCC_summ_cmmts,
             current_JSON,
+            members_files_mapping,
             DBs_full_data,
             df_UCC,
             UCC_cl,
@@ -643,15 +669,9 @@ def update_main_pages(
     df_UCC_edit,
     database_md,
     articles_md,
-    tables_md,
-    OCs_per_class,
-    UTI_msk,
-    membs_msk,
-    Cfp_msk,
-    Pdup_msk,
 ):
-    """Update DATABASE, TABLES, ARTICLES .md files"""
-    logging.info("\nUpdating DATABASE, TABLES, ARTICLES .md files")
+    """Update main .md files"""
+    logging.info("\nUpdating main .md files")
 
     # Update DATABASE
     N_db_UCC, N_cl_UCC = len(current_JSON), len(df_UCC_edit)
@@ -666,22 +686,24 @@ def update_main_pages(
     else:
         logging.info("DATABASE.md not updated (no changes)")
 
-    # Update TABLES
-    tables_md_updt = updt_UTI_main_table(UTI_msk, tables_md)
-    tables_md_updt = updt_C3_classif_main_table(
-        class_order, OCs_per_class, tables_md_updt
-    )
-    # tables_md_updt = updt_OCs_per_quad_main_table(df_UCC, tables_md_updt)
-    # tables_md_updt = updt_shared_membs_main_table(shared_msk, tables_md_updt)
-    tables_md_updt = updt_fund_params_main_table(Cfp_msk, tables_md_updt)
-    tables_md_updt = updt_Pdup_main_table(Pdup_msk, tables_md_updt)
-    tables_md_updt = updt_N50_main_table(membs_msk, tables_md_updt)
-    with open(temp_folder + tables_md_path, "w") as file:
-        file.write(tables_md_updt)
-    if tables_md != tables_md_updt:
-        logging.info("TABLES.md updated")
-    else:
-        logging.info("TABLES.md not updated (no changes)")
+    # # Update TABLES
+    # tables_md_updt = updt_UTI_main_table(UTI_msk, tables_md)
+    # tables_md_updt = updt_C3_classif_main_table(
+    #     class_order, OCs_per_class, tables_md_updt
+    # )
+    # # tables_md_updt = updt_OCs_per_quad_main_table(df_UCC, tables_md_updt)
+    # # tables_md_updt = updt_shared_membs_main_table(shared_msk, tables_md_updt)
+    # tables_md_updt = updt_fund_params_main_table(Cfp_msk, tables_md_updt)
+    # tables_md_updt = updt_Pdup_main_table(Pdup_msk, tables_md_updt)
+    # tables_md_updt = updt_N50_main_table(membs_msk, tables_md_updt)
+    # with open(temp_folder + tables_md_path, "w") as file:
+    #     file.write(tables_md_updt)
+    # if tables_md != tables_md_updt:
+    #     logging.info("TABLES.md updated")
+    # else:
+    #     logging.info("TABLES.md not updated (no changes)")
+
+    # Update CLUSTERS
 
     # Update ARTICLES
     articles_md_updt = updt_articles_table(df_UCC_edit, current_JSON, articles_md)
@@ -693,46 +715,61 @@ def update_main_pages(
         logging.info("ARTICLES.md not updated (no changes)")
 
 
-def updt_indiv_tables_files(
+def updt_dbs_tables(
     logging,
     temp_dbs_tables_path,
     ucc_dbs_tables_path,
-    ucc_tables_path,
-    temp_tables_path,
     current_JSON,
     df_UCC_edit,
-    UTI_msk,
-    membs_msk,
-    Cfp_msk,
-    Pdup_msk,
 ):
     """ """
-    logging.info("\nUpdating individual tables")
-
-    # # TODO: radius in parsec, unused yet (24/12/04)
-    # pc_rad = pc_radius(df_UCC["r_50"].values, df_UCC["Plx_m"].values)
-
     # Update pages for individual databases
     new_tables_dict = updt_DBs_tables(current_JSON, df_UCC_edit)
     general_table_update(
         logging, ucc_dbs_tables_path, temp_dbs_tables_path, new_tables_dict
     )
 
-    # Update page with UTI values
-    new_tables_dict = updt_UTI_tables(df_UCC_edit, UTI_msk)
-    general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
 
-    new_tables_dict = updt_N50_tables(df_UCC_edit, membs_msk)
-    general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
+# def updt_indiv_tables_files(
+#     logging,
+#     temp_dbs_tables_path,
+#     ucc_dbs_tables_path,
+#     ucc_tables_path,
+#     temp_tables_path,
+#     current_JSON,
+#     df_UCC_edit,
+#     UTI_msk,
+#     membs_msk,
+#     Cfp_msk,
+#     Pdup_msk,
+# ):
+#     """ """
+#     logging.info("\nUpdating individual tables")
 
-    new_tables_dict = updt_C3_classif_tables(df_UCC_edit, class_order)
-    general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
+#     # # TODO: radius in parsec, unused yet (24/12/04)
+#     # pc_rad = pc_radius(df_UCC["r_50"].values, df_UCC["Plx_m"].values)
 
-    new_tables_dict = updt_fund_params_table(df_UCC_edit, Cfp_msk)
-    general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
+#     # Update pages for individual databases
+#     new_tables_dict = updt_DBs_tables(current_JSON, df_UCC_edit)
+#     general_table_update(
+#         logging, ucc_dbs_tables_path, temp_dbs_tables_path, new_tables_dict
+#     )
 
-    new_tables_dict = updt_Pdup_tables(df_UCC_edit, Pdup_msk)
-    general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
+#     # Update page with UTI values
+#     new_tables_dict = updt_UTI_tables(df_UCC_edit, UTI_msk)
+#     general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
+
+#     new_tables_dict = updt_N50_tables(df_UCC_edit, membs_msk)
+#     general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
+
+#     new_tables_dict = updt_C3_classif_tables(df_UCC_edit, class_order)
+#     general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
+
+#     new_tables_dict = updt_fund_params_table(df_UCC_edit, Cfp_msk)
+#     general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
+
+#     new_tables_dict = updt_Pdup_tables(df_UCC_edit, Pdup_msk)
+#     general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
 
 
 def general_table_update(
@@ -823,26 +860,10 @@ def write_bin(args):
     return out_fname
 
 
-def updt_members_files(temp_members_files_folder, df_ucc, df_membs):
+def updt_members_files(df_ucc, df_membs):
     """ """
-    # Assign GLON bins to clusters
-    edges = [int(_) for _ in np.linspace(0, 360, 91)]
-    labels = [
-        f"{temp_members_files_folder}/membs_{edges[i]}_{edges[i + 1]}.csv.gz"
-        for i in range(len(edges) - 1)
-    ]
-
-    df_ucc["bin"] = pd.cut(
-        df_ucc["GLON_m"],
-        bins=edges,
-        labels=labels,
-        include_lowest=True,
-        right=True,
-    )
-
-    cluster_to_bin = df_ucc.set_index("fname")["bin"]
-
     # Map members to bins
+    cluster_to_bin = df_ucc.set_index("fname")["bin"]
     membs = pd.DataFrame(df_membs)
     membs["bin"] = membs["name"].map(cluster_to_bin)
     membs = membs.dropna(subset=["bin"])
