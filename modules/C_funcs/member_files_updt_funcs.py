@@ -643,6 +643,8 @@ def updt_UCC_new_cl_data(
 
     # Round values
     lon, lat = round(lon, N_digits), round(lat, N_digits)
+    if lon < 0:
+        lon += 360.0
     ra, dec = round(ra, N_digits), round(dec, N_digits)
     plx, e_plx = round(plx, N_digits), round(e_plx, N_digits)
     pmRA, pmDE = round(pmRA, N_digits), round(pmDE, N_digits)
