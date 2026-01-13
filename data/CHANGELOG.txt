@@ -1,6 +1,36 @@
 Some of these are intermediate versions of the UCC database that are not published.
 
 
+## 260109-
+
+- Updated B file with new preferred coordinates logic and hierarchy
+- Updated some OCs:
+  - alessi58: "b_3.5"
+  - bochum1: alessi58 on top, "t_3.5"
+  - collinder132: N_clust=75
+  - feigelson1: N_clust_max=75
+  - fsr0569: "l_130.1,t_11.4"
+  - lp44: "l_203.15" (NGC 2264 to the left)
+  - ngc1976: N_clust_max=75
+  - ngc7086a: similar (ra, dec) as ngc7086, but very different pms, use Loktin values
+  - ngc7086b: similar (ra, dec) as ngc7086, but very different pms, use Loktin values
+  - ocsn244: N_clust_max=75
+  - ocsn246: N_clust_max=100
+  - trumpler14: tr15 in frame, "t_-0.5"
+  - trumpler15: tr14 in frame, "b_-0.5"
+  - trumpler37: N_clust=100
+  - ubc1309: dup of Bochum1, alessi58 on top, "t_3.5"
+  - ubc491: VDBH92 to the left in plx; "plxl_0.22"
+  - ascc18: "plxr_2.55", bad PMs from Donor, use Hunt values
+  - ascc20: "plxl_2.55", bad PMs from Donor, use Hunt values
+  - hsc517: N_box=1.5, N_clust_max=75
+  - ngc2264: "r_203.15"
+  - rsg7: rsg8 in frame, "plxl_2.2", bad PMs from Roser, use Cantat values
+  - rsg8: rsg7 in frame, "plxr_2.2", bad PMs from Roser, use Cantat values
+  - ubc602: N_clust=100, Bad pm coords in CANTAT2020, correct ones are those in HUNT2023
+
+
+
 ## 251222-260102
 
 - Major changes to the site's look and feel. No changes to OCs database
