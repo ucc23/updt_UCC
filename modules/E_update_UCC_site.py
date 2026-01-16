@@ -10,8 +10,9 @@ import pandas as pd
 
 from .E_funcs import ucc_entry, ucc_plots
 from .E_funcs.main_files_updt import (
+    # ucc_n_total_updt,
+    count_dups_bad_OCs,
     count_OCs_classes,
-    ucc_n_total_updt,
     updt_articles_table,
     updt_DBs_tables,
     # P_dup_ranges,
@@ -140,6 +141,7 @@ def main():
     # Cfp_msk = count_fund_pars(df_UCC_edit, current_JSON)
     # # shared_msk = count_shared_membs(df_UCC_edit)
     # Pdup_msk = P_dup_ranges(df_UCC_edit)
+    DBs_dups_badOCs = count_dups_bad_OCs(current_JSON, df_UCC_edit)
 
     # Update DATABASE, ARTCILES .md files
     if input("\nUpdate 'DATABASE, ARTICLES' files? (y/n): ").lower() == "y":
@@ -155,12 +157,13 @@ def main():
 
     # Update tables files
     if input("\nUpdate DBs tables? (y/n): ").lower() == "y":
-        updt_dbs_tables(
+        updt_indiv_tables(
             logging,
             temp_dbs_tables_path,
             ucc_dbs_tables_path,
             current_JSON,
             df_UCC_edit,
+            DBs_dups_badOCs,
         )
 
     # # Update tables files
@@ -452,7 +455,7 @@ def updt_ucc_cluster_files(
         UCC_cl = dict(zip(cols, UCC_cl))
         fname0 = str(UCC_cl["fname"])
 
-        # if fname0 not in ("basel5", "loden1"):
+        # if fname0 not in ("berkeley32",):
         #     continue
         # if "melotte" not in fname0:
         #     continue
@@ -635,9 +638,12 @@ def updt_UCC(df_UCC: pd.DataFrame) -> pd.DataFrame:
     names_url = []
     for _, cl in df.iterrows():
         name = str(cl["Name"]).split(";")[0]
+        color = "red" if cl["bad_oc"] == "y" else "$blue"
         fname = str(cl["fname"])
-        url = "/_clusters/" + fname + "/"
-        names_url.append(f"[{name}]({url})")
+        url = r"{{ site.baseurl }}/_clusters/" + fname + "/"
+        clname = rf'<a href="{url}" target="_blank" style="color: {color};">{name}</a>'
+        # names_url.append(f"[{name}]({url})")
+        names_url.append(clname)
     df["ID_url"] = names_url
 
     # Round coordinate columns
@@ -715,61 +721,41 @@ def update_main_pages(
         logging.info("ARTICLES.md not updated (no changes)")
 
 
-def updt_dbs_tables(
+def updt_indiv_tables(
     logging,
     temp_dbs_tables_path,
     ucc_dbs_tables_path,
     current_JSON,
     df_UCC_edit,
+    DBs_dups_badOCs,
 ):
     """ """
+    logging.info("\nUpdating individual tables")
+
+    # # TODO: radius in parsec, unused yet (24/12/04)
+    # pc_rad = pc_radius(df_UCC["r_50"].values, df_UCC["Plx_m"].values)
+
     # Update pages for individual databases
-    new_tables_dict = updt_DBs_tables(current_JSON, df_UCC_edit)
+    new_tables_dict = updt_DBs_tables(current_JSON, df_UCC_edit, DBs_dups_badOCs)
     general_table_update(
         logging, ucc_dbs_tables_path, temp_dbs_tables_path, new_tables_dict
     )
 
+    # # Update page with UTI values
+    # new_tables_dict = updt_UTI_tables(df_UCC_edit, UTI_msk)
+    # general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
 
-# def updt_indiv_tables_files(
-#     logging,
-#     temp_dbs_tables_path,
-#     ucc_dbs_tables_path,
-#     ucc_tables_path,
-#     temp_tables_path,
-#     current_JSON,
-#     df_UCC_edit,
-#     UTI_msk,
-#     membs_msk,
-#     Cfp_msk,
-#     Pdup_msk,
-# ):
-#     """ """
-#     logging.info("\nUpdating individual tables")
+    # new_tables_dict = updt_N50_tables(df_UCC_edit, membs_msk)
+    # general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
 
-#     # # TODO: radius in parsec, unused yet (24/12/04)
-#     # pc_rad = pc_radius(df_UCC["r_50"].values, df_UCC["Plx_m"].values)
+    # new_tables_dict = updt_C3_classif_tables(df_UCC_edit, class_order)
+    # general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
 
-#     # Update pages for individual databases
-#     new_tables_dict = updt_DBs_tables(current_JSON, df_UCC_edit)
-#     general_table_update(
-#         logging, ucc_dbs_tables_path, temp_dbs_tables_path, new_tables_dict
-#     )
+    # new_tables_dict = updt_fund_params_table(df_UCC_edit, Cfp_msk)
+    # general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
 
-#     # Update page with UTI values
-#     new_tables_dict = updt_UTI_tables(df_UCC_edit, UTI_msk)
-#     general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
-
-#     new_tables_dict = updt_N50_tables(df_UCC_edit, membs_msk)
-#     general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
-
-#     new_tables_dict = updt_C3_classif_tables(df_UCC_edit, class_order)
-#     general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
-
-#     new_tables_dict = updt_fund_params_table(df_UCC_edit, Cfp_msk)
-#     general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
-
-#     new_tables_dict = updt_Pdup_tables(df_UCC_edit, Pdup_msk)
-#     general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
+    # new_tables_dict = updt_Pdup_tables(df_UCC_edit, Pdup_msk)
+    # general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
 
 
 def general_table_update(
@@ -875,6 +861,9 @@ def updt_members_files(df_ucc, df_membs):
     with ProcessPoolExecutor() as exe:
         for _ in exe.map(write_bin, groups):
             pass
+
+    # Drop "bin" column from df_ucc, not used anymore
+    df_ucc.drop(columns=["bin"], inplace=True)
 
 
 def move_files(logging, ucc_gz_CSV_path: str, new_clusters_csv_path: str) -> None:
