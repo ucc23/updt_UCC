@@ -7,7 +7,7 @@ from ..variables import fpars_headers, plots_folder, root_ucc_path
 header = """---
 layout: layout_cluster
 style: style_cluster
-title: {title}
+title: {cl_name}
 title_flag: true
 more_names: {more_names}
 fname: {fname}
@@ -116,7 +116,8 @@ def make(
     if "comments" in UCC_summ_cmmts[fname0]:
         for cmmt in UCC_summ_cmmts[fname0]["comments"]:
             comments += (
-                f"{tsp}<p><a href='{cmmt['url']}' target='_blank'>{cmmt['name']} ({cmmt['year']})</a>: {cmmt['comment']}</p>"
+                f"{tsp}<p><u><a href='{cmmt['url']}' target='_blank'>{cmmt['name']} ({cmmt['year']})</a></u>"
+                + f"<br>{cmmt['comment']}</p>"
                 + "\n"
             )
 
@@ -153,7 +154,7 @@ def make(
     shared_table = table_shared_members(df_UCC, fnames_all, UCC_cl, tsp)
 
     contents = header.format(
-        title=cl_names[0],
+        cl_name=cl_names[0],
         more_names=more_names,
         fname=fname0,
         members_file=members_file,
