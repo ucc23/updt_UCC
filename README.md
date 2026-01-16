@@ -332,7 +332,7 @@ example, using a different `include` with fewer/different selected folders)
 
 1. Create a 'New version' in the [Zenodo repository](https://zenodo.org/doi/10.5281/zenodo.8250523) 
 
-  -a Make sure that the version number in the `zenodo/README.md` file matches that in
+  -a Make sure that the version number in the `zenodo/README.txt` file matches that in
      the `_pages/CHANGELOG.md` file
   -b Upload the three files stored in the `zenodo/` folder:
      `README.md, UCC_cat.csv, UCC_members.parquet`
