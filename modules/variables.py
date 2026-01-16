@@ -43,6 +43,7 @@ selected_centers_f = data_folder + "manual_centers.csv"
 DB_coords_hierarchy = {
     "CANTAT2020": 0,
     "HUNT2023": 1,
+    "WEI2025": 900,
     "LOKTIN2017": 995,
     "KHARCHENKO2016": 996,
     "KHARCHENKO2013": 997,
