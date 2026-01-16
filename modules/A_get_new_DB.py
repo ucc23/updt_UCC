@@ -96,6 +96,7 @@ def main(ADS_bibcode):
     logging.info("")
 
     # Check if url is already listed in the current JSON file
+    ADS_bibcode = ADS_bibcode.replace("/", "")
     SCIX_url = "https://scixplorer.org/abs/" + ADS_bibcode
     for db, vals in current_JSON.items():
         if SCIX_url == vals["SCIX_url"]:
@@ -257,7 +258,14 @@ def get_CDS_table(logging, ADS_bibcode: str) -> list:
     cat = viz.get_catalogs(ADS_bibcode)  # pyright: ignore
     if len(cat) == 0:
         logging.info(f"Could not extract data from {ADS_bibcode}")
-        return []
+        if input("Supply manual Vizier ID(s) instead? ") == "y":
+            vizier_ID = input("Input Vizier ID (e.g.: J/PAZh/38/571): ").strip()
+            cat = viz.get_catalogs(vizier_ID)  # pyright: ignore
+            if len(cat) == 0:
+                logging.info(f"Could not extract data from {vizier_ID}")
+                return []
+        else:
+            return []
 
     # Print info to screen
     logging.info(
