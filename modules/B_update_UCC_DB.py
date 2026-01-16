@@ -664,7 +664,9 @@ def GCs_check(
             if fname in gcs_fnames:
                 gc_found_flag = True
                 gc_idx = gcs_fnames[fname]
-                gc_match = df_GCs["Name"][gc_idx]
+                gc_match = ",".join(
+                    [df_GCs["Name"][gc_idx].strip(), df_GCs["OName"][gc_idx].strip()]
+                )
                 gc_dist = d_arcmin[gc_idx]
                 break
 
@@ -673,7 +675,9 @@ def GCs_check(
             if d_arcmin[j1] < search_rad:
                 gc_found_flag = True
                 gc_idx = j1
-                gc_match = df_GCs["Name"][j1]
+                gc_match = ",".join(
+                    [df_GCs["Name"][j1].strip(), df_GCs["OName"][j1].strip()]
+                )
                 gc_dist = d_arcmin[j1]
 
         if gc_found_flag:
@@ -700,7 +704,7 @@ def GCs_check(
             idx, row_id, idx_gc, df_gcs_name, d_arcmin = gc
             row_id = row_id.strip()
             logging.info(
-                f"{idx:<6} {row_id:<15} --> {idx_gc:<6} {df_gcs_name.strip():<15}"
+                f"{idx:<6} {row_id:<15} --> {idx_gc:<6} {df_gcs_name.strip():<25}"
                 + f"d={round(float(d_arcmin), 2)}"
             )
 
@@ -916,6 +920,8 @@ def positions_check(
         )
         logging.info(f"{'DB_idx':<6} {'name':<20} {'d [arcmin]':<5}")
         N_max = 50
+        # Order by distance
+        ocs_attention = sorted(ocs_attention, key=lambda x: x[2], reverse=True)
         for i, fname, d_arcmin in ocs_attention[:N_max]:
             logging.info(f"{i:<6} {fname:<20} {d_arcmin:<5.0f}")
         if len(ocs_attention) > N_max:
