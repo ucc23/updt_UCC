@@ -219,6 +219,31 @@
     "pars": {},
     "e_pars": {}
   },
+  "VANDENBERGH2006": {
+    "SCIX_url": "https://scixplorer.org/abs/2006AJ....131.1559V",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2006AJ....131.1559V",
+    "authors": "van den Bergh",
+    "title": "Diameters of Open Star Clusters",
+    "year": "2006",
+    "received": "20050804",
+    "names": "Name",
+    "pos": {
+      "RA": "_RA",
+      "DEC": "_DE"
+    },
+    "pars": {
+      "ext": {
+        "Ebv": "E(B-V)"
+      },
+      "dist": {
+        "dpc": "R"
+      },
+      "age": {
+        "loga": "logT"
+      }
+    },
+    "e_pars": {}
+  },
   "KRONBERGER2006": {
     "SCIX_url": "https://scixplorer.org/abs/2006A%26A...447..921K",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2006A%26A...447..921K",
@@ -476,6 +501,34 @@
       }
     }
   },
+  "GOZHA2012": {
+    "SCIX_url": "https://scixplorer.org/abs/2012AstL...38..506G",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2012AstL...38..506G",
+    "authors": "Gozha et al.",
+    "title": "Heterogeneity of the population of open star clusters in the Galaxy",
+    "year": "2012",
+    "received": "20120101",
+    "names": "Cluster",
+    "pos": {
+      "RA": "_RA.icrs",
+      "DEC": "_DE.icrs"
+    },
+    "pars": {
+      "dist": {
+        "dpc": "d"
+      },
+      "age": {
+        "agyr": "Age"
+      },
+      "met": {
+        "feh": "[Fe/H]"
+      },
+      "mass": {
+        "logm": "logM"
+      }
+    },
+    "e_pars": {}
+  },
   "KHARCHENKO2013": {
     "SCIX_url": "https://scixplorer.org/abs/2013A%26A...558A..53K",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2013A%26A...558A..53K",
@@ -544,6 +597,24 @@
         "eloga": "e_logt"
       }
     }
+  },
+  "DIAS2014": {
+    "SCIX_url": "https://scixplorer.org/abs/2014A%26A...564A..79D",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2014A%26A...564A..79D",
+    "authors": "Dias et al.",
+    "title": "Proper motions of the optically visible open clusters based on the UCAC4 catalog",
+    "year": "2014",
+    "received": "20131210",
+    "names": "Cluster",
+    "pos": {
+      "RA": "RAJ2000",
+      "DEC": "DEJ2000",
+      "pmra": "pmRAc",
+      "pmde": "pmDEc",
+      "Rv": "RV"
+    },
+    "pars": {},
+    "e_pars": {}
   },
   "SCHOLZ2015": {
     "SCIX_url": "https://scixplorer.org/abs/2015A%26A...581A..39S",
@@ -1150,6 +1221,35 @@
     "pars": {},
     "e_pars": {}
   },
+  "CANTAT2020_1": {
+    "SCIX_url": "https://scixplorer.org/abs/2020A%26A...633A..99C",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2020A%26A...633A..99C",
+    "authors": "Cantat-Gaudin & Anders",
+    "title": "Clusters and mirages cataloguing stellar aggregates in the Milky Way",
+    "year": "2020",
+    "received": "20190913",
+    "names": "Cluster",
+    "pos": {
+      "RA": "RA_ICRS",
+      "DEC": "DE_ICRS",
+      "plx": "Plx",
+      "pmra": "pmRA",
+      "pmde": "pmDE"
+    },
+    "pars": {
+      "dist": {
+        "dpc": "dmode"
+      }
+    },
+    "e_pars": {
+      "e_dist": {
+        "edpc": [
+          "dmode16",
+          "dmode84"
+        ]
+      }
+    }
+  },
   "HAO2020": {
     "SCIX_url": "https://scixplorer.org/abs/2020PASP..132c4502H",
     "vizier_url": "N/A",
@@ -1263,6 +1363,23 @@
         "eloga": "e_logt"
       }
     }
+  },
+  "SANCHEZ2020": {
+    "SCIX_url": "https://scixplorer.org/abs/2020MNRAS.495.2882S",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2020MNRAS.495.2882S",
+    "authors": "S\u00e1nchez et al.",
+    "title": "A catalogue of open cluster radii determined from Gaia proper motions",
+    "year": "2020",
+    "received": "20200408",
+    "names": "Name",
+    "pos": {
+      "RA": "RAJ2000",
+      "DEC": "DEJ2000",
+      "pmra": "pmRA*",
+      "pmde": "pmDE"
+    },
+    "pars": {},
+    "e_pars": {}
   },
   "CANTAT2020": {
     "SCIX_url": "https://scixplorer.org/abs/2020A%26A...640A...1C",
@@ -2109,6 +2226,62 @@
     },
     "e_pars": {}
   },
+  "ALMEIDA2023": {
+    "SCIX_url": "https://scixplorer.org/abs/2023MNRAS.525.2315A",
+    "vizier_url": "N/A",
+    "authors": "Almeida et al.",
+    "title": "Revisiting the mass of open clusters with Gaia data",
+    "year": "2023",
+    "received": "20230220",
+    "names": "Cluster",
+    "pos": {
+      "RA": "RA_ICRS",
+      "DEC": "DE_ICRS"
+    },
+    "pars": {
+      "ext": {
+        "Av": "Av"
+      },
+      "dist": {
+        "dkpc": "dist"
+      },
+      "age": {
+        "loga": "age"
+      },
+      "met": {
+        "feh": "FeH"
+      },
+      "mass": {
+        "mass": [
+          "mass_total_integ",
+          "mass_total_detailed"
+        ]
+      },
+      "bi_frac": {
+        "bf": "bin_frac"
+      }
+    },
+    "e_pars": {
+      "e_ext": {
+        "eAv": "e_Av"
+      },
+      "e_dist": {
+        "edkpc": "e_dist"
+      },
+      "e_age": {
+        "eloga": "e_age"
+      },
+      "e_met": {
+        "efeh": "e_FeH"
+      },
+      "e_mass": {
+        "emass": [
+          "e_mass_total_integ",
+          "e_mass_total_detailed"
+        ]
+      }
+    }
+  },
   "HUNT2023": {
     "SCIX_url": "https://scixplorer.org/abs/2023A%26A...673A.114H",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2023A%26A...673A.114H",
@@ -2444,6 +2617,59 @@
       }
     }
   },
+  "WEI2025": {
+    "SCIX_url": "https://scixplorer.org/abs/2025AJ....169..115W",
+    "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2025AJ....169..115W",
+    "authors": "Wei et al.",
+    "title": "Forest Fire Clustering A Novel Tool for Identifying Star Members of Clusters",
+    "year": "2025",
+    "received": "20241010",
+    "names": "ID",
+    "pos": {
+      "RA": "RAICRS",
+      "DEC": "DEICRS",
+      "plx": "plx",
+      "pmra": "pmRA",
+      "pmde": "pmDE"
+    },
+    "pars": {
+      "ext": {
+        "Av": "AVmag"
+      },
+      "dist": {
+        "dm": "m-M"
+      },
+      "age": {
+        "loga": "logAge"
+      },
+      "met": {
+        "feh": "[Fe/H]"
+      },
+      "mass": {
+        "mass": "Mass"
+      },
+      "bi_frac": {
+        "bf": "fbin"
+      }
+    },
+    "e_pars": {
+      "e_ext": {
+        "eAv": "e_AVmag"
+      },
+      "e_dist": {
+        "edm": "e_m-M"
+      },
+      "e_age": {
+        "eloga": "e_logAge"
+      },
+      "e_met": {
+        "efeh": "e_[Fe/H]"
+      },
+      "e_mass": {
+        "emass": "e_Mass"
+      }
+    }
+  },
   "HU2025": {
     "SCIX_url": "https://scixplorer.org/abs/2025A%26A...699A.246H",
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2025A%26A...699A.246H",
@@ -2477,6 +2703,62 @@
           "e_MZ23",
           "e_MK24",
           "e_MF24"
+        ]
+      }
+    }
+  },
+  "LI2025": {
+    "SCIX_url": "https://scixplorer.org/abs/2025AJ....170..288L",
+    "vizier_url": "N/A",
+    "authors": "Li et al.",
+    "title": "The MiMO Catalog Physical Parameters and Stellar Mass Functions of 1232 Open Clusters from Gaia DR3",
+    "year": "2025",
+    "received": "20250413",
+    "names": "Cluster",
+    "pos": {
+      "RA": "ra",
+      "DEC": "dec",
+      "plx": "parallax",
+      "pmra": "pm_ra",
+      "pmde": "pm_dec"
+    },
+    "pars": {
+      "ext": {
+        "Av": "A_V"
+      },
+      "dist": {
+        "dm": "dist_mod"
+      },
+      "age": {
+        "loga": "log_age"
+      },
+      "met": {
+        "feh": "Fe_H"
+      }
+    },
+    "e_pars": {
+      "e_ext": {
+        "eAv": [
+          "A_V_16",
+          "A_V_84"
+        ]
+      },
+      "e_dist": {
+        "edm": [
+          "dist_mod_16",
+          "dist_mod_84"
+        ]
+      },
+      "e_age": {
+        "eloga": [
+          "log_age_16",
+          "log_age_84"
+        ]
+      },
+      "e_met": {
+        "efeh": [
+          "Fe_H_16",
+          "Fe_H_84"
         ]
       }
     }

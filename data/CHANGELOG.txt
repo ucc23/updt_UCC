@@ -1,7 +1,19 @@
 Some of these are intermediate versions of the UCC database that are not published.
 
+## 260116
 
-## 260109-
+- Added van den Bergh (2006)
+- Added Gozha et al. (2012)
+- Added Dias et al. (2014)
+- Added Sánchez et al. (2020)
+- Added Cantat-Gaudin et al. (2020)
+- Added Almeida et al. (2023)
+- Added Li et al. (2025)
+- Added Wei et al. (2025)
+
+
+
+## 260109-260113
 
 - Updated B file with new preferred coordinates logic and hierarchy
 - Updated some OCs:
@@ -39,10 +51,10 @@ Some of these are intermediate versions of the UCC database that are not publish
 
 ## 25120412-25120517
 
-- Added Nizovkina et al. 2025
-- Added Carrasco-Varela et al. 2025
-- Added Zhang et al. 2024
-- Added Monteiro et al. 2019
+- Added Nizovkina et al. (2025)
+- Added Carrasco-Varela et al. (2025)
+- Added Zhang et al. (2024)
+- Added Monteiro et al. (2019)
 
 
 
