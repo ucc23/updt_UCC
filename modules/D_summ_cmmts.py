@@ -34,44 +34,31 @@ def main():
     """ """
     logging = logger()
 
-    fpath_json, fname_json = None, None
-    if input(f"Add new JSON with comments to {UCC_cmmts_file}? (y/n): ").lower() == "y":
-        while True:
-            fname_json = input(
-                f"Enter name of JSON file in {data_folder}{UCC_cmmts_folder}: "
-            )
-            fpath_json = f"{data_folder}{UCC_cmmts_folder}" + fname_json.replace(
-                ".json", ""
-            )
-            if os.path.exists(f"{fpath_json}.json"):
-                break
-            else:
-                logging.info("File does not exist. Try again.")
+    df_UCC, fnames_B, B_lookup, DBs_JSON, cmmts_JSONS = load_data()
 
-    df_UCC, fnames_B, B_lookup, UCC_summ_cmmts, DBs_JSON, new_JSON = load_data(
-        fpath_json
-    )
+    # fnames_check(logging, fnames_B, UCC_summ_cmmts)
 
-    fnames_check(logging, fnames_B, UCC_summ_cmmts)
+    # from pyinstrument import Profiler
+    # profiler = Profiler()
+    # profiler.start()
 
-    if input("Update all summaries? (y/n): ").lower() == "y":
-        # from pyinstrument import Profiler
-        # profiler = Profiler()
-        # profiler.start()
-        summaries, descriptors, fpars_badges = get_summaries(df_UCC, DBs_JSON)
-        # profiler.stop()
-        # profiler.open_in_browser()
-        UCC_summ_cmmts = update_summary(
-            logging, UCC_summ_cmmts, summaries, descriptors, fpars_badges
-        )
+    logging.info("\nGenerate all summaries")
+    summaries, descriptors, fpars_badges = get_summaries(df_UCC, DBs_JSON)
 
-    if fname_json is not None:
+    logging.info("\nAdd summaries to file")
+    UCC_summ_cmmts = update_summary(summaries, descriptors, fpars_badges)
+
+    logging.info("\nAdd all comments")
+    fnames_lst = list(UCC_summ_cmmts.keys())
+    for art_ID, cmmt_json_dict in cmmts_JSONS.items():
+        # if fname_json is not None:
         #
-        art_ID, art_name, art_year, art_url, art_cmmts, fnames_found = get_comments(
-            logging, B_lookup, fname_json, new_JSON
+        art_name, art_year, art_url, art_cmmts, fnames_found = get_comments(
+            logging, B_lookup, art_ID, cmmt_json_dict
         )
         #
         UCC_summ_cmmts = update_comments(
+            fnames_lst,
             UCC_summ_cmmts,
             fnames_B,
             art_ID,
@@ -82,6 +69,9 @@ def main():
             fnames_found,
         )
 
+    # profiler.stop()
+    # profiler.open_in_browser()
+
     # Check the 'fnames' columns in df_UCC_B and df_UCC_C_final dataframes are equal
     if not df_UCC["fname"].to_list() == list(UCC_summ_cmmts.keys()):
         raise ValueError("The 'fname' columns in B/C and final JSON differ")
@@ -91,7 +81,7 @@ def main():
     update_json_file(UCC_summ_cmmts, temp_UCC_cmmts_file)
     logging.info(f"Updated {temp_UCC_cmmts_file} file.")
 
-    if input("Move file to final location? (y/n): ").lower() == "y":
+    if input("\nMove file to final location? (y/n): ").lower() == "y":
         os.replace(
             temp_UCC_cmmts_file,
             f"{data_folder}{UCC_cmmts_file}",
@@ -99,7 +89,7 @@ def main():
         logging.info(f"Moved file to {data_folder}{UCC_cmmts_file}.")
 
 
-def load_data(fpath_json) -> tuple[pd.DataFrame, list, dict, dict, dict, dict]:
+def load_data() -> tuple[pd.DataFrame, list, dict, dict, dict]:
     """ """
     df_B = pd.read_csv(f"{data_folder}{merged_dbs_file}")
     # Extract fnames from B file
@@ -114,19 +104,21 @@ def load_data(fpath_json) -> tuple[pd.DataFrame, list, dict, dict, dict, dict]:
     df_UCC = df_C.copy()
     df_UCC[cols_from_B_to_C] = df_B[cols_from_B_to_C]
 
-    with open(f"{data_folder}/{UCC_cmmts_file}", "r") as f:
-        UCC_summ_cmmts = json.load(f)
+    # with open(f"{data_folder}/{UCC_cmmts_file}", "r") as f:
+    #     UCC_summ_cmmts = json.load(f)
 
     # Load clusters data in JSON file
     with open(name_DBs_json) as f:
         DBs_JSON = json.load(f)
 
-    new_JSON = {}
-    if fpath_json is not None:
-        # Check for duplicate clusters keys in JSON and raise error if any (json.load()
-        # silently drops duplicates, hence the check here)
-        with open(f"{fpath_json}.json", "r") as f:
+    cmmts_JSONS = {}
+    json_cmmts_path = f"{data_folder}{UCC_cmmts_folder}"
+    for fpath_json in os.listdir(json_cmmts_path):
+        # Check for duplicate clusters keys in JSON and raise error if any.
+        # 'json.load()' silently drops duplicates, hence the check here
+        with open(f"{json_cmmts_path}{fpath_json}", "r") as f:
             raw_json = json.load(f, object_pairs_hook=list)
+
         clusters = dict(raw_json).get("clusters")
         if isinstance(clusters, list):
             seen = set()
@@ -136,10 +128,12 @@ def load_data(fpath_json) -> tuple[pd.DataFrame, list, dict, dict, dict, dict]:
                     f'Duplicate keys in "clusters": {", ".join(sorted(dups))}'
                 )
 
-        with open(f"{fpath_json}.json", "r") as f:
-            new_JSON = json.load(f)
+        # with open(f"{json_cmmts_path}{fpath_json}", "r") as f:
+        #     new_JSON = json.load(f)
 
-    return df_UCC, fnames_B, B_lookup, UCC_summ_cmmts, DBs_JSON, new_JSON
+        cmmts_JSONS[fpath_json.replace(".json", "")] = dict(raw_json)
+
+    return df_UCC, fnames_B, B_lookup, DBs_JSON, cmmts_JSONS
 
 
 def fnames_check(logging, fnames_B, UCC_summ_cmmts):
@@ -162,17 +156,16 @@ def fnames_check(logging, fnames_B, UCC_summ_cmmts):
 
 
 def get_comments(
-    logging, B_lookup, fname_json, new_JSON
-) -> tuple[str, str, str, str, list, dict]:
+    logging, B_lookup, art_ID, cmmt_json_dict
+) -> tuple[str, str, str, list, dict]:
     """Read JSON file with comments from article"""
 
-    art_ID = fname_json
-    art_name = new_JSON["art_name"]
-    art_year = new_JSON["art_year"]
-    art_url = new_JSON["art_url"]
-
-    art_clusters = new_JSON["clusters"].keys()
-    art_cmmts = list(new_JSON["clusters"].values())
+    art_name = cmmt_json_dict["art_name"]
+    art_year = cmmt_json_dict["art_year"]
+    art_url = cmmt_json_dict["art_url"]
+    # art_clusters = cmmt_json_dict["clusters"].keys()
+    # art_cmmts = list(cmmt_json_dict["clusters"].values())
+    art_clusters, art_cmmts = zip(*cmmt_json_dict["clusters"])
 
     # Convert all names to fnames
     jsonf_fnames = get_fnames(art_clusters)
@@ -191,11 +184,11 @@ def get_comments(
         if not_found_in:
             not_found.append(not_found_in)
     if not_found:
-        logging.info(f"\n{len(not_found)} objects not found in UCC:")
+        logging.info(f"\n{art_ID}: {len(not_found)} objects not found in UCC")
         for cl_not_found in not_found:
             logging.info(f"  {','.join(cl_not_found)}")
 
-    return art_ID, art_name, art_year, art_url, art_cmmts, fnames_found
+    return art_name, art_year, art_url, list(art_cmmts), fnames_found
 
 
 def get_summaries(df_UCC, DBs_JSON):
@@ -776,38 +769,40 @@ def dupl_summary(shared_members_p, C_dup, C_dup_same_db, duplicate, dup_warn):
     return dup_summary, dupl_note
 
 
-def update_summary(logging, UCC_summ_cmmts, summaries, descriptors, fpars_badges):
+def update_summary(summaries, descriptors, fpars_badges):
     """ """
-    N_summ_updt, N_desc_updt, N_fbadges_updt, N_new = 0, 0, 0, 0
+    # N_summ_updt, N_desc_updt, N_fbadges_updt, N_new = 0, 0, 0, 0
+    UCC_summ_cmmts = {}
     for fname0, summary in summaries.items():
-        if fname0 in UCC_summ_cmmts:
-            # Update summary
-            if summary != UCC_summ_cmmts[fname0]["summary"]:
-                UCC_summ_cmmts[fname0]["summary"] = summary
-                N_summ_updt += 1
-            if descriptors[fname0] != UCC_summ_cmmts[fname0]["descriptors"]:
-                UCC_summ_cmmts[fname0]["descriptors"] = descriptors[fname0]
-                N_desc_updt += 1
-            if fpars_badges[fname0] != UCC_summ_cmmts[fname0]["fpars_badges"]:
-                UCC_summ_cmmts[fname0]["fpars_badges"] = fpars_badges[fname0]
-                N_fbadges_updt += 1
-        else:
-            # Create new entry
-            UCC_summ_cmmts[fname0] = {
-                "summary": summary,
-                "descriptors": descriptors[fname0],
-                "fpars_badges": fpars_badges[fname0],
-            }
-            N_new += 1
-    logging.info(f"Updated summaries for {N_summ_updt} objects")
-    logging.info(f"Updated descriptors for {N_desc_updt} objects")
-    logging.info(f"Updated parameters badges for {N_fbadges_updt} objects")
-    logging.info(f"Added summaries for {N_new} new objects\n")
+        # if fname0 in UCC_summ_cmmts:
+        #     # Update summary
+        #     if summary != UCC_summ_cmmts[fname0]["summary"]:
+        #         UCC_summ_cmmts[fname0]["summary"] = summary
+        #         N_summ_updt += 1
+        #     if descriptors[fname0] != UCC_summ_cmmts[fname0]["descriptors"]:
+        #         UCC_summ_cmmts[fname0]["descriptors"] = descriptors[fname0]
+        #         N_desc_updt += 1
+        #     if fpars_badges[fname0] != UCC_summ_cmmts[fname0]["fpars_badges"]:
+        #         UCC_summ_cmmts[fname0]["fpars_badges"] = fpars_badges[fname0]
+        #         N_fbadges_updt += 1
+        # else:
+        # Create new entry
+        UCC_summ_cmmts[fname0] = {
+            "summary": summary,
+            "descriptors": descriptors[fname0],
+            "fpars_badges": fpars_badges[fname0],
+        }
+        # N_new += 1
+    # logging.info(f"Updated summaries for {N_summ_updt} objects")
+    # logging.info(f"Updated descriptors for {N_desc_updt} objects")
+    # logging.info(f"Updated parameters badges for {N_fbadges_updt} objects")
+    # logging.info(f"Added summaries for {N_new} new objects\n")
 
     return UCC_summ_cmmts
 
 
 def update_comments(
+    fnames_lst,
     UCC_summ_cmmts,
     fnames_B,
     art_ID,
@@ -820,6 +815,9 @@ def update_comments(
     """ """
     for i, idx in fnames_found.items():
         fname0 = fnames_B[idx].split(";")[0]
+        if fname0 not in fnames_lst:
+            continue
+
         comment = art_cmmts[i]
         comment_entry = {
             "ID": art_ID,
@@ -830,19 +828,19 @@ def update_comments(
         }
 
         if "comments" not in UCC_summ_cmmts[fname0]:
-            UCC_summ_cmmts[fname0]["comments"] = []
-            UCC_summ_cmmts[fname0]["comments"].append(comment_entry)
+            UCC_summ_cmmts[fname0]["comments"] = [comment_entry]
+            # UCC_summ_cmmts[fname0]["comments"].append(comment_entry)
         else:
-            # Check if comment from this article already exists
-            flag_ID = False
-            for cmt in UCC_summ_cmmts[fname0]["comments"]:
-                if cmt["ID"] == art_ID:
-                    flag_ID = True
-                    cmt["comment"] = comment
-                    break
-            # If not, append new comment
-            if flag_ID is False:
-                UCC_summ_cmmts[fname0]["comments"].append(comment_entry)
+            # # Check if comment from this article already exists
+            # flag_ID = False
+            # for cmt in UCC_summ_cmmts[fname0]["comments"]:
+            #     if cmt["ID"] == art_ID:
+            #         flag_ID = True
+            #         cmt["comment"] = comment
+            #         break
+            # # If not, append new comment
+            # if flag_ID is False:
+            UCC_summ_cmmts[fname0]["comments"].append(comment_entry)
 
     return UCC_summ_cmmts
 
