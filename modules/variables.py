@@ -90,7 +90,7 @@ fpars_headers = (
     "Age [Myr]",
     "[Fe/H] [dex]",
     "Mass [Msun]",
-    "Bfr",
+    "B<sub>frac</sub>",
     "BSS",
 )
 

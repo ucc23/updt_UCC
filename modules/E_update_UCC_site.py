@@ -1,4 +1,5 @@
 import csv
+import gzip
 import json
 import os
 from concurrent.futures import ProcessPoolExecutor
@@ -10,9 +11,9 @@ import pandas as pd
 
 from .E_funcs import ucc_entry, ucc_plots
 from .E_funcs.main_files_updt import (
-    # ucc_n_total_updt,
     count_dups_bad_OCs,
     count_OCs_classes,
+    ucc_n_total_updt,
     updt_articles_table,
     updt_DBs_tables,
     # P_dup_ranges,
@@ -131,7 +132,7 @@ def main():
         make_site_plots(logging, temp_image_path, df_UCC, OCs_per_class)
 
     #
-    df_UCC_edit = updt_UCC(df_UCC)
+    df_UCC_edit = updt_UCC_data(df_UCC, UCC_summ_cmmts)
     #
 
     # UTI_msk = UTI_ranges(df_UCC_edit)
@@ -339,7 +340,7 @@ def load_data(
     with open(name_DBs_json) as f:
         current_JSON = json.load(f)
 
-    with open(f"{data_folder}{UCC_cmmts_file}", "r") as f:
+    with gzip.open(f"{data_folder}{UCC_cmmts_file}", "rt", encoding="utf-8") as f:
         UCC_summ_cmmts = json.load(f)
 
     # Read the data for every DB in the UCC as a pandas DataFrame
@@ -442,7 +443,7 @@ def updt_ucc_cluster_files(
 
     UTI_colors = UTI_to_hex(df_UCC)
 
-    # ran_i = np.random.randint(0, len(df_UCC), size=100)
+    ran_i = np.random.randint(0, len(df_UCC), size=100)
 
     # from pyinstrument import Profiler
     # profiler = Profiler()
@@ -459,8 +460,8 @@ def updt_ucc_cluster_files(
         #     continue
         # if "melotte" not in fname0:
         #     continue
-        # if i_ucc not in ran_i or "cwnu" in fname0 or "cwwdl" in fname0:
-        #     continue
+        if i_ucc not in ran_i or "cwnu" in fname0 or "cwwdl" in fname0:
+            continue
 
         # Generate full entry
         new_md_entry = ucc_entry.make(
@@ -624,9 +625,9 @@ def make_site_plots(logging, temp_image_path, df_UCC, OCs_per_class):
     logging.info("Plot generated: UTI histogram")
 
 
-def updt_UCC(df_UCC: pd.DataFrame) -> pd.DataFrame:
+def updt_UCC_data(df_UCC: pd.DataFrame, UCC_summ_cmmts: dict) -> pd.DataFrame:
     """
-    Updates a DataFrame of astronomical cluster data by processing identifiers,
+    Updates DataFrame of astronomical cluster data by processing identifiers,
     coordinates, URLs, and derived quantities such as distances.
     """
     df = df_UCC.copy()
@@ -655,13 +656,20 @@ def updt_UCC(df_UCC: pd.DataFrame) -> pd.DataFrame:
     # Compute parallax-based distances in parsecs
     dist_pc = 1000 / np.clip(np.array(df["Plx_m"]), a_min=0.0000001, a_max=np.inf)
     dist_pc = np.clip(dist_pc, a_min=10, a_max=50000)
-    df["dist_pc"] = np.round(dist_pc, 0)
+    df["dist_plx_pc"] = np.round(dist_pc, 0)
 
-    df["Plx_m_round"] = np.round(df["Plx_m"], 2)  # Used to display in tables
+    # Used to display in tables
+    df["Plx_m_round"] = np.round(df["Plx_m"], 2)
     df["C3_abcd"] = [ucc_entry.color_C3(_) for _ in df["C3"]]
 
     df["N_50"] = df["N_50"].astype(int)
     df["P_dup"] = np.round(1 - df["C_dup"], 2)
+
+    fpars_dict = {}
+    for fname0, cl_dict in UCC_summ_cmmts.items():
+        fpars_dict[fname0] = cl_dict["fpars_medians"]
+    for par in ("dist", "ext", "diff_ext", "age", "met", "mass", "bi_frac", "blue_str"):
+        df[f"{par}"] = [fpars_dict[fname0].get(par, np.nan) for fname0 in df["fname"]]
 
     df = df.sort_values("Name").reset_index()
 
@@ -794,13 +802,20 @@ def updt_cls_CSV(logging, ucc_gz_CSV_path: str, df_UCC_edit: pd.DataFrame) -> st
                 "DE_ICRS",
                 "GLON",
                 "GLAT",
-                "dist_pc",
+                "dist",
+                "ext",
+                "diff_ext",
+                "age",
+                "met",
+                "mass",
+                "bi_frac",
+                "blue_str",
                 "N_50",
-                "r_50",
-                "C3",
                 "P_dup",
                 "UTI",
                 "bad_oc",
+                "dist_plx_pc",  # radec_scatter, mapPlotter
+                "r_50",  # radec_scatter
             ]
         ]
     )
