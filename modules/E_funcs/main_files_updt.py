@@ -75,10 +75,15 @@ def updt_articles_table(df_UCC, current_JSON, database_md_in, max_chars_title=50
         for DB in _.split(";"):
             N_in_DB[DB] += 1
 
+    # Invert json by the 'year' key so that larger values are on top
+    inv_json = dict(
+        sorted(current_JSON.items(), key=lambda item: item[1]["year"], reverse=True)
+    )
+
     # md_table = "\n| Name | N | Name | N |\n"
     md_table = "\n| Title | Author(s) | Year | Vizier | N | CSV |\n"
     md_table += "| ---- | :---: | :--: | :----: | :-: | :-: |\n"
-    for DB, DB_data in current_JSON.items():
+    for DB, DB_data in inv_json.items():
         row = ""
         title = DB_data["title"].replace("'", "").replace('"', "")
         short_title = title[:max_chars_title] + "..."
@@ -363,33 +368,33 @@ def count_OCs_classes(C3, class_order):
 #     return N_members_UCC
 
 
-# def ucc_n_total_updt(logging, N_db_UCC, N_cl_UCC, N_members_UCC, database_md):
-#     """Update the total number of entries and databases in the UCC"""
-#     delimiter_a = "<!-- ND1 -->"
-#     delimiter_b = "<!-- ND2 -->"
-#     replacement_text = str(N_db_UCC)
-#     database_md_updt = replace_text_between(
-#         database_md, replacement_text, delimiter_a, delimiter_b
-#     )
+def ucc_n_total_updt(logging, N_db_UCC, N_cl_UCC, N_members_UCC, database_md):
+    """Update the total number of entries and databases in the UCC"""
+    delimiter_a = "<!-- ND1 -->"
+    delimiter_b = "<!-- ND2 -->"
+    replacement_text = str(N_db_UCC)
+    database_md_updt = replace_text_between(
+        database_md, replacement_text, delimiter_a, delimiter_b
+    )
 
-#     delimiter_a = "<!-- NT1 -->"
-#     delimiter_b = "<!-- NT2 -->"
-#     replacement_text = str(N_cl_UCC)
-#     database_md_updt = replace_text_between(
-#         database_md_updt, replacement_text, delimiter_a, delimiter_b
-#     )
+    delimiter_a = "<!-- NT1 -->"
+    delimiter_b = "<!-- NT2 -->"
+    replacement_text = str(N_cl_UCC)
+    database_md_updt = replace_text_between(
+        database_md_updt, replacement_text, delimiter_a, delimiter_b
+    )
 
-#     delimiter_a = "<!-- NM1 -->"
-#     delimiter_b = "<!-- NM2 -->"
-#     replacement_text = str(N_members_UCC)
-#     database_md_updt = replace_text_between(
-#         database_md_updt, replacement_text, delimiter_a, delimiter_b
-#     )
+    delimiter_a = "<!-- NM1 -->"
+    delimiter_b = "<!-- NM2 -->"
+    replacement_text = str(N_members_UCC)
+    database_md_updt = replace_text_between(
+        database_md_updt, replacement_text, delimiter_a, delimiter_b
+    )
 
-#     if database_md_updt != database_md:
-#         logging.info("\nNumber of DBS, OCs and members in the UCC updated")
+    if database_md_updt != database_md:
+        logging.info("\nNumber of DBS, OCs and members in the UCC updated")
 
-#     return database_md_updt
+    return database_md_updt
 
 
 # def updt_UTI_main_table(UTI_msk, database_md_in: str):
