@@ -59,7 +59,7 @@ DB_coords_hierarchy = {
 
 #
 UCC_cmmts_folder = "json_cmmts/"
-UCC_cmmts_file = "UCC_summ_cmmts.json"
+UCC_cmmts_file = "UCC_summ_cmmts.json.gz"
 
 
 # Bad OCs parameters

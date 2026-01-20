@@ -1,4 +1,5 @@
 import datetime
+import gzip
 import json
 import os
 import sys
@@ -43,10 +44,12 @@ def main():
     # profiler.start()
 
     logging.info("\nGenerate all summaries")
-    summaries, descriptors, fpars_badges = get_summaries(df_UCC, DBs_JSON)
+    fpars_medians, summaries, descriptors, fpars_badges = get_summaries(
+        df_UCC, DBs_JSON
+    )
 
     logging.info("\nAdd summaries to file")
-    UCC_summ_cmmts = update_summary(summaries, descriptors, fpars_badges)
+    UCC_summ_cmmts = update_summary(fpars_medians, summaries, descriptors, fpars_badges)
 
     logging.info("\nAdd all comments")
     fnames_lst = list(UCC_summ_cmmts.keys())
@@ -197,7 +200,7 @@ def get_summaries(df_UCC, DBs_JSON):
     """
     current_year = datetime.datetime.now().year
 
-    summaries, descriptors, fpars_badges = {}, {}, {}
+    fpars_medians, summaries, descriptors, fpars_badges = {}, {}, {}, {}
     # Iterate trough each entry in the UCC database
     cols = df_UCC.columns
     for UCC_cl in df_UCC.itertuples(index=False, name=None):
@@ -231,8 +234,11 @@ def get_summaries(df_UCC, DBs_JSON):
             UCC_cl["fund_pars"],
         )
 
+        medians, large_spread = fpars_medians_spread(recent_year_i, fpars_dict)
+        fpars_medians[fname0] = medians
+
         fpars_summ, fpars_note, fpars_badges_lst = fpars_summary(
-            recent_year_i, fpars_dict, UCC_cl["Plx_m"], plx_dist, z_position
+            medians, large_spread, UCC_cl["Plx_m"], plx_dist, z_position
         )
 
         cl_name0 = UCC_cl["Names"].split(";")[0]
@@ -275,7 +281,7 @@ def get_summaries(df_UCC, DBs_JSON):
 
         fpars_badges[fname0] = fpars_badges_lst
 
-    return summaries, descriptors, fpars_badges
+    return fpars_medians, summaries, descriptors, fpars_badges
 
 
 def level(value, thresholds, labels):
@@ -416,7 +422,7 @@ def fpars_in_lit(
 
     # Index of last value in pars_years that is equal to (current_year - recent_years)
     recent_year_i = -1
-    pars_dict = {par: [] for par in fpars_order}
+    fpars_dict = {par: [] for par in fpars_order}
 
     for i, (db, pars) in enumerate(zip(DBs_lst, fund_pars_lst)):
         info = DBs_json[db]
@@ -429,16 +435,13 @@ def fpars_in_lit(
             continue
 
         for x, par in zip(values, fpars_order):
-            pars_dict[par].append(np.nan if x == "--" else float(x.replace("*", "")))
+            fpars_dict[par].append(np.nan if x == "--" else float(x.replace("*", "")))
 
-    return recent_year_i, pars_dict
+    return recent_year_i, fpars_dict
 
 
-def fpars_summary(
-    recent_year_i: int, params: dict, plx, plx_dist, plx_z_dist
-) -> tuple[str, str, dict]:
-    """Summarize fundamental astrophysical parameters."""
-
+def fpars_medians_spread(recent_year_i, fpars_dict) -> tuple[dict, list]:
+    """ """
     labels = {
         "dist": "distance",
         "ext": "absorption",
@@ -451,10 +454,10 @@ def fpars_summary(
     }
 
     medians, large_spread = {}, []
-    for name, vals in params.items():
-        if name in ("diff_ext", "bi_frac"):
-            # Not used in the parameters summary, skip median and spread check
-            continue
+    for name, vals in fpars_dict.items():
+        # if name in ("diff_ext", "bi_frac"):
+        #     # Not used in the parameters summary, skip median and spread check
+        #     continue
 
         arr = np.array(vals, dtype=float)
         valid = arr[np.isfinite(arr)]
@@ -521,6 +524,13 @@ def fpars_summary(
         if flag_spread:
             large_spread.append(labels[name])
 
+    return medians, large_spread
+
+
+def fpars_summary(
+    medians, large_spread, plx, plx_dist, plx_z_dist
+) -> tuple[str, str, dict]:
+    """Summarize fundamental astrophysical parameters."""
     fpars_badges = {}
 
     dist_flag, fpars_note, dist_txt = "", "", ""
@@ -769,9 +779,15 @@ def dupl_summary(shared_members_p, C_dup, C_dup_same_db, duplicate, dup_warn):
     return dup_summary, dupl_note
 
 
-def update_summary(summaries, descriptors, fpars_badges):
+def update_summary(fpars_medians, summaries, descriptors, fpars_badges):
     """ """
-    # N_summ_updt, N_desc_updt, N_fbadges_updt, N_new = 0, 0, 0, 0
+    # Round fundamental parameters medians to 4 decimal places
+    fpars_round = {
+        k: {kk: round(vv, 4) if isinstance(vv, float) else vv
+            for kk, vv in v.items()}
+        for k, v in fpars_medians.items()
+    }
+
     UCC_summ_cmmts = {}
     for fname0, summary in summaries.items():
         # if fname0 in UCC_summ_cmmts:
@@ -791,6 +807,7 @@ def update_summary(summaries, descriptors, fpars_badges):
             "summary": summary,
             "descriptors": descriptors[fname0],
             "fpars_badges": fpars_badges[fname0],
+            "fpars_medians": fpars_round[fname0],
         }
         # N_new += 1
     # logging.info(f"Updated summaries for {N_summ_updt} objects")
@@ -853,8 +870,9 @@ def update_json_file(UCC_summ_cmmts, temp_UCC_cmmts_file):
         if "comments" in obj and isinstance(obj["comments"], list):
             obj["comments"].sort(key=lambda c: int(c.get("year", 0)), reverse=True)
 
-    with open(temp_UCC_cmmts_file, "w") as f:
-        json.dump(UCC_summ_cmmts, f, indent=2)
+    # Store compressed
+    with gzip.open(temp_UCC_cmmts_file, "wt", encoding="utf-8") as f:
+        json.dump(UCC_summ_cmmts, f)
 
 
 if __name__ == "__main__":
