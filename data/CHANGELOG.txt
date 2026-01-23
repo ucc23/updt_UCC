@@ -1,5 +1,11 @@
 Some of these are intermediate versions of the UCC database that are not published.
 
+## 26012012
+
+- Added P_dup column to C cat
+
+
+
 ## 260116
 
 - Added van den Bergh (2006)
