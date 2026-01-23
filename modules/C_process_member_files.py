@@ -118,11 +118,8 @@ def main():
     if any(df_UCC_C_final["process"] == "y"):
         raise ValueError("Some entries in final C dataframe still have process='y'")
 
-    # Add UTI values
-    df_UCC_C_final = get_UTI(current_JSON, df_UCC_B, df_UCC_C_final)
-
-    # Identify "bad" OCs
-    df_UCC_C_final = get_bad_ocs(df_UCC_C_final)
+    # Add C coefficients, UTI values, duplicate probabilities and 'bad_oc' flags
+    df_UCC_C_final = add_info_to_C(current_JSON, df_UCC_B, df_UCC_C_final)
 
     # Check differences between the original and final C dataframes
     diff_between_dfs(logging, df_UCC_C, df_UCC_C_final)
@@ -669,10 +666,8 @@ def find_intersections(df_C, df_members):
     return intersection_map
 
 
-def get_UTI(current_JSON, df_UCC_B, df_UCC_C, max_dens=5):
-    """
-    Linear transformation from values to [0, 1]
-    """
+def add_info_to_C(current_JSON, df_UCC_B, df_UCC_C, max_dens=5):
+    """ """
 
     def normalize(N, arr, Nmin, Nmax, vmin, vmax):
         msk2 = (N >= Nmin) & (N < Nmax)
@@ -791,19 +786,29 @@ def get_UTI(current_JSON, df_UCC_B, df_UCC_C, max_dens=5):
     df_UCC_C["C_lit"] = np.round(C_lit, 2)
     df_UCC_C["C_dup"] = np.round(C_dup, 2)
     df_UCC_C["C_dup_same_db"] = np.round(C_dup_same_db, 2)
+    df_UCC_C["P_dup"] = np.round(1 - df_UCC_C["C_dup"], 2)
     df_UCC_C["UTI"] = np.round(UTI, 2)
+
+    # Flag entries that have bad values and are possibly asterisms, moving groups,
+    # or artifacts of some kind.
+    msk = (
+        (df_UCC_C["UTI"] < UTI_max)
+        & (df_UCC_C["C_dup"] > C_dup_min)
+        & (df_UCC_C["C_lit"] < C_lit_max)
+    )
+    df_UCC_C.loc[msk, "bad_oc"] = "y"
 
     return df_UCC_C
 
 
-def get_bad_ocs(df):
-    """Flag entries that have bad values and are possibly asterisms, moving groups,
-    or artifacts of some kind.
-    """
-    msk = (df["UTI"] < UTI_max) & (df["C_dup"] > C_dup_min) & (df["C_lit"] < C_lit_max)
-    df.loc[msk, "bad_oc"] = "y"
+# def get_bad_ocs(df):
+#     """Flag entries that have bad values and are possibly asterisms, moving groups,
+#     or artifacts of some kind.
+#     """
+#     msk = (df["UTI"] < UTI_max) & (df["C_dup"] > C_dup_min) & (df["C_lit"] < C_lit_max)
+#     df.loc[msk, "bad_oc"] = "y"
 
-    return df
+#     return df
 
 
 def update_files(
