@@ -31,10 +31,7 @@ def display_menu():
     print("   └─ Processes stellar membership using fastMP algorithm (if any)")
     print("   └─ Integrates new/modified data with existing UCC C databse")
 
-    print("\nD) D_process_member_files.py")
-    print("   └─ Add comments from article to comments database")
-
-    print("\nE) E_update_UCC_site.py")
+    print("\nD) D_update_UCC_site.py")
     print("   └─ Update the website files")
     print("   └─ Generates website content and visualization files")
 
@@ -75,8 +72,7 @@ def run_script(script_choice):
         "A": "A_get_new_DB",
         "B": "B_update_UCC_DB",
         "C": "C_process_member_files",
-        "D": "D_summ_cmmts",
-        "E": "E_update_UCC_site",
+        "D": "D_update_UCC_site",
     }
 
     module_name = module_names.get(script_choice)
@@ -108,19 +104,19 @@ def run_script(script_choice):
 def get_user_choice():
     """Get and validate user input."""
     while True:
-        choice = input("\nEnter your choice (A/B/C/D/E/Q): ").strip().upper()
+        choice = input("\nEnter your choice (A/B/C/D/Q): ").strip().upper()
 
-        if choice in ["A", "B", "C", "D", "E", "Q"]:
+        if choice in ["A", "B", "C", "D", "Q"]:
             return choice
         else:
-            print("❌ Invalid choice. Please enter A, B, C, D, E, or Q.")
+            print("❌ Invalid choice. Please enter A, B, C, D, or Q.")
 
 
 def main():
     """Main program loop."""
     print("🔬 UCC (Unified Cluster Catalogue) Update System")
     print("\n⚠️  IMPORTANT WORKFLOW SEQUENCE:")
-    print("   These scripts must be run in order: A → B → C → (E) → D")
+    print("   These scripts must be run in order: A → B → C → D")
     print("   Each script depends on the output of the previous one.")
     print("\n📋 Before running:")
     print("   • Make sure you have the required environment activated")
@@ -141,12 +137,12 @@ def main():
             print("\n⚠️  Script execution failed. Check the error messages above.")
             sys.exit(0)
 
-        if choice == "E":
+        if choice == "D":
             print("\n👋 Final script completed. Goodbye!")
             sys.exit(0)
 
         # Ask if user wants to continue to next script
-        next_script = chr(ord(choice) + 1)  # A->B, B->C, C->D, D->E
+        next_script = chr(ord(choice) + 1)  # A->B, B->C, C->D
         if (
             input(f"\n❓ Run next script ({next_script}) now? (y/N): ").strip().lower()
             == "y"

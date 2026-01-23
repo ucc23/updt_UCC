@@ -1,57 +1,34 @@
 import datetime
 import gzip
 import json
-import os
-import sys
 
 import numpy as np
-import pandas as pd
 
-from .utils import get_fnames, logger
-from .variables import (
-    UCC_cmmts_file,
-    UCC_cmmts_folder,
-    data_folder,
+from ..utils import get_fnames
+from ..variables import (
+    HTML_BAD_OC,
+    HTML_C3,
+    HTML_TABLE,
+    HTML_UTI,
+    HTML_WARN,
     fpars_order,
-    merged_dbs_file,
-    name_DBs_json,
-    temp_folder,
-    ucc_cat_file,
+    tsp,
 )
 
-HTML_WARN = '⚠️ <span style="color: #99180f; font-weight: bold;">Warning: </span>'
-HTML_UTI = """<a href="/faq#what-is-the-uti-parameter" title="UTI parameter" target="_blank"><b>UTI</b></a>"""
-HTML_C3 = """<a href="/faq#what-is-the-c3-parameter" title="C3 classification" target="_blank">C3 quality</a>"""
-HTML_BAD_OC = """<a href="/faq#how-are-objects-flagged-as-likely-not-real" title="Not real open cluster" target="_blank"><u>not a real open cluster</u></a>"""
-HTML_TABLE = (
-    'See table with <a href="#tab_obj_shared" '
-    "onclick=\"activateTabById(event, 'tab_obj_shared', 'obj_shared')\">"
-    "shared members information</a>."
-)
-tsp = "    "
 
-
-def main():
+def run(
+    logging, df_UCC, DBs_JSON, cmmts_JSONS, B_lookup, fnames_B, temp_UCC_cmmts_path
+):
     """ """
-    logging = logger()
-
-    df_UCC, fnames_B, B_lookup, DBs_JSON, cmmts_JSONS = load_data()
-
-    # fnames_check(logging, fnames_B, UCC_summ_cmmts)
-
-    # from pyinstrument import Profiler
-    # profiler = Profiler()
-    # profiler.start()
-
     logging.info("\nGenerate all summaries")
     fpars_medians, summaries, descriptors, fpars_badges = get_summaries(
         df_UCC, DBs_JSON
     )
 
-    logging.info("\nAdd summaries to file")
+    logging.info("Add summaries to file")
     UCC_summ_cmmts = update_summary(fpars_medians, summaries, descriptors, fpars_badges)
 
-    logging.info("\nAdd all comments")
+    logging.info("Add all comments")
     fnames_lst = list(UCC_summ_cmmts.keys())
     for art_ID, cmmt_json_dict in cmmts_JSONS.items():
         # if fname_json is not None:
@@ -72,126 +49,20 @@ def main():
             fnames_found,
         )
 
-    # profiler.stop()
-    # profiler.open_in_browser()
-
     # Check the 'fnames' columns in df_UCC_B and df_UCC_C_final dataframes are equal
     if not df_UCC["fname"].to_list() == list(UCC_summ_cmmts.keys()):
         raise ValueError("The 'fname' columns in B/C and final JSON differ")
 
-    temp_UCC_cmmts_file = temp_folder + data_folder + UCC_cmmts_file
-    os.makedirs(os.path.dirname(temp_folder + data_folder), exist_ok=True)
-    update_json_file(UCC_summ_cmmts, temp_UCC_cmmts_file)
-    logging.info(f"Updated {temp_UCC_cmmts_file} file.")
+    # Sort comments by year (descending) for each entry
+    for obj in UCC_summ_cmmts.values():
+        if "comments" in obj and isinstance(obj["comments"], list):
+            obj["comments"].sort(key=lambda c: int(c.get("year", 0)), reverse=True)
+    # Store compressed
+    with gzip.open(temp_UCC_cmmts_path, "wt", encoding="utf-8") as f:
+        json.dump(UCC_summ_cmmts, f)
+    logging.info(f"Updated {temp_UCC_cmmts_path} file.")
 
-    if input("\nMove file to final location? (y/n): ").lower() == "y":
-        os.replace(
-            temp_UCC_cmmts_file,
-            f"{data_folder}{UCC_cmmts_file}",
-        )
-        logging.info(f"Moved file to {data_folder}{UCC_cmmts_file}.")
-
-
-def load_data() -> tuple[pd.DataFrame, list, dict, dict, dict]:
-    """ """
-    df_B = pd.read_csv(f"{data_folder}{merged_dbs_file}")
-    # Extract fnames from B file
-    fnames_B = df_B["fnames"].tolist()
-    B_lookup = {}
-    for i, s in enumerate(fnames_B):
-        for token in s.split(";"):
-            B_lookup[token] = i
-
-    cols_from_B_to_C = ["Names", "DB", "DB_i", "fnames", "fund_pars"]
-    df_C = pd.read_csv(f"{data_folder}{ucc_cat_file}")
-    df_UCC = df_C.copy()
-    df_UCC[cols_from_B_to_C] = df_B[cols_from_B_to_C]
-
-    # with open(f"{data_folder}/{UCC_cmmts_file}", "r") as f:
-    #     UCC_summ_cmmts = json.load(f)
-
-    # Load clusters data in JSON file
-    with open(name_DBs_json) as f:
-        DBs_JSON = json.load(f)
-
-    cmmts_JSONS = {}
-    json_cmmts_path = f"{data_folder}{UCC_cmmts_folder}"
-    for fpath_json in os.listdir(json_cmmts_path):
-        # Check for duplicate clusters keys in JSON and raise error if any.
-        # 'json.load()' silently drops duplicates, hence the check here
-        with open(f"{json_cmmts_path}{fpath_json}", "r") as f:
-            raw_json = json.load(f, object_pairs_hook=list)
-
-        clusters = dict(raw_json).get("clusters")
-        if isinstance(clusters, list):
-            seen = set()
-            dups = {k for k, _ in clusters if k in seen or seen.add(k)}
-            if dups:
-                raise ValueError(
-                    f'Duplicate keys in "clusters": {", ".join(sorted(dups))}'
-                )
-
-        # with open(f"{json_cmmts_path}{fpath_json}", "r") as f:
-        #     new_JSON = json.load(f)
-
-        cmmts_JSONS[fpath_json.replace(".json", "")] = dict(raw_json)
-
-    return df_UCC, fnames_B, B_lookup, DBs_JSON, cmmts_JSONS
-
-
-def fnames_check(logging, fnames_B, UCC_summ_cmmts):
-    """Check if there are entries in UCC_summ_cmmts that are not in df_B"""
-    fnames_in_cmmts = set(UCC_summ_cmmts.keys())
-    fnames_in_B = set([s.split(";")[0] for s in fnames_B])
-    fnames_not_in_B = fnames_in_cmmts - fnames_in_B
-    if fnames_not_in_B:
-        logging.info(
-            f"{len(fnames_not_in_B)} entries in {UCC_cmmts_file} not found in {merged_dbs_file}:"
-        )
-        for fname in fnames_not_in_B:
-            logging.info(f"- {fname}")
-        if input(f"Remove entries not found in {merged_dbs_file}") == "y":
-            for fname in fnames_not_in_B:
-                del UCC_summ_cmmts[fname]
-            logging.info("Removed entries not in merged DBs file.")
-        else:
-            sys.exit(f"Please update {UCC_cmmts_file} accordingly and rerun.")
-
-
-def get_comments(
-    logging, B_lookup, art_ID, cmmt_json_dict
-) -> tuple[str, str, str, list, dict]:
-    """Read JSON file with comments from article"""
-
-    art_name = cmmt_json_dict["art_name"]
-    art_year = cmmt_json_dict["art_year"]
-    art_url = cmmt_json_dict["art_url"]
-    # art_clusters = cmmt_json_dict["clusters"].keys()
-    # art_cmmts = list(cmmt_json_dict["clusters"].values())
-    art_clusters, art_cmmts = zip(*cmmt_json_dict["clusters"])
-
-    # Convert all names to fnames
-    jsonf_fnames = get_fnames(art_clusters)
-
-    # Check which objects in the JSON file are in the UCC
-    not_found = []
-    fnames_found = {}
-    for i, fnames in enumerate(jsonf_fnames):
-        not_found_in = []
-        for fname in fnames:
-            idx = B_lookup.get(fname)
-            if idx is None:
-                not_found_in.append(fname)
-            else:
-                fnames_found[i] = idx
-        if not_found_in:
-            not_found.append(not_found_in)
-    if not_found:
-        logging.info(f"\n{art_ID}: {len(not_found)} objects not found in UCC")
-        for cl_not_found in not_found:
-            logging.info(f"  {','.join(cl_not_found)}")
-
-    return art_name, art_year, art_url, list(art_cmmts), fnames_found
+    return UCC_summ_cmmts
 
 
 def get_summaries(df_UCC, DBs_JSON):
@@ -364,47 +235,6 @@ def get_C_txt(C_N, C_dens, C_C3, C_lit, C_dup, plx, Z_GC):
     )
 
 
-def get_summary(
-    name,
-    cl_DB,
-    shared_members_p,
-    C_dup,
-    C_dup_same_db,
-    bad_oc,
-    members,
-    density,
-    quality,
-    fpars_summ,
-    current_year,
-    literature,
-    duplicate,
-    dup_warn,
-    fpars_note,
-):
-    """ """
-    summary = (
-        f"{tsp}<b>{name}</b> is a {members}, {density} object of {quality} {HTML_C3}."
-    )
-
-    summary += " " + fpars_summ
-    summary += " " + lit_summary(current_year, cl_DB, literature)
-
-    dup_summ, dup_note = dupl_summary(
-        shared_members_p, C_dup, C_dup_same_db, duplicate, dup_warn
-    )
-    summary += f" {dup_summ}{fpars_note}{dup_note}"
-
-    # Bad OC warning
-    if bad_oc == "y":
-        summary += (
-            f"<p>{HTML_WARN}the low {HTML_UTI} value and no obvious signs of "
-            f"duplication (<i>C<sub>dup</sub>={C_dup}</i>) indicate that this "
-            f"is quite probably an asterism, moving group, or artifact, and {HTML_BAD_OC}.</p>"
-        )
-
-    return summary
-
-
 def fpars_in_lit(
     current_year: int,
     DBs_json: dict,
@@ -469,10 +299,12 @@ def fpars_medians_spread(recent_year_i, fpars_dict) -> tuple[dict, list]:
             continue
 
         if name == "blue_str":
-            # BSS values can be either fractions or total number, skip spread check
-            continue
+            # BSS values can be either fractions or total number. Select the
+            # first value (more recent)
+            median = valid[0]
+        else:
+            median = np.median(valid)
 
-        median = np.median(valid)
         medians[name] = median
 
         # Estimate large spread for recent sources
@@ -690,6 +522,47 @@ def fpars_summary(
     return fpars_summ, fpars_note, fpars_badges
 
 
+def get_summary(
+    name,
+    cl_DB,
+    shared_members_p,
+    C_dup,
+    C_dup_same_db,
+    bad_oc,
+    members,
+    density,
+    quality,
+    fpars_summ,
+    current_year,
+    literature,
+    duplicate,
+    dup_warn,
+    fpars_note,
+):
+    """ """
+    summary = (
+        f"{tsp}<b>{name}</b> is a {members}, {density} object of {quality} {HTML_C3}."
+    )
+
+    summary += " " + fpars_summ
+    summary += " " + lit_summary(current_year, cl_DB, literature)
+
+    dup_summ, dup_note = dupl_summary(
+        shared_members_p, C_dup, C_dup_same_db, duplicate, dup_warn
+    )
+    summary += f" {dup_summ}{fpars_note}{dup_note}"
+
+    # Bad OC warning
+    if bad_oc == "y":
+        summary += (
+            f"<p>{HTML_WARN}the low {HTML_UTI} value and no obvious signs of "
+            f"duplication (<i>C<sub>dup</sub>={C_dup}</i>) indicate that this "
+            f"is quite probably an asterism, moving group, or artifact, and {HTML_BAD_OC}.</p>"
+        )
+
+    return summary
+
+
 def lit_summary(current_year, cl_DB, literature, year_gap=3) -> str:
     """ """
     parts = cl_DB.split(";")
@@ -783,8 +656,7 @@ def update_summary(fpars_medians, summaries, descriptors, fpars_badges):
     """ """
     # Round fundamental parameters medians to 4 decimal places
     fpars_round = {
-        k: {kk: round(vv, 4) if isinstance(vv, float) else vv
-            for kk, vv in v.items()}
+        k: {kk: round(vv, 4) if isinstance(vv, float) else vv for kk, vv in v.items()}
         for k, v in fpars_medians.items()
     }
 
@@ -816,6 +688,42 @@ def update_summary(fpars_medians, summaries, descriptors, fpars_badges):
     # logging.info(f"Added summaries for {N_new} new objects\n")
 
     return UCC_summ_cmmts
+
+
+def get_comments(
+    logging, B_lookup, art_ID, cmmt_json_dict
+) -> tuple[str, str, str, list, dict]:
+    """Read JSON file with comments from article"""
+
+    art_name = cmmt_json_dict["art_name"]
+    art_year = cmmt_json_dict["art_year"]
+    art_url = cmmt_json_dict["art_url"]
+    # art_clusters = cmmt_json_dict["clusters"].keys()
+    # art_cmmts = list(cmmt_json_dict["clusters"].values())
+    art_clusters, art_cmmts = zip(*cmmt_json_dict["clusters"])
+
+    # Convert all names to fnames
+    jsonf_fnames = get_fnames(art_clusters)
+
+    # Check which objects in the JSON file are in the UCC
+    not_found = []
+    fnames_found = {}
+    for i, fnames in enumerate(jsonf_fnames):
+        not_found_in = []
+        for fname in fnames:
+            idx = B_lookup.get(fname)
+            if idx is None:
+                not_found_in.append(fname)
+            else:
+                fnames_found[i] = idx
+        if not_found_in:
+            not_found.append(not_found_in)
+    if not_found:
+        logging.info(f"{art_ID}: {len(not_found)} objects not found in UCC")
+        # for cl_not_found in not_found:
+        #     logging.info(f"  {','.join(cl_not_found)}")
+
+    return art_name, art_year, art_url, list(art_cmmts), fnames_found
 
 
 def update_comments(
@@ -860,20 +768,3 @@ def update_comments(
             UCC_summ_cmmts[fname0]["comments"].append(comment_entry)
 
     return UCC_summ_cmmts
-
-
-def update_json_file(UCC_summ_cmmts, temp_UCC_cmmts_file):
-    """Update UCC_cmmts json file"""
-
-    # Sort comments by year (descending) for each entry
-    for obj in UCC_summ_cmmts.values():
-        if "comments" in obj and isinstance(obj["comments"], list):
-            obj["comments"].sort(key=lambda c: int(c.get("year", 0)), reverse=True)
-
-    # Store compressed
-    with gzip.open(temp_UCC_cmmts_file, "wt", encoding="utf-8") as f:
-        json.dump(UCC_summ_cmmts, f)
-
-
-if __name__ == "__main__":
-    main()

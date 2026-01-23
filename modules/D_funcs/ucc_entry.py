@@ -72,7 +72,7 @@ def make(
     current_JSON,
     members_files_mapping,
     DBs_full_data,
-    df_UCC,
+    df_BC,
     UCC_cl,
     fnames_all,
     UTI_colors,
@@ -151,7 +151,7 @@ def make(
             carousel += "_" + _db
 
     # Generate table with OCs that share members with this one
-    shared_table = table_shared_members(df_UCC, fnames_all, UCC_cl, tsp)
+    shared_table = table_shared_members(df_BC, fnames_all, UCC_cl, tsp)
 
     contents = header.format(
         cl_name=cl_names[0],

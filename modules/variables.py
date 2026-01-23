@@ -189,13 +189,36 @@ articles_md_path = pages_folder + "ARTICLES.md"
 # Path to the md file with the tables
 tables_md_path = pages_folder + "TABLES.md"
 
+# Default header for md files
+header_default = """---
+layout: page
+title: {} 
+permalink: {}
+style: style
+---
+
+"""
+
+#
+HTML_WARN = '⚠️ <span style="color: #99180f; font-weight: bold;">Warning: </span>'
+HTML_UTI = """<a href="/faq#what-is-the-uti-parameter" title="UTI parameter" target="_blank"><b>UTI</b></a>"""
+HTML_C3 = """<a href="/faq#what-is-the-c3-parameter" title="C3 classification" target="_blank">C3 quality</a>"""
+HTML_BAD_OC = """<a href="/faq#how-are-objects-flagged-as-likely-not-real" title="Not real open cluster" target="_blank"><u>not a real open cluster</u></a>"""
+HTML_TABLE = (
+    'See table with <a href="#tab_obj_shared" '
+    "onclick=\"activateTabById(event, 'tab_obj_shared', 'obj_shared')\">"
+    "shared members information</a>."
+)
+tsp = "    "
+
+
 # Plots paths and files
 #
 # Path to the cluster's plots
 plots_folder = "plots/"
 plots_sub_folders = ("UCC", "aladin", "gcpos")  # , "HUNT23", "CANTAT20"
 # This is a modified style that removes the Latex dependence from 'scienceplots'
-custom_style_path = "modules/E_funcs/science2.mplstyle"
+custom_style_path = "modules/D_funcs/science2.mplstyle"
 
 
 # New spiral arms

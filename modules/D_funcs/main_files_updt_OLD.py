@@ -1,15 +1,8 @@
 import numpy as np
 
-# from .ucc_entry import color_C3
-
-header_default = """---
-layout: page
-title: {} 
-permalink: {}
-style: style
----
-
-"""
+from ..variables import (
+    header_default,
+)
 
 
 def replace_text_between(
@@ -196,6 +189,35 @@ def count_OCs_classes(C3, class_order):
     return OCs_per_class
 
 
+def ucc_n_total_updt(logging, N_db_UCC, N_cl_UCC, N_members_UCC, database_md):
+    """Update the total number of entries and databases in the UCC"""
+    delimiter_a = "<!-- ND1 -->"
+    delimiter_b = "<!-- ND2 -->"
+    replacement_text = str(N_db_UCC)
+    database_md_updt = replace_text_between(
+        database_md, replacement_text, delimiter_a, delimiter_b
+    )
+
+    delimiter_a = "<!-- NT1 -->"
+    delimiter_b = "<!-- NT2 -->"
+    replacement_text = str(N_cl_UCC)
+    database_md_updt = replace_text_between(
+        database_md_updt, replacement_text, delimiter_a, delimiter_b
+    )
+
+    delimiter_a = "<!-- NM1 -->"
+    delimiter_b = "<!-- NM2 -->"
+    replacement_text = str(N_members_UCC)
+    database_md_updt = replace_text_between(
+        database_md_updt, replacement_text, delimiter_a, delimiter_b
+    )
+
+    if database_md_updt != database_md:
+        logging.info("\nNumber of DBS, OCs and members in the UCC updated")
+
+    return database_md_updt
+
+
 # def count_shared_membs(df_UCC: pd.DataFrame) -> list:
 #     """
 #     Categorizes OCs with shared members into five groups based on the number of
@@ -366,35 +388,6 @@ def count_OCs_classes(C3, class_order):
 #     #     N_members_UCC = int(match.group(1))
 
 #     return N_members_UCC
-
-
-def ucc_n_total_updt(logging, N_db_UCC, N_cl_UCC, N_members_UCC, database_md):
-    """Update the total number of entries and databases in the UCC"""
-    delimiter_a = "<!-- ND1 -->"
-    delimiter_b = "<!-- ND2 -->"
-    replacement_text = str(N_db_UCC)
-    database_md_updt = replace_text_between(
-        database_md, replacement_text, delimiter_a, delimiter_b
-    )
-
-    delimiter_a = "<!-- NT1 -->"
-    delimiter_b = "<!-- NT2 -->"
-    replacement_text = str(N_cl_UCC)
-    database_md_updt = replace_text_between(
-        database_md_updt, replacement_text, delimiter_a, delimiter_b
-    )
-
-    delimiter_a = "<!-- NM1 -->"
-    delimiter_b = "<!-- NM2 -->"
-    replacement_text = str(N_members_UCC)
-    database_md_updt = replace_text_between(
-        database_md_updt, replacement_text, delimiter_a, delimiter_b
-    )
-
-    if database_md_updt != database_md:
-        logging.info("\nNumber of DBS, OCs and members in the UCC updated")
-
-    return database_md_updt
 
 
 # def updt_UTI_main_table(UTI_msk, database_md_in: str):
