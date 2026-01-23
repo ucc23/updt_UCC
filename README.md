@@ -250,52 +250,57 @@ The last three files are uploaded to Zenodo to generate a new release.
 
 ## 4. Updating the site
 
-Updating the site requires running two scripts: `D_summ_cmmts.py` and
-`E_update_UCC_site.py`.
+Updating the site requires running the `D_update_UCC_site.py` script.
 
-The `D_summ_cmmts.py` script generates a file containing a natural language summary
-of the objects' characteristics, comments assigned to each object in different articles,
-and other relevant information (descriptors). The json files with comments are
-stored in the `data/json_cmmts/` folder (must be manually generated). The result of
-running this script is the `UCC_summ_cmmts.json` file which is used by the next script
-to generate the site content.
+This script applies the required changes to update the ucc.ar site. It processes the
+UCC catalogue and searches for modifications that need to be applied to update the site.
 
-The `E_update_UCC_site.py` script applies the required changes to update the ucc.ar
-site. It processes the **entire** UCC catalogue and searches for modifications that
-need to be applied to update the site.
-
-1. Generate/update per cluster `.md` (stored in `ucc/_clusters/`) and `.webp` files
-   (stored in the `plots/` folders)
-2. Update the main ucc site files. This includes the`ucc/_pages/DATABASE.md` as well as
-   all the tables and images used in the site
-3. Update JSON file (`ucc/assets/clusters.csv.gz`)
-4. Move all files to their final destination
-5. Check that the number of files is correct
+1. Generate/update per cluster `.webp` files (stored in the `plots/` folders)
+2. If plots were generated/updated, update the `plot_used` column in the
+   `data/df_UCC_C.csv` file
+3. Update the `UCC_summ_cmmts.json` file which contains a natural language summary
+   of the objects' characteristics, comments assigned to each object in different
+   articles, and other relevant information (descriptors). The json files with comments
+   are stored in the `data/json_cmmts/` folder (must be manually generated).
+4. Generate/update per cluster `.md` (stored in `ucc/_clusters/`) files
+5. Update the split members files (`ucc/assets/members/*.csv.gz`)
+6. Update the CSV clusters file `ucc/assets/clusters.csv.gz` and its associated JSON
+   file `clusters-manifest.json`
+7. Update the main UCC site files including tables and images
+8. Move all files to their final destination
+9. Check that the number of files is correct
 
 ### Input
 
-- `data/df_UCC_B_updt.csv`: Used to access certain columns like Names and DB
-- `data/df_UCC_C_updt.csv`: Primary source of data for most of the website content
-- `zenodo/UCC_members.parquet`: Used for generating cluster plots
+- `data/df_UCC_B.csv`: Used to access certain columns like Names and DB
+- `data/df_UCC_C.csv`: Primary source of data for most of the website content
+- `data/zenodo/UCC_members.parquet`: Used for generating cluster plots
 - `data/databases_info.json`: Latest UCC database JSON file
+- `data/json_cmmts/*.json`: JSON files with comments
 
-Several files are read to see if they need to be updated:
 - `ucc/assets/clusters.csv.gz`: JSON file with the latest UCC data
 - `ucc/_pages/XXXXX.md` (DATABASES, ARTICLES, TABLES)
 - `ucc/_tables/XXXXX_table.md` (individual table pages)
 - `ucc/_tables/dbs/{db_name}.csv` (one file for each original database in the UCC)
 - `ucc/_clusters/{cluster_name}.md` (individual cluster pages)
 
+
 ### Output
 
-- `data/df_UCC_C_updt.csv`: Updated `plot_used` column if modified
-- `ucc/assets/clusters.csv.gz`: Updated
-- `ucc/_pages/XXXXX.md`: Updated
-- `ucc/_tables/XXXXX_table.md`: Updated
-- `ucc/images/XXXXX.webp`: Updated
-- `ucc/_tables/dbs/{db_name}.md`: Updated or generated
-- `ucc/_clusters/{cluster_name}.md`: Updated or generated
 - `UCC/plots/plots_X/*/*.webp`:  Updated or generated (CMD and Aladin plots)
+
+- `data/df_UCC_C.csv`: Updated `plot_used` column if modified
+- `data/UCC_summ_cmmts.json`: Updated
+
+- `ucc/_clusters/*.md`: Updated or generated
+- `ucc/assets/members/*.csv.gz`: Updated files
+- `ucc/assets/clusters.csv.gz`: Updated
+- `ucc/assets/clusters-manifest.json`: Updated
+- `ucc/images/*.webp`: Updated
+- `ucc/_pages/*.md`: Updated
+- `ucc/_tables/*_table.md`: Updated
+
+
 
 
 
