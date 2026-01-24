@@ -1,6 +1,4 @@
 import datetime
-import gzip
-import json
 
 import numpy as np
 
@@ -16,17 +14,17 @@ from ..variables import (
 )
 
 
-def run(
-    logging, df_UCC, DBs_JSON, cmmts_JSONS, B_lookup, fnames_B, temp_UCC_cmmts_path
-):
+def run(logging, df_UCC, DBs_JSON, cmmts_JSONS, B_lookup, fnames_B):
     """ """
     logging.info("\nGenerate all summaries")
-    fpars_medians, summaries, descriptors, fpars_badges = get_summaries(
-        df_UCC, DBs_JSON
+    fpars_medians, summaries, descriptors, fpars_badges, fpars_badges_url = (
+        get_summaries(df_UCC, DBs_JSON)
     )
 
     logging.info("Add summaries to file")
-    UCC_summ_cmmts = update_summary(fpars_medians, summaries, descriptors, fpars_badges)
+    UCC_summ_cmmts = update_summary(
+        fpars_medians, summaries, descriptors, fpars_badges, fpars_badges_url
+    )
 
     logging.info("Add all comments")
     fnames_lst = list(UCC_summ_cmmts.keys())
@@ -57,10 +55,6 @@ def run(
     for obj in UCC_summ_cmmts.values():
         if "comments" in obj and isinstance(obj["comments"], list):
             obj["comments"].sort(key=lambda c: int(c.get("year", 0)), reverse=True)
-    # Store compressed
-    with gzip.open(temp_UCC_cmmts_path, "wt", encoding="utf-8") as f:
-        json.dump(UCC_summ_cmmts, f)
-    logging.info(f"Updated {temp_UCC_cmmts_path} file.")
 
     return UCC_summ_cmmts
 
@@ -71,7 +65,13 @@ def get_summaries(df_UCC, DBs_JSON):
     """
     current_year = datetime.datetime.now().year
 
-    fpars_medians, summaries, descriptors, fpars_badges = {}, {}, {}, {}
+    fpars_medians, summaries, descriptors, fpars_badges, fpars_badges_url = (
+        {},
+        {},
+        {},
+        {},
+        {},
+    )
     # Iterate trough each entry in the UCC database
     cols = df_UCC.columns
     for UCC_cl in df_UCC.itertuples(index=False, name=None):
@@ -108,7 +108,7 @@ def get_summaries(df_UCC, DBs_JSON):
         medians, large_spread = fpars_medians_spread(recent_year_i, fpars_dict)
         fpars_medians[fname0] = medians
 
-        fpars_summ, fpars_note, fpars_badges_lst = fpars_summary(
+        fpars_summ, fpars_note, fpars_badges_lst, fpars_badges_url_lst = fpars_summary(
             medians, large_spread, UCC_cl["Plx_m"], plx_dist, z_position
         )
 
@@ -151,8 +151,9 @@ def get_summaries(df_UCC, DBs_JSON):
         ]
 
         fpars_badges[fname0] = fpars_badges_lst
+        fpars_badges_url[fname0] = fpars_badges_url_lst
 
-    return fpars_medians, summaries, descriptors, fpars_badges
+    return fpars_medians, summaries, descriptors, fpars_badges, fpars_badges_url
 
 
 def level(value, thresholds, labels):
@@ -274,7 +275,7 @@ def fpars_medians_spread(recent_year_i, fpars_dict) -> tuple[dict, list]:
     """ """
     labels = {
         "dist": "distance",
-        "ext": "absorption",
+        "av": "absorption",
         "diff_ext": "differential extinction",
         "age": "age",
         "met": "metallicity",
@@ -338,7 +339,7 @@ def fpars_medians_spread(recent_year_i, fpars_dict) -> tuple[dict, list]:
                 flag_spread = rel_range < 0.2
             else:
                 flag_spread = rel_range < 0.3
-        elif name == "ext":
+        elif name == "av":
             if mx < 0.5:  # very low extinction
                 flag_spread = rel_range < 0.05
             elif mx < 1:  # low extinction
@@ -361,11 +362,11 @@ def fpars_medians_spread(recent_year_i, fpars_dict) -> tuple[dict, list]:
 
 def fpars_summary(
     medians, large_spread, plx, plx_dist, plx_z_dist
-) -> tuple[str, str, dict]:
+) -> tuple[str, str, dict, dict]:
     """Summarize fundamental astrophysical parameters."""
-    fpars_badges = {}
+    fpars_badges, fpars_badges_url = {}, {}
 
-    dist_flag, fpars_note, dist_txt = "", "", ""
+    dist_flag, fpars_note, dist_txt, dist_range = "", "", "", ""
     if "dist" in medians:
         plx_kpc = 1 / plx
         ratio_lim = 0.3
@@ -382,62 +383,80 @@ def fpars_summary(
 
         if medians["dist"] < 0.5:
             dist_txt = "Very close"
+            dist_range = (0, 0.5)
         elif medians["dist"] < 1:
             dist_txt = "Close"
+            dist_range = (0.5, 1)
         elif medians["dist"] < 3:
             dist_txt = "Relatively close"
+            dist_range = (1, 3)
         elif medians["dist"] < 5:
             dist_txt = "Distant"
+            dist_range = (3, 5)
         elif medians["dist"] < 10:
             dist_txt = "Very distant"
+            dist_range = (5, 10)
         else:
             dist_txt = "Extremely distant"
+            dist_range = (10, 1e6)
 
     fpars_badges["dist"] = dist_txt
+    fpars_badges_url["dist"] = dist_range
 
-    ext_txt = ""
-    if "ext" in medians:
-        Av = medians["ext"]
+    av_txt = ""
+    if "av" in medians:
+        Av = medians["av"]
         if Av > 10:
-            ext_txt = ", affected by <u>extremely</u> high extinction"
+            av_txt = ", affected by <u>extremely</u> high extinction"
+            av_range = (10, 1e6)
         elif Av > 5:
-            ext_txt = ", affected by very high extinction"
+            av_txt = ", affected by very high extinction"
+            av_range = (5, 10)
         elif Av > 3:
-            ext_txt = ", affected by high extinction"
+            av_txt = ", affected by high extinction"
+            av_range = (3, 5)
         elif Av > 1:
-            ext_txt = ", affected by moderate extinction"
+            av_txt = ", affected by moderate extinction"
+            av_range = (1, 3)
         else:
-            ext_txt = ", affected by low extinction"
+            av_txt = ", affected by low extinction"
+            av_range = (0, 1)
 
-        fpars_badges["ext"] = (
-            ext_txt.replace(", affected by ", "")
+        fpars_badges["av"] = (
+            av_txt.replace(", affected by ", "")
             .replace("<u>", "")
             .replace("</u>", "")
             .capitalize()
         )
+        fpars_badges_url["av"] = av_range
 
     fpars_summ = (
         f"Its parallax locates it at a {plx_dist}{dist_flag} distance, "
-        f"{plx_z_dist}{ext_txt}."
+        f"{plx_z_dist}{av_txt}."
     )
 
     if not medians:
         fpars_summ += " No fundamental parameter values are available for this object."
-        return fpars_summ, fpars_note, {}
+        return fpars_summ, fpars_note, {}, {}
 
     descriptors = []
 
     if (mass := medians.get("mass")) is not None:
         if mass > 10000:
             mass_txt = "<u>extremely</u> massive"
+            mass_range = (10000, 1e6)
         elif mass > 5000:
             mass_txt = "very massive"
+            mass_range = (5000, 10000)
         elif mass > 1000:
             mass_txt = "massive"
+            mass_range = (1000, 5000)
         elif mass < 50:
             mass_txt = "low-mass"
+            mass_range = (0, 50)
         else:
             mass_txt = ""
+            mass_range = (0, 1e6)
 
         if mass_txt != "":
             descriptors.append(mass_txt)
@@ -447,39 +466,53 @@ def fpars_summary(
                 .replace("-", " ")
                 .capitalize()
             )
+            fpars_badges_url["mass"] = mass_range
 
     if (feh := medians.get("met")) is not None:
         if feh > 1:
             feh_txt = "very metal-rich"
+            feh_range = (1, 100)
         elif feh >= 0.5:
             feh_txt = "metal-rich"
+            feh_range = (0.5, 1)
         elif feh > -0.5:
             feh_txt = "near-solar metallicity"
+            feh_range = (-0.5, 0.5)
         elif feh > -1:
             feh_txt = "metal-poor"
+            feh_range = (-1, -0.5)
         elif feh > -2:
             feh_txt = "very metal-poor"
+            feh_range = (-2, -1)
         else:
             feh_txt = "<u>extremely</u> metal-poor"
+            feh_range = (-100, -2)
 
         descriptors.append(feh_txt)
         fpars_badges["feh"] = (
             feh_txt.replace("<u>", "").replace("</u>", "").capitalize()
         )
+        fpars_badges_url["feh"] = feh_range
 
     if (age := medians.get("age")) is not None:
         if age < 20:
             age_txt = "very young"
+            age_range = (0, 20)
         elif age < 100:
             age_txt = "young"
+            age_range = (20, 100)
         elif age < 1000:
             age_txt = "intermediate-age"
+            age_range = (100, 1000)
         elif age < 5000:
             age_txt = "old"
+            age_range = (1000, 5000)
         elif age < 10000:
             age_txt = "very old"
+            age_range = (5000, 10000)
         else:
             age_txt = "<u>extremely</u> old"
+            age_range = (10000, 1e6)
 
         descriptors.append(age_txt)
         fpars_badges["age"] = (
@@ -488,6 +521,7 @@ def fpars_summary(
             .replace("</u>", "")
             .capitalize()
         )
+        fpars_badges_url["age"] = age_range
 
     if medians.get("blue_str", 0) > 0:
         fpars_note += (
@@ -495,6 +529,7 @@ def fpars_summary(
             "This object contains blue stragglers according to at least one source.</p>"
         )
         fpars_badges["bss"] = "Contains BSS"
+        fpars_badges_url["bss"] = (0, 1e6)
 
     spread_txt = ""
     if large_spread:
@@ -519,7 +554,7 @@ def fpars_summary(
         "Parameters</a>)."
     )
 
-    return fpars_summ, fpars_note, fpars_badges
+    return fpars_summ, fpars_note, fpars_badges, fpars_badges_url
 
 
 def get_summary(
@@ -652,7 +687,9 @@ def dupl_summary(shared_members_p, C_dup, C_dup_same_db, duplicate, dup_warn):
     return dup_summary, dupl_note
 
 
-def update_summary(fpars_medians, summaries, descriptors, fpars_badges):
+def update_summary(
+    fpars_medians, summaries, descriptors, fpars_badges, fpars_badges_url
+):
     """ """
     # Round fundamental parameters medians to 4 decimal places
     fpars_round = {
@@ -679,6 +716,7 @@ def update_summary(fpars_medians, summaries, descriptors, fpars_badges):
             "summary": summary,
             "descriptors": descriptors[fname0],
             "fpars_badges": fpars_badges[fname0],
+            "fpars_badges_url": fpars_badges_url[fname0],
             "fpars_medians": fpars_round[fname0],
         }
         # N_new += 1

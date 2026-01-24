@@ -105,23 +105,37 @@ def main():
     ###########################################
 
     ###########################################
-    summ_cmmts_file = "stored"
+    summ_cmmts_file = "STORED"
     if input("\nUpdate summaries and comments? (y/n): ").lower() == "y":
-        UCC_summ_cmmts = ucc_summ_cmmts.run(
+        UCC_summ_cmmts_new = ucc_summ_cmmts.run(
             logging,
             df_BC,
             DBs_JSON,
             cmmts_JSONS,
             B_lookup,
             fnames_B,
-            temp_UCC_cmmts_path,
         )
-        summ_cmmts_file = "generated"
+
+        if UCC_summ_cmmts_new != UCC_summ_cmmts:
+            UCC_summ_cmmts = UCC_summ_cmmts_new
+            # Store new JSON file
+            with gzip.open(temp_UCC_cmmts_path, "wt", encoding="utf-8") as f:
+                json.dump(UCC_summ_cmmts, f)
+            logging.info(f"Updated {temp_UCC_cmmts_path} file.")
+            summ_cmmts_file = "GENERATED"
+        else:
+            logging.info("No changes in summaries and comments.")
+
     ###########################################
 
     ###########################################
     # Update per cluster md files. If no changes are expected, this step can be skipped
-    if input(f"\nUpdate md files using {summ_cmmts_file} summ+cmmts file ? (y/n): ").lower() == "y":
+    if (
+        input(
+            f"\nUpdate md files using {summ_cmmts_file} summ+cmmts file ? (y/n): "
+        ).lower()
+        == "y"
+    ):
         updt_ucc_cluster_files(
             logging,
             ucc_entries_path,
@@ -557,7 +571,7 @@ def updt_ucc_cluster_files(
         UCC_cl = dict(zip(cols, UCC_cl))
         fname0 = str(UCC_cl["fname"])
 
-        # if fname0 not in ("berkeley32",):
+        # if fname0 not in ("pismis3", "ryu1"):
         #     continue
         # if "melotte" not in fname0:
         #     continue
@@ -902,9 +916,7 @@ def move_files(
             fpath = root_ucc_path + letter_fold + fold + "/"
             if os.path.exists(temp_fpath):
                 for file in os.listdir(temp_fpath):
-                    planned_actions.append(
-                        ("move", temp_fpath + file, fpath + file)
-                    )
+                    planned_actions.append(("move", temp_fpath + file, fpath + file))
                     all_plot_folds.append(fpath)
 
     # --- Updated C file ---
@@ -917,9 +929,7 @@ def move_files(
 
     # --- Updated comments file ---
     if os.path.exists(temp_UCC_cmmts_path):
-        planned_actions.append(
-            ("replace", temp_UCC_cmmts_path, UCC_cmmts_path)
-        )
+        planned_actions.append(("replace", temp_UCC_cmmts_path, UCC_cmmts_path))
 
     # --- Move files inside temporary ucc/ ---
     temp_ucc_fold = temp_folder + ucc_path
@@ -931,13 +941,22 @@ def move_files(
 
     # --- Show planned actions ---
     logging.info("\nPlanned actions:")
-    for action, src, dst in planned_actions:
+
+    # Extract actions related to _clusters folder
+    cluster_actions = [a for a in planned_actions if "_clusters" in a[2]]
+    other_actions = [a for a in planned_actions if "_clusters" not in a[2]]
+
+    for action, src, dst in other_actions:
         if action == "move":
             logging.info(f"  MOVE     {src} -> {dst}")
         elif action == "replace":
             logging.info(f"  REPLACE  {src} -> {dst}")
         elif action == "delete":
             logging.info(f"  DELETE   {src}")
+    if cluster_actions:
+        logging.info(
+            f"  MOVE     {len(cluster_actions)} '_clusters/*.md' files will be updated"
+        )
 
     # --- Ask for confirmation ---
     resp = input("\nProceed with these actions? [y/N]: ").strip().lower()
@@ -947,11 +966,17 @@ def move_files(
 
     # --- Apply actions ---
     logging.info("\nApplying actions:")
+
+    if cluster_actions:
+        logging.info(
+            f"_temp_updt/ucc/clusters/*.md -> ucc/_clusters/*.md ({len(cluster_actions)} files)"
+        )
+
     for action, src, dst in planned_actions:
         if action == "move":
-            # os.makedirs(os.path.dirname(dst), exist_ok=True)
             os.rename(src, dst)
-            logging.info(f"{src} -> {dst}")
+            if "_clusters" not in dst:
+                logging.info(f"{src} -> {dst}")
         elif action == "replace":
             os.replace(src, dst)
             logging.info(f"{src} -> {dst}")

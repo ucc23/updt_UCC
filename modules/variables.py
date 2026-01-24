@@ -71,7 +71,7 @@ C_lit_max = 0.3
 # Order used to store the fundamental parameters in the B database
 fpars_order = (
     "dist",
-    "ext",
+    "av",
     "diff_ext",
     "age",
     "met",
