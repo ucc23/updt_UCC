@@ -281,6 +281,7 @@ def round_columns(df: pd.DataFrame) -> pd.DataFrame:
 
 def diff_between_dfs(
     logging,
+    cat_name: str,
     df_old: pd.DataFrame,
     df_new: pd.DataFrame,
     order_col: str = "fname",
@@ -347,7 +348,7 @@ def diff_between_dfs(
         non_matching2 = [row for row in rows2 if tuple(row) not in set1]
 
     if len(non_matching1) == 0 and len(non_matching2) == 0:
-        logging.info("No differences found\n")
+        logging.info(f"No differences found for {cat_name}\n")
         # Return boolean indicating if any differences where found
         return False
 
