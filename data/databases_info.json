@@ -12,7 +12,7 @@
       "DEC": "_DE"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Ebv": "E_B-V_"
       },
       "dist": {
@@ -44,7 +44,7 @@
       "Rv": "RV"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Ebv": "E(B-V)"
       },
       "dist": {
@@ -79,7 +79,7 @@
       "Rv": "RVel"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Ebv": "E(B-V)"
       },
       "dist": {
@@ -112,7 +112,7 @@
       "pmde": "pmde"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Ebv": "E(B-V)"
       },
       "dist": {
@@ -139,7 +139,7 @@
       "pmde": "pmDE"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Ebv": "E(B-V)"
       },
       "dist": {
@@ -164,7 +164,7 @@
       "Rv": "RV"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Ebv": "E(B-V)"
       },
       "dist": {
@@ -192,7 +192,7 @@
       "Rv": "RV"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Ebv": "E(B-V)"
       },
       "dist": {
@@ -232,7 +232,7 @@
       "DEC": "_DE"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Ebv": "E(B-V)"
       },
       "dist": {
@@ -257,7 +257,7 @@
       "DEC": "DE_ICRS"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Ebv": "E(B-V)"
       },
       "dist": {
@@ -307,7 +307,7 @@
       "DEC": "_DE.icrs"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Ebv": "E(B-V)"
       },
       "dist": {
@@ -356,7 +356,7 @@
       "DEC": "_DE.icrs"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Ebv": "E(B-V)"
       },
       "dist": {
@@ -394,7 +394,7 @@
       "DEC": "Dec_deg"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Ebv": "E(B-V)"
       },
       "dist": {
@@ -429,7 +429,7 @@
       "DEC": "DEJ2000"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Ebv": "E(B-V)"
       },
       "dist": {
@@ -482,7 +482,7 @@
       "Rv": "RV"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Ebv": "E(B-V)"
       },
       "dist": {
@@ -545,7 +545,7 @@
       "Rv": "RV"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Ebv": "E(B-V)"
       },
       "dist": {
@@ -582,7 +582,7 @@
       "pmde": "pmDE"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Ebv": "E(B-V)"
       },
       "dist": {
@@ -632,7 +632,7 @@
       "Rv": "RV"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Ebv": "E(B-V)"
       },
       "dist": {
@@ -667,7 +667,7 @@
       "DEC": "_DE.icrs"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Ebv": "E(B-V)"
       },
       "dist": {
@@ -694,7 +694,7 @@
       "pmde": "pmDE"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Ebv": "E(B-V)"
       },
       "dist": {
@@ -722,7 +722,7 @@
       "Rv": "RV"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Ebv": "E(B-V)"
       },
       "dist": {
@@ -757,7 +757,7 @@
       "pmde": "pmDE"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Ebv": "E(B-V)"
       },
       "dist": {
@@ -910,7 +910,7 @@
       "pmde": "pmDE"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Ebv": "E(B-V)"
       },
       "dist": {
@@ -1008,7 +1008,7 @@
       "DEC": "DE_ICRS"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Av": "AV"
       },
       "dist": {
@@ -1058,7 +1058,7 @@
       "Rv": "Rv"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Ebv": "E(B-V)"
       },
       "dist": {
@@ -1103,7 +1103,7 @@
       "Rv": "RV"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Ebv": "E(B-V)"
       },
       "dist": {
@@ -1266,7 +1266,7 @@
       "pmde": "pmde"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Ag": "AG"
       },
       "dist": {
@@ -1342,7 +1342,7 @@
       "pmde": "pmDEcl"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Ebv": "E(B-V)"
       },
       "dist": {
@@ -1397,7 +1397,7 @@
       "pmde": "pmDE"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Av": "AVNN"
       },
       "dist": {
@@ -1469,7 +1469,7 @@
       "pmde": "pmDE"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Ag": "AG"
       },
       "dist": {
@@ -1501,7 +1501,7 @@
       "Rv": "RV"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Av": "Av"
       },
       "dist": {
@@ -1545,7 +1545,7 @@
       "pmde": "pmDE"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Ebv": "E(B-V)"
       },
       "dist": {
@@ -1576,7 +1576,7 @@
       "pmde": "pmDE"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Ebv": "E(B-V)"
       },
       "dist": {
@@ -1614,7 +1614,7 @@
       "pmde": "pmDE"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Av": [
           "AVPM",
           "AVPf"
@@ -1686,7 +1686,7 @@
       "pmde": "pmDE"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Av": "Avmag"
       },
       "dist": {
@@ -1754,7 +1754,7 @@
       "pmde": "pmDE"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Evi": "E(V-I)"
       },
       "dist": {
@@ -1789,7 +1789,7 @@
       "Rv": "RV"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Av": "AV"
       },
       "dist": {
@@ -1818,7 +1818,7 @@
       "Rv": "RV"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Ag": "AG"
       },
       "age": {
@@ -1851,7 +1851,7 @@
       "Rv": "RV"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Ag": "AG"
       },
       "dist": {
@@ -1879,7 +1879,7 @@
       "DEC": "DE_ICRS"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Ebv": "E(B-V)"
       },
       "dist": {
@@ -1916,7 +1916,7 @@
       "pmde": "pmDE"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Av": "A0"
       },
       "age": {
@@ -1960,7 +1960,7 @@
       "Rv": "rv"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Av": "A0"
       },
       "dist": {
@@ -2078,7 +2078,7 @@
       "Rv": "RV"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Ebv": "E(B-V)"
       },
       "dist": {
@@ -2106,7 +2106,7 @@
       "pmde": "pmDE"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Av": "Av"
       },
       "dist": {
@@ -2154,7 +2154,7 @@
       "Rv": "Rv"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Av": "Av"
       },
       "dist": {
@@ -2185,7 +2185,7 @@
       "pmde": "pmDE"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Evi": "E(V-I)"
       },
       "dist": {
@@ -2239,7 +2239,7 @@
       "DEC": "DE_ICRS"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Av": "Av"
       },
       "dist": {
@@ -2299,7 +2299,7 @@
       "Rv": "RV"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Av": "AV50"
       },
       "diff_ext": {
@@ -2356,7 +2356,7 @@
       "Rv": "RVel"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Av": "A0"
       },
       "dist": {
@@ -2382,7 +2382,7 @@
       "plx": "plx"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Av": "AV50"
       },
       "dist": {
@@ -2522,7 +2522,7 @@
       "pmde": "pmDE"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Av": "AV"
       },
       "dist": {
@@ -2550,7 +2550,7 @@
       "DEC": "DE_ICRS"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Av": "AV"
       },
       "dist": {
@@ -2591,7 +2591,7 @@
       "DEC": "DE_ICRS"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Av": "Av"
       },
       "dist": {
@@ -2633,7 +2633,7 @@
       "pmde": "pmDE"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Av": "AVmag"
       },
       "dist": {
@@ -2723,7 +2723,7 @@
       "pmde": "pm_dec"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Av": "A_V"
       },
       "dist": {
@@ -2776,7 +2776,7 @@
       "DEC": "DE_ICRS"
     },
     "pars": {
-      "ext": {
+      "av": {
         "Av": "AV"
       },
       "dist": {
