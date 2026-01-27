@@ -147,6 +147,9 @@ def main():
 
     df_UCC_B = sort_year_importance(new_JSON, df_UCC_B)
 
+    # Add medians and STDDEVs of fundamental parameters
+    df_UCC_B = add_fpars_stats(df_UCC_B)
+
     # Last sanity check. Check every individual fname for duplicates
     exit_flag = duplicates_fnames_check(logging, df_UCC_B)
     if exit_flag:
@@ -157,7 +160,9 @@ def main():
         raise ValueError("Duplicated entries found in 'fnames' column")
 
     # Generate diff files to open with Meld or similar
-    diff_found = diff_between_dfs(logging, df_UCC_B_old, df_UCC_B, order_col="fnames")
+    diff_found = diff_between_dfs(
+        logging, "B cat", df_UCC_B_old, df_UCC_B, order_col="fnames"
+    )
 
     # Compare changes in 'fnames' columns between old and new df
     if diff_found:
@@ -229,8 +234,16 @@ def load_data(
     )
     # Empty dataframe
     df_UCC_B = pd.DataFrame(dbs_merged_current[0:0])
-    # Add 'DB_coords_used' empty column
-    df_UCC_B["DB_coords_used"] = ""
+    # Remove _median and _stddev columns from df_UCC_B. These are added at the end
+    # For 'blue_str' the column is named different and there is no stddev
+    fpars_order_lst = list(fpars_order)
+    fpars_order_lst.remove("blue_str")
+    cols_to_remove = (
+        [_ + "_median" for _ in fpars_order_lst]
+        + [_ + "_stddev" for _ in fpars_order_lst]
+        + ["blue_str_values"]
+    )
+    df_UCC_B = df_UCC_B.drop(columns=cols_to_remove)
 
     # Load GCs data
     df_GCs = pd.read_csv(GCs_cat)
@@ -1023,30 +1036,50 @@ def fnames_check_UCC_new_DB(
 def add_fpars_col(newDB_json, df_new, max_chars=7):
     """ """
     all_pars = {}
+    N_rows = len(df_new)
+
     # For each parameter
     for par_general in fpars_order:
         if par_general in newDB_json["pars"]:
             par = newDB_json["pars"][par_general]
 
-            flag_mult = ""
+            flag_mult = [""] * N_rows
             # err_v = , ""
+
+            # If the parameter has more than one value associated in different columns
+            # with different formats. I.e: {'dkpc': 'dmode', 'dpc': 'Dist'}
+            if len(par.items()) > 1:
+                # Add '*' indicator for multiple values (total - 1)
+                flag_mult = ["*" * (len(par.items()) - 1)] * N_rows
 
             # Select the first item (in case there are more than one)
             par_format, par_db_col = [[k, v] for k, v in par.items()][0]
-            if len(par.items()) > 1:
-                flag_mult = "*"
 
-            # Select the first column (in case there are more than one)
+            # If the parameters has more than one value associated in different columns
+            # with equivalent formats, i.e: ['[Fe/H]_1', '[Fe/H]_2'], flag and select
+            # the first one
             if isinstance(par_db_col, list):
+                flag_mult = ["*" * (len(par_db_col) - 1)] * N_rows
                 par_db_col = par_db_col[0]
-                flag_mult = "*"
 
-            # Column values as strings
+            # Column value(s) as strings
             s = df_new[par_db_col].astype(str)
-            # Check for multiple values in the selected column
-            mask = s.str.contains(r"[;,]", na=False)
-            # Flag if multiple values are found
-            flag_mult = "*" if mask.any() else flag_mult
+
+            # If the entire column has already been flagged for multiple values,
+            # skip this step
+            if "*" not in flag_mult[0]:
+                # Check for multiple values in the selected column
+                mask = s.str.contains(r"[;,]", na=False)
+                # Flag if multiple values are found
+                if mask.any():
+                    # Number of extra values = number of delimiters
+                    n_extra = s.str.count(r"[;,]")
+                    #
+                    flag_mult = np.array(flag_mult, dtype=object)
+                    flag_mult[mask] = n_extra[mask].apply(
+                        lambda n: "*" * int(n) if n > 0 else ""
+                    )
+                    flag_mult = flag_mult.tolist()
 
             # Extract parameter value
             par_v = (
@@ -1063,118 +1096,56 @@ def add_fpars_col(newDB_json, df_new, max_chars=7):
             # final_v = transf_par(par_format, par_v) + f" ± {err_v}" + flag_mult
             final_v = transf_par(par_format, par_v, flag_mult)
         else:
-            # If the parameter is not present in the new DB, fill with '-'
-            final_v = ["--"] * len(df_new)
+            # If the parameter is not present in the new DB, fill with nan
+            final_v = [np.nan] * len(df_new)
 
         all_pars[par_general] = final_v
 
-    df_new["fund_pars"] = [",".join(vals) for vals in zip(*all_pars.values())]
+    for col in all_pars.keys():
+        df_new[f"{col}"] = all_pars[col]
 
     return df_new
 
 
-def transf_par(par_n2, par_v, flag_mult):
+def transf_par(par_format, par_v, flag_mult):
     """
     In case of multiple values the first one is always selected.
     """
 
-    def fmt(x, expr):
-        if pd.isna(x) or str(x).strip() == "" or str(x) == "nan":
-            return "--"
-        return expr(x)
+    def valid(x):
+        return not (pd.isna(x) or str(x).strip() in ("", "nan"))
 
-    # Ages as [Myr]
-    if par_n2 == "loga":
-        return par_v.apply(
-            lambda x: fmt(x, lambda _: f"{10 ** float(_) / 1e6:.0f}{flag_mult}")
-        ).tolist()
-    elif par_n2 == "amyr":
-        return par_v.apply(
-            lambda x: fmt(x, lambda _: f"{float(_):.0f}{flag_mult}")
-        ).tolist()
-    elif par_n2 == "agyr":
-        return par_v.apply(
-            lambda x: fmt(x, lambda _: f"{1000 * float(_):.0f}{flag_mult}")
-        ).tolist()
+    def apply(expr):
+        out = []
+        for x, f in zip(par_v, flag_mult):
+            if not valid(x):
+                out.append(np.nan)
+            else:
+                out.append(f"{expr(float(x))}{f}")
+        return out
 
-    # Metallicity as [Fe/H]
-    elif par_n2 == "feh":
-        return par_v.apply(
-            lambda x: fmt(x, lambda _: f"{float(_):.3f}{flag_mult}")
-        ).tolist()
-    elif par_n2 == "z":
-        return par_v.apply(
-            lambda x: fmt(x, lambda _: f"{np.log(float(_) / c_z_sun):.3f}{flag_mult}")
-        ).tolist()
+    fmt_map = {
+        "loga": lambda x: f"{10**x / 1e6:.0f}",
+        "amyr": lambda x: f"{x:.0f}",
+        "agyr": lambda x: f"{1000 * x:.0f}",
+        "feh": lambda x: f"{x:.3f}",
+        "z": lambda x: f"{np.log(x / c_z_sun):.3f}",
+        "mass": lambda x: f"{x:.0f}",
+        "logm": lambda x: f"{10**x:.0f}",
+        "bf": lambda x: f"{x:.2f}",
+        "bs_f": lambda x: f"{x:.2f}",
+        "bs_n": lambda x: f"{x:.0f}",
+        "Av": lambda x: f"{x:.2f}",
+        "Ag": lambda x: f"{c_Ag * x:.2f}",
+        "Ebv": lambda x: f"{c_Ebv * x:.2f}",
+        "Evi": lambda x: f"{c_Evi * x:.2f}",
+        "dAv": lambda x: f"{x:.2f}",
+        "dkpc": lambda x: f"{x:.2f}",
+        "dpc": lambda x: f"{x / 1000:.2f}",
+        "dm": lambda x: f"{10 ** (0.2 * (x + 5)) / 1000:.2f}",
+    }
 
-    # Mass as [Msun]
-    elif par_n2 == "mass":
-        return par_v.apply(
-            lambda x: fmt(x, lambda _: f"{float(_):.0f}{flag_mult}")
-        ).tolist()
-    elif par_n2 == "logm":
-        return par_v.apply(
-            lambda x: fmt(x, lambda _: f"{10 ** float(_):.0f}{flag_mult}")
-        ).tolist()
-
-    # Binary fraction
-    elif par_n2 == "bf":
-        return par_v.apply(
-            lambda x: fmt(x, lambda _: f"{float(_):.2f}{flag_mult}")
-        ).tolist()
-
-    # Blue stragglers
-    elif par_n2 == "bs_f":
-        return par_v.apply(
-            lambda x: fmt(x, lambda _: f"{float(_):.2f}{flag_mult}")
-        ).tolist()
-    elif par_n2 == "bs_n":
-        return par_v.apply(
-            lambda x: fmt(x, lambda _: f"{float(_):.0f}{flag_mult}")
-        ).tolist()
-
-    # Extinction
-    elif par_n2 == "Av":
-        return par_v.apply(
-            lambda x: fmt(x, lambda _: f"{float(_):.2f}{flag_mult}")
-        ).tolist()
-    elif par_n2 == "Ag":
-        return par_v.apply(
-            lambda x: fmt(x, lambda _: f"{c_Ag * float(_):.2f}{flag_mult}")
-        ).tolist()
-    elif par_n2 == "Ebv":
-        return par_v.apply(
-            lambda x: fmt(x, lambda _: f"{c_Ebv * float(_):.2f}{flag_mult}")
-        ).tolist()
-    elif par_n2 == "Evi":
-        return par_v.apply(
-            lambda x: fmt(x, lambda _: f"{c_Evi * float(_):.2f}{flag_mult}")
-        ).tolist()
-
-    # Differential extinction
-    elif par_n2 == "dAv":
-        return par_v.apply(
-            lambda x: fmt(x, lambda _: f"{float(_):.2f}{flag_mult}")
-        ).tolist()
-
-    # Distance in [Kpc]
-    elif par_n2 == "dkpc":
-        return par_v.apply(
-            lambda x: fmt(x, lambda _: f"{float(_):.2f}{flag_mult}")
-        ).tolist()
-    elif par_n2 == "dpc":
-        return par_v.apply(
-            lambda x: fmt(x, lambda _: f"{float(_) / 1000:.2f}{flag_mult}")
-        ).tolist()
-    elif par_n2 == "dm":
-        return par_v.apply(
-            lambda x: fmt(
-                x, lambda _: f"{10 ** (0.2 * (float(_) + 5)) / 1000:.2f}{flag_mult}"
-            )
-        ).tolist()
-
-    else:
-        raise ValueError(f"Parameter format '{par_n2}' not recognized.")
+    return apply(fmt_map[par_format])
 
 
 def combine_UCC_new_DB(
@@ -1248,7 +1219,7 @@ def combine_UCC_new_DB(
             new_DB,
             new_db_dict,
             str(i_new_cl),
-            row_n["fund_pars"],
+            row_n,
             new_DB_fnames[i_new_cl],
             oc_names,
             row_ucc,
@@ -1355,7 +1326,7 @@ def updt_new_DB(
     new_DB: str,
     new_db_dict: dict,
     i_new_cl: str,
-    i_fund_pars: str,
+    row_newdb: dict,
     fnames_new_cl: list[str],
     oc_names: str,
     row_ucc: dict,
@@ -1370,36 +1341,35 @@ def updt_new_DB(
     sep: str = ";",
 ):
     """ """
-
-    def expand(val: str, n: int, pad=None):
-        """Repeat val n times joined by sep"""
-        if n == 1 or pad is None:
-            return sep.join([val] * n)
-        return sep.join([val] + [pad] * (n - 1))
-
     N = len(fnames_new_cl)
     fnames_joined = sep.join(fnames_new_cl)
 
-    # Normalize new DB entries (always done the same way)
-    new_DB_exp = expand(new_DB, N)
-    i_new_cl_exp = expand(i_new_cl, N)
-    # Use this padding for a smaller fund_pars column. Will be removed when sorting
-    fund_exp = expand(i_fund_pars, N, "-")
+    # Expand to match number of fnames, purely for consistency
+    new_DB_exp = sep.join([new_DB] * N)
+    i_new_cl_exp = sep.join([i_new_cl] * N)
 
+    fund_pars_exp = {_: "" for _ in fpars_order}
+    for par in fpars_order:
+        if par in row_newdb:
+            fund_pars_exp[par] = sep.join([str(row_newdb[par])] * N)
+        else:
+            fund_pars_exp[par] = sep.join([str(np.nan)] * N)
+
+    fund_pars = fund_pars_exp
     if len(row_ucc) == 0:
         # OC not present in UCC
         DB_ID = new_DB_exp
         DB_i = i_new_cl_exp
         names = oc_names
         fnames = fnames_joined
-        fund_pars = fund_exp
     else:
         # OC already present in UCC
         DB_ID = row_ucc["DB"] + sep + new_DB_exp
         DB_i = row_ucc["DB_i"] + sep + i_new_cl_exp
         names = row_ucc["Names"] + sep + oc_names
         fnames = row_ucc["fnames"] + sep + fnames_joined
-        fund_pars = row_ucc["fund_pars"] + sep + fund_exp
+        for par in fpars_order:
+            fund_pars[par] = row_ucc[par] + sep + fund_pars_exp[par]
 
     # Append to output dictionary
     new_db_dict["DB"].append(DB_ID)
@@ -1414,7 +1384,8 @@ def updt_new_DB(
     new_db_dict["pmRA"].append(pmra_n)
     new_db_dict["pmDE"].append(pmde_n)
     new_db_dict["DB_coords_used"].append(DB_used)
-    new_db_dict["fund_pars"].append(fund_pars)
+    for par in fpars_order:
+        new_db_dict[par].append(fund_pars[par])
 
     return new_db_dict
 
@@ -1486,7 +1457,7 @@ def sort_year_importance(new_JSON, df_UCC_B):
         "fnames": df_UCC_B["fnames"].to_list(),
         "DB": df_UCC_B["DB"].to_list(),
         "DB_i": df_UCC_B["DB_i"].to_list(),
-        "fund_pars": df_UCC_B["fund_pars"].to_list(),
+        **{k: df_UCC_B[k].to_list() for k in fpars_order},
     }
     for k, row in df_UCC_B.iterrows():
         dbs = row["DB"].split(";")
@@ -1495,7 +1466,7 @@ def sort_year_importance(new_JSON, df_UCC_B):
             fnames = np.array(row["fnames"].split(";"))
             DB = np.array(row["DB"].split(";"))
             DB_i = np.array(row["DB_i"].split(";"))
-            fund_pars = np.array(row["fund_pars"].split(";"))
+            fund_pars = [np.array(row[par].split(";")) for par in fpars_order]
 
             if len(set(dbs)) > 1:
                 # Sort by dates
@@ -1507,7 +1478,7 @@ def sort_year_importance(new_JSON, df_UCC_B):
                 fnames = fnames[isort]
                 DB = DB[isort]
                 DB_i = DB_i[isort]
-                fund_pars = fund_pars[isort]
+                fund_pars = [pars[isort] for pars in fund_pars]
 
             # Sort by importance
             i_new = order_by_name(fnames)
@@ -1522,24 +1493,66 @@ def sort_year_importance(new_JSON, df_UCC_B):
                 names = [_ for i, _ in enumerate(names) if i not in rm_idx]
             # Remove duplicates from DB, DB_i, and fund_pars
             DB, rm_idx = rm_dups(DB)
+            fund_pars_sort = list(fund_pars)
             if rm_idx:
                 DB_i = [_ for i, _ in enumerate(DB_i) if i not in rm_idx]
-                fund_pars = [_ for i, _ in enumerate(fund_pars) if i not in rm_idx]
+                fund_pars_sort = []
+                for pars in fund_pars:
+                    fund_pars_sort.append(
+                        [_ for i, _ in enumerate(pars) if i not in rm_idx]
+                    )
 
             # Update corresponding row in df_UCC_B
             new_rows["Names"][k] = ";".join(names)
             new_rows["fnames"][k] = ";".join(fnames)
             new_rows["DB"][k] = ";".join(DB)
             new_rows["DB_i"][k] = ";".join(DB_i)
-            new_rows["fund_pars"][k] = ";".join(fund_pars)
+            for idx_p, par in enumerate(fpars_order):
+                new_rows[par][k] = ";".join(fund_pars_sort[idx_p])
 
     df_UCC_B["Names"] = new_rows["Names"]
     df_UCC_B["fnames"] = new_rows["fnames"]
     df_UCC_B["DB"] = new_rows["DB"]
     df_UCC_B["DB_i"] = new_rows["DB_i"]
-    df_UCC_B["fund_pars"] = new_rows["fund_pars"]
+    for par in fpars_order:
+        df_UCC_B[par] = new_rows[par]
 
     return df_UCC_B
+
+
+def add_fpars_stats(df):
+    """For each column in 'fpars_order', calculate the median and stddev"""
+
+    for par in fpars_order:
+        # Vectorized string cleaning and splitting
+        temp_df = (
+            df[par]
+            .str.replace("*", "", regex=False)
+            .str.split(";", expand=True)
+            .apply(pd.to_numeric, errors="coerce")
+        )
+
+        if par == "blue_str":
+            # Stack to remove NaNs and convert to string
+            # Group by the original index (level 0) and join
+            df[f"{par}_values"] = (
+                temp_df.stack().astype(str).groupby(level=0).agg(";".join)
+            )
+
+            # Ensure rows that were all NaN are preserved as NaN/None
+            df[f"{par}_values"] = df[f"{par}_values"].reindex(df.index)
+            # df[f"{par}_stddev"] = np.nan
+
+        else:
+            # Standard vectorized statistics
+            med = temp_df.median(axis=1)
+            if par in {"age", "mass"}:
+                df[f"{par}_median"] = med.round().astype("Int64")
+            else:
+                df[f"{par}_median"] = med.round(4)
+            df[f"{par}_stddev"] = temp_df.std(axis=1).round(4)
+
+    return df
 
 
 def duplicates_fnames_check(logging, df_UCC_B: pd.DataFrame, sep: str = ";") -> bool:
