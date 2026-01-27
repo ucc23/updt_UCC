@@ -255,20 +255,16 @@ Updating the site requires running the `D_update_UCC_site.py` script.
 This script applies the required changes to update the ucc.ar site. It processes the
 UCC catalogue and searches for modifications that need to be applied to update the site.
 
-1. Generate/update per cluster `.webp` files (stored in the `plots/` folders)
-2. If plots were generated/updated, update the `plot_used` column in the
-   `data/df_UCC_C.csv` file
-3. Update the `UCC_summ_cmmts.json` file which contains a natural language summary
-   of the objects' characteristics, comments assigned to each object in different
-   articles, and other relevant information (descriptors). The json files with comments
-   are stored in the `data/json_cmmts/` folder (must be manually generated).
-4. Generate/update per cluster `.md` (stored in `ucc/_clusters/`) files
-5. Update the split members files (`ucc/assets/members/*.csv.gz`)
-6. Update the CSV clusters file `ucc/assets/clusters.csv.gz` and its associated JSON
-   file `clusters-manifest.json`
-7. Update the main UCC site files including tables and images
-8. Move all files to their final destination
-9. Check that the number of files is correct
+- Generate/update per cluster `.webp` files (stored in the `plots/` folders)
+- If plots were generated/updated, update the `plot_used` column in the
+  `data/df_UCC_C.csv` file
+- Generate/update per cluster `.md` (stored in `ucc/_clusters/`) files
+- Update the split members files (`ucc/assets/members/*.csv.gz`)
+- Update the CSV clusters file `ucc/assets/clusters.csv.gz` and its associated JSON
+  file `clusters-manifest.json`
+- Update the main UCC site files including tables and images
+- Move all files to their final destination
+- Check that the number of files is correct
 
 ### Input
 
@@ -290,7 +286,6 @@ UCC catalogue and searches for modifications that need to be applied to update t
 - `UCC/plots/plots_X/*/*.webp`:  Updated or generated (CMD and Aladin plots)
 
 - `data/df_UCC_C.csv`: Updated `plot_used` column if modified
-- `data/UCC_summ_cmmts.json`: Updated
 
 - `ucc/_clusters/*.md`: Updated or generated
 - `ucc/assets/members/*.csv.gz`: Updated files

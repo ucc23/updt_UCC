@@ -1,8 +1,5 @@
-import datetime
-
 import numpy as np
 
-from ..utils import get_fnames
 from ..variables import (
     HTML_BAD_OC,
     HTML_C3,
@@ -14,146 +11,135 @@ from ..variables import (
 )
 
 
-def run(logging, df_UCC, DBs_JSON, cmmts_JSONS, B_lookup, fnames_B):
+def run(current_year, UCC_cl, DBs_JSON, cmmts_JSONS_lst):
     """ """
-    logging.info("\nGenerate all summaries")
-    fpars_medians, summaries, descriptors, fpars_badges, fpars_badges_url = (
-        get_summaries(df_UCC, DBs_JSON)
+    # logging.info("\nGenerate all summaries")
+    summary, descriptors, fpars_badges, badges_url = get_summary(
+        current_year, DBs_JSON, UCC_cl
     )
 
-    logging.info("Add summaries to file")
-    UCC_summ_cmmts = update_summary(
-        fpars_medians, summaries, descriptors, fpars_badges, fpars_badges_url
-    )
+    fnames0 = UCC_cl["fnames"].split(";")
 
-    logging.info("Add all comments")
-    fnames_lst = list(UCC_summ_cmmts.keys())
-    for art_ID, cmmt_json_dict in cmmts_JSONS.items():
-        # if fname_json is not None:
-        #
-        art_name, art_year, art_url, art_cmmts, fnames_found = get_comments(
-            logging, B_lookup, art_ID, cmmt_json_dict
-        )
-        #
-        UCC_summ_cmmts = update_comments(
-            fnames_lst,
-            UCC_summ_cmmts,
-            fnames_B,
-            art_ID,
-            art_name,
-            art_year,
-            art_url,
-            art_cmmts,
-            fnames_found,
-        )
+    comments_lst = []
+    for cmmt_json_dict in cmmts_JSONS_lst:
+        for fname0 in fnames0:
+            if fname0 in cmmt_json_dict["clusters"]:
+                art_name = cmmt_json_dict["art_name"]
+                art_year = cmmt_json_dict["art_year"]
+                art_url = cmmt_json_dict["art_url"]
 
-    # Check the 'fnames' columns in df_UCC_B and df_UCC_C_final dataframes are equal
-    if not df_UCC["fname"].to_list() == list(UCC_summ_cmmts.keys()):
-        raise ValueError("The 'fname' columns in B/C and final JSON differ")
+                comments_lst.append(
+                    {
+                        "name": art_name,
+                        "url": art_url,
+                        "year": art_year,
+                        "comment": cmmt_json_dict["clusters"][fname0],
+                    }
+                )
+                break
 
-    # Sort comments by year (descending) for each entry
-    for obj in UCC_summ_cmmts.values():
-        if "comments" in obj and isinstance(obj["comments"], list):
-            obj["comments"].sort(key=lambda c: int(c.get("year", 0)), reverse=True)
+    # # Check the 'fnames' columns in df_UCC_B and df_UCC_C_final dataframes are equal
+    # if not df_UCC["fname"].to_list() == list(UCC_summ_cmmts.keys()):
+    #     raise ValueError("The 'fname' columns in B/C and final JSON differ")
 
-    return UCC_summ_cmmts
+    # # Sort comments by year (descending) for each entry
+    # for obj in UCC_summ_cmmts.values():
+    #     if "comments" in obj and isinstance(obj["comments"], list):
+    #         obj["comments"].sort(key=lambda c: int(c.get("year", 0)), reverse=True)
+
+    return summary, descriptors, fpars_badges, badges_url, comments_lst
 
 
-def get_summaries(df_UCC, DBs_JSON):
+def get_summary(current_year, DBs_JSON, UCC_cl):
     """
     Generate a textual summary and UTI descriptors for an astronomical object.
     """
-    current_year = datetime.datetime.now().year
 
-    fpars_medians, summaries, descriptors, fpars_badges, fpars_badges_url = (
-        {},
-        {},
-        {},
-        {},
-        {},
+    # summaries, descriptors, fpars_badges, fpars_badges_url = (
+    #     {},
+    #     {},
+    #     {},
+    #     {},
+    # )
+
+    # # Iterate trough each entry in the UCC database
+    # cols = df_UCC.columns
+    # for UCC_cl in df_UCC.itertuples(index=False, name=None):
+    #     UCC_cl = dict(zip(cols, UCC_cl))
+    #     fname0 = UCC_cl["fname"]
+
+    (
+        members,
+        density,
+        quality,
+        literature,
+        duplicate,
+        dup_warn,
+        plx_dist,
+        z_position,
+    ) = get_C_txt(
+        UCC_cl["C_N"],
+        UCC_cl["C_dens"],
+        UCC_cl["C_C3"],
+        UCC_cl["C_lit"],
+        UCC_cl["C_dup"],
+        UCC_cl["Plx_m"],
+        UCC_cl["Z_GC"],
     )
-    # Iterate trough each entry in the UCC database
-    cols = df_UCC.columns
-    for UCC_cl in df_UCC.itertuples(index=False, name=None):
-        UCC_cl = dict(zip(cols, UCC_cl))
-        fname0 = UCC_cl["fname"]
 
-        (
-            members,
-            density,
-            quality,
-            literature,
-            duplicate,
-            dup_warn,
-            plx_dist,
-            z_position,
-        ) = get_C_txt(
-            UCC_cl["C_N"],
-            UCC_cl["C_dens"],
-            UCC_cl["C_C3"],
-            UCC_cl["C_lit"],
-            UCC_cl["C_dup"],
-            UCC_cl["Plx_m"],
-            UCC_cl["Z_GC"],
+    large_spread = fpars_spread(current_year, DBs_JSON, UCC_cl)
+
+    # Extract medians
+    medians = {}
+    for par in fpars_order:
+        par_v = UCC_cl[par + "_median"]
+        if not np.isnan(par_v):
+            medians[par] = par_v
+
+    fpars_summ, fpars_note, fpars_badges_lst, fpars_badges_url_lst = fpars_summary(
+        medians, large_spread, UCC_cl["Plx_m"], plx_dist, z_position
+    )
+
+    cl_name0 = UCC_cl["Names"].split(";")[0]
+    summary = f"{tsp}<b>{cl_name0}</b> is a {members}, {density} object of {quality} {HTML_C3}."
+
+    summary += " " + fpars_summ
+    summary += " " + lit_summary(current_year, UCC_cl["DB"], literature)
+
+    dup_summ, dup_note = dupl_summary(
+        UCC_cl["shared_members_p"],
+        UCC_cl["C_dup"],
+        UCC_cl["C_dup_same_db"],
+        duplicate,
+        dup_warn,
+    )
+    summary += f" {dup_summ}{fpars_note}{dup_note}"
+
+    # Bad OC warning
+    if UCC_cl["bad_oc"] == "y":
+        summary += (
+            f"<p>{HTML_WARN}the low {HTML_UTI} value and no obvious signs of "
+            f"duplication (<i>C<sub>dup</sub>={UCC_cl['C_dup']}</i>) indicate that this "
+            f"is quite probably an asterism, moving group, or artifact, and {HTML_BAD_OC}.</p>"
         )
 
-        # Generate fundamental parameters table
-        recent_year_i, fpars_dict = fpars_in_lit(
-            current_year,
-            DBs_JSON,
-            UCC_cl["DB"],
-            UCC_cl["fund_pars"],
-        )
+    # Descriptors, for back of summary card
+    UTI_C_N_desc = members.capitalize()
+    UTI_C_dens_desc = density.capitalize()
+    UTI_C_C3_desc = quality.capitalize() + " quality"
+    UTI_C_lit_desc = literature.replace("</u>", "").replace("<u>", "").capitalize()
+    UTI_C_dup_desc = (
+        duplicate.replace("</u>", "").replace("<u>", "").replace("a ", "").capitalize()
+    )
+    descriptors = [
+        UTI_C_N_desc,
+        UTI_C_dens_desc,
+        UTI_C_C3_desc,
+        UTI_C_lit_desc,
+        UTI_C_dup_desc,
+    ]
 
-        medians, large_spread = fpars_medians_spread(recent_year_i, fpars_dict)
-        fpars_medians[fname0] = medians
-
-        fpars_summ, fpars_note, fpars_badges_lst, fpars_badges_url_lst = fpars_summary(
-            medians, large_spread, UCC_cl["Plx_m"], plx_dist, z_position
-        )
-
-        cl_name0 = UCC_cl["Names"].split(";")[0]
-        summaries[fname0] = get_summary(
-            cl_name0,
-            UCC_cl["DB"],
-            UCC_cl["shared_members_p"],
-            UCC_cl["C_dup"],
-            UCC_cl["C_dup_same_db"],
-            UCC_cl["bad_oc"],
-            members,
-            density,
-            quality,
-            fpars_summ,
-            current_year,
-            literature,
-            duplicate,
-            dup_warn,
-            fpars_note,
-        )
-
-        # Descriptors, for back of summary card
-        UTI_C_N_desc = members.capitalize()
-        UTI_C_dens_desc = density.capitalize()
-        UTI_C_C3_desc = quality.capitalize() + " quality"
-        UTI_C_lit_desc = literature.replace("</u>", "").replace("<u>", "").capitalize()
-        UTI_C_dup_desc = (
-            duplicate.replace("</u>", "")
-            .replace("<u>", "")
-            .replace("a ", "")
-            .capitalize()
-        )
-        descriptors[fname0] = [
-            UTI_C_N_desc,
-            UTI_C_dens_desc,
-            UTI_C_C3_desc,
-            UTI_C_lit_desc,
-            UTI_C_dup_desc,
-        ]
-
-        fpars_badges[fname0] = fpars_badges_lst
-        fpars_badges_url[fname0] = fpars_badges_url_lst
-
-    return fpars_medians, summaries, descriptors, fpars_badges, fpars_badges_url
+    return summary, descriptors, fpars_badges_lst, fpars_badges_url_lst
 
 
 def level(value, thresholds, labels):
@@ -198,6 +184,8 @@ def get_C_txt(C_N, C_dens, C_C3, C_lit, C_dup, plx, Z_GC):
             "well below the mid-plane",
         ],
     )
+    # Add click event that takes you to the tab with the plot
+    z_position = f"""<a href="#tab_gcpos" onclick="activateTabById(event, 'tab_gcpos', 'gcpos')">{z_position}</a>"""
 
     literature = level(
         C_lit,
@@ -236,42 +224,12 @@ def get_C_txt(C_N, C_dens, C_C3, C_lit, C_dup, plx, Z_GC):
     )
 
 
-def fpars_in_lit(
+def fpars_spread(
     current_year: int,
     DBs_json: dict,
-    DBs: str,
-    fund_pars: str,
-    recent_years=5,
-) -> tuple[int, dict]:
-    """
-    DBs_json: JSON that contains the data for all DBs
-    DBs: DBs where this cluster is present
-    """
-
-    # Reverse years order to show the most recent first
-    DBs_lst, fund_pars_lst = DBs.split(";")[::-1], fund_pars.split(";")[::-1]
-
-    # Index of last value in pars_years that is equal to (current_year - recent_years)
-    recent_year_i = -1
-    fpars_dict = {par: [] for par in fpars_order}
-
-    for i, (db, pars) in enumerate(zip(DBs_lst, fund_pars_lst)):
-        info = DBs_json[db]
-
-        if int(info["year"]) >= current_year - recent_years:
-            recent_year_i = i
-
-        values = pars.split(",")
-        if all(v == "--" for v in values):
-            continue
-
-        for x, par in zip(values, fpars_order):
-            fpars_dict[par].append(np.nan if x == "--" else float(x.replace("*", "")))
-
-    return recent_year_i, fpars_dict
-
-
-def fpars_medians_spread(recent_year_i, fpars_dict) -> tuple[dict, list]:
+    UCC_cl_row: dict,
+    max_years_gap=5,
+) -> list:
     """ """
     labels = {
         "dist": "distance",
@@ -284,46 +242,46 @@ def fpars_medians_spread(recent_year_i, fpars_dict) -> tuple[dict, list]:
         "blue_str": "blue stragglers",
     }
 
-    medians, large_spread = {}, []
-    for name, vals in fpars_dict.items():
-        # if name in ("diff_ext", "bi_frac"):
-        #     # Not used in the parameters summary, skip median and spread check
-        #     continue
+    max_i = -1
+    for i, db in enumerate(UCC_cl_row["DB"].split(";")):
+        # Check if the year of this DB is recent
+        if current_year - int(DBs_json[db]["year"]) <= max_years_gap:
+            max_i = i
+            break
+    if max_i < 0:
+        return []
 
-        arr = np.array(vals, dtype=float)
-        valid = arr[np.isfinite(arr)]
-        if valid.size == 0:
+    large_spread = []
+    for par in fpars_order:
+        if isinstance(UCC_cl_row[par], float):
+            # Single value
             continue
 
-        if valid.size == 1:
-            medians[name] = valid[0]
+        # Use only recent values
+        cl_vals = UCC_cl_row[par].split(";")[max_i:]
+        # Use only non-nan values
+        cl_vals = [x for x in cl_vals if x != "nan"]
+
+        if not cl_vals:
+            # No non-nan values
             continue
 
-        if name == "blue_str":
-            # BSS values can be either fractions or total number. Select the
-            # first value (more recent)
-            median = valid[0]
-        else:
-            median = np.median(valid)
+        cl_vals = [_.replace("*", "") for _ in cl_vals]
+        cl_vals = [float(x) for x in cl_vals]
+        mn, mx = min(cl_vals), max(cl_vals)
 
-        medians[name] = median
-
-        # Estimate large spread for recent sources
-        arr_recent = np.array(vals[:recent_year_i], dtype=float)
-        valid_recent = arr_recent[np.isfinite(arr_recent)]
-        if valid_recent.size == 0:
+        if mx == mn:
             continue
 
-        mx, mn = valid_recent.max(), valid_recent.min()
         if mx == 0:
             mx += 0.01
         rel_range = mn / mx
 
         flag_spread = False
 
-        if name == "met":
+        if par == "met":
             flag_spread = (mx - mn) > 0.3
-        elif name == "age":
+        elif par == "age":
             if mx < 50:  # very young clusters
                 flag_spread = rel_range < 0.1
             if mx < 100:  # young clusters
@@ -332,21 +290,21 @@ def fpars_medians_spread(recent_year_i, fpars_dict) -> tuple[dict, list]:
                 flag_spread = rel_range < 0.2
             else:
                 flag_spread = rel_range < 0.3
-        elif name == "dist":
+        elif par == "dist":
             if mx < 0.5:  # very nearby clusters
                 flag_spread = rel_range < 0.1
             elif mx < 1.0:  # nearby clusters
                 flag_spread = rel_range < 0.2
             else:
                 flag_spread = rel_range < 0.3
-        elif name == "av":
+        elif par == "av":
             if mx < 0.5:  # very low extinction
                 flag_spread = rel_range < 0.05
             elif mx < 1:  # low extinction
                 flag_spread = rel_range < 0.15
             else:
                 flag_spread = rel_range < 0.3
-        elif name == "mass":
+        elif par == "mass":
             if mx < 500:  # very low-mass clusters / associations
                 flag_spread = rel_range < 0.1
             elif mx < 1e3:  # low-mass clusters / associations
@@ -355,15 +313,23 @@ def fpars_medians_spread(recent_year_i, fpars_dict) -> tuple[dict, list]:
                 flag_spread = rel_range < 0.3
 
         if flag_spread:
-            large_spread.append(labels[name])
+            large_spread.append(labels[par])
 
-    return medians, large_spread
+    return large_spread
 
 
 def fpars_summary(
-    medians, large_spread, plx, plx_dist, plx_z_dist
+    medians, large_spread, plx, plx_dist, z_position
 ) -> tuple[str, str, dict, dict]:
     """Summarize fundamental astrophysical parameters."""
+
+    if not medians:
+        fpars_summ = (
+            f"Its parallax locates it at a {plx_dist} distance, {z_position}."
+            + " No fundamental parameter values are available for this object."
+        )
+        return fpars_summ, "", {}, {}
+
     fpars_badges, fpars_badges_url = {}, {}
 
     dist_flag, fpars_note, dist_txt, dist_range = "", "", "", ""
@@ -400,8 +366,8 @@ def fpars_summary(
             dist_txt = "Extremely distant"
             dist_range = (10, 1e6)
 
-    fpars_badges["dist"] = dist_txt
-    fpars_badges_url["dist"] = dist_range
+        fpars_badges["dist"] = dist_txt
+        fpars_badges_url["dist"] = dist_range
 
     av_txt = ""
     if "av" in medians:
@@ -432,12 +398,8 @@ def fpars_summary(
 
     fpars_summ = (
         f"Its parallax locates it at a {plx_dist}{dist_flag} distance, "
-        f"{plx_z_dist}{av_txt}."
+        f"{z_position}{av_txt}."
     )
-
-    if not medians:
-        fpars_summ += " No fundamental parameter values are available for this object."
-        return fpars_summ, fpars_note, {}, {}
 
     descriptors = []
 
@@ -557,47 +519,6 @@ def fpars_summary(
     return fpars_summ, fpars_note, fpars_badges, fpars_badges_url
 
 
-def get_summary(
-    name,
-    cl_DB,
-    shared_members_p,
-    C_dup,
-    C_dup_same_db,
-    bad_oc,
-    members,
-    density,
-    quality,
-    fpars_summ,
-    current_year,
-    literature,
-    duplicate,
-    dup_warn,
-    fpars_note,
-):
-    """ """
-    summary = (
-        f"{tsp}<b>{name}</b> is a {members}, {density} object of {quality} {HTML_C3}."
-    )
-
-    summary += " " + fpars_summ
-    summary += " " + lit_summary(current_year, cl_DB, literature)
-
-    dup_summ, dup_note = dupl_summary(
-        shared_members_p, C_dup, C_dup_same_db, duplicate, dup_warn
-    )
-    summary += f" {dup_summ}{fpars_note}{dup_note}"
-
-    # Bad OC warning
-    if bad_oc == "y":
-        summary += (
-            f"<p>{HTML_WARN}the low {HTML_UTI} value and no obvious signs of "
-            f"duplication (<i>C<sub>dup</sub>={C_dup}</i>) indicate that this "
-            f"is quite probably an asterism, moving group, or artifact, and {HTML_BAD_OC}.</p>"
-        )
-
-    return summary
-
-
 def lit_summary(current_year, cl_DB, literature, year_gap=3) -> str:
     """ """
     parts = cl_DB.split(";")
@@ -687,122 +608,120 @@ def dupl_summary(shared_members_p, C_dup, C_dup_same_db, duplicate, dup_warn):
     return dup_summary, dupl_note
 
 
-def update_summary(
-    fpars_medians, summaries, descriptors, fpars_badges, fpars_badges_url
-):
-    """ """
-    # Round fundamental parameters medians to 4 decimal places
-    fpars_round = {
-        k: {kk: round(vv, 4) if isinstance(vv, float) else vv for kk, vv in v.items()}
-        for k, v in fpars_medians.items()
-    }
+# def update_summary(
+#     fpars_medians, summaries, descriptors, fpars_badges, fpars_badges_url
+# ):
+#     """ """
+#     # Round fundamental parameters medians to 4 decimal places
+#     fpars_round = {
+#         k: {kk: round(vv, 4) if isinstance(vv, float) else vv for kk, vv in v.items()}
+#         for k, v in fpars_medians.items()
+#     }
 
-    UCC_summ_cmmts = {}
-    for fname0, summary in summaries.items():
-        # if fname0 in UCC_summ_cmmts:
-        #     # Update summary
-        #     if summary != UCC_summ_cmmts[fname0]["summary"]:
-        #         UCC_summ_cmmts[fname0]["summary"] = summary
-        #         N_summ_updt += 1
-        #     if descriptors[fname0] != UCC_summ_cmmts[fname0]["descriptors"]:
-        #         UCC_summ_cmmts[fname0]["descriptors"] = descriptors[fname0]
-        #         N_desc_updt += 1
-        #     if fpars_badges[fname0] != UCC_summ_cmmts[fname0]["fpars_badges"]:
-        #         UCC_summ_cmmts[fname0]["fpars_badges"] = fpars_badges[fname0]
-        #         N_fbadges_updt += 1
-        # else:
-        # Create new entry
-        UCC_summ_cmmts[fname0] = {
-            "summary": summary,
-            "descriptors": descriptors[fname0],
-            "fpars_badges": fpars_badges[fname0],
-            "fpars_badges_url": fpars_badges_url[fname0],
-            "fpars_medians": fpars_round[fname0],
-        }
-        # N_new += 1
-    # logging.info(f"Updated summaries for {N_summ_updt} objects")
-    # logging.info(f"Updated descriptors for {N_desc_updt} objects")
-    # logging.info(f"Updated parameters badges for {N_fbadges_updt} objects")
-    # logging.info(f"Added summaries for {N_new} new objects\n")
+#     UCC_summ_cmmts = {}
+#     for fname0, summary in summaries.items():
+#         # if fname0 in UCC_summ_cmmts:
+#         #     # Update summary
+#         #     if summary != UCC_summ_cmmts[fname0]["summary"]:
+#         #         UCC_summ_cmmts[fname0]["summary"] = summary
+#         #         N_summ_updt += 1
+#         #     if descriptors[fname0] != UCC_summ_cmmts[fname0]["descriptors"]:
+#         #         UCC_summ_cmmts[fname0]["descriptors"] = descriptors[fname0]
+#         #         N_desc_updt += 1
+#         #     if fpars_badges[fname0] != UCC_summ_cmmts[fname0]["fpars_badges"]:
+#         #         UCC_summ_cmmts[fname0]["fpars_badges"] = fpars_badges[fname0]
+#         #         N_fbadges_updt += 1
+#         # else:
+#         # Create new entry
+#         UCC_summ_cmmts[fname0] = {
+#             "summary": summary,
+#             "descriptors": descriptors[fname0],
+#             "fpars_badges": fpars_badges[fname0],
+#             "fpars_badges_url": fpars_badges_url[fname0],
+#             "fpars_medians": fpars_round[fname0],
+#         }
+#         # N_new += 1
+#     # logging.info(f"Updated summaries for {N_summ_updt} objects")
+#     # logging.info(f"Updated descriptors for {N_desc_updt} objects")
+#     # logging.info(f"Updated parameters badges for {N_fbadges_updt} objects")
+#     # logging.info(f"Added summaries for {N_new} new objects\n")
 
-    return UCC_summ_cmmts
-
-
-def get_comments(
-    logging, B_lookup, art_ID, cmmt_json_dict
-) -> tuple[str, str, str, list, dict]:
-    """Read JSON file with comments from article"""
-
-    art_name = cmmt_json_dict["art_name"]
-    art_year = cmmt_json_dict["art_year"]
-    art_url = cmmt_json_dict["art_url"]
-    # art_clusters = cmmt_json_dict["clusters"].keys()
-    # art_cmmts = list(cmmt_json_dict["clusters"].values())
-    art_clusters, art_cmmts = zip(*cmmt_json_dict["clusters"])
-
-    # Convert all names to fnames
-    jsonf_fnames = get_fnames(art_clusters)
-
-    # Check which objects in the JSON file are in the UCC
-    not_found = []
-    fnames_found = {}
-    for i, fnames in enumerate(jsonf_fnames):
-        not_found_in = []
-        for fname in fnames:
-            idx = B_lookup.get(fname)
-            if idx is None:
-                not_found_in.append(fname)
-            else:
-                fnames_found[i] = idx
-        if not_found_in:
-            not_found.append(not_found_in)
-    if not_found:
-        logging.info(f"{art_ID}: {len(not_found)} objects not found in UCC")
-        # for cl_not_found in not_found:
-        #     logging.info(f"  {','.join(cl_not_found)}")
-
-    return art_name, art_year, art_url, list(art_cmmts), fnames_found
+#     return UCC_summ_cmmts
 
 
-def update_comments(
-    fnames_lst,
-    UCC_summ_cmmts,
-    fnames_B,
-    art_ID,
-    art_name,
-    art_year,
-    art_url,
-    art_cmmts,
-    fnames_found,
-):
-    """ """
-    for i, idx in fnames_found.items():
-        fname0 = fnames_B[idx].split(";")[0]
-        if fname0 not in fnames_lst:
-            continue
+# def get_comments(cmmt_json_dict) -> tuple[str, str, str, list, dict]:
+#     """Read JSON file with comments from article"""
 
-        comment = art_cmmts[i]
-        comment_entry = {
-            "ID": art_ID,
-            "name": art_name,
-            "url": art_url,
-            "year": art_year,
-            "comment": comment,
-        }
+#     art_name = cmmt_json_dict["art_name"]
+#     art_year = cmmt_json_dict["art_year"]
+#     art_url = cmmt_json_dict["art_url"]
+#     # art_clusters = cmmt_json_dict["clusters"].keys()
+#     # art_cmmts = list(cmmt_json_dict["clusters"].values())
+#     # art_clusters, art_cmmts = zip(*cmmt_json_dict["clusters"])
 
-        if "comments" not in UCC_summ_cmmts[fname0]:
-            UCC_summ_cmmts[fname0]["comments"] = [comment_entry]
-            # UCC_summ_cmmts[fname0]["comments"].append(comment_entry)
-        else:
-            # # Check if comment from this article already exists
-            # flag_ID = False
-            # for cmt in UCC_summ_cmmts[fname0]["comments"]:
-            #     if cmt["ID"] == art_ID:
-            #         flag_ID = True
-            #         cmt["comment"] = comment
-            #         break
-            # # If not, append new comment
-            # if flag_ID is False:
-            UCC_summ_cmmts[fname0]["comments"].append(comment_entry)
+#     # Convert all names to fnames
+#     # jsonf_fnames = get_fnames(art_clusters)
 
-    return UCC_summ_cmmts
+#     # Check which objects in the JSON file are in the UCC
+#     not_found = []
+#     fnames_found = {}
+#     for i, fnames in enumerate(jsonf_fnames):
+#         not_found_in = []
+#         for fname in fnames:
+#             idx = B_lookup.get(fname)
+#             if idx is None:
+#                 not_found_in.append(fname)
+#             else:
+#                 fnames_found[i] = idx
+#         if not_found_in:
+#             not_found.append(not_found_in)
+#     # if not_found:
+#     #     logging.info(f"{art_ID}: {len(not_found)} objects not found in UCC")
+#     # for cl_not_found in not_found:
+#     #     logging.info(f"  {','.join(cl_not_found)}")
+
+#     return art_name, art_year, art_url, list(art_cmmts), fnames_found
+
+
+# def update_comments(
+#     fnames_lst,
+#     UCC_summ_cmmts,
+#     fnames_B,
+#     art_ID,
+#     art_name,
+#     art_year,
+#     art_url,
+#     art_cmmts,
+#     fnames_found,
+# ):
+#     """ """
+#     for i, idx in fnames_found.items():
+#         fname0 = fnames_B[idx].split(";")[0]
+#         if fname0 not in fnames_lst:
+#             continue
+
+#         comment = art_cmmts[i]
+#         comment_entry = {
+#             "ID": art_ID,
+#             "name": art_name,
+#             "url": art_url,
+#             "year": art_year,
+#             "comment": comment,
+#         }
+
+#         if "comments" not in UCC_summ_cmmts[fname0]:
+#             UCC_summ_cmmts[fname0]["comments"] = [comment_entry]
+#             # UCC_summ_cmmts[fname0]["comments"].append(comment_entry)
+#         else:
+#             # # Check if comment from this article already exists
+#             # flag_ID = False
+#             # for cmt in UCC_summ_cmmts[fname0]["comments"]:
+#             #     if cmt["ID"] == art_ID:
+#             #         flag_ID = True
+#             #         cmt["comment"] = comment
+#             #         break
+#             # # If not, append new comment
+#             # if flag_ID is False:
+#             UCC_summ_cmmts[fname0]["comments"].append(comment_entry)
+
+#     return UCC_summ_cmmts

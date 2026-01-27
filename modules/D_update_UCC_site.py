@@ -1,5 +1,5 @@
 import csv
-import gzip
+import datetime
 import json
 import os
 from concurrent.futures import ProcessPoolExecutor
@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 
 from .D_funcs import ucc_entry, ucc_plots, ucc_summ_cmmts, ucc_updt_tables
-from .utils import logger
+from .utils import get_fnames, logger
 from .variables import (
     UCC_cmmts_file,
     UCC_cmmts_folder,
@@ -67,12 +67,9 @@ def main():
         df_members,
         df_C,
         df_BC,
-        UCC_summ_cmmts,
         DBs_JSON,
         DBs_full_data,
-        cmmts_JSONS,
-        B_lookup,
-        fnames_B,
+        cmmts_JSONS_lst,
         database_md,
         articles_md,
         df_clusters_CSV_current,
@@ -105,37 +102,32 @@ def main():
     ###########################################
 
     ###########################################
-    summ_cmmts_file = "STORED"
-    if input("\nUpdate summaries and comments? (y/n): ").lower() == "y":
-        UCC_summ_cmmts_new = ucc_summ_cmmts.run(
-            logging,
-            df_BC,
-            DBs_JSON,
-            cmmts_JSONS,
-            B_lookup,
-            fnames_B,
-        )
+    # summ_cmmts_file = "STORED"
+    # if input("\nUpdate summaries and comments? (y/n): ").lower() == "y":
+    #     UCC_summ_cmmts_new = ucc_summ_cmmts.run(
+    #         logging,
+    #         df_BC,
+    #         DBs_JSON,
+    #         cmmts_JSONS,
+    #         B_lookup,
+    #         fnames_B,
+    #     )
 
-        if UCC_summ_cmmts_new != UCC_summ_cmmts:
-            UCC_summ_cmmts = UCC_summ_cmmts_new
-            # Store new JSON file
-            with gzip.open(temp_UCC_cmmts_path, "wt", encoding="utf-8") as f:
-                json.dump(UCC_summ_cmmts, f)
-            logging.info(f"Updated {temp_UCC_cmmts_path} file.")
-            summ_cmmts_file = "GENERATED"
-        else:
-            logging.info("No changes in summaries and comments.")
+    #     if UCC_summ_cmmts_new != UCC_summ_cmmts:
+    #         UCC_summ_cmmts = UCC_summ_cmmts_new
+    #         # Store new JSON file
+    #         with gzip.open(temp_UCC_cmmts_path, "wt", encoding="utf-8") as f:
+    #             json.dump(UCC_summ_cmmts, f)
+    #         logging.info(f"Updated {temp_UCC_cmmts_path} file.")
+    #         summ_cmmts_file = "GENERATED"
+    #     else:
+    #         logging.info("No changes in summaries and comments.")
 
     ###########################################
 
     ###########################################
     # Update per cluster md files. If no changes are expected, this step can be skipped
-    if (
-        input(
-            f"\nUpdate md files using {summ_cmmts_file} summ+cmmts file ? (y/n): "
-        ).lower()
-        == "y"
-    ):
+    if input("\nUpdate md files ? (y/n): ").lower() == "y":
         updt_ucc_cluster_files(
             logging,
             ucc_entries_path,
@@ -143,7 +135,7 @@ def main():
             DBs_full_data,
             df_BC,
             DBs_JSON,
-            UCC_summ_cmmts,
+            cmmts_JSONS_lst,
         )
     ###########################################
 
@@ -180,9 +172,7 @@ def main():
     # This function modifies the df_BC dataframe, so it should be run at the end
     new_clusters_csv_path = ""
     if input("\nUpdate clusters CSV file? (y/n): ").lower() == "y":
-        new_clusters_csv_path = updt_cls_CSV(
-            logging, df_BC, UCC_summ_cmmts, df_clusters_CSV_current
-        )
+        new_clusters_csv_path = updt_cls_CSV(logging, df_BC, df_clusters_CSV_current)
     ###########################################
 
     if input("\nMove files to their final destination? (y/n): ").lower() == "y":
@@ -304,9 +294,6 @@ def load_data(
     pd.DataFrame,
     dict,
     dict,
-    dict,
-    dict,
-    dict,
     list,
     str,
     str,
@@ -317,10 +304,13 @@ def load_data(
     # Load current members file
     df_members = pd.read_parquet(zenodo_members_file)
 
-    cols_from_B_to_C = ["Names", "DB", "DB_i", "fnames", "fund_pars"]
-
     # Load current CSV data files
-    df_UCC_B = pd.read_csv(ucc_B_file)
+    df_UCC_B = pd.read_csv(
+        ucc_B_file,
+        dtype={
+            "blue_str_values": "string",
+        },
+    )
     logging.info(f"\nFile {ucc_B_file} loaded ({len(df_UCC_B)} entries)")
     # Replace NaN values with "nan" string only in selected columns
     selected = ["frame_limit", "shared_members", "shared_members_p"]
@@ -328,19 +318,21 @@ def load_data(
         ucc_C_file,
         converters={c: lambda x: "nan" if pd.isna(x) else str(x) for c in selected},
     )
+
     # Check B and C alignment
     fname_B = [_.split(";")[0] for _ in df_UCC_B["fnames"]]
-    # Check the 'fname' in df_UCC_B and df_UCC_C_final dataframes are equal
     if fname_B == df_UCC_C["fname"].to_list() is False:
         raise ValueError("The 'fname' columns in B and C dataframes differ")
-    logging.info(f"File {ucc_C_file} loaded ({len(df_UCC_C)} entries)")
-    # Add required B columns to df_UCC_C
-    df_BC = df_UCC_C.copy()
-    df_BC[cols_from_B_to_C] = df_UCC_B[cols_from_B_to_C]
 
-    # Load existing comments file
-    with gzip.open(f"{data_folder}{UCC_cmmts_file}", "rt", encoding="utf-8") as f:
-        UCC_summ_cmmts = json.load(f)
+    logging.info(f"File {ucc_C_file} loaded ({len(df_UCC_C)} entries)")
+    # Merge df_UCC_B and df_UCC_C dataframes
+    df_BC = pd.concat([df_UCC_B, df_UCC_C], axis=1)
+
+    # Process blue straggler values keeping the last one (most recent) as "median"
+    df_BC.rename(columns={"blue_str_values": "blue_str_median"}, inplace=True)
+    df_BC["blue_str_median"] = pd.to_numeric(
+        df_BC["blue_str_median"].astype(str).str.split(";").str[-1], errors="coerce"
+    )
 
     # Load clusters data in JSON file
     with open(name_DBs_json) as f:
@@ -352,7 +344,7 @@ def load_data(
         DBs_full_data[k] = pd.read_csv(dbs_folder + k + ".csv")
 
     # Load (and check) all comments JSON files
-    cmmts_JSONS = {}
+    cmmts_JSONS_lst = []
     json_cmmts_path = f"{data_folder}{UCC_cmmts_folder}"
     for fpath_json in os.listdir(json_cmmts_path):
         # Check for duplicate clusters keys in JSON and raise error if any.
@@ -360,7 +352,7 @@ def load_data(
         with open(f"{json_cmmts_path}{fpath_json}", "r") as f:
             raw_json = json.load(f, object_pairs_hook=list)
 
-        clusters = dict(raw_json).get("clusters")
+        clusters = dict(raw_json)["clusters"]
         if isinstance(clusters, list):
             seen = set()
             dups = {k for k, _ in clusters if k in seen or seen.add(k)}
@@ -368,15 +360,17 @@ def load_data(
                 raise ValueError(
                     f'Duplicate keys in "clusters": {", ".join(sorted(dups))}'
                 )
-        cmmts_JSONS[fpath_json.replace(".json", "")] = dict(raw_json)
 
-    df_B = pd.read_csv(f"{data_folder}{merged_dbs_file}")
-    # Extract fnames from B file
-    fnames_B = df_B["fnames"].tolist()
-    B_lookup = {}
-    for i, s in enumerate(fnames_B):
-        for token in s.split(";"):
-            B_lookup[token] = i
+        # Generate dictionary with fnames as keys and comments as values
+        cluster_names, cmmts = zip(*clusters)
+        cluster_fnames = get_fnames(cluster_names)
+        fnames_cmmts = {}
+        for i, fname in enumerate(cluster_fnames):
+            fnames_cmmts[fname[0]] = cmmts[i]
+        # Store contents of comments file
+        raw_json = dict(raw_json)
+        raw_json["clusters"] = fnames_cmmts
+        cmmts_JSONS_lst.append(raw_json)
 
     # Assign GLON bins to clusters (used to generate split members files)
     edges = [int(_) for _ in np.linspace(0, 360, 91)]
@@ -404,12 +398,9 @@ def load_data(
         df_members,
         df_UCC_C,
         df_BC,
-        UCC_summ_cmmts,
         DBs_JSON,
         DBs_full_data,
-        cmmts_JSONS,
-        B_lookup,
-        fnames_B,
+        cmmts_JSONS_lst,
         database_md,
         articles_md,
         df_clusters_CSV_current,
@@ -544,8 +535,8 @@ def updt_ucc_cluster_files(
     temp_entries_path,
     DBs_full_data,
     df_BC,
-    current_JSON,
-    UCC_summ_cmmts,
+    DBs_JSON,
+    cmmts_JSONS_lst,
 ):
     """ """
     logging.info("\nGenerating md files")
@@ -558,7 +549,9 @@ def updt_ucc_cluster_files(
         fname: bin_label for fname, bin_label in df_BC[["fname", "bin"]].values
     }
 
-    # ran_i = np.random.randint(0, len(df_UCC), size=100)
+    current_year = datetime.datetime.now().year
+
+    # ran_i = np.random.randint(0, len(df_BC), size=100)
 
     # from pyinstrument import Profiler
     # profiler = Profiler()
@@ -571,25 +564,33 @@ def updt_ucc_cluster_files(
         UCC_cl = dict(zip(cols, UCC_cl))
         fname0 = str(UCC_cl["fname"])
 
-        # if fname0 not in ("pismis3", "ryu1"):
+        # if fname0 not in ("alessi19",):
         #     continue
         # if "melotte" not in fname0:
         #     continue
         # if i_ucc not in ran_i or "cwnu" in fname0 or "cwwdl" in fname0:
         #     continue
 
+        summary, descriptors, fpars_badges, badges_url, comments_lst = (
+            ucc_summ_cmmts.run(current_year, UCC_cl, DBs_JSON, cmmts_JSONS_lst)
+        )
+
         # Generate full entry
         new_md_entry = ucc_entry.make(
             fname0,
             i_ucc,
-            UCC_summ_cmmts,
-            current_JSON,
+            DBs_JSON,
             members_files_mapping,
             DBs_full_data,
             df_BC,
             UCC_cl,
             fname_all,
             UTI_colors,
+            summary,
+            descriptors,
+            fpars_badges,
+            badges_url,
+            comments_lst,
         )
 
         # Compare old md file (if it exists) with the new md file, for this cluster
@@ -661,7 +662,6 @@ def updt_members_files(df_ucc, df_membs, temp_members_files_folder):
 def updt_cls_CSV(
     logging,
     df_BC: pd.DataFrame,
-    UCC_summ_cmmts: dict,
     df_clusters_CSV_current: pd.DataFrame,
 ) -> str:
     """
@@ -680,15 +680,6 @@ def updt_cls_CSV(
     dist_pc = np.clip(dist_pc, a_min=10, a_max=50000)
     df_BC["dist_plx_pc"] = np.round(dist_pc, 0)
 
-    # Add fundamental parameters from UCC_summ_cmmts
-    fpars_dict = {}
-    for fname0, cl_dict in UCC_summ_cmmts.items():
-        fpars_dict[fname0] = cl_dict["fpars_medians"]
-    for par in ("dist", "ext", "diff_ext", "age", "met", "mass", "bi_frac", "blue_str"):
-        df_BC[f"{par}"] = [
-            fpars_dict[fname0].get(par, np.nan) for fname0 in df_BC["fname"]
-        ]
-
     df_new = pd.DataFrame(
         df_BC[
             [
@@ -698,14 +689,14 @@ def updt_cls_CSV(
                 "DE_ICRS",
                 "GLON",
                 "GLAT",
-                "dist",
-                "ext",
-                "diff_ext",
-                "age",
-                "met",
-                "mass",
-                "bi_frac",
-                "blue_str",
+                "dist_median",
+                "av_median",
+                "diff_ext_median",
+                "age_median",
+                "met_median",
+                "mass_median",
+                "bi_frac_median",
+                "blue_str_median",
                 "N_50",
                 "P_dup",
                 "UTI",
@@ -716,6 +707,20 @@ def updt_cls_CSV(
         ]
     )
     df_new = df_new.sort_values("Name").reset_index(drop=True)
+
+    df_new.rename(
+        columns={
+            "dist_median": "dist",
+            "av_median": "av",
+            "diff_ext_median": "diff_ext",
+            "age_median": "age",
+            "met_median": "met",
+            "mass_median": "mass",
+            "bi_frac_median": "bi_frac",
+            "blue_str_median": "blue_str",
+        },
+        inplace=True,
+    )
 
     # Update CSV if required
     new_clusters_csv_path = ""

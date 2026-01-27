@@ -1,8 +1,9 @@
+import re
 from pathlib import Path
 
 import numpy as np
 
-from ..variables import fpars_headers, plots_folder, root_ucc_path
+from ..variables import fpars_headers, fpars_order, plots_folder, root_ucc_path
 
 header = """---
 layout: layout_cluster
@@ -74,7 +75,6 @@ shared_table: |
 def make(
     fname0,
     i_ucc,
-    UCC_summ_cmmts,
     current_JSON,
     members_files_mapping,
     DBs_full_data,
@@ -82,6 +82,11 @@ def make(
     UCC_cl,
     fnames_all,
     UTI_colors,
+    summary,
+    descriptors,
+    fpars_badges,
+    badges_url,
+    comments_lst,
     tsp="    ",
 ):
     """
@@ -98,25 +103,18 @@ def make(
     members_file = members_files_mapping[fname0]
 
     # Generate fundamental parameters table
-    fpars_table = fpars_in_lit(current_JSON, UCC_cl["DB"], UCC_cl["fund_pars"], tsp)
+    fpars_table, mult_vals_note_flag = fpars_in_lit(current_JSON, UCC_cl, tsp)
 
-    note_asterisk = "false"
-    if "*" in fpars_table:
-        note_asterisk = "true"
-
-    summary = UCC_summ_cmmts[fname0]["summary"]
+    # summary = UCC_summ_cmmts[fname0]["summary"]
     UTI_C_N_desc, UTI_C_dens_desc, UTI_C_C3_desc, UTI_C_lit_desc, UTI_C_dup_desc = (
-        UCC_summ_cmmts[fname0]["descriptors"]
+        descriptors
     )
 
     # Badges
     badges_names = ("dist", "av", "mass", "feh", "age", "bss")
     badge_dist, badge_av, badge_mass, badge_feh, badge_age, badge_bss = [
-        UCC_summ_cmmts[fname0]["fpars_badges"].get(k, "") for k in badges_names
+        fpars_badges.get(k, "") for k in badges_names
     ]
-
-    #
-    badges_url = UCC_summ_cmmts[fname0]["fpars_badges_url"]
 
     def make_url(key):
         if not (val := badges_url.get(key)):
@@ -143,8 +141,8 @@ def make(
 
     # Comments
     comments = ""
-    if "comments" in UCC_summ_cmmts[fname0]:
-        for cmmt in UCC_summ_cmmts[fname0]["comments"]:
+    if comments_lst:
+        for cmmt in comments_lst:
             comments += (
                 f"{tsp}<p><u><a href='{cmmt['url']}' target='_blank'>{cmmt['name']} ({cmmt['year']})</a></u>"
                 + f"<br>{cmmt['comment']}</p>"
@@ -235,7 +233,7 @@ def make(
         cds_radec=cds_radec,
         carousel=carousel,
         fpars_table=fpars_table,
-        note_asterisk=note_asterisk,
+        note_asterisk=mult_vals_note_flag,
         shared_table=shared_table,
     )
 
@@ -276,7 +274,7 @@ def positions_in_lit(DBs_json, DBs_full_data, row_UCC, tsp):
     )
 
     # Add UCC positions
-    table += f"{tsp}| **UCC** | -- |"
+    table += f"{tsp}| **UCC** |" + '<span class="hidden-cell-val">99999</span>' + "-- |"
     for col in ("RA_ICRS_m", "DE_ICRS_m", "Plx_m", "pmRA_m", "pmDE_m", "Rv_m"):
         val = "--"
         if row_UCC[col] != "" and not np.isnan(row_UCC[col]):
@@ -328,8 +326,7 @@ def positions_in_lit(DBs_json, DBs_full_data, row_UCC, tsp):
 
 def fpars_in_lit(
     DBs_json: dict,
-    DBs: str,
-    fund_pars: str,
+    UCC_cl: dict,
     tsp: str,
 ):
     """
@@ -339,26 +336,55 @@ def fpars_in_lit(
     DBs_i: Indexes where this cluster is present in each DB
     """
 
+    mult_vals_note_flag = "false"
+
     # Reverse years order to show the most recent first
-    DBs_lst, fund_pars_lst = DBs.split(";")[::-1], fund_pars.split(";")[::-1]
+    DBs_lst = UCC_cl["DB"].split(";")[::-1]
+    par_dict = {}
+    for par in fpars_order:
+        par_dict[par] = str(UCC_cl[par]).split(";")[::-1]
 
     rows = []
     for i, db in enumerate(DBs_lst):
         row = [f"[{DBs_json[db]['authors']}]({DBs_json[db]['SCIX_url']})"]
         row.append(DBs_json[db]["year"])
-        # The order is given by the 'fpars_order' variable
-        for par in fund_pars_lst[i].split(","):
-            row.append(par)
+
+        for par in fpars_order:
+            par_v = "--" if par_dict[par][i] == "nan" else par_dict[par][i]
+            if "*" in par_v:
+                mult_vals_note_flag = "true"
+                par_v = re.sub(r"\*+", f"<sup>({par_v.count('*')})</sup>", par_v)
+            row.append(par_v)
         # Filter rows where all columns after the year are '--'
         if not all(v == "--" for v in row[2:]):
             rows.append(row)
 
     if not rows:
         # Return empty values
-        return ""
+        return "", mult_vals_note_flag
 
     def md_row(row):
         return "| " + " | ".join(row) + " |"
+
+    # Properly format UCC median values
+    medians = []
+    for par in fpars_order:
+        val = UCC_cl[par + "_median"]
+        if str(val) == "nan":
+            medians.append("--")
+        else:
+            if par in ("age", "mass"):
+                medians.append(f"{val:.0f}")
+            elif par == "met":
+                medians.append(f"{val:.3f}")
+            else:
+                medians.append(f"{val}")
+
+    UCC_medians = [
+        "**UCC**",
+        '<span class="hidden-cell-val">99999</span>' + "--",
+    ] + medians
+    rows = [UCC_medians] + rows
 
     align = [":---"] + [":---:"] * (len(fpars_headers) - 1)
     table = [
@@ -368,7 +394,7 @@ def fpars_in_lit(
     ]
     table = "\n".join(tsp + line for line in table)
 
-    return table
+    return table, mult_vals_note_flag
 
 
 def color_C3(abcd):
