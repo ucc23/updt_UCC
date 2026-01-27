@@ -122,7 +122,7 @@ def main():
     df_UCC_C_final = add_info_to_C(current_JSON, df_UCC_B, df_UCC_C_final)
 
     # Check differences between the original and final C dataframes
-    diff_between_dfs(logging, df_UCC_C, df_UCC_C_final)
+    diff_between_dfs(logging, "C cat", df_UCC_C, df_UCC_C_final)
 
     # Save the generated data to temporary files before moving them
     update_files(logging, temp_zenodo_fold, df_UCC_B, df_UCC_C_final, df_members_new)
@@ -843,36 +843,39 @@ def updt_zenodo_csv(
     Generates a CSV file containing a reduced Unified Cluster Catalog
     (UCC) dataset, which can be stored in the Zenodo repository.
     """
-    # Add column
-    df_UCC_C["Name"] = df_UCC_B["Names"]
-    df_UCC_C["P_dup"] = np.round(1 - df_UCC_C["C_dup"], 2)
+    # Add columns from B to C
+    for col in (
+        "Names",
+        "dist_median",
+        "dist_stddev",
+        "av_median",
+        "av_stddev",
+        "diff_ext_median",
+        "diff_ext_stddev",
+        "age_median",
+        "age_stddev",
+        "met_median",
+        "met_stddev",
+        "mass_median",
+        "mass_stddev",
+        "bi_frac_median",
+        "bi_frac_stddev",
+        "blue_str_values",
+    ):
+        df_UCC_C[col] = df_UCC_B[col]
 
-    # Re-order columns
-    df_UCC_C = pd.DataFrame(
-        df_UCC_C[
-            [
-                "Name",
-                "RA_ICRS_m",
-                "DE_ICRS_m",
-                "GLON_m",
-                "GLAT_m",
-                "Plx_m",
-                "pmRA_m",
-                "pmDE_m",
-                "Rv_m",
-                "N_Rv",
-                "N_50",
-                "r_50",
-                "C3",
-                "P_dup",
-                "UTI",
-                "bad_oc",
-            ]
-        ]
-    )
+    # Round columns
+    df_UCC_C["P_dup"] = np.round(1 - df_UCC_C["C_dup"], 2)
+    df_UCC_C["age_median"] = np.round(df_UCC_C["age_median"], 0)
+    df_UCC_C["age_stddev"] = np.round(df_UCC_C["age_stddev"], 0)
+    df_UCC_C["mass_median"] = np.round(df_UCC_C["mass_median"], 0)
+    df_UCC_C["mass_stddev"] = np.round(df_UCC_C["mass_stddev"], 0)
+
     # Re-name columns
     df_UCC_C.rename(
         columns={
+            "Names": "Name(s)",
+            "fname": "name",
             "RA_ICRS_m": "RA_ICRS",
             "DE_ICRS_m": "DEC_ICRS",
             "GLON_m": "GLON",
@@ -881,8 +884,63 @@ def updt_zenodo_csv(
             "pmRA_m": "pmRA",
             "pmDE_m": "pmDE",
             "Rv_m": "Rv",
+            "dist_median": "Dist_[kpc]",
+            "dist_stddev": "Dist_STDDEV",
+            "av_median": "Av_[mag]",
+            "av_stddev": "Av_STDDEV",
+            "diff_ext_median": "Diff_ext_[mag]",
+            "diff_ext_stddev": "Diff_ext_STDDEV",
+            "age_median": "Age_[Myr]",
+            "age_stddev": "Age_STDDEV",
+            "met_median": "FeH_[dex]",
+            "met_stddev": "FeH_STDDEV",
+            "mass_median": "Mass_[Msun]",
+            "mass_stddev": "Mass_STDDEV",
+            "bi_frac_median": "Binary_fr",
+            "bi_frac_stddev": "Binary_fr_STDDEV",
+            "blue_str_values": "Blue_str",
         },
         inplace=True,
+    )
+
+    # Re-order columns
+    df_UCC_C = pd.DataFrame(
+        df_UCC_C[
+            [
+                "Name(s)",
+                "name",
+                "N_50",
+                "r_50",
+                "RA_ICRS",
+                "DEC_ICRS",
+                "GLON",
+                "GLAT",
+                "Plx",
+                "pmRA",
+                "pmDE",
+                "Rv",
+                "N_Rv",
+                "Dist_[kpc]",
+                "Dist_STDDEV",
+                "Av_[mag]",
+                "Av_STDDEV",
+                "Diff_ext_[mag]",
+                "Diff_ext_STDDEV",
+                "Age_[Myr]",
+                "Age_STDDEV",
+                "FeH_[dex]",
+                "FeH_STDDEV",
+                "Mass_[Msun]",
+                "Mass_STDDEV",
+                "Binary_fr",
+                "Binary_fr_STDDEV",
+                "Blue_str",
+                "C3",
+                "P_dup",
+                "UTI",
+                "bad_oc",
+            ]
+        ]
     )
 
     # Store to csv file
