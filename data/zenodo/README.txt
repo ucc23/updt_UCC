@@ -42,25 +42,42 @@ paper:
 Columns listed in the `UCC_cat.csv` file (one row per cluster):
 
 ```
-Name                : Name(s) associated to the OC
-RA_ICRS             : Right ascension
-DE_ICRS             : Declination
-GLON                : Galactic longitude
-GLAT                : Galactic latitude
-Plx                 : Parallax
-pmRA                : Right ascension proper motion
-pmDE                : Declination proper motion
-Rv                  : Radial velocity
-N_Rv                : Number of members used to estimate the radial velocity
-N_50                : Number of estimated members with P>0.5
-r_50                : Radius that contains half the members (in arcmin)
-C3                  : Combined quality class
-P_dup               : Probability that this entry is a duplicate of a previous one
-UTI                 : UCC Trust Index, a measure of the reliability of the cluster
-bad_oc              : Flag that indicates that this is likely an asterism,
-                      moving group or artifact (based on UTI value, duplication
-                      probability and presence in literature)
+Name(s)          : Name(s) associated to the OC
+name             : Formatted naming to match the members file 'main name'
+N_50             : Number of estimated members with P>0.5
+r_50             : Radius that contains half the members (in arcmin)
+RA_ICRS          : Right ascension
+DEC_ICRS         : Declination
+GLON             : Galactic longitude
+GLAT             : Galactic latitude
+Plx              : Parallax [mas]
+pmRA             : Right ascension proper motion [mas/yr]
+pmDE             : Declination proper motion [mas/yr]
+Rv               : Radial velocity [km/s]
+N_Rv             : Number of members used to estimate the radial velocity
+Dist_[kpc]       : Distance [kpc]
+Dist_STDDEV      : Distance standard deviation
+Av_[mag]         : Absorption in the V band [mag]
+Av_STDDEV]       : Absorption standard deviation
+Diff_ext_[mag]   : Differential extinction [mag]
+Diff_ext_STDDEV  : Differential extinction standard deviation
+Age_[Myr]        : Age [Myr]
+Age_STDDEV       : Age standard deviation
+FeH_[dex]        : Metallicity [dex]
+FeH_STDDEV       : Metallicity standard deviation
+Mass_[Msun]      : Mass [Msun]
+Mass_STDDEV      : Mass standard deviation
+Binary_fr        : Estimated binary fraction
+Binary_fr_STDDEV : Estimated binary fraction standard deviation
+Blue_str         : Blue stragglers value (fraction and/or total count)
+C3               : Combined quality class
+P_dup            : Probability that this entry is a duplicate of a previous one
+UTI              : UCC Trust Index, a measure of the reliability of the cluster
+bad_oc           : Flag that indicates that this is likely an asterism,
+                   moving group or artifact (based on UTI value, duplication
+                   probability and presence in literature)
 ```
+
 
 Columns listed in the `UCC_members.parquet` file (one row per star):
 
