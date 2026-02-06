@@ -567,7 +567,7 @@ def make_UTI_plot(path, UTI_vals, dpi=300):
     plt.ylabel("N")
 
     fig.tight_layout()
-    plt.savefig(path, dpi=dpi)
+    # plt.savefig(path, dpi=dpi)
     # https://stackoverflow.com/a/65910539/1391441
     fig.clear()
     plt.close(fig)
