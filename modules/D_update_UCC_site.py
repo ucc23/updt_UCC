@@ -611,7 +611,10 @@ def updt_ucc_cluster_files(
             with open(temp_entries_path / (fname0 + ".md"), "w") as f:
                 f.write(new_md_entry)
             N_total += 1
-            logging.info(f"{N_total} -> {fname0}: " + txt + f" ({i_ucc})")
+            if N_total < 1000:
+                logging.info(f"{N_total} -> {fname0}: " + txt + f" ({i_ucc})")
+            elif N_total == 1000:
+                logging.info("updating more files...")
 
     logging.info(f"\nN={N_total} OCs processed")
 
