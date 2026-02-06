@@ -51,7 +51,7 @@ badge_age: "{badge_age}"
 badge_age_url: "{badge_age_url}"
 badge_bss: "{badge_bss}"
 badge_bss_url: "{badge_bss_url}"
-badge_nofpars: {badge_nofpars}
+badge_nofpars_url: "{badge_nofpars_url}"
 comments: |
 {comments}
 class3: |
@@ -120,7 +120,7 @@ def make(
         if not (val := badges_url.get(key)):
             return ""
         vmin, vmax = val
-        return f"/search/?{key}_min={vmin}&{key}_max={vmax}"
+        return f"{key}_min={vmin}&{key}_max={vmax}"
 
     (
         badge_dist_url,
@@ -132,12 +132,15 @@ def make(
     ) = [make_url(k) for k in badges_names]
 
     # No fpars badge
-    nofpars = "false"
+    badge_nofpars_url = ""
     if all(
         b == ""
         for b in [badge_dist, badge_av, badge_mass, badge_feh, badge_age, badge_bss]
     ):
-        nofpars = "true"
+        vmin = "1e6"
+        badge_nofpars_url = f"dav_min={vmin}&bf_min={vmin}&"
+        badge_nofpars_url += "&".join([f"{k}_min={vmin}" for k in badges_names])
+        badge_nofpars_url += "&nofpars=true"
 
     # Comments
     comments = ""
@@ -223,7 +226,7 @@ def make(
         badge_age_url=badge_age_url,
         badge_bss=badge_bss,
         badge_bss_url=badge_bss_url,
-        badge_nofpars=nofpars,
+        badge_nofpars_url=badge_nofpars_url,
         comments=comments,
         class3=abcd_c,
         r_50_val=str(UCC_cl["r_50"]),
