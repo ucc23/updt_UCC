@@ -1,8 +1,9 @@
 Some of these are intermediate versions of the UCC database that are not published.
 
-## 26012012
+## 26012012-26020911
 
 - Added P_dup column to C cat
+- Added median and stddev columns for fundamental parameters
 
 
 
