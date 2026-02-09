@@ -187,7 +187,7 @@ def count_OCs_classes(C3, class_order):
     return OCs_per_class
 
 
-def ucc_n_total_updt(logging, N_db_UCC, N_cl_UCC, N_members_UCC, database_md):
+def ucc_n_total_updt(logging, N_db_UCC, N_cl_UCC, N_fpars, N_members_UCC, database_md):
     """Update the total number of entries and databases in the UCC"""
     delimiter_a = "<!-- ND1 -->"
     delimiter_b = "<!-- ND2 -->"
@@ -199,6 +199,13 @@ def ucc_n_total_updt(logging, N_db_UCC, N_cl_UCC, N_members_UCC, database_md):
     delimiter_a = "<!-- NT1 -->"
     delimiter_b = "<!-- NT2 -->"
     replacement_text = str(N_cl_UCC)
+    database_md_updt = replace_text_between(
+        database_md_updt, replacement_text, delimiter_a, delimiter_b
+    )
+
+    delimiter_a = "<!-- NP1 -->"
+    delimiter_b = "<!-- NP2 -->"
+    replacement_text = str(N_fpars)
     database_md_updt = replace_text_between(
         database_md_updt, replacement_text, delimiter_a, delimiter_b
     )

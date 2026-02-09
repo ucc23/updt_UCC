@@ -24,6 +24,7 @@ from .variables import (
     databases_md_path,
     dbs_folder,
     dbs_tables_folder,
+    fpars_order,
     images_folder,
     md_folder,
     members_files_folder,
@@ -149,9 +150,11 @@ def main():
         # Update site-wide plots
         make_site_plots(logging, temp_image_path, df_BC)
         # Update main .md files
+        N_fpars = count_fpars(df_BC)
         N_members_UCC = len(df_members)
         update_main_pages(
             logging,
+            N_fpars,
             N_members_UCC,
             DBs_JSON,
             df_BC,
@@ -767,8 +770,37 @@ def make_site_plots(logging, temp_image_path, df_BC):
     logging.info("Plot generated: UTI histogram")
 
 
+def count_fpars(df):
+    """ """
+
+    def is_number(x):
+        try:
+            float(x)
+            return True
+        except ValueError:
+            return False
+
+    N_pars = {_: 0 for _ in fpars_order}
+    for col in fpars_order:
+        count = 0
+        rows = 0
+        for row in df[col].values:
+            rows += 1
+            if str(row) != "nan":
+                if ";" in str(row):
+                    count += sum(
+                        is_number(x.replace("*", "")) for x in str(row).split(";")
+                    )
+                else:
+                    count += 1
+        N_pars[col] = count
+
+    return sum([v for k, v in N_pars.items()])
+
+
 def update_main_pages(
     logging,
+    N_fpars,
     N_members_UCC,
     current_JSON,
     df_UCC,
@@ -782,7 +814,7 @@ def update_main_pages(
     N_db_UCC, N_cl_UCC = len(current_JSON), len(df_UCC)
     # Update the total number of entries, databases, and members in the UCC
     database_md_updt = ucc_updt_tables.ucc_n_total_updt(
-        logging, N_db_UCC, N_cl_UCC, N_members_UCC, database_md
+        logging, N_db_UCC, N_cl_UCC, N_fpars, N_members_UCC, database_md
     )
     if database_md != database_md_updt:
         with open(temp_folder + databases_md_path, "w") as file:
