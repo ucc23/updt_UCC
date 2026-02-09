@@ -826,7 +826,8 @@ def update_files(
     save_df_UCC(logging, df_UCC_C_final, temp_folder + ucc_cat_file, "fname")
 
     fpath = temp_zenodo_fold + zenodo_cat_fname
-    updt_zenodo_csv(logging, df_UCC_B, df_UCC_C_final, fpath)
+    df_UCC_C_copy = df_UCC_C_final.copy()
+    updt_zenodo_csv(logging, df_UCC_B, df_UCC_C_copy, fpath)
 
     N_clusters, N_members = len(df_UCC_C_final), len(df_members_new)
     updt_readme(logging, N_clusters, N_members, temp_zenodo_fold)
