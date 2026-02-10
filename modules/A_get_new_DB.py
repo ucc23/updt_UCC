@@ -1,4 +1,5 @@
 import csv
+import datetime
 import json
 import re
 import sys
@@ -22,6 +23,7 @@ from .variables import (
 JSON_struct = {
     "SMITH2500": {
         "SCIX_url": "https://scixplorer.org/abs/xxxx",
+        "citations_count": {"date": "", "count": ""},
         "vizier_url": "N/A",
         "authors": "Smith et al.",
         "title": "Article title",
@@ -37,7 +39,7 @@ JSON_struct = {
             "Rv": [],
         },
         "pars": {
-            "ext": [],
+            "av": [],
             "diff_ext": [],
             "dist": [],
             "age": [],
@@ -47,7 +49,7 @@ JSON_struct = {
             "blue_str": [],
         },
         "e_pars": {
-            "e_ext": [],
+            "e_av": [],
             "e_diff_ext": [],
             "e_dist": [],
             "e_age": [],
@@ -106,8 +108,10 @@ def main(ADS_bibcode):
 
     # Fetch publication authors and year from NASA/ADS
     logging.info("Fetching NASA/ADS data...")
-    authors, year, title = get_ADS_data(ADS_bibcode)
-    logging.info(f"Extracted author ({authors}), year ({year}) and title:")
+    authors, year, title, citations = get_ADS_data(ADS_bibcode)
+    logging.info(
+        f"Extracted author ({authors}), year ({year}), citations ({citations}), and title:"
+    )
     logging.info(f"{title}")
 
     # 4. Generate a new database name based on extracted metadata.
@@ -157,6 +161,7 @@ def main(ADS_bibcode):
     # Update the JSON file and save the database as CSV.
     add_DB_to_JSON(
         SCIX_url,
+        citations,
         vizier_url,
         current_JSON,
         temp_JSON_file,
@@ -176,7 +181,7 @@ def main(ADS_bibcode):
     logging.info("********************************************************")
 
 
-def get_ADS_data(ADS_bibcode: str) -> tuple[str, str, str]:
+def get_ADS_data(ADS_bibcode: str) -> tuple[str, str, str, str]:
     """ """
     # ADS API endpoint for searching
     api_url = "https://api.adsabs.harvard.edu/v1/search/query"
@@ -189,7 +194,11 @@ def get_ADS_data(ADS_bibcode: str) -> tuple[str, str, str]:
     bibcode_int = ADS_bibcode.replace("%26", "&")
 
     # Define the query parameters
-    params = {"q": f"bibcode:{bibcode_int}", "fl": "author,year,title", "rows": 1}
+    params = {
+        "q": f"bibcode:{bibcode_int}",
+        "fl": "author,year,title,citation_count",
+        "rows": 1,
+    }
     # Make the request to the ADS API
     response = requests.get(api_url, headers=headers, params=params)
 
@@ -213,12 +222,13 @@ def get_ADS_data(ADS_bibcode: str) -> tuple[str, str, str]:
             title = article.get("title")[0]
             # Remove invalid characters from title
             title = re.sub(r'[<>:"/\\|?*#&]', "", title)
+            citations = str(article.get("citation_count", 0))
         else:
             raise ValueError(f"No article found with the given bibcode: {bibcode_int}")
     else:
         raise ValueError(f"Failed to fetch data: {response.status_code}")
 
-    return authors, year, title
+    return authors, year, title, citations
 
 
 def get_DB_name(current_JSON: dict, authors: str, year: str) -> str:
@@ -512,6 +522,7 @@ def proper_json_struct(df_col_id):
 
 def add_DB_to_JSON(
     SCIX_url: str,
+    citations: str,
     vizier_url: str,
     current_JSON: dict,
     temp_JSON_file: str,
@@ -525,6 +536,8 @@ def add_DB_to_JSON(
     e_pars_dict: dict,
 ) -> None:
     """ """
+    date = datetime.datetime.now().strftime("%Y-%m-%d")
+
     # Extract years in current JSON file
     years = []
     for db in current_JSON.keys():
@@ -542,6 +555,7 @@ def add_DB_to_JSON(
     # Create 'new_db_json' dictionary with the new DB's params
     new_db_json = {}
     new_db_json["SCIX_url"] = SCIX_url
+    new_db_json["citations_count"] = {"date": date, "count": citations}
     new_db_json["vizier_url"] = vizier_url
     new_db_json["authors"] = authors
     new_db_json["title"] = title
