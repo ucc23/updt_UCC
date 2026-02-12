@@ -48,9 +48,7 @@ def main():
         skip_check_flag = True
 
     # Generate paths and check for required folders and files
-    temp_database_folder, df_UCC_B_current_file, temp_JSON_file = get_paths_check_paths(
-        logging
-    )
+    temp_database_folder, df_UCC_B_path, temp_JSON_file = get_paths_check_paths(logging)
 
     (
         new_JSON,
@@ -61,7 +59,7 @@ def main():
         df_UCC_B_old,
         df_UCC_B,
         flag_interactive,
-    ) = load_data(logging, df_UCC_B_current_file, temp_JSON_file, temp_database_folder)
+    ) = load_data(logging, df_UCC_B_path, temp_JSON_file, temp_database_folder)
 
     # profiler = Profiler()
     # profiler.start()
@@ -168,18 +166,22 @@ def main():
     if diff_found:
         final_fname_compare(logging, df_UCC_B_old, df_UCC_B)
 
-    file_path = df_UCC_B_current_file.replace(data_folder, temp_folder)
+    file_path = df_UCC_B_path.replace(data_folder, temp_folder)
     save_df_UCC(logging, df_UCC_B, file_path, order_col="fnames")
 
     if input("\nMove files to their final paths? (y/n): ").lower() == "y":
         move_files(
             logging,
-            df_UCC_B_current_file,
+            df_UCC_B_path,
+            df_UCC_B_old,
             new_JSON,
             temp_JSON_file,
             all_dbs_data,
             temp_database_folder,
         )
+    else:
+        logging.info("\nFiles not moved. Resolve any issues and move them manually.")
+        sys.exit(0)
 
 
 def get_paths_check_paths(
@@ -187,7 +189,7 @@ def get_paths_check_paths(
 ) -> tuple[str, str, str]:
     """ """
     # Path to the current DBs merged file
-    df_UCC_B_current_file = data_folder + merged_dbs_file
+    df_UCC_B_path = data_folder + merged_dbs_file
 
     # If file exists, read and return it
     # last_version = get_last_version_UCC(data_folder)
@@ -208,12 +210,12 @@ def get_paths_check_paths(
     # Path to the new (temp) JSON file
     temp_JSON_file = temp_folder + name_DBs_json
 
-    return temp_database_folder, df_UCC_B_current_file, temp_JSON_file
+    return temp_database_folder, df_UCC_B_path, temp_JSON_file
 
 
 def load_data(
     logging,
-    dbs_merged_current_file: str,
+    df_UCC_B_path: str,
     temp_JSON_file: str,
     temp_database_folder: str,
 ) -> tuple[
@@ -228,12 +230,10 @@ def load_data(
 ]:
     """ """
     # Load current UCC file to extract the column names
-    dbs_merged_current = pd.read_csv(dbs_merged_current_file)
-    logging.info(
-        f"\nUCC version {dbs_merged_current_file} loaded (N={len(dbs_merged_current)})"
-    )
+    df_UCC_B_old = pd.read_csv(df_UCC_B_path, dtype={"blue_str_values": str})
+    logging.info(f"\nUCC version {df_UCC_B_path} loaded (N={len(df_UCC_B_old)})")
     # Empty dataframe
-    df_UCC_B = pd.DataFrame(dbs_merged_current[0:0])
+    df_UCC_B = pd.DataFrame(df_UCC_B_old[0:0])
     # Remove _median and _stddev columns from df_UCC_B. These are added at the end
     # For 'blue_str' the column is named different and there is no stddev
     fpars_order_lst = list(fpars_order)
@@ -315,7 +315,7 @@ def load_data(
         gcs_fnames,
         selected_center_coords,
         all_dbs_data,
-        dbs_merged_current,
+        df_UCC_B_old,
         df_UCC_B,
         new_DBs,
     )
@@ -1605,7 +1605,8 @@ def duplicates_fnames_check(logging, df_UCC_B: pd.DataFrame, sep: str = ";") -> 
 
 def move_files(
     logging,
-    dbs_merged_current_file: str,
+    df_UCC_B_path: str,
+    df_UCC_B_old: pd.DataFrame,
     new_json_dict: dict,
     temp_JSON_file: str,
     all_dbs_data: dict,
@@ -1632,23 +1633,22 @@ def move_files(
             logging.info(db_temp + " --> " + db_stored)
 
     # Generate '.gz' compressed file for the old B file and archive it
-    df_OLD_B = pd.read_csv(dbs_merged_current_file)
     now_time = pd.Timestamp.now().strftime("%y%m%d%H")
     archived_B_file = (
         data_folder
         + "ucc_archived_nogit/"
         + merged_dbs_file.replace(".csv", f"_{now_time}.csv.gz")
     )
-    save_df_UCC(logging, df_OLD_B, archived_B_file, "fnames", "gzip")
+    save_df_UCC(logging, df_UCC_B_old, archived_B_file, "fnames", "gzip")
     # Remove old B csv file
-    os.remove(dbs_merged_current_file)
-    logging.info(dbs_merged_current_file + " --> " + archived_B_file)
+    os.remove(df_UCC_B_path)
+    logging.info(df_UCC_B_path + " --> " + archived_B_file)
     logging.info("NOTICE: UCC_cat_B archiving NOT APPLIED")
 
     # Move new B file into place
     ucc_temp = temp_folder + merged_dbs_file
-    os.rename(ucc_temp, dbs_merged_current_file)
-    logging.info(ucc_temp + " --> " + dbs_merged_current_file)
+    os.rename(ucc_temp, df_UCC_B_path)
+    logging.info(ucc_temp + " --> " + df_UCC_B_path)
 
 
 if __name__ == "__main__":
