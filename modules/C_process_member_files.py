@@ -694,10 +694,12 @@ def add_info_to_C(current_JSON, df_UCC_B, df_UCC_C, max_dens=5):
     C_C3 = np.array([vals[a[0]] + vals[a[1]] for a in C3], dtype=float) * 0.5
 
     # Count number of times each OC is mentioned in the literature
+    N_lit = np.array([len(_.split(";")) for _ in df_UCC_B["DB"]])
+    # Normalizing value
     N_lit_tot = len({s for cell in df_UCC_B["DB"] for s in cell.split(";")})
+    # N_lit_tot = max(N_lit)
     # Percentages that define the mapping ranges: 5%, 10%, 15%, 20%
     Nvals = [int(N_lit_tot * _) for _ in (0.05, 0.1, 0.15, 0.2)]
-    N_lit = np.array([len(_.split(";")) for _ in df_UCC_B["DB"]])
     C_lit = np.ones(len(N_lit))
     C_lit[N_lit < min(Nvals)] = 0.0
     # Define intervals and mapping ranges

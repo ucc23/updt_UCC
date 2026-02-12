@@ -298,8 +298,7 @@ def load_data(
         else:
             df_new = pd.read_csv(dbs_folder + DB + ".csv")
         logging.info(f"{DB} loaded (N={len(df_new)})")
-        newDB_json = new_JSON[DB]
-        all_dbs_data[DB] = [df_new, newDB_json]
+        all_dbs_data[DB] = [df_new, new_JSON[DB]]
 
     # Re order 'all_dbs_data' dictionary so that ["DIAS2002", "BICA2019"] are first
     excluded_dbs = ["DIAS2002", "BICA2019"]
@@ -1102,7 +1101,7 @@ def add_fpars_col(newDB_json, df_new, max_chars=7):
         all_pars[par_general] = final_v
 
     for col in all_pars.keys():
-        df_new[f"{col}"] = all_pars[col]
+        df_new[col] = all_pars[col]
 
     return df_new
 
@@ -1193,9 +1192,8 @@ def combine_UCC_new_DB(
 
     new_db_dict = {_: [] for _ in df_UCC_B.keys()}
 
-    # Iterate over the list of dictionaries
+    # Iterate over the cluster in the new DB (row_n is a dict)
     for i_new_cl, row_n in enumerate(new_db_rows):
-        # row_n is now a standard dict, but key access syntax remains valid
         oc_names = rename_standard(str(row_n[newDB_json["names"]]))
 
         row_ucc = {}
@@ -1538,7 +1536,6 @@ def add_fpars_stats(df):
             df[f"{par}_values"] = (
                 temp_df.stack().astype(str).groupby(level=0).agg(";".join)
             )
-
             # Ensure rows that were all NaN are preserved as NaN/None
             df[f"{par}_values"] = df[f"{par}_values"].reindex(df.index)
             # df[f"{par}_stddev"] = np.nan
