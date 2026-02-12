@@ -23,7 +23,7 @@ from .variables import (
 JSON_struct = {
     "SMITH2500": {
         "SCIX_url": "https://scixplorer.org/abs/xxxx",
-        "citations_count": {"date": "", "count": ""},
+        "citations_count": {"date": "", "count": "", "citations_year": ""},
         "vizier_url": "N/A",
         "authors": "Smith et al.",
         "title": "Article title",
@@ -537,6 +537,7 @@ def add_DB_to_JSON(
 ) -> None:
     """ """
     date = datetime.datetime.now().strftime("%Y-%m-%d")
+    current_year = datetime.datetime.now().year
 
     # Extract years in current JSON file
     years = []
@@ -552,10 +553,20 @@ def add_DB_to_JSON(
     elif index > len(current_JSON):
         index = len(current_JSON)  # Append if index is beyond the end
 
+    # Add 'citation_count/year'
+    cyear_gap = current_year - int(year)
+    if cyear_gap == 0:
+        cyear_gap = 0.5
+    citations_year = round(int(citations) / cyear_gap, 1)
+
     # Create 'new_db_json' dictionary with the new DB's params
     new_db_json = {}
     new_db_json["SCIX_url"] = SCIX_url
-    new_db_json["citations_count"] = {"date": date, "count": citations}
+    new_db_json["citations_count"] = {
+        "date": date,
+        "count": citations,
+        "citations_year": citations_year,
+    }
     new_db_json["vizier_url"] = vizier_url
     new_db_json["authors"] = authors
     new_db_json["title"] = title

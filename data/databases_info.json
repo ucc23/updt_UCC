@@ -3,7 +3,8 @@
     "SCIX_url": "https://scixplorer.org/abs/1999AstL...25....7D",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "24"
+      "count": "24",
+      "citations_year": 0.9
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=1999AstL...25....7D",
     "authors": "Dambis",
@@ -36,7 +37,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2002A%26A...389..871D",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "897"
+      "count": "897",
+      "citations_year": 37.4
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2002A%26A...389..871D",
     "authors": "Dias et al.",
@@ -75,7 +77,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2003AJ....125.1397C",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "247"
+      "count": "247",
+      "citations_year": 10.7
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2003AJ....125.1397C",
     "authors": "Chen et al.",
@@ -113,7 +116,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2003A%26A...410..565A",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "32"
+      "count": "32",
+      "citations_year": 1.4
     },
     "vizier_url": "N/A",
     "authors": "Alessi et al.",
@@ -144,7 +148,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2003ARep...47..263K",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "18"
+      "count": "18",
+      "citations_year": 0.8
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2003ARep...47..263K",
     "authors": "Kharchenko et al.",
@@ -172,7 +177,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2005A%26A...438.1163K",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "622"
+      "count": "622",
+      "citations_year": 29.6
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2005A%26A...438.1163K",
     "authors": "Kharchenko et al.",
@@ -204,7 +210,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2005A%26A...440..403K",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "171"
+      "count": "171",
+      "citations_year": 8.1
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2005A%26A...440..403K",
     "authors": "Kharchenko et al.",
@@ -236,7 +243,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2005ApJ...635..560M",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "137"
+      "count": "137",
+      "citations_year": 6.5
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2005ApJ...635..560M",
     "authors": "Mercer et al.",
@@ -255,7 +263,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2006AJ....131.1559V",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "29"
+      "count": "29",
+      "citations_year": 1.4
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2006AJ....131.1559V",
     "authors": "van den Bergh",
@@ -284,7 +293,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2006A%26A...447..921K",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "133"
+      "count": "133",
+      "citations_year": 6.7
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2006A%26A...447..921K",
     "authors": "Kronberger et al.",
@@ -323,7 +333,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2007MNRAS.374..399F",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "191"
+      "count": "191",
+      "citations_year": 10.1
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2007MNRAS.374..399F",
     "authors": "Froebrich et al.",
@@ -342,7 +353,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2007A%26A...468..151P",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "95"
+      "count": "95",
+      "citations_year": 5.0
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2007A%26A...468..151P",
     "authors": "Piskunov et al.",
@@ -378,7 +390,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2007AN....328..889K",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "203"
+      "count": "203",
+      "citations_year": 10.7
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2007AN....328..889K",
     "authors": "Kharchenko et al.",
@@ -399,7 +412,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2008A%26A...477..165P",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "105"
+      "count": "105",
+      "citations_year": 5.8
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2008A%26A...477..165P",
     "authors": "Piskunov et al.",
@@ -441,7 +455,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2008A%26A...486..771K",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "80"
+      "count": "80",
+      "citations_year": 4.4
     },
     "vizier_url": "N/A",
     "authors": "Koposov et al.",
@@ -480,7 +495,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2010AstL...36...75G",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "58"
+      "count": "58",
+      "citations_year": 3.6
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2010AstL...36...75G",
     "authors": "Glushkova et al.",
@@ -519,7 +535,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2011A%26A...532A.131B",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "120"
+      "count": "120",
+      "citations_year": 8.0
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2011A%26A...532A.131B",
     "authors": "Borissova et al.",
@@ -538,7 +555,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2012A%26A...543A.156K",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "106"
+      "count": "106",
+      "citations_year": 7.6
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2012A%26A...543A.156K",
     "authors": "Kharchenko et al.",
@@ -577,7 +595,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2012AstL...38..506G",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "29"
+      "count": "29",
+      "citations_year": 2.1
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2012AstL...38..506G",
     "authors": "Gozha et al.",
@@ -609,7 +628,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2013A%26A...558A..53K",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "687"
+      "count": "687",
+      "citations_year": 52.8
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2013A%26A...558A..53K",
     "authors": "Kharchenko et al.",
@@ -651,7 +671,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2014A%26A...568A..51S",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "67"
+      "count": "67",
+      "citations_year": 5.6
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2014A%26A...568A..51S",
     "authors": "Schmeja et al.",
@@ -686,7 +707,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2014A%26A...564A..79D",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "167"
+      "count": "167",
+      "citations_year": 13.9
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2014A%26A...564A..79D",
     "authors": "Dias et al.",
@@ -708,7 +730,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2015A%26A...581A..39S",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "52"
+      "count": "52",
+      "citations_year": 4.7
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2015A%26A...581A..39S",
     "authors": "Scholz et al.",
@@ -750,7 +773,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2016A%26A...585A.101K",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "81"
+      "count": "81",
+      "citations_year": 8.1
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2016A%26A...585A.101K",
     "authors": "Kharchenko et al.",
@@ -779,7 +803,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2016A%26A...595A..22R",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "26"
+      "count": "26",
+      "citations_year": 2.6
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2016A%26A...595A..22R",
     "authors": "Roser et al.",
@@ -810,7 +835,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2017AstBu..72..257L",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "35"
+      "count": "35",
+      "citations_year": 3.9
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2017AstBu..72..257L",
     "authors": "Loktin & Popova",
@@ -849,7 +875,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2018A%26A...615A..12Y",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "36"
+      "count": "36",
+      "citations_year": 4.5
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2018A%26A...615A..12Y",
     "authors": "Yen et al.",
@@ -894,7 +921,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2019A%26A...624A...8A",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "21"
+      "count": "21",
+      "citations_year": 3.0
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2019A%26A...624A...8A",
     "authors": "Angelo et al.",
@@ -933,7 +961,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2018MNRAS.481.3902B",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "20"
+      "count": "20",
+      "citations_year": 2.5
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2018MNRAS.481.3902B",
     "authors": "Borissova et al.",
@@ -967,7 +996,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2018A%26A...618A..59C",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "187"
+      "count": "187",
+      "citations_year": 23.4
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2018A%26A...618A..59C",
     "authors": "Castro-Ginard et al.",
@@ -990,7 +1020,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2018A%26A...618A..93C",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "698"
+      "count": "698",
+      "citations_year": 87.2
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2018A%26A...618A..93C",
     "authors": "Cantat-Gaudin et al.",
@@ -1023,7 +1054,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2019MNRAS.483.5508F",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "42"
+      "count": "42",
+      "citations_year": 6.0
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2019MNRAS.483.5508F",
     "authors": "Ferreira et al.",
@@ -1070,7 +1102,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2019AJ....157...12B",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "84"
+      "count": "84",
+      "citations_year": 12.0
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2019AJ....157...12B",
     "authors": "Bica et al.",
@@ -1089,7 +1122,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2018A%26A...619A.155S",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "176"
+      "count": "176",
+      "citations_year": 22.0
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2018A%26A...619A.155S",
     "authors": "Soubiran et al.",
@@ -1113,7 +1147,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2019A%26A...624A.126C",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "114"
+      "count": "114",
+      "citations_year": 16.3
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2019A%26A...624A.126C",
     "authors": "Cantat-Gaudin et al.",
@@ -1139,7 +1174,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2019A%26A...623A.108B",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "242"
+      "count": "242",
+      "citations_year": 34.6
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2019A%26A...623A.108B",
     "authors": "Bossini et al.",
@@ -1190,7 +1226,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2019MNRAS.487.2385M",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "38"
+      "count": "38",
+      "citations_year": 5.4
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2019MNRAS.487.2385M",
     "authors": "Monteiro & Dias",
@@ -1238,7 +1275,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2019MNRAS.486.5726D",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "60"
+      "count": "60",
+      "citations_year": 8.6
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2019MNRAS.486.5726D",
     "authors": "Dias et al.",
@@ -1287,7 +1325,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2019A%26A...627A..35C",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "124"
+      "count": "124",
+      "citations_year": 17.7
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2019A%26A...627A..35C",
     "authors": "Castro-Ginard et al.",
@@ -1309,7 +1348,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2019JKAS...52..145S",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "110"
+      "count": "110",
+      "citations_year": 15.7
     },
     "vizier_url": "N/A",
     "authors": "Sim et al.",
@@ -1341,7 +1381,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2019ApJS..245...32L",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "219"
+      "count": "219",
+      "citations_year": 31.3
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2019ApJS..245...32L",
     "authors": "Liu & Pang",
@@ -1374,7 +1415,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2019A&A...630L...8B",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "9"
+      "count": "9",
+      "citations_year": 1.3
     },
     "vizier_url": "N/A",
     "authors": "Bastian",
@@ -1393,7 +1435,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2020A%26A...633A..99C",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "296"
+      "count": "296",
+      "citations_year": 49.3
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2020A%26A...633A..99C",
     "authors": "Cantat-Gaudin & Anders",
@@ -1426,7 +1469,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2020PASP..132c4502H",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "21"
+      "count": "21",
+      "citations_year": 3.5
     },
     "vizier_url": "N/A",
     "authors": "Hao et al.",
@@ -1462,7 +1506,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2020AJ....159..199D",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "142"
+      "count": "142",
+      "citations_year": 23.7
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2020AJ....159..199D",
     "authors": "Donor et al.",
@@ -1492,7 +1537,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2020A%26A...635A..45C",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "197"
+      "count": "197",
+      "citations_year": 32.8
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2020A%26A...635A..45C",
     "authors": "Castro-Ginard et al.",
@@ -1514,7 +1560,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2020MNRAS.496.2021F",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "50"
+      "count": "50",
+      "citations_year": 8.3
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2020MNRAS.496.2021F",
     "authors": "Ferreira et al.",
@@ -1556,7 +1603,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2020MNRAS.495.2882S",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "6"
+      "count": "6",
+      "citations_year": 1.0
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2020MNRAS.495.2882S",
     "authors": "S\u00e1nchez et al.",
@@ -1577,7 +1625,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2020A%26A...640A...1C",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "502"
+      "count": "502",
+      "citations_year": 83.7
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2020A%26A...640A...1C",
     "authors": "Cantat-Gaudin et al.",
@@ -1609,7 +1658,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2021A%26A...646A.104H",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "124"
+      "count": "124",
+      "citations_year": 24.8
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2021A%26A...646A.104H",
     "authors": "Hunt & Reffert",
@@ -1631,7 +1681,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2021RAA....21..117C",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "24"
+      "count": "24",
+      "citations_year": 4.8
     },
     "vizier_url": "N/A",
     "authors": "Casado",
@@ -1661,7 +1712,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2021RAA....21...93H",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "57"
+      "count": "57",
+      "citations_year": 11.4
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2021RAA....21...93H",
     "authors": "He et al.",
@@ -1696,7 +1748,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2021MNRAS.504..356D",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "268"
+      "count": "268",
+      "citations_year": 53.6
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2021MNRAS.504..356D",
     "authors": "Dias et al.",
@@ -1745,7 +1798,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2021A%26A...650A..67R",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "71"
+      "count": "71",
+      "citations_year": 14.2
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2021A%26A...650A..67R",
     "authors": "Rain et al.",
@@ -1780,7 +1834,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2021MNRAS.502L..90F",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "34"
+      "count": "34",
+      "citations_year": 6.8
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2021MNRAS.502L..90F",
     "authors": "Ferreira et al.",
@@ -1822,7 +1877,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2021MNRAS.508.1033S",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "15"
+      "count": "15",
+      "citations_year": 3.0
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2021MNRAS.508.1033S",
     "authors": "Santos-Silva et al.",
@@ -1898,7 +1954,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2021ApJ...923..129J",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "33"
+      "count": "33",
+      "citations_year": 6.6
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2021ApJ...923..129J",
     "authors": "Jaehnig et al.",
@@ -1945,7 +2002,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2022A%26A...659A..59T",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "116"
+      "count": "116",
+      "citations_year": 29.0
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2022A%26A...659A..59T",
     "authors": "Tarricq et al.",
@@ -1974,7 +2032,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2022ApJS..259...19L",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "31"
+      "count": "31",
+      "citations_year": 7.8
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2022ApJS..259...19L",
     "authors": "Li et al.",
@@ -2012,7 +2071,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2022A%26A...661A.118C",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "122"
+      "count": "122",
+      "citations_year": 30.5
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2022A%26A...661A.118C",
     "authors": "Castro-Ginard et al.",
@@ -2045,7 +2105,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2022A%26A...660A...4H",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "60"
+      "count": "60",
+      "citations_year": 15.0
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2022A%26A...660A...4H",
     "authors": "Hao et al.",
@@ -2082,7 +2143,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2022ApJS..260....8H",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "49"
+      "count": "49",
+      "citations_year": 12.2
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2022ApJS..260....8H",
     "authors": "He et al.",
@@ -2118,7 +2180,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2022A%26A...663A.131P",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "14"
+      "count": "14",
+      "citations_year": 3.5
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2022A%26A...663A.131P",
     "authors": "Perren et al.",
@@ -2156,7 +2219,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2022ApJS..262....7H",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "55"
+      "count": "55",
+      "citations_year": 13.8
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2022ApJS..262....7H",
     "authors": "He et al.",
@@ -2185,7 +2249,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2023ApJS..265....3L",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "12"
+      "count": "12",
+      "citations_year": 4.0
     },
     "vizier_url": "N/A",
     "authors": "Li & Mao",
@@ -2207,7 +2272,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2023ApJS..264....8H",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "34"
+      "count": "34",
+      "citations_year": 11.3
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2023ApJS..264....8H",
     "authors": "He et al.",
@@ -2240,7 +2306,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2023A%26A...672A.187J",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "21"
+      "count": "21",
+      "citations_year": 7.0
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2023A%26A...672A.187J",
     "authors": "Just et al.",
@@ -2270,7 +2337,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2023MNRAS.518.6216P",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "13"
+      "count": "13",
+      "citations_year": 4.3
     },
     "vizier_url": "N/A",
     "authors": "Piatti et al.",
@@ -2312,7 +2380,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2023ApJS..265...20C",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "12"
+      "count": "12",
+      "citations_year": 4.0
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2023ApJS..265...20C",
     "authors": "Chi et al.",
@@ -2341,7 +2410,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2023ApJS..265...12Q",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "57"
+      "count": "57",
+      "citations_year": 19.0
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2023ApJS..265...12Q",
     "authors": "Qin et al.",
@@ -2374,7 +2444,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2023A%26A...672A..29C",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "45"
+      "count": "45",
+      "citations_year": 15.0
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=J/A+A/672/A29",
     "authors": "Cordoni et al.",
@@ -2425,7 +2496,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2023MNRAS.521.1399C",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "14"
+      "count": "14",
+      "citations_year": 4.7
     },
     "vizier_url": "N/A",
     "authors": "Casado & Hendy",
@@ -2461,7 +2533,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2023RAA....23f5008C",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "7"
+      "count": "7",
+      "citations_year": 2.3
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2023RAA....23f5008C",
     "authors": "Chi et al.",
@@ -2496,7 +2569,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2023ApJS..266...36C",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "19"
+      "count": "19",
+      "citations_year": 6.3
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2023ApJS..266...36C",
     "authors": "Chi et al.",
@@ -2526,7 +2600,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2023MNRAS.525.2315A",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "48"
+      "count": "48",
+      "citations_year": 16.0
     },
     "vizier_url": "N/A",
     "authors": "Almeida et al.",
@@ -2586,7 +2661,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2023A%26A...673A.114H",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "293"
+      "count": "293",
+      "citations_year": 97.7
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2023A%26A...673A.114H",
     "authors": "Hunt & Reffert",
@@ -2647,7 +2723,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2023ApJS..267...34H",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "14"
+      "count": "14",
+      "citations_year": 4.7
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2023ApJS..267...34H",
     "authors": "He et al.",
@@ -2680,7 +2757,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2024AJ....167...12C",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "41"
+      "count": "41",
+      "citations_year": 20.5
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2024AJ....167...12C",
     "authors": "Cavallo et al.",
@@ -2738,7 +2816,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2024A%26A...686A.118C",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "15"
+      "count": "15",
+      "citations_year": 7.5
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2024A%26A...686A.118C",
     "authors": "Celli et al.",
@@ -2764,7 +2843,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2024A%26A...686A..42H",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "133"
+      "count": "133",
+      "citations_year": 66.5
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2024A%26A...686A..42H",
     "authors": "Hunt & Reffert",
@@ -2801,7 +2881,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2024A%26A...692A.212Z",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "3"
+      "count": "3",
+      "citations_year": 1.5
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2024A%26A...692A.212Z",
     "authors": "Zhang et al.",
@@ -2834,7 +2915,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2024A%26A...689A..18A",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "9"
+      "count": "9",
+      "citations_year": 4.5
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2024A%26A...689A..18A",
     "authors": "Alfonso et al.",
@@ -2869,7 +2951,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2025A%26A...693A.305A",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "6"
+      "count": "6",
+      "citations_year": 6.0
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2025A%26A...693A.305A",
     "authors": "Almeida et al.",
@@ -2914,7 +2997,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2025A%26A...699A.142C",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "3"
+      "count": "3",
+      "citations_year": 3.0
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2025A%26A...699A.142C",
     "authors": "Carrasco-Varela et al.",
@@ -2957,7 +3041,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2025AJ....169..115W",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "1"
+      "count": "1",
+      "citations_year": 1.0
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2025AJ....169..115W",
     "authors": "Wei et al.",
@@ -3014,7 +3099,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2025A%26A...699A.246H",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "4"
+      "count": "4",
+      "citations_year": 4.0
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2025A%26A...699A.246H",
     "authors": "Hu & Soubiran",
@@ -3055,7 +3141,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2025AJ....170..288L",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "2"
+      "count": "2",
+      "citations_year": 2.0
     },
     "vizier_url": "N/A",
     "authors": "Li et al.",
@@ -3115,7 +3202,8 @@
     "SCIX_url": "https://scixplorer.org/abs/2025A%26A...703A.100N",
     "citations_count": {
       "date": "2026-02-10",
-      "count": "0"
+      "count": "0",
+      "citations_year": 0.0
     },
     "vizier_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2025A%26A...703A.100N",
     "authors": "Nizovkina et al.",
