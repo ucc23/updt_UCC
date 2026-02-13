@@ -302,7 +302,7 @@ def process_entries(
         for col in B_cols:
             df_UCC_updt[col][j] = df_UCC_B[col].iloc[k]
 
-    df_UCC_updt = pd.DataFrame(df_UCC_updt)
+    df_UCC_updt = pd.DataFrame(df_UCC_updt).replace({pd.NA: "nan"})
     # Set dtype of columns
     str_type = (
         "fname",
