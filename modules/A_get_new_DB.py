@@ -28,26 +28,34 @@ def main():
     ADS_bibcode: NASA/ADS bibcode for the new DB, e.g.: 2018MNRAS.481.3902B
 
     Steps:
-    1. Load the current JSON database file.
-    2. Check if the URL is already listed in the current database.
-    3. Fetch publication authors and year from NASA/ADS
-    4. Generate a new database name based on extracted metadata.
-    5. Handle temporary database files and check for existing data.
-    6. Fetch Vizier data or allow manual input for Vizier IDs.
-    7. Match new database columns with current JSON structure.
-    8. Update the JSON file and save the database as CSV.
+    - Load the current JSON database file.
+    - Check if the URL is already listed in the current database.
+    - Fetch publication authors and year from NASA/ADS
+    - Generate a new database name based on extracted metadata.
+    - Handle temporary database files and check for existing data.
+    - Fetch Vizier data or allow manual input for Vizier IDs.
+    - Match new database columns with current JSON structure.
+    - Update the JSON file and save the database as CSV.
 
     Raises:
         ValueError: If URL data fetching or metadata extraction fails.
     """
     logging = logger()
 
+    # Handle temporary database files and check for existing data.
+    # Temporary databases/ folder
+    temp_database_folder = temp_folder + dbs_folder
+    # Create folder if it does not exist
+    Path(temp_database_folder).mkdir(parents=True, exist_ok=True)
+    # Path to the new (temp) JSON file
+    temp_JSON_file = temp_folder + name_DBs_json
+
     # Load current JSON file
     with open(name_DBs_json) as f:
         current_JSON = json.load(f)
 
     # Check that no key in current_JSON share "received" values
-    recieved_seen = {}
+    recieved_seen, citations_date = {}, {}
     for key, vals in current_JSON.items():
         value = vals["received"]
         if value in recieved_seen:
@@ -56,7 +64,42 @@ def main():
                 f"Duplicate 'received={value}' found for keys: {first_key}, {key}"
             )
         recieved_seen[value] = key
+        citations_date[key] = [vals["citations_count"]["date"], vals["SCIX_url"]]
 
+    # Define dates
+    date_now = datetime.datetime.now().strftime("%Y-%m-%d")
+    current_year = datetime.datetime.now().year
+    six_months_ago = datetime.datetime.now() - datetime.timedelta(days=180)
+
+    # If any date value in 'citations_date' (format: YYY-MM-DD) is older than 6 months,
+    # offer to update them before moving on
+    outdated_keys = {}
+    for key, vals in citations_date.items():
+        date_str, scix_url = vals
+        date = datetime.datetime.strptime(date_str, "%Y-%m-%d")
+        if date < six_months_ago:
+            outdated_keys[key] = scix_url.split("/")[-1]
+    if outdated_keys:
+        logging.info(
+            f"The following databases have 'citations_count' data older than 6 months:\n  {', '.join(outdated_keys)}"
+        )
+        if input("Update these data before moving on? (y/n): ").lower() == "y":
+            for key, ADS_bibcode in outdated_keys.items():
+                authors, year, title, citations = get_ADS_data(ADS_bibcode)
+                citations_year = get_citations_year(current_year, year, citations)
+                current_JSON["citations_count"] = {
+                    "date": date_now,
+                    "count": citations,
+                    "citations_year": citations_year,
+                }
+            with open(name_DBs_json, "w") as f:
+                json.dump(temp_JSON_file, f, indent=2)
+            logging.info(
+                "Updated 'citations_count'. Check the JSON file before moving on."
+            )
+            sys.exit(0)
+
+    # Request user for bibcode
     ADS_bibcode = get_ads_bibcode()
 
     # Print info to screen
@@ -76,7 +119,7 @@ def main():
         if SCIX_url == vals["SCIX_url"]:
             logging.info(f"The URL {SCIX_url}\nis already in the JSON file under: {db}")
             if input("Move on? (y/n): ").lower() != "y":
-                sys.exit()
+                sys.exit(0)
 
     # Fetch publication authors and year from NASA/ADS
     logging.info("Fetching NASA/ADS data...")
@@ -86,17 +129,9 @@ def main():
     )
     logging.info(f"{title}")
 
-    # 4. Generate a new database name based on extracted metadata.
+    # Generate a new database name based on extracted metadata.
     DB_name = get_DB_name(current_JSON, authors, year)
     logging.info(f"New DB name obtained: {DB_name}")
-
-    # Handle temporary database files and check for existing data.
-    # Temporary databases/ folder
-    temp_database_folder = temp_folder + dbs_folder
-    # Create folder if it does not exist
-    Path(temp_database_folder).mkdir(parents=True, exist_ok=True)
-    # Path to the new (temp) JSON file
-    temp_JSON_file = temp_folder + name_DBs_json
     # Path to the new (temp) DB file
     temp_CSV_file = temp_database_folder + DB_name + ".csv"
 
@@ -134,6 +169,8 @@ def main():
     add_DB_to_JSON(
         SCIX_url,
         citations,
+        date_now,
+        current_year,
         vizier_url,
         current_JSON,
         temp_JSON_file,
@@ -153,7 +190,18 @@ def main():
     logging.info("********************************************************")
 
 
-def get_ads_bibcode():
+def get_citations_year(current_year, year, citations):
+    """ """
+    # Add 'citation_count/year'
+    cyear_gap = current_year - int(year)
+    if cyear_gap == 0:
+        cyear_gap = 0.5
+    citations_year = round(int(citations) / cyear_gap, 1)
+
+    return citations_year
+
+
+def get_ads_bibcode() -> str:
     """Get ADS bibcode from user input with validation."""
     print("\n📚 NASA/ADS Bibcode Required")
     print("Examples:")
@@ -163,9 +211,6 @@ def get_ads_bibcode():
 
     while True:
         bibcode = input("\n📝 Enter the NASA/ADS bibcode (or 'c' to abort): ").strip()
-
-        if bibcode.lower() == "c":
-            return None
 
         if not bibcode:
             print("❌ Bibcode cannot be empty. Please try again.")
@@ -521,6 +566,8 @@ def proper_json_struct(df_col_id):
 def add_DB_to_JSON(
     SCIX_url: str,
     citations: str,
+    date_now: str,
+    current_year: int,
     vizier_url: str,
     current_JSON: dict,
     temp_JSON_file: str,
@@ -534,9 +581,6 @@ def add_DB_to_JSON(
     e_pars_dict: dict,
 ) -> None:
     """ """
-    date = datetime.datetime.now().strftime("%Y-%m-%d")
-    current_year = datetime.datetime.now().year
-
     # Extract years in current JSON file
     years = []
     for db in current_JSON.keys():
@@ -551,17 +595,13 @@ def add_DB_to_JSON(
     elif index > len(current_JSON):
         index = len(current_JSON)  # Append if index is beyond the end
 
-    # Add 'citation_count/year'
-    cyear_gap = current_year - int(year)
-    if cyear_gap == 0:
-        cyear_gap = 0.5
-    citations_year = round(int(citations) / cyear_gap, 1)
+    citations_year = get_citations_year(current_year, year, citations)
 
     # Create 'new_db_json' dictionary with the new DB's params
     new_db_json = {}
     new_db_json["SCIX_url"] = SCIX_url
     new_db_json["citations_count"] = {
-        "date": date,
+        "date": date_now,
         "count": citations,
         "citations_year": citations_year,
     }
