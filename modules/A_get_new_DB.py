@@ -24,7 +24,7 @@ JSON_struct = {
     "SMITH2500": {
         "SCIX_url": "https://scixplorer.org/abs/xxxx",
         "citations_count": {"date": "", "count": "", "citations_year": ""},
-        "vizier_url": "N/A",
+        "data_url": "N/A",
         "authors": "Smith et al.",
         "title": "Article title",
         "year": "2050",
@@ -567,7 +567,7 @@ def add_DB_to_JSON(
         "count": citations,
         "citations_year": citations_year,
     }
-    new_db_json["vizier_url"] = vizier_url
+    new_db_json["data_url"] = vizier_url
     new_db_json["authors"] = authors
     new_db_json["title"] = title
     new_db_json["year"] = year

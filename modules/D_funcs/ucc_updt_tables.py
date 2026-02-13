@@ -72,18 +72,24 @@ def updt_articles_table(df_UCC, current_JSON, database_md_in, max_chars_title=50
     )
 
     # md_table = "\n| Name | N | Name | N |\n"
-    md_table = "\n| Title | Author(s) | Year | Vizier | N | CSV |\n"
+    md_table = "\n| Title | Author(s) | Year | Data | N | CSV |\n"
     md_table += "| ---- | :---: | :--: | :----: | :-: | :-: |\n"
     for DB, DB_data in inv_json.items():
         row = ""
         title = DB_data["title"].replace("'", "").replace('"', "")
         short_title = title[:max_chars_title] + "..."
         ref_url = f"""<a href="{DB_data["SCIX_url"]}" target="_blank" title="{title}">{short_title}</a>"""
-        viz_url = f"""<a href="{DB_data["vizier_url"]}" target="_blank"> <img src="/images/vizier.png " alt="Vizier url"></a>"""
-        if DB_data["vizier_url"] == "N/A":
-            viz_url = "N/A"
+        data_url = DB_data["data_url"]
+        if "vizier" in data_url:
+            data_url = f"""<a href="{data_url}" target="_blank"> <img src="/images/vizier.png " alt="Vizier url"></a>"""
+        elif "github" in data_url:
+            data_url = f"""<a href="{data_url}" target="_blank"> <img src="/images/github.png " alt="Github url"></a>"""
+        elif "zenodo" in data_url:
+            data_url = f"""<a href="{data_url}" target="_blank"> <img src="/images/zenodo.png " alt="Zenodo url"></a>"""
+        elif "china-vo" in data_url:
+            data_url = f"""<a href="{data_url}" target="_blank"> <img src="/images/chinavo.png " alt="ChinaVO url"></a>"""
         CSV_url = f"""<a href="https://flatgithub.com/ucc23/updt_UCC?filename=data/databases/{DB}.csv" target="_blank">📊</a>"""
-        row += f"| {ref_url} | {DB_data['authors']} | {DB_data['year']} | {viz_url} | [{N_in_DB[DB]}](/tables/dbs/{DB}_table) | {CSV_url}"
+        row += f"| {ref_url} | {DB_data['authors']} | {DB_data['year']} | {data_url} | [{N_in_DB[DB]}](/tables/dbs/{DB}_table) | {CSV_url}"
         md_table += row + "|\n"
     md_table += "\n"
 
