@@ -56,7 +56,7 @@ comments: |
 {comments}
 class3: |
 {class3}
-r_50_val: {r_50_val}
+dens_val: {dens_val}
 N_50_val: {N_50_val}
 scix_url: {scix_url}
 posit_table: |
@@ -229,7 +229,7 @@ def make(
         badge_nofpars_url=badge_nofpars_url,
         comments=comments,
         class3=abcd_c,
-        r_50_val=str(UCC_cl["r_50"]),
+        dens_val=str(UCC_cl["dens_pc2"]),
         N_50_val=str(int(UCC_cl["N_50"])),
         scix_url=cl_names[0].replace(" ", "%20"),
         posit_table=posit_table,
