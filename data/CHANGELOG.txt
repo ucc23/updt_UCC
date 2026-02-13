@@ -1,5 +1,12 @@
 Some of these are intermediate versions of the UCC database that are not published.
 
+## 2601XX
+
+- Added Chi et al. (2025); CKCWDM objects
+- Added Lada & Lada (2003)
+
+
+
 ## 26012012-26020911
 
 - Added P_dup column to C cat
