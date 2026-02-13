@@ -2780,6 +2780,61 @@
     },
     "e_pars": {}
   },
+  "RAIN2024": {
+    "SCIX_url": "https://scixplorer.org/abs/2024A%26A...685A..33R",
+    "citations_count": {
+      "date": "2026-02-13",
+      "count": "12",
+      "citations_year": 6.0
+    },
+    "data_url": "N/A",
+    "authors": "Rain et al.",
+    "title": "Binary origin of blue straggler stars in Galactic star clusters",
+    "year": "2024",
+    "received": "20230718",
+    "names": "NAME",
+    "pos": {
+      "RA": "ra",
+      "DEC": "dec",
+      "plx": "plx",
+      "pmra": "pmra",
+      "pmde": "pmde"
+    },
+    "pars": {
+      "age": {
+        "loga": "a_mean"
+      },
+      "av": {
+        "Ebv": "E_mean"
+      },
+      "dist": {
+        "dm": "d_mean"
+      },
+      "mass": {
+        "mass": "M_mean"
+      },
+      "bi_frac": {
+        "bf": "b_mean"
+      }
+    },
+    "e_pars": {
+      "e_age": {
+        "eloga": "a_std"
+      },
+      "e_av": {
+        "eEbv": "E_std"
+      },
+      "e_dist": {
+        "edm": "d_std"
+      },
+      "e_mass": {
+        "emass": "M_std"
+      },
+      "e_bi_frac": {
+        "ebf": "b_std"
+      }
+    }
+  },
   "CAVALLO2024": {
     "SCIX_url": "https://scixplorer.org/abs/2024AJ....167...12C",
     "citations_count": {

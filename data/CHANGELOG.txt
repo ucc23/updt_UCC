@@ -2,7 +2,9 @@ Some of these are intermediate versions of the UCC database that are not publish
 
 ## 2601XX
 
+- Added Obasi et al. (2026)
 - Added Chi et al. (2025); CKCWDM objects
+- Added Rain et al. (2024)
 - Added Lada & Lada (2003)
 
 
