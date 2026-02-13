@@ -323,7 +323,12 @@ def diff_between_dfs(
 
     df_old = df_old.copy().sort_values(by=order_col).reset_index(drop=True)
     df_new = df_new.copy().sort_values(by=order_col).reset_index(drop=True)
+    df_old = round_columns(df_old)
+    df_old = df_old.astype("string")
+    df_old = df_old.where(df_old.notna(), "nan")
     df_new = round_columns(df_new)
+    df_new = df_new.astype("string")
+    df_new = df_new.where(df_new.notna(), "nan")
 
     # Convert DataFrames to lists of tuples (rows) for comparison
     rows1 = [[str(_) for _ in row] for row in df_old.values]

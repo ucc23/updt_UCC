@@ -229,8 +229,12 @@ def load_data(
     list,
 ]:
     """ """
-    # Load current UCC file to extract the column names
-    df_UCC_B_old = pd.read_csv(df_UCC_B_path, dtype={"blue_str_values": str})
+    # Load current UCC file to extract the column names. Explicit column types
+    # to avoid warnings and help with the diff comparing later on
+    df_UCC_B_old = pd.read_csv(
+        df_UCC_B_path,
+        dtype={"age_median": "Int64", "mass_median": "Int64", "blue_str_values": str},
+    )
     logging.info(f"\nUCC version {df_UCC_B_path} loaded (N={len(df_UCC_B_old)})")
     # Empty dataframe
     df_UCC_B = pd.DataFrame(df_UCC_B_old[0:0])
