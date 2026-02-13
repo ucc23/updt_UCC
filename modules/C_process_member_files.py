@@ -761,8 +761,11 @@ def add_info_to_C(current_JSON, df_UCC_B, df_UCC_C, max_dens=5):
                     if dbs[idx] != dbs_shared[j]:
                         # This should never happen
                         raise ValueError(
-                            f"({idx}) {cl['fnames']} & {shared_members[j]} share "
-                            "publication date but different DBs"
+                            f"({idx}) {cl['fname']} & {shared_members[j]} share members "
+                            f"and a publication date ({date_received_cl}), but are "
+                            f"mentioned in different DBs ({dbs[idx], dbs_shared[j]}). "
+                            "This makes it impossible to disambiguate which one is the "
+                            "duplicate of the other."
                         )
                     # These entries share members BUT they belong to the same DB.
                     shared_p["y"] = max(shared_p["y"], shared_members_p[j])

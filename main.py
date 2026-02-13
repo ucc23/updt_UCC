@@ -40,32 +40,6 @@ def display_menu():
     print("\n" + "=" * 60)
 
 
-def get_ads_bibcode():
-    """Get ADS bibcode from user input with validation."""
-    print("\n📚 NASA/ADS Bibcode Required")
-    print("Examples:")
-    print("  • 2018MNRAS.481.3902B")
-    print("  • 2021A&A...652A.102C")
-    print("  • 2020ApJ...904...15K")
-
-    while True:
-        bibcode = input("\n📝 Enter the NASA/ADS bibcode (or 'c' to abort): ").strip()
-
-        if bibcode.lower() == "c":
-            return None
-
-        if not bibcode:
-            print("❌ Bibcode cannot be empty. Please try again.")
-            continue
-
-        # Basic validation - should have year and journal format
-        if len(bibcode) < 10:
-            print("❌ Bibcode seems too short. Please check and try again.")
-            continue
-
-        return bibcode
-
-
 def run_script(script_choice):
     """Dynamically import and run the selected script module."""
     module_names = {
@@ -87,16 +61,7 @@ def run_script(script_choice):
     except ImportError as e:
         print(f"❌ Failed to import module {module_name}: {e}")
         return False
-
-    if script_choice == "A":
-        ads_bibcode = get_ads_bibcode()
-        if not ads_bibcode:
-            print("❌ Operation cancelled - ADS bibcode is required")
-            return False
-        mod.main(ads_bibcode)
-    else:
-        mod.main()
-
+    mod.main()
     print(f"✅ {script_choice}_script completed successfully!")
     return True
 

@@ -13,56 +13,15 @@ from rapidfuzz import fuzz
 
 from .utils import logger
 from .variables import (
+    JSON_struct,
     NASA_API_TOKEN_file,
     dbs_folder,
     name_DBs_json,
     temp_folder,
 )
 
-# This is the structure for each database in the JSON file
-JSON_struct = {
-    "SMITH2500": {
-        "SCIX_url": "https://scixplorer.org/abs/xxxx",
-        "citations_count": {"date": "", "count": "", "citations_year": ""},
-        "data_url": "N/A",
-        "authors": "Smith et al.",
-        "title": "Article title",
-        "year": "2050",
-        "received": "19101010",
-        "names": "Name",
-        "pos": {
-            "RA": [],
-            "DEC": [],
-            "plx": [],
-            "pmra": [],
-            "pmde": [],
-            "Rv": [],
-        },
-        "pars": {
-            "av": [],
-            "diff_ext": [],
-            "dist": [],
-            "age": [],
-            "met": [],
-            "mass": [],
-            "bi_frac": [],
-            "blue_str": [],
-        },
-        "e_pars": {
-            "e_av": [],
-            "e_diff_ext": [],
-            "e_dist": [],
-            "e_age": [],
-            "e_met": [],
-            "e_mass": [],
-            "e_bi_frac": [],
-            "e_bs_frac": [],
-        },
-    }
-}
 
-
-def main(ADS_bibcode):
+def main():
     """
     Main function to download and process a database using NASA/ADS and Vizier data.
 
@@ -86,6 +45,19 @@ def main(ADS_bibcode):
     # Load current JSON file
     with open(name_DBs_json) as f:
         current_JSON = json.load(f)
+
+    # Check that no key in current_JSON share "received" values
+    recieved_seen = {}
+    for key, vals in current_JSON.items():
+        value = vals["received"]
+        if value in recieved_seen:
+            first_key = recieved_seen[value]
+            raise ValueError(
+                f"Duplicate 'received={value}' found for keys: {first_key}, {key}"
+            )
+        recieved_seen[value] = key
+
+    ADS_bibcode = get_ads_bibcode()
 
     # Print info to screen
     pars_vals_all = dict(JSON_struct["SMITH2500"]["pars"])
@@ -179,6 +151,32 @@ def main(ADS_bibcode):
     logging.info("\n********************************************************")
     logging.info("Check the JSON and CSV files carefully before moving on!")
     logging.info("********************************************************")
+
+
+def get_ads_bibcode():
+    """Get ADS bibcode from user input with validation."""
+    print("\n📚 NASA/ADS Bibcode Required")
+    print("Examples:")
+    print("  • 2018MNRAS.481.3902B")
+    print("  • 2021A&A...652A.102C")
+    print("  • 2020ApJ...904...15K")
+
+    while True:
+        bibcode = input("\n📝 Enter the NASA/ADS bibcode (or 'c' to abort): ").strip()
+
+        if bibcode.lower() == "c":
+            return None
+
+        if not bibcode:
+            print("❌ Bibcode cannot be empty. Please try again.")
+            continue
+
+        # Basic validation - should have year and journal format
+        if len(bibcode) < 10:
+            print("❌ Bibcode seems too short. Please check and try again.")
+            continue
+
+        return bibcode
 
 
 def get_ADS_data(ADS_bibcode: str) -> tuple[str, str, str, str]:
