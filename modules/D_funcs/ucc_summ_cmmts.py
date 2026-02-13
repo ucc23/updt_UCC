@@ -54,20 +54,6 @@ def get_summary(current_year, DBs_JSON, UCC_cl):
     """
     Generate a textual summary and UTI descriptors for an astronomical object.
     """
-
-    # summaries, descriptors, fpars_badges, fpars_badges_url = (
-    #     {},
-    #     {},
-    #     {},
-    #     {},
-    # )
-
-    # # Iterate trough each entry in the UCC database
-    # cols = df_UCC.columns
-    # for UCC_cl in df_UCC.itertuples(index=False, name=None):
-    #     UCC_cl = dict(zip(cols, UCC_cl))
-    #     fname0 = UCC_cl["fname"]
-
     (
         members,
         density,
