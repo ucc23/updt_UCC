@@ -12,7 +12,7 @@ from .C_funcs.member_files_updt_funcs import (
     save_cl_datafile,
     updt_UCC_new_cl_data,
 )
-from .utils import diff_between_dfs, logger, save_df_UCC
+from .utils import diff_between_dfs, load_BC_cats, logger, save_df_UCC
 from .variables import (
     C_dup_min,
     C_lit_max,
@@ -202,22 +202,9 @@ def load_data(
     df_members = pd.read_parquet(zenodo_folder + UCC_members_file)
 
     # Load current CSV data files
-    df_UCC_B = pd.read_csv(ucc_B_file)
+    df_UCC_B = load_BC_cats("B", ucc_B_file)
     logging.info(f"\nFile {ucc_B_file} loaded ({len(df_UCC_B)} entries)")
-    df_UCC_C = pd.read_csv(
-        ucc_C_file,
-        dtype={
-            "fname": "string",
-            "plot_used": "string",
-            "process": "string",
-            "frame_limit": "string",
-            "shared_members": "string",
-            "shared_members_p": "string",
-            "bad_oc": "string",
-        },
-    )
-    for col in ("frame_limit", "shared_members", "shared_members_p"):
-        df_UCC_C[col] = df_UCC_C[col].replace(pd.NA, "nan")
+    df_UCC_C = load_BC_cats("C", ucc_C_file)
     logging.info(f"File {ucc_C_file} loaded ({len(df_UCC_C)} entries)")
 
     return gaia_frames_data, current_JSON, df_GCs, df_members, df_UCC_B, df_UCC_C

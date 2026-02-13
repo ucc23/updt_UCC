@@ -57,6 +57,39 @@ def logger():
 #     return last_version
 
 
+def load_BC_cats(cat_ID: str, path: str):
+    """ """
+
+    if cat_ID == "B":
+        df = pd.read_csv(
+            path,
+            dtype={
+                "age_median": "Int64",
+                "mass_median": "Int64",
+                "blue_str_values": str,
+            },
+        )
+    elif cat_ID == "C":
+        df = pd.read_csv(
+            path,
+            dtype={
+                "fname": "string",
+                "plot_used": "string",
+                "process": "string",
+                "frame_limit": "string",
+                "shared_members": "string",
+                "shared_members_p": "string",
+                "bad_oc": "string",
+            },
+        )
+        for col in ("frame_limit", "shared_members", "shared_members_p"):
+            df[col] = df[col].replace(pd.NA, "nan")
+    else:
+        raise ValueError(f"Invalid cat_ID: {cat_ID}. Expected 'B' or 'C'.")
+
+    return df
+
+
 def radec2lonlat(
     ra: float | list | np.ndarray, dec: float | list | np.ndarray
 ) -> tuple[float | np.ndarray, float | np.ndarray]:
