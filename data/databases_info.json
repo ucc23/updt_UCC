@@ -144,6 +144,33 @@
     },
     "e_pars": {}
   },
+  "LADA2003": {
+    "SCIX_url": "https://scixplorer.org/abs/2003ARA%26A..41...57L",
+    "citations_count": {
+      "date": "2026-02-13",
+      "count": "2907",
+      "citations_year": 126.4
+    },
+    "data_url": "N/A",
+    "authors": "Lada & Lada",
+    "title": "Embedded Clusters in Molecular Clouds",
+    "year": "2003",
+    "received": "20030101",
+    "names": "Name",
+    "pos": {
+      "RA": "ra",
+      "DEC": "dec"
+    },
+    "pars": {
+      "dist": {
+        "dpc": "Distance(pc)"
+      },
+      "mass": {
+        "mass": "Mass(M_sun)"
+      }
+    },
+    "e_pars": {}
+  },
   "KHARCHENKO2003": {
     "SCIX_url": "https://scixplorer.org/abs/2003ARep...47..263K",
     "citations_count": {
