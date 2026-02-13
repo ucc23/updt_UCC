@@ -144,33 +144,6 @@
     },
     "e_pars": {}
   },
-  "LADA2003": {
-    "SCIX_url": "https://scixplorer.org/abs/2003ARA%26A..41...57L",
-    "citations_count": {
-      "date": "2026-02-13",
-      "count": "2907",
-      "citations_year": 126.4
-    },
-    "data_url": "N/A",
-    "authors": "Lada & Lada",
-    "title": "Embedded Clusters in Molecular Clouds",
-    "year": "2003",
-    "received": "20030102",
-    "names": "Name",
-    "pos": {
-      "RA": "ra",
-      "DEC": "dec"
-    },
-    "pars": {
-      "dist": {
-        "dpc": "Distance(pc)"
-      },
-      "mass": {
-        "mass": "Mass(M_sun)"
-      }
-    },
-    "e_pars": {}
-  },
   "KHARCHENKO2003": {
     "SCIX_url": "https://scixplorer.org/abs/2003ARep...47..263K",
     "citations_count": {
@@ -196,6 +169,33 @@
       },
       "dist": {
         "dpc": "Dist"
+      }
+    },
+    "e_pars": {}
+  },
+  "LADA2003": {
+    "SCIX_url": "https://scixplorer.org/abs/2003ARA%26A..41...57L",
+    "citations_count": {
+      "date": "2026-02-13",
+      "count": "2907",
+      "citations_year": 126.4
+    },
+    "data_url": "N/A",
+    "authors": "Lada & Lada",
+    "title": "Embedded Clusters in Molecular Clouds",
+    "year": "2003",
+    "received": "20030102",
+    "names": "Name",
+    "pos": {
+      "RA": "ra",
+      "DEC": "dec"
+    },
+    "pars": {
+      "dist": {
+        "dpc": "Distance(pc)"
+      },
+      "mass": {
+        "mass": "Mass(M_sun)"
       }
     },
     "e_pars": {}
@@ -3279,6 +3279,26 @@
         "efeh": "s_[Fe/H]"
       }
     }
+  },
+  "OBASI2026": {
+    "SCIX_url": "https://scixplorer.org/abs/2026A%26A...705A.244O",
+    "citations_count": {
+      "date": "2026-02-13",
+      "count": "0",
+      "citations_year": 0.0
+    },
+    "data_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2026A%26A...705A.244O",
+    "authors": "Obasi et al.",
+    "title": "Consensus-based algorithm for the nonparametric detection of star clusters (CANDiSC)",
+    "year": "2026",
+    "received": "20250909",
+    "names": "Cluster",
+    "pos": {
+      "RA": "RA_ICRS",
+      "DEC": "DE_ICRS"
+    },
+    "pars": {},
+    "e_pars": {}
   },
   "CHI2025": {
     "SCIX_url": "https://scixplorer.org/abs/2025PASJ...77.1050C",
