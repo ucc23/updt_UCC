@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 
 from .D_funcs import ucc_entry, ucc_plots, ucc_summ_cmmts, ucc_updt_tables
-from .utils import get_fnames, logger
+from .utils import get_fnames, load_BC_cats, logger
 from .variables import (
     UCC_cmmts_file,
     UCC_cmmts_folder,
@@ -161,6 +161,7 @@ def main():
             database_md,
             articles_md,
         )
+    if input("\nUpdate per-article tables? (y/n): ").lower() == "y":
         # Update tables files
         updt_indiv_tables(
             logging,
