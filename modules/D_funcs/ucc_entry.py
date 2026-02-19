@@ -56,18 +56,22 @@ comments: |
 {comments}
 class3: |
 {class3}
+N_comments: "{N_comments}"
 dens_val: {dens_val}
 N_50_val: {N_50_val}
 scix_url: {scix_url}
 posit_table: |
 {posit_table}
+N_rows_pos: "{N_rows_pos}"
 cds_radec: {cds_radec}
 carousel: {carousel}
 fpars_table: |
 {fpars_table}
+N_rows_pars: "{N_rows_pars}"
 note_asterisk: {note_asterisk}
 shared_table: |
 {shared_table}
+N_rows_shared: "{N_rows_shared}"
 ---
 """
 
@@ -103,7 +107,7 @@ def make(
     members_file = members_files_mapping[fname0]
 
     # Generate fundamental parameters table
-    fpars_table, mult_vals_note_flag = fpars_in_lit(current_JSON, UCC_cl, tsp)
+    fpars_table, N_rows_pars, mult_vals_note_flag = fpars_in_lit(current_JSON, UCC_cl, tsp)
 
     # summary = UCC_summ_cmmts[fname0]["summary"]
     UTI_C_N_desc, UTI_C_dens_desc, UTI_C_C3_desc, UTI_C_lit_desc, UTI_C_dup_desc = (
@@ -143,14 +147,16 @@ def make(
         badge_nofpars_url += "&nofpars=true"
 
     # Comments
-    comments = ""
+    comments, N_comments = "", ""
     if comments_lst:
+        N_comments = 0
         for cmmt in comments_lst:
             comments += (
                 f"{tsp}<p><u><a href='{cmmt['url']}' target='_blank'>{cmmt['name']} ({cmmt['year']})</a></u>"
                 + f"<br>{cmmt['comment']}</p>"
                 + "\n"
             )
+            N_comments += 1
 
     # Get colors used by the 'CX' classification
     abcd_c = tsp + color_C3(UCC_cl["C3"])
@@ -163,7 +169,7 @@ def make(
     cds_radec = f"{UCC_cl['RA_ICRS_m']},{cds_dec}"
 
     # Generate table with positional data: (ra, dec, plx, pmra, pmde, Rv)
-    posit_table = positions_in_lit(current_JSON, DBs_full_data, UCC_cl, tsp)
+    posit_table, N_rows_pos = positions_in_lit(current_JSON, DBs_full_data, UCC_cl, tsp)
 
     # Check present plots. The order here determines the order in which plots will be
     # shown: UCC --> HUNT23 --> CANTAT20
@@ -182,7 +188,7 @@ def make(
             carousel += "_" + _db
 
     # Generate table with OCs that share members with this one
-    shared_table = table_shared_members(df_BC, fnames_all, UCC_cl, tsp)
+    shared_table, N_rows_shared = table_shared_members(df_BC, fnames_all, UCC_cl, tsp)
 
     contents = header.format(
         cl_name=cl_names[0],
@@ -228,16 +234,20 @@ def make(
         badge_bss_url=badge_bss_url,
         badge_nofpars_url=badge_nofpars_url,
         comments=comments,
+        N_comments=N_comments,
         class3=abcd_c,
         dens_val=str(UCC_cl["dens_pc2"]),
         N_50_val=str(int(UCC_cl["N_50"])),
         scix_url=cl_names[0].replace(" ", "%20"),
         posit_table=posit_table,
+        N_rows_pos=N_rows_pos,
         cds_radec=cds_radec,
         carousel=carousel,
         fpars_table=fpars_table,
+        N_rows_pars=N_rows_pars,
         note_asterisk=mult_vals_note_flag,
         shared_table=shared_table,
+        N_rows_shared=N_rows_shared
     )
 
     return contents
@@ -285,6 +295,7 @@ def positions_in_lit(DBs_json, DBs_full_data, row_UCC, tsp):
         table += val + " | "
     table = table[:-1] + "\n"
 
+    N_rows = 0
     for i, db in enumerate(DBs_sort):
         # Full 'db' database
         df = DBs_full_data[db]
@@ -316,6 +327,7 @@ def positions_in_lit(DBs_json, DBs_full_data, row_UCC, tsp):
             table += tsp + "|" + ref_url + " | " + year + " | "
             # Close and add row
             table += row_in[:-1] + "\n"
+            N_rows += 1
 
     table = table[:-2]
 
@@ -324,7 +336,7 @@ def positions_in_lit(DBs_json, DBs_full_data, row_UCC, tsp):
     #     """    | <label for="toggle-pos-rows" class="toggle-btn"></label> | | | | | | |"""
     # ) + "\n"
 
-    return table
+    return table, N_rows
 
 
 def fpars_in_lit(
@@ -347,7 +359,7 @@ def fpars_in_lit(
     for par in fpars_order:
         par_dict[par] = str(UCC_cl[par]).split(";")[::-1]
 
-    rows = []
+    rows, N_rows_pars = [], 0
     for i, db in enumerate(DBs_lst):
         row = [f"[{DBs_json[db]['authors']}]({DBs_json[db]['SCIX_url']})"]
         row.append(DBs_json[db]["year"])
@@ -361,10 +373,11 @@ def fpars_in_lit(
         # Filter rows where all columns after the year are '--'
         if not all(v == "--" for v in row[2:]):
             rows.append(row)
+            N_rows_pars += 1
 
     if not rows:
         # Return empty values
-        return "", mult_vals_note_flag
+        return "", "", mult_vals_note_flag
 
     def md_row(row):
         return "| " + " | ".join(row) + " |"
@@ -397,7 +410,7 @@ def fpars_in_lit(
     ]
     table = "\n".join(tsp + line for line in table)
 
-    return table, mult_vals_note_flag
+    return table, N_rows_pars, mult_vals_note_flag
 
 
 def color_C3(abcd):
@@ -415,7 +428,7 @@ def table_shared_members(df_UCC, fnames_all, row, tsp):
     shared_members_tab = ""
 
     if str(row["shared_members"]) == "nan":
-        return shared_members_tab
+        return shared_members_tab, 0
 
     shared_members_tab = (
         tsp
@@ -427,6 +440,7 @@ def table_shared_members(df_UCC, fnames_all, row, tsp):
 
     shared_fnames = row["shared_members"].split(";")
     shared_percents = row["shared_members_p"].split(";")
+    N_rows_shared = len(shared_fnames)
 
     for i, fname in enumerate(shared_fnames):
         # Locate OC with shared members in the UCC
@@ -469,4 +483,4 @@ def table_shared_members(df_UCC, fnames_all, row, tsp):
     # Remove final new line
     shared_members_tab = shared_members_tab[:-1]
 
-    return shared_members_tab
+    return shared_members_tab, N_rows_shared
