@@ -308,26 +308,16 @@ def load_data(
     df_members = pd.read_parquet(zenodo_members_file)
 
     # Load current CSV data files
-    df_UCC_B = pd.read_csv(
-        ucc_B_file,
-        dtype={
-            "blue_str_values": "string",
-        },
-    )
+    df_UCC_B = load_BC_cats("B", ucc_B_file)
     logging.info(f"\nFile {ucc_B_file} loaded ({len(df_UCC_B)} entries)")
-    # Replace NaN values with "nan" string only in selected columns
-    selected = ["frame_limit", "shared_members", "shared_members_p"]
-    df_UCC_C = pd.read_csv(
-        ucc_C_file,
-        converters={c: lambda x: "nan" if pd.isna(x) else str(x) for c in selected},
-    )
+    df_UCC_C = load_BC_cats("C", ucc_C_file)
+    logging.info(f"File {ucc_C_file} loaded ({len(df_UCC_C)} entries)")
 
     # Check B and C alignment
     fname_B = [_.split(";")[0] for _ in df_UCC_B["fnames"]]
     if fname_B == df_UCC_C["fname"].to_list() is False:
         raise ValueError("The 'fname' columns in B and C dataframes differ")
 
-    logging.info(f"File {ucc_C_file} loaded ({len(df_UCC_C)} entries)")
     # Merge df_UCC_B and df_UCC_C dataframes
     df_BC = pd.concat([df_UCC_B, df_UCC_C], axis=1)
 
