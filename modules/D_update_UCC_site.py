@@ -12,7 +12,6 @@ import pandas as pd
 from .D_funcs import ucc_entry, ucc_plots, ucc_summ_cmmts, ucc_updt_tables
 from .utils import get_fnames, load_BC_cats, logger
 from .variables import (
-    UCC_cmmts_file,
     UCC_cmmts_folder,
     UCC_members_file,
     articles_md_path,
@@ -52,8 +51,6 @@ def main():
         zenodo_members_file,
         ucc_C_file,
         temp_C_path,
-        UCC_cmmts_path,
-        temp_UCC_cmmts_path,
         temp_entries_path,
         ucc_entries_path,
         temp_members_files_folder,
@@ -82,13 +79,13 @@ def main():
     if N_plots_updt > 0:
         if input(f"\nUpdate {N_plots_updt} cluster plots? (y/n): ").lower() == "y":
             # Returns df_C dataframe with 'plot_used' column updated
-            df_C_updated = updt_ucc_cluster_plots(
+            df_C_updated, N_total = updt_ucc_cluster_plots(
                 logging,
                 df_C,
                 df_members,
             )
-            if df_C_updated.empty:
-                raise ValueError("No plots were generated/updated")
+            if N_total == 0:
+                logging.info("No plots were generated/updated")
             # Check that all entries in df_UCC_C have plot_used='y'
             if any(df_C_updated["plot_used"] == "n"):
                 raise ValueError("Some entries in C dataframe still have plot_used='n'")
@@ -184,8 +181,6 @@ def main():
             logging,
             ucc_C_file,
             temp_C_path,
-            UCC_cmmts_path,
-            temp_UCC_cmmts_path,
             old_gz_CSV_path,
             new_clusters_csv_path,
         )
@@ -197,9 +192,7 @@ def main():
 
 def load_paths(
     logging,
-) -> tuple[
-    Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, str
-]:
+) -> tuple[Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, str]:
     """ """
     data_folder_p = Path(data_folder)
     temp_folder_p = Path(temp_folder)
@@ -227,10 +220,6 @@ def load_paths(
         logging.info(
             f"At least one folder exists: {temp_folder_p / (plots_folder + 'plots_*/')}"
         )
-
-    # UCC comments file path
-    UCC_cmmts_path = data_folder_p / UCC_cmmts_file
-    temp_UCC_cmmts_path = temp_folder_p / UCC_cmmts_path
 
     def ensure_dir(path: Path):
         existed = path.exists()
@@ -274,8 +263,6 @@ def load_paths(
         zenodo_members_file,
         ucc_C_file,
         temp_C_path,
-        UCC_cmmts_path,
-        temp_UCC_cmmts_path,
         temp_entries_path,
         ucc_entries_path,
         temp_members_files_folder,
@@ -401,7 +388,9 @@ def load_data(
     )
 
 
-def updt_ucc_cluster_plots(logging, df_UCC, df_members, min_UTI=0.5) -> pd.DataFrame:
+def updt_ucc_cluster_plots(
+    logging, df_UCC, df_members, min_UTI=0.5
+) -> tuple[pd.DataFrame, int]:
     """ """
     logging.info("\nGenerating plot files")
 
@@ -435,17 +424,21 @@ def updt_ucc_cluster_plots(logging, df_UCC, df_members, min_UTI=0.5) -> pd.DataF
         orig_aladin_path = (
             f"{root_ucc_path}{plots_folder}plots_{fname0[0]}/aladin/{fname0}.webp"
         )
-        if Path(orig_aladin_path).is_file() is False:
-            # Path were new image will be stored
-            save_plot_file = (
-                f"{temp_folder}{plots_folder}plots_{fname0[0]}/aladin/{fname0}.webp"
-            )
+        # Path to temp file
+        temp_aladin_path = (
+            f"{temp_folder}{plots_folder}plots_{fname0[0]}/aladin/{fname0}.webp"
+        )
+        # If no image exists in either path, generate the Aladin plot
+        if (
+            Path(orig_aladin_path).is_file() is False
+            and Path(temp_aladin_path).is_file() is False
+        ):
             ucc_plots.plot_aladin(
                 logging,
                 UCC_cl["RA_ICRS_m"],
                 UCC_cl["DE_ICRS_m"],
                 UCC_cl["r_50"],
-                save_plot_file,
+                temp_aladin_path,
             )
             txt += " Aladin plot generated |"
 
@@ -456,30 +449,32 @@ def updt_ucc_cluster_plots(logging, df_UCC, df_members, min_UTI=0.5) -> pd.DataF
             df_membs = df_members[df_members["name"] == fname0]
 
             # Temp path were the GC file will be stored
-            temp_plot_file = (
+            temp_gc_path = (
                 f"{temp_folder}{plots_folder}plots_{fname0[0]}/gcpos/{fname0}.webp"
             )
-            ucc_plots.plot_gcpos(
-                temp_plot_file,
-                Z_uti,
-                R_uti,
-                UCC_cl["X_GC"],
-                UCC_cl["Y_GC"],
-                UCC_cl["Z_GC"],
-                UCC_cl["R_GC"],
-                vx[i_ucc],
-                vy[i_ucc],
-                vz[i_ucc],
-                vR[i_ucc],
-            )
-            txt += " GC plot generated |"
+            if Path(temp_gc_path).is_file() is False:
+                ucc_plots.plot_gcpos(
+                    temp_gc_path,
+                    Z_uti,
+                    R_uti,
+                    UCC_cl["X_GC"],
+                    UCC_cl["Y_GC"],
+                    UCC_cl["Z_GC"],
+                    UCC_cl["R_GC"],
+                    vx[i_ucc],
+                    vy[i_ucc],
+                    vz[i_ucc],
+                    vR[i_ucc],
+                )
+                txt += " GC plot generated |"
 
             # Temp path were the CMD file will be stored
-            temp_plot_file = (
+            temp_cmd_path = (
                 f"{temp_folder}{plots_folder}plots_{fname0[0]}/UCC/{fname0}.webp"
             )
-            ucc_plots.plot_CMD(temp_plot_file, df_membs)
-            txt += " CMD plot generated |"
+            if Path(temp_cmd_path).is_file() is False:
+                ucc_plots.plot_CMD(temp_cmd_path, df_membs)
+                txt += " CMD plot generated |"
 
             # Update value indicating that the plots were generated
             df_UCC.loc[i_ucc, "plot_used"] = "y"
@@ -490,10 +485,7 @@ def updt_ucc_cluster_plots(logging, df_UCC, df_members, min_UTI=0.5) -> pd.DataF
 
     logging.info(f"\nN={N_total} OCs processed")
 
-    if N_total > 0:
-        return df_UCC.copy()
-    else:
-        return pd.DataFrame([])
+    return df_UCC.copy(), N_total
 
 
 def UTI_to_hex(df_UCC):
@@ -928,8 +920,6 @@ def move_files(
     logging,
     ucc_C_file: Path,
     temp_C_path: Path,
-    UCC_cmmts_path: Path,
-    temp_UCC_cmmts_path: Path,
     old_gz_CSV_path: str,
     new_clusters_csv_path: str,
 ) -> None:
@@ -953,13 +943,9 @@ def move_files(
     if os.path.exists(temp_C_path):
         planned_actions.append(("move", temp_C_path, ucc_C_file))
 
-    # --- Delete old clusters file ---
+    # --- Delete old clusters CSV file ---
     if new_clusters_csv_path != "":
-        planned_actions.append(("delete", old_gz_CSV_path, None))
-
-    # --- Updated comments file ---
-    if os.path.exists(temp_UCC_cmmts_path):
-        planned_actions.append(("replace", temp_UCC_cmmts_path, UCC_cmmts_path))
+        planned_actions.append(("delete", old_gz_CSV_path, ""))
 
     # --- Move files inside temporary ucc/ ---
     temp_ucc_fold = temp_folder + ucc_path
@@ -969,13 +955,21 @@ def move_files(
             dst = src.replace(temp_folder, root_ucc_path)
             planned_actions.append(("move", src, dst))
 
+    if not planned_actions:
+        logging.info("\nNo operations to apply.")
+        return
+
     # --- Show planned actions ---
     logging.info("\nPlanned actions:")
 
-    # Extract actions related to _clusters folder
-    cluster_actions = [a for a in planned_actions if "_clusters" in a[2]]
-    other_actions = [a for a in planned_actions if "_clusters" not in a[2]]
-
+    # Extract actions related to '_clusters' and 'plots' separately
+    cluster_actions = [a for a in planned_actions if "_clusters" in str(a[2])]
+    plot_actions = [a for a in planned_actions if "plots" in str(a[2])]
+    other_actions = [
+        a
+        for a in planned_actions
+        if "_clusters" not in str(a[2]) and "plots" not in str(a[2])
+    ]
     for action, src, dst in other_actions:
         if action == "move":
             logging.info(f"  MOVE     {src} -> {dst}")
@@ -983,10 +977,19 @@ def move_files(
             logging.info(f"  REPLACE  {src} -> {dst}")
         elif action == "delete":
             logging.info(f"  DELETE   {src}")
-    if cluster_actions:
+
+    if len(cluster_actions) > 100:
         logging.info(
             f"  MOVE     {len(cluster_actions)} '_clusters/*.md' files will be updated"
         )
+    else:
+        for action, src, dst in cluster_actions:
+            logging.info(f"  MOVE     {src} -> {dst}")
+    if len(plot_actions) > 100:
+        logging.info(f"  MOVE     {len(plot_actions)} 'plots/*' files will be updated")
+    else:
+        for action, src, dst in plot_actions:
+            logging.info(f"  MOVE     {src} -> {dst}")
 
     # --- Ask for confirmation ---
     resp = input("\nProceed with these actions? [y/N]: ").strip().lower()
@@ -1002,10 +1005,13 @@ def move_files(
             f"_temp_updt/ucc/clusters/*.md -> ucc/_clusters/*.md ({len(cluster_actions)} files)"
         )
 
+    clusters_plots_actions = []
     for action, src, dst in planned_actions:
         if action == "move":
             os.rename(src, dst)
-            if "_clusters" not in dst:
+            if "_clusters" in str(dst) or "plots" in str(dst):
+                clusters_plots_actions.append(f"{src} -> {dst}")
+            else:
                 logging.info(f"{src} -> {dst}")
         elif action == "replace":
             os.replace(src, dst)
@@ -1014,75 +1020,15 @@ def move_files(
             os.remove(src)
             logging.info(f"Deleted: {src}")
 
+    if len(clusters_plots_actions) > 100:
+        logging.info(
+            f"{len(clusters_plots_actions)} files in '_clusters/*.md' and 'plots/*' updated"
+        )
+    else:
+        for action in clusters_plots_actions:
+            logging.info(action)
+
     logging.info("\nAll files moved into place")
-
-
-# def move_files(
-#     logging,
-#     ucc_C_file: Path,
-#     temp_C_path: Path,
-#     UCC_cmmts_path: Path,
-#     temp_UCC_cmmts_path: Path,
-#     old_gz_CSV_path: str,
-#     new_clusters_csv_path: str,
-# ) -> None:
-#     """ """
-#     logging.info("\nMoving files:")
-
-#     # Move all plots
-#     all_plot_folds = []
-#     for letter in "abcdefghijklmnopqrstuvwxyz":
-#         letter_fold = plots_folder + f"plots_{letter}/"
-#         for fold in plots_sub_folders:
-#             temp_fpath = temp_folder + letter_fold + fold + "/"
-#             fpath = root_ucc_path + letter_fold + fold + "/"
-#             # Check if folder exists
-#             if os.path.exists(temp_fpath):
-#                 # For every file in this folder
-#                 for file in os.listdir(temp_fpath):
-#                     all_plot_folds.append(fpath)
-#                     os.rename(temp_fpath + file, fpath + file)
-#     unq_plot_folds = list(set(all_plot_folds))
-#     for plot_stored in unq_plot_folds:
-#         N = all_plot_folds.count(plot_stored)
-#         logging.info(
-#             plot_stored.replace(temp_folder, root_ucc_path)
-#             + "*.webp"
-#             + " --> "
-#             + plot_stored
-#             + f"*.webp (N={N})"
-#         )
-
-#     # Move updated C file
-#     if os.path.exists(temp_C_path):
-#         os.rename(temp_C_path, ucc_C_file)
-#         logging.info(str(temp_C_path) + " --> " + str(ucc_C_file))
-
-#     # Move updated UCC comments file
-#     if os.path.exists(temp_UCC_cmmts_path):
-#         os.replace(temp_UCC_cmmts_path, UCC_cmmts_path)
-#         logging.info(f"{temp_UCC_cmmts_path} --> UCC_cmmts_path")
-
-#     # Move all files inside temporary 'ucc/'
-#     temp_ucc_fold = temp_folder + ucc_path
-#     for root, dirs, files in os.walk(temp_ucc_fold):
-#         for filename in files:
-#             file_path = os.path.join(root, filename)
-#             file_ucc = file_path.replace(temp_folder, root_ucc_path)
-#             if "_clusters" not in root:
-#                 logging.info(file_path + " --> " + file_ucc)
-#             os.rename(file_path, file_ucc)
-#         if "_clusters" in root:
-#             file_path = root + "/*.md"
-#             file_ucc = file_path.replace(temp_folder, root_ucc_path)
-#             logging.info(file_path + " --> " + file_ucc)
-
-#     # Delete old cluster_XXXX.csv.gz file
-#     if new_clusters_csv_path != "":
-#         os.remove(old_gz_CSV_path)
-#         logging.info(f"Old file removed: {old_gz_CSV_path}")
-
-#     logging.info("\nAll files moved into place")
 
 
 def file_checker(logging) -> None:
