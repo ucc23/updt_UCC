@@ -623,9 +623,6 @@ def updt_ucc_cluster_files(
 
     logging.info(f"\nN={N_total} OCs processed")
 
-    # profiler.stop()
-    # profiler.open_in_browser()
-
     # # Delete all files in folder2 and move all files from folder1 to folder2
     # folder1 = "/home/gabriel/Github/UCC/updt_UCC/temp_updt/ucc/_clusters"
     # folder2 = "/home/gabriel/Github/UCC/ucc/_clusters2"
