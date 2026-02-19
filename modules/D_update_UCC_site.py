@@ -548,6 +548,12 @@ def updt_ucc_cluster_files(
 
     UTI_colors = UTI_to_hex(df_BC)
 
+    # Add stellar density
+    r_50 = df_BC["r_50"].to_numpy()
+    dist_pc = 1000 / np.clip(df_BC["Plx_m"], 0.01, 50)
+    r_pc = dist_pc * np.tan(np.deg2rad(r_50 / 60))
+    df_BC["dens_pc2"] = np.round(df_BC["N_50"] / r_pc**2, 1)
+
     members_files_mapping = {
         fname: bin_label for fname, bin_label in df_BC[["fname", "bin"]].values
     }
