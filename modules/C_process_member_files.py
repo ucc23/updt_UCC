@@ -122,17 +122,19 @@ def main():
     df_UCC_C_final = add_info_to_C(current_JSON, df_UCC_B, df_UCC_C_final)
 
     # Check differences between the original and final C dataframes
-    diff_between_dfs(logging, "C cat", df_UCC_C, df_UCC_C_final)
+    diff_found = diff_between_dfs(logging, "C cat", df_UCC_C, df_UCC_C_final)
+
+    if diff_found:
+        # Save updated UCC to temporary CSV file
+        save_df_UCC(logging, df_UCC_C_final, temp_folder + ucc_cat_file, "fname")
 
     # Save the generated data to temporary files before moving them
-    update_files(logging, temp_zenodo_fold, df_UCC_B, df_UCC_C_final, df_members_new)
+    update_zenodo_files(
+        logging, temp_zenodo_fold, df_UCC_B, df_UCC_C_final, df_members_new
+    )
 
     if input("\nMove files to their final paths? (y/n): ").lower() == "y":
         move_files(logging, temp_zenodo_fold, rename_C_fname, df_UCC_C_final)
-
-    # if input("\nRemove temporary files and folders? (y/n): ").lower() == "y":
-    #     # shutil.rmtree(temp_fold)
-    #     logging.info(f"Folder removed: {temp_fold}")
 
 
 def get_paths_check_paths(logging) -> tuple[str, str, str]:
@@ -803,7 +805,7 @@ def add_info_to_C(current_JSON, df_UCC_B, df_UCC_C, max_dens=5):
 #     return df
 
 
-def update_files(
+def update_zenodo_files(
     logging,
     temp_zenodo_fold: str,
     df_UCC_B: pd.DataFrame,
@@ -812,10 +814,7 @@ def update_files(
 ):
     """ """
     # Generate updated full UCC catalogue
-    logging.info("Update files:")
-
-    # Save updated UCC to temporary CSV file
-    save_df_UCC(logging, df_UCC_C_final, temp_folder + ucc_cat_file, "fname")
+    logging.info("Update Zenodo files:")
 
     fpath = temp_zenodo_fold + zenodo_cat_fname
     df_UCC_C_copy = df_UCC_C_final.copy()
@@ -981,7 +980,7 @@ def move_files(
     """Move files to the appropriate folders"""
     post_actions = []
 
-    # Move README
+    # Move Zenodo README
     file_path_temp = temp_zenodo_fold + "README.txt"
     file_path = zenodo_folder + "README.txt"
     post_actions.append(("move", file_path_temp, file_path))
@@ -991,7 +990,7 @@ def move_files(
     file_path = zenodo_folder + zenodo_cat_fname
     post_actions.append(("move", file_path_temp, file_path))
 
-    # Combined members parquet
+    # Move Zenodo members file
     file_path_temp = temp_zenodo_fold + UCC_members_file
     if os.path.isfile(file_path_temp):
         file_path = zenodo_folder + UCC_members_file
@@ -1006,20 +1005,19 @@ def move_files(
         # Move new parquet
         post_actions.append(("move", file_path_temp, file_path))
 
-    # Archive old C catalogue
-    ucc_stored = data_folder + ucc_cat_file
-    now_time = pd.Timestamp.now().strftime("%y%m%d%H")
-    archived_C_file = (
-        data_folder
-        + "ucc_archived_nogit/"
-        + ucc_cat_file.replace(".csv", f"_{now_time}.csv.gz")
-    )
-    post_actions.append(("archive_csv", ucc_stored, archived_C_file))
-    # # Remove old C file
-    # post_actions.append(("remove", ucc_stored, None))
-    # Move new C file into place
     ucc_temp = temp_folder + ucc_cat_file
-    post_actions.append(("move", ucc_temp, ucc_stored))
+    if os.path.isfile(ucc_temp):
+        # Archive old C catalogue
+        ucc_stored = data_folder + ucc_cat_file
+        now_time = pd.Timestamp.now().strftime("%y%m%d%H")
+        archived_C_file = (
+            data_folder
+            + "ucc_archived_nogit/"
+            + ucc_cat_file.replace(".csv", f"_{now_time}.csv.gz")
+        )
+        post_actions.append(("archive_csv", ucc_stored, archived_C_file))
+        # Move new C file into place
+        post_actions.append(("move", ucc_temp, ucc_stored))
 
     # Collect rename operations
     md_root = root_ucc_path + md_folder
