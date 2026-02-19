@@ -560,11 +560,7 @@ def updt_ucc_cluster_files(
 
     current_year = datetime.datetime.now().year
 
-    # ran_i = np.random.randint(0, len(df_BC), size=100)
-
-    # from pyinstrument import Profiler
-    # profiler = Profiler()
-    # profiler.start()
+    # ran_i = np.random.randint(0, len(df_BC), size=50)
 
     N_total = 0
     # Iterate trough each entry in the UCC database
