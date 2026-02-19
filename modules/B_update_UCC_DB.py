@@ -167,8 +167,8 @@ def main():
     if diff_found:
         final_fname_compare(logging, df_UCC_B_old, df_UCC_B)
 
-    file_path = df_UCC_B_path.replace(data_folder, temp_folder)
-    save_df_UCC(logging, df_UCC_B, file_path, order_col="fnames")
+        file_path = df_UCC_B_path.replace(data_folder, temp_folder)
+        save_df_UCC(logging, df_UCC_B, file_path, order_col="fnames")
 
     if input("\nMove files to their final paths? (y/n): ").lower() == "y":
         move_files(
@@ -1545,7 +1545,7 @@ def add_fpars_stats(df):
             # Standard vectorized statistics
             med = temp_df.median(axis=1)
             if par in {"age", "mass"}:
-                df[f"{par}_median"] = med.round().astype("Int64")
+                df[f"{par}_median"] = med.round(0)
             else:
                 df[f"{par}_median"] = med.round(4)
             df[f"{par}_stddev"] = temp_df.std(axis=1).round(4)
@@ -1633,23 +1633,23 @@ def move_files(
             os.rename(db_temp, db_stored)
             logging.info(db_temp + " --> " + db_stored)
 
-    # Generate '.gz' compressed file for the old B file and archive it
-    now_time = pd.Timestamp.now().strftime("%y%m%d%H")
-    archived_B_file = (
-        data_folder
-        + "ucc_archived_nogit/"
-        + merged_dbs_file.replace(".csv", f"_{now_time}.csv.gz")
-    )
-    save_df_UCC(logging, df_UCC_B_old, archived_B_file, "fnames", "gzip")
-    # Remove old B csv file
-    os.remove(df_UCC_B_path)
-    logging.info(df_UCC_B_path + " --> " + archived_B_file)
-    logging.info("NOTICE: UCC_cat_B archiving NOT APPLIED")
-
-    # Move new B file into place
     ucc_temp = temp_folder + merged_dbs_file
-    os.rename(ucc_temp, df_UCC_B_path)
-    logging.info(ucc_temp + " --> " + df_UCC_B_path)
+    if os.path.isfile(ucc_temp):
+        # Generate '.gz' compressed file for the old B file and archive it
+        now_time = pd.Timestamp.now().strftime("%y%m%d%H")
+        archived_B_file = (
+            data_folder
+            + "ucc_archived_nogit/"
+            + merged_dbs_file.replace(".csv", f"_{now_time}.csv.gz")
+        )
+        save_df_UCC(logging, df_UCC_B_old, archived_B_file, "fnames", "gzip")
+        # Remove old B csv file
+        os.remove(df_UCC_B_path)
+        logging.info(df_UCC_B_path + " --> " + archived_B_file)
+
+        # Move new B file into place
+        os.rename(ucc_temp, df_UCC_B_path)
+        logging.info(ucc_temp + " --> " + df_UCC_B_path)
 
 
 if __name__ == "__main__":
