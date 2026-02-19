@@ -387,6 +387,27 @@ def fpars_summary(
         f"{z_position}{av_txt}."
     )
 
+    # if (diff_ext := medians.get("diff_ext")) is not None:
+    #     if diff_ext > 2:
+    #         diff_ext_txt = "very high differential reddening"
+    #         diff_ext_range = (2, 1e6)
+    #     elif diff_ext > 1:
+    #         diff_ext_txt = "high differential reddening"
+    #         diff_ext_range = (1, 2)
+    #     elif diff_ext > 0.5:
+    #         diff_ext_txt = "substantial differential reddening"
+    #         diff_ext_range = (0.5, 1)
+    #     elif diff_ext < 0.25:
+    #         diff_ext_txt = "moderate differential reddening"
+    #         diff_ext_range = (0.25, 0.5)
+    #     else:
+    #         diff_ext_txt = ""
+    #         diff_ext_range = (0, 1e6)
+
+    #     if diff_ext_txt != "":
+    #         fpars_badges["diff_ext"] = diff_ext_txt.capitalize()
+    #         fpars_badges_url["diff_ext"] = diff_ext_range
+
     descriptors = []
 
     if (mass := medians.get("mass")) is not None:

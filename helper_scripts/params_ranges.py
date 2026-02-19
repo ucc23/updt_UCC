@@ -2,15 +2,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-df = pd.read_csv("../UCC_cat_B.csv")
+df = pd.read_csv("../data/UCC_cat_B.csv")
 
 # "dist", "ext", "diff_ext", "age", "met", "mass", "bi_frac", "blue_str"
 par_idx, par_min, par_max = 0, 0.1, 10  # dist [kpc]
 par_idx, par_min, par_max = 1, 0.0, 10  # ext
-# par_idx, par_min, par_max = 2, 0., 5  # diff_ext
+par_idx, par_min, par_max = 2, 0.0, 5  # diff_ext
 # par_idx, par_min, par_max = 3, 1., 10000  # age
 # par_idx, par_min, par_max = 4, -2, 1  # met
-par_idx, par_min, par_max = 5, 50, 10000  # mass
+# par_idx, par_min, par_max = 5, 50, 10000  # mass
 # par_idx, par_min, par_max = 7, 0, 10  # blue_str
 
 
