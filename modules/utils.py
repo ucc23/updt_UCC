@@ -64,12 +64,12 @@ def load_BC_cats(cat_ID: str, path: str):
         df = pd.read_csv(
             path,
             dtype={
-                "age_median": "Int64",
-                "mass_median": "Int64",
                 "blue_str_values": str,
             },
         )
+
     elif cat_ID == "C":
+        selected = ["frame_limit", "shared_members", "shared_members_p"]
         df = pd.read_csv(
             path,
             dtype={
@@ -81,8 +81,9 @@ def load_BC_cats(cat_ID: str, path: str):
                 "shared_members_p": "string",
                 "bad_oc": "string",
             },
+            # converters={c: lambda x: "nan" if pd.isna(x) else str(x) for c in selected}
         )
-        for col in ("frame_limit", "shared_members", "shared_members_p"):
+        for col in selected:
             df[col] = df[col].replace(pd.NA, "nan")
     else:
         raise ValueError(f"Invalid cat_ID: {cat_ID}. Expected 'B' or 'C'.")
