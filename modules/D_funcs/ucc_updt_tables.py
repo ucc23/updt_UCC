@@ -80,14 +80,18 @@ def updt_articles_table(df_UCC, current_JSON, database_md_in, max_chars_title=50
         short_title = title[:max_chars_title] + "..."
         ref_url = f"""<a href="{DB_data["SCIX_url"]}" target="_blank" title="{title}">{short_title}</a>"""
         data_url = DB_data["data_url"]
-        if "vizier" in data_url:
-            data_url = f"""<a href="{data_url}" target="_blank"> <img src="/images/vizier.png " alt="Vizier url"></a>"""
+        if data_url == "N/A":
+            pass
+        elif "vizier" in data_url:
+            data_url = f"""<a href="{data_url}" target="_blank"> <img src="/images/vizier.png" alt="Vizier url"></a>"""
         elif "github" in data_url:
-            data_url = f"""<a href="{data_url}" target="_blank"> <img src="/images/github.png " alt="Github url"></a>"""
+            data_url = f"""<a href="{data_url}" target="_blank"> <img src="/images/github.png" alt="Github url"></a>"""
         elif "zenodo" in data_url:
-            data_url = f"""<a href="{data_url}" target="_blank"> <img src="/images/zenodo.png " alt="Zenodo url"></a>"""
+            data_url = f"""<a href="{data_url}" target="_blank"> <img src="/images/zenodo.png" alt="Zenodo url"></a>"""
         elif "china-vo" in data_url:
-            data_url = f"""<a href="{data_url}" target="_blank"> <img src="/images/chinavo.png " alt="ChinaVO url"></a>"""
+            data_url = f"""<a href="{data_url}" target="_blank"> <img src="/images/chinavo.png" alt="ChinaVO url"></a>"""
+        else:
+            data_url = f"""<a href="{data_url}" target="_blank"> 🔗</a>"""
         CSV_url = f"""<a href="https://flatgithub.com/ucc23/updt_UCC?filename=data/databases/{DB}.csv" target="_blank">📊</a>"""
         row += f"| {ref_url} | {DB_data['authors']} | {DB_data['year']} | {data_url} | [{N_in_DB[DB]}](/tables/dbs/{DB}_table) | {CSV_url}"
         md_table += row + "|\n"
