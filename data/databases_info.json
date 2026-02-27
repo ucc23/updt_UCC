@@ -1,6 +1,7 @@
 {
   "DAMBIS1999": {
     "SCIX_url": "https://scixplorer.org/abs/1999AstL...25....7D",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "24",
@@ -35,6 +36,7 @@
   },
   "DIAS2002": {
     "SCIX_url": "https://scixplorer.org/abs/2002A%26A...389..871D",
+    "data_cmmts": "data,comments",
     "citations_count": {
       "date": "2026-02-10",
       "count": "897",
@@ -75,6 +77,7 @@
   },
   "CHEN2003": {
     "SCIX_url": "https://scixplorer.org/abs/2003AJ....125.1397C",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "247",
@@ -114,6 +117,7 @@
   },
   "ALESSI2003": {
     "SCIX_url": "https://scixplorer.org/abs/2003A%26A...410..565A",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "32",
@@ -146,6 +150,7 @@
   },
   "KHARCHENKO2003": {
     "SCIX_url": "https://scixplorer.org/abs/2003ARep...47..263K",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "18",
@@ -175,6 +180,7 @@
   },
   "LADA2003": {
     "SCIX_url": "https://scixplorer.org/abs/2003ARA%26A..41...57L",
+    "data_cmmts": "data,comments",
     "citations_count": {
       "date": "2026-02-13",
       "count": "2907",
@@ -202,6 +208,7 @@
   },
   "KHARCHENKO2005": {
     "SCIX_url": "https://scixplorer.org/abs/2005A%26A...438.1163K",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "622",
@@ -235,6 +242,7 @@
   },
   "KHARCHENKO2005_1": {
     "SCIX_url": "https://scixplorer.org/abs/2005A%26A...440..403K",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "171",
@@ -268,6 +276,7 @@
   },
   "MERCER2005": {
     "SCIX_url": "https://scixplorer.org/abs/2005ApJ...635..560M",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "137",
@@ -288,6 +297,7 @@
   },
   "VANDENBERGH2006": {
     "SCIX_url": "https://scixplorer.org/abs/2006AJ....131.1559V",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "29",
@@ -318,6 +328,7 @@
   },
   "KRONBERGER2006": {
     "SCIX_url": "https://scixplorer.org/abs/2006A%26A...447..921K",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "133",
@@ -358,6 +369,7 @@
   },
   "FROEBRICH2007": {
     "SCIX_url": "https://scixplorer.org/abs/2007MNRAS.374..399F",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "191",
@@ -378,6 +390,7 @@
   },
   "PISKUNOV2007": {
     "SCIX_url": "https://scixplorer.org/abs/2007A%26A...468..151P",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "95",
@@ -415,6 +428,7 @@
   },
   "KHARCHENKO2007": {
     "SCIX_url": "https://scixplorer.org/abs/2007AN....328..889K",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "203",
@@ -437,6 +451,7 @@
   },
   "PISKUNOV2008": {
     "SCIX_url": "https://scixplorer.org/abs/2008A%26A...477..165P",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "105",
@@ -480,6 +495,7 @@
   },
   "KOPOSOV2008": {
     "SCIX_url": "https://scixplorer.org/abs/2008A%26A...486..771K",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "80",
@@ -520,6 +536,7 @@
   },
   "GLUSHKOVA2010": {
     "SCIX_url": "https://scixplorer.org/abs/2010AstL...36...75G",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "58",
@@ -558,8 +575,27 @@
       }
     }
   },
+  "PIATTI2011": {
+    "SCIX_url": "https://scixplorer.org/abs/2011NewA...16..161P",
+    "data_cmmts": "comments",
+    "citations_count": {
+      "date": "2026-02-27",
+      "count": "9",
+      "citations_year": 0.6
+    },
+    "data_url": "N/A",
+    "authors": "Piatti et al.",
+    "title": "First CCD UBVI photometric analysis of six open cluster candidates",
+    "year": "2011",
+    "received": "20100423",
+    "names": "None",
+    "pos": {},
+    "pars": {},
+    "e_pars": {}
+  },
   "BORISSOVA2011": {
     "SCIX_url": "https://scixplorer.org/abs/2011A%26A...532A.131B",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "120",
@@ -578,8 +614,45 @@
     "pars": {},
     "e_pars": {}
   },
+  "BUKOWIECKI2011": {
+    "SCIX_url": "https://scixplorer.org/abs/2011AcA....61..231B",
+    "data_cmmts": "data",
+    "citations_count": {
+      "date": "2026-02-21",
+      "count": "89",
+      "citations_year": 5.9
+    },
+    "data_url": "https://www.home.umk.pl/~gmac/OCS/2mass.html",
+    "authors": "Bukowiecki et al.",
+    "title": "Open Clusters in 2MASS Photometry. I. Structural and Basic Astrophysical Parameters",
+    "year": "2011",
+    "received": "20110605",
+    "names": "Star cluster",
+    "pos": {
+      "RA": "RA",
+      "DEC": "DEC"
+    },
+    "pars": {
+      "av": {
+        "Ebv": "E(B-V)"
+      },
+      "dist": {
+        "dm": "m-M",
+        "dkpc": "d_kpc"
+      },
+      "age": {
+        "loga": "log(age)"
+      }
+    },
+    "e_pars": {
+      "e_dist": {
+        "edkpc": "e_d_kpc"
+      }
+    }
+  },
   "KHARCHENKO2012": {
     "SCIX_url": "https://scixplorer.org/abs/2012A%26A...543A.156K",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "106",
@@ -620,6 +693,7 @@
   },
   "GOZHA2012": {
     "SCIX_url": "https://scixplorer.org/abs/2012AstL...38..506G",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "29",
@@ -651,8 +725,70 @@
     },
     "e_pars": {}
   },
+  "BUKOWIECKI2012": {
+    "SCIX_url": "https://scixplorer.org/abs/2012AcA....62..281B",
+    "data_cmmts": "data",
+    "citations_count": {
+      "date": "2026-02-21",
+      "count": "5",
+      "citations_year": 0.4
+    },
+    "data_url": "https://www.home.umk.pl/~gmac/OCS/2mass.html",
+    "authors": "Bukowiecki et al.",
+    "title": "Open Clusters in 2MASS Photometry. II. Mass Function and Mass Segregation",
+    "year": "2012",
+    "received": "20120708",
+    "names": "Star cluster",
+    "pos": {},
+    "pars": {
+      "mass": {
+        "mass": "Mtotal"
+      }
+    },
+    "e_pars": {
+      "e_mass": {
+        "emass": "e_Mtotal"
+      }
+    }
+  },
+  "MORALES2013": {
+    "SCIX_url": "https://scixplorer.org/abs/2013A%26A...560A..76M",
+    "data_cmmts": "data,comments",
+    "citations_count": {
+      "date": "2026-02-23",
+      "count": "67",
+      "citations_year": 5.2
+    },
+    "data_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2013A%26A...560A..76M",
+    "authors": "Morales et al.",
+    "title": "Stellar clusters in the inner Galaxy and their correlation with cold dust emission",
+    "year": "2013",
+    "received": "20130402",
+    "names": "Name",
+    "pos": {
+      "RA": "RA",
+      "DEC": "DEC"
+    },
+    "pars": {
+      "dist": {
+        "dkpc": "Dist"
+      },
+      "age": {
+        "amyr": "Age"
+      }
+    },
+    "e_pars": {
+      "e_dist": {
+        "edkpc": "e_Dist"
+      },
+      "e_age": {
+        "eamyr": "e_Age"
+      }
+    }
+  },
   "KHARCHENKO2013": {
     "SCIX_url": "https://scixplorer.org/abs/2013A%26A...558A..53K",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "687",
@@ -696,6 +832,7 @@
   },
   "SCHMEJA2014": {
     "SCIX_url": "https://scixplorer.org/abs/2014A%26A...568A..51S",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "67",
@@ -732,6 +869,7 @@
   },
   "DIAS2014": {
     "SCIX_url": "https://scixplorer.org/abs/2014A%26A...564A..79D",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "167",
@@ -755,6 +893,7 @@
   },
   "SCHOLZ2015": {
     "SCIX_url": "https://scixplorer.org/abs/2015A%26A...581A..39S",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "52",
@@ -798,6 +937,7 @@
   },
   "KHARCHENKO2016": {
     "SCIX_url": "https://scixplorer.org/abs/2016A%26A...585A.101K",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "81",
@@ -828,6 +968,7 @@
   },
   "ROSER2016": {
     "SCIX_url": "https://scixplorer.org/abs/2016A%26A...595A..22R",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "26",
@@ -860,6 +1001,7 @@
   },
   "LOKTIN2017": {
     "SCIX_url": "https://scixplorer.org/abs/2017AstBu..72..257L",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "35",
@@ -900,6 +1042,7 @@
   },
   "YEN2018": {
     "SCIX_url": "https://scixplorer.org/abs/2018A%26A...615A..12Y",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "36",
@@ -946,6 +1089,7 @@
   },
   "ANGELO2019": {
     "SCIX_url": "https://scixplorer.org/abs/2019A%26A...624A...8A",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "21",
@@ -986,6 +1130,7 @@
   },
   "BORISSOVA2018": {
     "SCIX_url": "https://scixplorer.org/abs/2018MNRAS.481.3902B",
+    "data_cmmts": "data,comments",
     "citations_count": {
       "date": "2026-02-10",
       "count": "20",
@@ -1021,6 +1166,7 @@
   },
   "CASTRO2018": {
     "SCIX_url": "https://scixplorer.org/abs/2018A%26A...618A..59C",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "187",
@@ -1045,6 +1191,7 @@
   },
   "CANTAT2018": {
     "SCIX_url": "https://scixplorer.org/abs/2018A%26A...618A..93C",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "698",
@@ -1079,6 +1226,7 @@
   },
   "FERREIRA2019": {
     "SCIX_url": "https://scixplorer.org/abs/2019MNRAS.483.5508F",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "42",
@@ -1127,6 +1275,7 @@
   },
   "BICA2019": {
     "SCIX_url": "https://scixplorer.org/abs/2019AJ....157...12B",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "84",
@@ -1147,6 +1296,7 @@
   },
   "SOUBIRAN2018": {
     "SCIX_url": "https://scixplorer.org/abs/2018A%26A...619A.155S",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "176",
@@ -1172,6 +1322,7 @@
   },
   "CANTAT2019": {
     "SCIX_url": "https://scixplorer.org/abs/2019A%26A...624A.126C",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "114",
@@ -1199,6 +1350,7 @@
   },
   "BOSSINI2019": {
     "SCIX_url": "https://scixplorer.org/abs/2019A%26A...623A.108B",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "242",
@@ -1251,6 +1403,7 @@
   },
   "MONTEIRO2019": {
     "SCIX_url": "https://scixplorer.org/abs/2019MNRAS.487.2385M",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "38",
@@ -1300,6 +1453,7 @@
   },
   "DIAS2019": {
     "SCIX_url": "https://scixplorer.org/abs/2019MNRAS.486.5726D",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "60",
@@ -1350,6 +1504,7 @@
   },
   "CASTRO2019": {
     "SCIX_url": "https://scixplorer.org/abs/2019A%26A...627A..35C",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "124",
@@ -1373,6 +1528,7 @@
   },
   "SIM2019": {
     "SCIX_url": "https://scixplorer.org/abs/2019JKAS...52..145S",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "110",
@@ -1406,6 +1562,7 @@
   },
   "LIUPANG2019": {
     "SCIX_url": "https://scixplorer.org/abs/2019ApJS..245...32L",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "219",
@@ -1440,6 +1597,7 @@
   },
   "BASTIAN2019": {
     "SCIX_url": "https://scixplorer.org/abs/2019A&A...630L...8B",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "9",
@@ -1460,6 +1618,7 @@
   },
   "CANTAT2020_1": {
     "SCIX_url": "https://scixplorer.org/abs/2020A%26A...633A..99C",
+    "data_cmmts": "data,comments",
     "citations_count": {
       "date": "2026-02-10",
       "count": "296",
@@ -1492,8 +1651,50 @@
       }
     }
   },
+  "ZHONG2020": {
+    "SCIX_url": "https://scixplorer.org/abs/2020A%26A...640A.127Z",
+    "data_cmmts": "data",
+    "citations_count": {
+      "date": "2026-02-27",
+      "count": "57",
+      "citations_year": 9.5
+    },
+    "data_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2020A%26A...640A.127Z",
+    "authors": "Zhong et al.",
+    "title": "Exploring open cluster properties with Gaia and LAMOST",
+    "year": "2020",
+    "received": "20191118",
+    "names": "Cluster",
+    "pos": {
+      "RA": "RA_ICRS",
+      "DEC": "DE_ICRS",
+      "pmra": "pmRA*",
+      "pmde": "pmDE",
+      "Rv": "RV"
+    },
+    "pars": {
+      "av": {
+        "Ebv": "E(B-V)ref"
+      },
+      "dist": {
+        "dpc": "Distref"
+      },
+      "age": {
+        "agyr": "Ageref"
+      },
+      "met": {
+        "feh": "[Fe/H]"
+      }
+    },
+    "e_pars": {
+      "e_met": {
+        "efeh": "e_[Fe/H]"
+      }
+    }
+  },
   "HAO2020": {
     "SCIX_url": "https://scixplorer.org/abs/2020PASP..132c4502H",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "21",
@@ -1531,6 +1732,7 @@
   },
   "DONOR2020": {
     "SCIX_url": "https://scixplorer.org/abs/2020AJ....159..199D",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "142",
@@ -1562,6 +1764,7 @@
   },
   "CASTRO2020": {
     "SCIX_url": "https://scixplorer.org/abs/2020A%26A...635A..45C",
+    "data_cmmts": "data,comments",
     "citations_count": {
       "date": "2026-02-10",
       "count": "197",
@@ -1585,6 +1788,7 @@
   },
   "FERREIRA2020": {
     "SCIX_url": "https://scixplorer.org/abs/2020MNRAS.496.2021F",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "50",
@@ -1628,6 +1832,7 @@
   },
   "SANCHEZ2020": {
     "SCIX_url": "https://scixplorer.org/abs/2020MNRAS.495.2882S",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "6",
@@ -1650,6 +1855,7 @@
   },
   "CANTAT2020": {
     "SCIX_url": "https://scixplorer.org/abs/2020A%26A...640A...1C",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "502",
@@ -1681,8 +1887,27 @@
     },
     "e_pars": {}
   },
+  "PIECKA2021": {
+    "SCIX_url": "https://scixplorer.org/abs/2021A%26A...649A..54P",
+    "data_cmmts": "comments",
+    "citations_count": {
+      "date": "2026-02-27",
+      "count": "22",
+      "citations_year": 4.4
+    },
+    "data_url": "N/A",
+    "authors": "Piecka & Paunzen",
+    "title": "Aggregates of clusters in the Gaia data",
+    "year": "2021",
+    "received": "20201216",
+    "names": "None",
+    "pos": {},
+    "pars": {},
+    "e_pars": {}
+  },
   "HUNT2021": {
     "SCIX_url": "https://scixplorer.org/abs/2021A%26A...646A.104H",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "124",
@@ -1706,6 +1931,7 @@
   },
   "CASADO2021": {
     "SCIX_url": "https://scixplorer.org/abs/2021RAA....21..117C",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "24",
@@ -1737,6 +1963,7 @@
   },
   "HE2021": {
     "SCIX_url": "https://scixplorer.org/abs/2021RAA....21...93H",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "57",
@@ -1771,8 +1998,94 @@
     },
     "e_pars": {}
   },
+  "SPINA2021": {
+    "SCIX_url": "https://scixplorer.org/abs/2021MNRAS.503.3279S",
+    "data_cmmts": "data",
+    "citations_count": {
+      "date": "2026-02-27",
+      "count": "116",
+      "citations_year": 23.2
+    },
+    "data_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2021MNRAS.503.3279S",
+    "authors": "Spina et al.",
+    "title": "The GALAH survey tracing the Galactic disc with open clusters",
+    "year": "2021",
+    "received": "20201027",
+    "names": "Cluster",
+    "pos": {
+      "RA": "RAJ2000",
+      "DEC": "DEJ2000",
+      "plx": "plx",
+      "pmra": "pmRA",
+      "pmde": "pmDE"
+    },
+    "pars": {
+      "age": {
+        "loga": "logAge"
+      },
+      "dist": {
+        "dkpc": "dist"
+      },
+      "met": {
+        "feh": [
+          "[Fe/H]",
+          "[O/Fe]",
+          "[Na/Fe]",
+          "[Mg/Fe]",
+          "[Al/Fe]",
+          "[Si/Fe]",
+          "[Ca/Fe]",
+          "[Ti/Fe]",
+          "[V/Fe]",
+          "[Cr/Fe]",
+          "[Mn/Fe]",
+          "[Co/Fe]",
+          "[Ni/Fe]",
+          "[Cu/Fe]",
+          "[Zn/Fe]",
+          "[Y/Fe]",
+          "[Zr/Fe]",
+          "[Ba/Fe]",
+          "[La/Fe]",
+          "[Nd/Fe]",
+          "[Eu/Fe]"
+        ]
+      }
+    },
+    "e_pars": {
+      "e_dist": {
+        "edkpc": "s_dist"
+      },
+      "e_met": {
+        "efeh": [
+          "e_[Fe/H]",
+          "e_[O/Fe]",
+          "e_[Na/Fe]",
+          "e_[Mg/Fe]",
+          "e_[Al/Fe]",
+          "e_[Si/Fe]",
+          "e_[Ca/Fe]",
+          "e_[Ti/Fe]",
+          "e_[V/Fe]",
+          "e_[Cr/Fe]",
+          "e_[Mn/Fe]",
+          "e_[Co/Fe]",
+          "e_[Ni/Fe]",
+          "e_[Cu/Fe]",
+          "e_[Zn/Fe]",
+          "e_[Y/Fe]",
+          "e_[Zr/Fe]",
+          "e_[Ba/Fe]",
+          "e_[La/Fe]",
+          "e_[Nd/Fe]",
+          "e_[Eu/Fe]"
+        ]
+      }
+    }
+  },
   "DIAS2021": {
     "SCIX_url": "https://scixplorer.org/abs/2021MNRAS.504..356D",
+    "data_cmmts": "data,comments",
     "citations_count": {
       "date": "2026-02-10",
       "count": "268",
@@ -1821,8 +2134,47 @@
       }
     }
   },
+  "RICHER2021": {
+    "SCIX_url": "https://scixplorer.org/abs/2021ApJ...912..165R",
+    "data_cmmts": "data,comments",
+    "citations_count": {
+      "date": "2026-02-27",
+      "count": "25",
+      "citations_year": 5.0
+    },
+    "data_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2021ApJ...912..165R",
+    "authors": "Richer et al.",
+    "title": "Massive White Dwarfs in Young Star Clusters",
+    "year": "2021",
+    "received": "20201205",
+    "names": "Cl",
+    "pos": {
+      "RA": "RAdeg",
+      "DEC": "DEdeg",
+      "plx": "plx",
+      "pmra": "pmRA",
+      "pmde": "pmDE"
+    },
+    "pars": {
+      "av": {
+        "Ebprp": "E(Bp-Rp)"
+      },
+      "age": {
+        "amyr": "Age"
+      }
+    },
+    "e_pars": {
+      "e_av": {
+        "eAv": "e_E(Bp-Rp)"
+      },
+      "e_age": {
+        "eamyr": "e_Age"
+      }
+    }
+  },
   "RAIN2021": {
     "SCIX_url": "https://scixplorer.org/abs/2021A%26A...650A..67R",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "71",
@@ -1859,6 +2211,7 @@
   },
   "FERREIRA2021": {
     "SCIX_url": "https://scixplorer.org/abs/2021MNRAS.502L..90F",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "34",
@@ -1902,6 +2255,7 @@
   },
   "SANTOS2021": {
     "SCIX_url": "https://scixplorer.org/abs/2021MNRAS.508.1033S",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "15",
@@ -1979,6 +2333,7 @@
   },
   "JAEHNIG2021": {
     "SCIX_url": "https://scixplorer.org/abs/2021ApJ...923..129J",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "33",
@@ -2027,6 +2382,7 @@
   },
   "TARRICQ2022": {
     "SCIX_url": "https://scixplorer.org/abs/2022A%26A...659A..59T",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "116",
@@ -2057,6 +2413,7 @@
   },
   "LI2022": {
     "SCIX_url": "https://scixplorer.org/abs/2022ApJS..259...19L",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "31",
@@ -2096,6 +2453,7 @@
   },
   "CASTRO2022": {
     "SCIX_url": "https://scixplorer.org/abs/2022A%26A...661A.118C",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "122",
@@ -2130,6 +2488,7 @@
   },
   "HAO2022": {
     "SCIX_url": "https://scixplorer.org/abs/2022A%26A...660A...4H",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "60",
@@ -2168,6 +2527,7 @@
   },
   "HE2022": {
     "SCIX_url": "https://scixplorer.org/abs/2022ApJS..260....8H",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "49",
@@ -2205,6 +2565,7 @@
   },
   "PERREN2022": {
     "SCIX_url": "https://scixplorer.org/abs/2022A%26A...663A.131P",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "14",
@@ -2244,6 +2605,7 @@
   },
   "HE2022_1": {
     "SCIX_url": "https://scixplorer.org/abs/2022ApJS..262....7H",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "55",
@@ -2274,6 +2636,7 @@
   },
   "LI2023": {
     "SCIX_url": "https://scixplorer.org/abs/2023ApJS..265....3L",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "12",
@@ -2297,6 +2660,7 @@
   },
   "HE2023": {
     "SCIX_url": "https://scixplorer.org/abs/2023ApJS..264....8H",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "34",
@@ -2331,6 +2695,7 @@
   },
   "JUST2023": {
     "SCIX_url": "https://scixplorer.org/abs/2023A%26A...672A.187J",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "21",
@@ -2362,6 +2727,7 @@
   },
   "PIATTI2023": {
     "SCIX_url": "https://scixplorer.org/abs/2023MNRAS.518.6216P",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "13",
@@ -2405,6 +2771,7 @@
   },
   "CHI2023": {
     "SCIX_url": "https://scixplorer.org/abs/2023ApJS..265...20C",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "12",
@@ -2435,6 +2802,7 @@
   },
   "QIN2023": {
     "SCIX_url": "https://scixplorer.org/abs/2023ApJS..265...12Q",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "57",
@@ -2469,6 +2837,7 @@
   },
   "CORDONI2023": {
     "SCIX_url": "https://scixplorer.org/abs/2023A%26A...672A..29C",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "45",
@@ -2521,6 +2890,7 @@
   },
   "CASADOHENDY2023": {
     "SCIX_url": "https://scixplorer.org/abs/2023MNRAS.521.1399C",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "14",
@@ -2558,6 +2928,7 @@
   },
   "CHI2023_1": {
     "SCIX_url": "https://scixplorer.org/abs/2023RAA....23f5008C",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "7",
@@ -2594,6 +2965,7 @@
   },
   "CHI2023_2": {
     "SCIX_url": "https://scixplorer.org/abs/2023ApJS..266...36C",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "19",
@@ -2625,6 +2997,7 @@
   },
   "ALMEIDA2023": {
     "SCIX_url": "https://scixplorer.org/abs/2023MNRAS.525.2315A",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "48",
@@ -2686,6 +3059,7 @@
   },
   "HUNT2023": {
     "SCIX_url": "https://scixplorer.org/abs/2023A%26A...673A.114H",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "293",
@@ -2748,6 +3122,7 @@
   },
   "HE2023_1": {
     "SCIX_url": "https://scixplorer.org/abs/2023ApJS..267...34H",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "14",
@@ -2782,6 +3157,7 @@
   },
   "RAIN2024": {
     "SCIX_url": "https://scixplorer.org/abs/2024A%26A...685A..33R",
+    "data_cmmts": "data,comments",
     "citations_count": {
       "date": "2026-02-13",
       "count": "12",
@@ -2837,6 +3213,7 @@
   },
   "CAVALLO2024": {
     "SCIX_url": "https://scixplorer.org/abs/2024AJ....167...12C",
+    "data_cmmts": "data,comments",
     "citations_count": {
       "date": "2026-02-10",
       "count": "41",
@@ -2896,6 +3273,7 @@
   },
   "CELLI2024": {
     "SCIX_url": "https://scixplorer.org/abs/2024A%26A...686A.118C",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "15",
@@ -2923,6 +3301,7 @@
   },
   "HUNT2024": {
     "SCIX_url": "https://scixplorer.org/abs/2024A%26A...686A..42H",
+    "data_cmmts": "data,comments",
     "citations_count": {
       "date": "2026-02-10",
       "count": "133",
@@ -2961,6 +3340,7 @@
   },
   "ZHANG2024": {
     "SCIX_url": "https://scixplorer.org/abs/2024A%26A...692A.212Z",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "3",
@@ -2995,6 +3375,7 @@
   },
   "ALFONSO2024": {
     "SCIX_url": "https://scixplorer.org/abs/2024A%26A...689A..18A",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "9",
@@ -3029,8 +3410,27 @@
     },
     "e_pars": {}
   },
+  "PALMA2025": {
+    "SCIX_url": "https://scixplorer.org/abs/2025A%26A...693A.218P",
+    "data_cmmts": "comments",
+    "citations_count": {
+      "date": "2026-02-27",
+      "count": "11",
+      "citations_year": 11.0
+    },
+    "data_url": "N/A",
+    "authors": "Palma et al.",
+    "title": "Binary and grouped open clusters A new catalogue",
+    "year": "2025",
+    "received": "20241019",
+    "names": "None",
+    "pos": {},
+    "pars": {},
+    "e_pars": {}
+  },
   "ALMEIDA2025": {
     "SCIX_url": "https://scixplorer.org/abs/2025A%26A...693A.305A",
+    "data_cmmts": "data,comments",
     "citations_count": {
       "date": "2026-02-10",
       "count": "6",
@@ -3077,6 +3477,7 @@
   },
   "CARRASCO2025": {
     "SCIX_url": "https://scixplorer.org/abs/2025A%26A...699A.142C",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "3",
@@ -3121,6 +3522,7 @@
   },
   "WEI2025": {
     "SCIX_url": "https://scixplorer.org/abs/2025AJ....169..115W",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "1",
@@ -3179,6 +3581,7 @@
   },
   "HU2025": {
     "SCIX_url": "https://scixplorer.org/abs/2025A%26A...699A.246H",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "4",
@@ -3221,6 +3624,7 @@
   },
   "LI2025": {
     "SCIX_url": "https://scixplorer.org/abs/2025AJ....170..288L",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "2",
@@ -3282,6 +3686,7 @@
   },
   "NIZOVKINA2025": {
     "SCIX_url": "https://scixplorer.org/abs/2025A%26A...703A.100N",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "0",
@@ -3335,8 +3740,44 @@
       }
     }
   },
+  "LIU2025": {
+    "SCIX_url": "https://scixplorer.org/abs/2025A%26A...702A..48L",
+    "data_cmmts": "data,comments",
+    "citations_count": {
+      "date": "2026-02-23",
+      "count": "1",
+      "citations_year": 1.0
+    },
+    "data_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=J/A+A/702/A48",
+    "authors": "Liu et al.",
+    "title": "Binary clusters in the Galactic I systematic identification and classification using Gaia DR3",
+    "year": "2025",
+    "received": "20250708",
+    "names": "Cluster",
+    "pos": {
+      "RA": "RA_ICRS",
+      "DEC": "DE_ICRS",
+      "plx": "Plx",
+      "pmra": "pmRA",
+      "pmde": "pmDE",
+      "Rv": "RV"
+    },
+    "pars": {
+      "av": {
+        "Av": "E(B-V)"
+      },
+      "dist": {
+        "dm": "DM"
+      },
+      "age": {
+        "loga": "logt"
+      }
+    },
+    "e_pars": {}
+  },
   "OBASI2026": {
     "SCIX_url": "https://scixplorer.org/abs/2026A%26A...705A.244O",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-13",
       "count": "0",
@@ -3357,6 +3798,7 @@
   },
   "CHI2025": {
     "SCIX_url": "https://scixplorer.org/abs/2025PASJ...77.1050C",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-12",
       "count": "0",
