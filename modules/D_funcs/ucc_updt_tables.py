@@ -1,8 +1,14 @@
+import os
 from pathlib import Path
 
 import numpy as np
 
-from ..variables import header_default, table_sort_js
+from ..variables import (
+    cmmts_tables_folder,
+    header_default,
+    root_ucc_path,
+    table_sort_js,
+)
 
 
 def replace_text_between(
@@ -67,27 +73,46 @@ def count_dups_bad_OCs(dbs_used, df_ucc):
     }
 
 
-def updt_articles_table(
-    df_UCC, current_JSON, database_md_in, temp_cmmts_tables_path, max_chars_title=50
-):
-    """Update the table with the catalogues used in the UCC"""
+def count_OCs_in_tables(
+    df_UCC, current_JSON, temp_cmmts_tables_path
+) -> tuple[dict, dict]:
+    """ """
     # Count DB occurrences in UCC
     N_in_DB = {_: 0 for _ in current_JSON.keys()}
     for _ in df_UCC["DB"].values:
         for DB in _.split(";"):
             N_in_DB[DB] += 1
 
+    # Count comments in tables (read from temp folder if updated/generated, otherwise
+    # read from original folder)
     N_cmmts_dict = {}
     for DB in current_JSON.keys():
         if "comments" in current_JSON[DB]["data_cmmts"]:
-            with open(f"{temp_cmmts_tables_path}/{DB}_table.md", "r") as f:
-                comments = f.readlines()
+            # Read from temp folder if the table was updated/generated, otherwise read
+            # from the original folder
+            if os.path.exists(f"{temp_cmmts_tables_path}/{DB}_table.md"):
+                with open(f"{temp_cmmts_tables_path}/{DB}_table.md", "r") as f:
+                    comments = f.readlines()
+            else:
+                with open(
+                    f"{root_ucc_path}{cmmts_tables_folder}{DB}_table.md", "r"
+                ) as f:
+                    comments = f.readlines()
+            # Very crude way of reading the number of rows from the table md file
             N_cmmts = len(
                 [_ for _ in comments if _.startswith('| <a href="{{ site.baseurl }}')]
             )
             N_cmmts_dict[DB] = N_cmmts
         else:
             N_cmmts_dict[DB] = 0
+
+    return N_in_DB, N_cmmts_dict
+
+
+def updt_articles_table(
+    current_JSON, database_md_in, N_in_DB, N_cmmts_dict, max_chars_title=50
+):
+    """Update the table with the catalogues used in the UCC"""
 
     # Invert json by the 'year' key so that larger values are on top
     inv_json = dict(

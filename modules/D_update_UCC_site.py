@@ -807,10 +807,6 @@ def updt_indiv_tables(
     df_BC["C3_abcd"] = [ucc_entry.color_C3(_) for _ in df_BC["C3"]]
     df_BC = df_BC.sort_values("Name").reset_index()
 
-    # from pyinstrument import Profiler
-    # profiler = Profiler()
-    # profiler.start()
-
     DBs_dups_badOCs = ucc_updt_tables.count_dups_bad_OCs(current_JSON, df_BC)
 
     # Update pages for individual databases
@@ -827,9 +823,6 @@ def updt_indiv_tables(
         temp_cmmts_tables_path,
         new_tables_dict,
     )
-
-    # profiler.stop()
-    # profiler.open_in_browser()
 
 
 def update_main_pages(
@@ -858,28 +851,13 @@ def update_main_pages(
     else:
         logging.info("DATABASE.md not updated (no changes)")
 
-    # # Update TABLES
-    # tables_md_updt = updt_UTI_main_table(UTI_msk, tables_md)
-    # tables_md_updt = updt_C3_classif_main_table(
-    #     class_order, OCs_per_class, tables_md_updt
-    # )
-    # # tables_md_updt = updt_OCs_per_quad_main_table(df_UCC, tables_md_updt)
-    # # tables_md_updt = updt_shared_membs_main_table(shared_msk, tables_md_updt)
-    # tables_md_updt = updt_fund_params_main_table(Cfp_msk, tables_md_updt)
-    # tables_md_updt = updt_Pdup_main_table(Pdup_msk, tables_md_updt)
-    # tables_md_updt = updt_N50_main_table(membs_msk, tables_md_updt)
-    # with open(temp_folder + tables_md_path, "w") as file:
-    #     file.write(tables_md_updt)
-    # if tables_md != tables_md_updt:
-    #     logging.info("TABLES.md updated")
-    # else:
-    #     logging.info("TABLES.md not updated (no changes)")
-
-    # Update CLUSTERS
+    N_in_DB, N_cmmts_dict = ucc_updt_tables.count_OCs_in_tables(
+        df_UCC, current_JSON, temp_cmmts_tables_path
+    )
 
     # Update ARTICLES
     articles_md_updt = ucc_updt_tables.updt_articles_table(
-        df_UCC, current_JSON, articles_md, temp_cmmts_tables_path
+        current_JSON, articles_md, N_in_DB, N_cmmts_dict
     )
     if articles_md != articles_md_updt:
         with open(temp_folder + articles_md_path, "w") as file:
@@ -935,13 +913,16 @@ def move_files(
     # --- Show planned actions ---
     logging.info("\nPlanned actions:")
 
-    # Extract actions related to '_clusters' and 'plots' separately
+    # Extract actions related to '_clusters', 'plots', and 'members' separately
     cluster_actions = [a for a in planned_actions if "_clusters" in str(a[2])]
     plot_actions = [a for a in planned_actions if "plots" in str(a[2])]
+    members_actions = [a for a in planned_actions if "members" in str(a[2])]
     other_actions = [
         a
         for a in planned_actions
-        if "_clusters" not in str(a[2]) and "plots" not in str(a[2])
+        if "_clusters" not in str(a[2])
+        and "plots" not in str(a[2])
+        and "members" not in str(a[2])
     ]
     for action, src, dst in other_actions:
         if action == "move":
@@ -963,6 +944,7 @@ def move_files(
     else:
         for action, src, dst in plot_actions:
             logging.info(f"  MOVE     {src} -> {dst}")
+    logging.info(f"  MOVE     {len(members_actions)} 'members/*' files will be updated")
 
     # --- Ask for confirmation ---
     resp = input("\nProceed with these actions? [y/N]: ").strip().lower()
