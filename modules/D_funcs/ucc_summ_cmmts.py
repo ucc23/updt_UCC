@@ -11,7 +11,7 @@ from ..variables import (
 )
 
 
-def run(current_year, UCC_cl, DBs_JSON, cmmts_JSONS_lst):
+def run(current_year, UCC_cl, DBs_JSON, cmmts_JSONS_lst: dict):
     """ """
     # logging.info("\nGenerate all summaries")
     summary, descriptors, fpars_badges, badges_url = get_summary(
@@ -21,7 +21,7 @@ def run(current_year, UCC_cl, DBs_JSON, cmmts_JSONS_lst):
     fnames0 = UCC_cl["fnames"].split(";")
 
     comments_lst = []
-    for cmmt_json_dict in cmmts_JSONS_lst:
+    for _, cmmt_json_dict in cmmts_JSONS_lst.items():
         for fname0 in fnames0:
             if fname0 in cmmt_json_dict["clusters"]:
                 art_name = cmmt_json_dict["art_name"]

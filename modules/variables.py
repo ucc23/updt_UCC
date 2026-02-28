@@ -2,12 +2,16 @@
 JSON_struct = {
     "SMITH2500": {
         "SCIX_url": "https://scixplorer.org/abs/xxxx",
+        # Use 'data' if only data is available, use 'comments' if only comments are
+        # available, else use 'data,comments'
+        "data_cmmts": "data",
         "citations_count": {"date": "", "count": "", "citations_year": ""},
         "data_url": "N/A",
         "authors": "Smith et al.",
         "title": "Article title",
         "year": "2050",
-        "received": "19101010",
+        # Manually add this date
+        "received": "DATE_HERE",
         "names": "Name",
         "pos": {
             "RA": [],
@@ -100,8 +104,8 @@ DB_coords_hierarchy = {
 }
 
 
-#
-UCC_cmmts_folder = "json_cmmts/"
+# Folder that contains the files with per-article comments
+UCC_cmmts_folder = dbs_folder + "cmmts/"
 
 # Bad OCs parameters
 UTI_max = 0.25
@@ -137,16 +141,28 @@ fpars_headers = (
 
 # Coefficients to transform fundamental parameters
 #
+# Z to FeH
+c_z_sun = 0.0152
+
+# Extinction to Av
+#
 # Ag is always assumed to be Gaia's G band. The coefficient in Av=1.2*Ag
 # comes from the sources:
 # Jordi et al 2010; https://www.aanda.org/articles/aa/full_html/2010/15/aa15441-10/aa15441-10.html
 # Wang & Chen 2019; https://iopscience.iop.org/article/10.3847/1538-4357/ab1c61
-
+#
 # Conversion from Evi is also taken from Wang & Chen 2019
-c_z_sun = 0.0152
+#
+# Conversion from E(Bp-Rp) to Av from Richer et al. (2021)
+# https://scixplorer.org/abs/2021ApJ...912..165R/abstract
+#
+# E(B-V) = 0.771*E(Bp-Rp) -> Av = 3.1*E(B-V) = 3.1*0.771*E(Bp-Rp) = 2.39*E(Bp-Rp)
+# AG = 2.059*E(Bp-Rp) -> Av = 1.2*AG = 1.2*2.059E(Bp-Rp) = 2.47*E(Bp-Rp)
+
 c_Ag = 1.2
 c_Ebv = 3.1
 c_Evi = 2.5
+c_Ebprp = 2.39
 
 
 # Zenodo paths and names
@@ -214,6 +230,7 @@ pages_folder = ucc_path + "_pages/"
 # Path to the tables folders
 tables_folder = ucc_path + "_tables/"
 dbs_tables_folder = tables_folder + "dbs/"
+cmmts_tables_folder = tables_folder + "cmmts/"
 # Path to the ucc site images folder
 images_folder = ucc_path + "images/"
 # Assets folder
@@ -239,6 +256,17 @@ style: style
 ---
 
 """
+
+# Table sort script
+table_sort_js = (
+    '\n\n\n<script type="module">\n'
+    "import { enableTableSorting } from '{{ site.baseurl }}/scripts/table-sorting.js';\n"
+    'document.querySelectorAll("table").forEach(table => {\n'
+    "  enableTableSorting(table);\n"
+    "});\n"
+    "</script>"
+)
+
 
 #
 HTML_WARN = '⚠️ <span style="color: #99180f; font-weight: bold;">Warning: </span>'

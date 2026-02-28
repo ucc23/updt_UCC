@@ -1,6 +1,8 @@
+from pathlib import Path
+
 import numpy as np
 
-from ..variables import header_default
+from ..variables import header_default, table_sort_js
 
 
 def replace_text_between(
@@ -35,30 +37,39 @@ def replace_text_between(
 
 
 def count_dups_bad_OCs(dbs_used, df_ucc):
-    """"""
-    all_DBs = list(dbs_used.keys())
+    # Pre-split DB strings once, outside any loop
+    df = df_ucc[["DB", "P_dup", "bad_oc"]].copy()
+    db_lists = df["DB"].str.split(";")
+    is_dup = (df["P_dup"].astype(float) > 0.5).to_numpy()
+    is_bad = (df["bad_oc"] == "y").to_numpy()
 
-    DBs_dups_badOCs = {}
-    for DB_id in all_DBs:
-        N_DB, N_DB_dup, N_DB_bad = 0, 0, 0
-        for DB_i, Pdup_i, badOC_i in df_ucc[["DB", "P_dup", "bad_oc"]].itertuples(
-            index=False, name=None
-        ):
-            if DB_id in DB_i.split(";"):
-                N_DB += 1
-                if float(Pdup_i) > 0.5:
-                    N_DB_dup += 1
-                if badOC_i == "y":
-                    N_DB_bad += 1
+    # Single pass over rows, fan out to each DB in the split list
+    counts = {db: 0 for db in dbs_used}
+    n_dups = {db: 0 for db in dbs_used}
+    n_bads = {db: 0 for db in dbs_used}
 
-        p_dup = 100 * N_DB_dup / N_DB
-        p_bad = 100 * N_DB_bad / N_DB
-        DBs_dups_badOCs[DB_id] = (N_DB, p_dup, p_bad)
+    for dbs, dup, bad in zip(db_lists, is_dup, is_bad):
+        for db in dbs:
+            if db in counts:
+                counts[db] += 1
+                if dup:
+                    n_dups[db] += 1
+                if bad:
+                    n_bads[db] += 1
 
-    return DBs_dups_badOCs
+    return {
+        db: (
+            counts[db],
+            100 * n_dups[db] / counts[db] if counts[db] else 0,
+            100 * n_bads[db] / counts[db] if counts[db] else 0,
+        )
+        for db in dbs_used
+    }
 
 
-def updt_articles_table(df_UCC, current_JSON, database_md_in, max_chars_title=50):
+def updt_articles_table(
+    df_UCC, current_JSON, database_md_in, temp_cmmts_tables_path, max_chars_title=50
+):
     """Update the table with the catalogues used in the UCC"""
     # Count DB occurrences in UCC
     N_in_DB = {_: 0 for _ in current_JSON.keys()}
@@ -66,19 +77,34 @@ def updt_articles_table(df_UCC, current_JSON, database_md_in, max_chars_title=50
         for DB in _.split(";"):
             N_in_DB[DB] += 1
 
+    N_cmmts_dict = {}
+    for DB in current_JSON.keys():
+        if "comments" in current_JSON[DB]["data_cmmts"]:
+            with open(f"{temp_cmmts_tables_path}/{DB}_table.md", "r") as f:
+                comments = f.readlines()
+            N_cmmts = len(
+                [_ for _ in comments if _.startswith('| <a href="{{ site.baseurl }}')]
+            )
+            N_cmmts_dict[DB] = N_cmmts
+        else:
+            N_cmmts_dict[DB] = 0
+
     # Invert json by the 'year' key so that larger values are on top
     inv_json = dict(
         sorted(current_JSON.items(), key=lambda item: item[1]["year"], reverse=True)
     )
 
-    # md_table = "\n| Name | N | Name | N |\n"
-    md_table = "\n| Title | Author(s) | Year | Data | N | CSV |\n"
-    md_table += "| ---- | :---: | :--: | :----: | :-: | :-: |\n"
+    md_table = (
+        "\n| Title | Author(s) | Year | Data | N<sub>C</sub> | N<sub>D</sub> | CSV |\n"
+    )
+    md_table += "| ---- | :---: | :--: | :----: | :-: | :-: | :-: |\n"
     for DB, DB_data in inv_json.items():
         row = ""
+
         title = DB_data["title"].replace("'", "").replace('"', "")
         short_title = title[:max_chars_title] + "..."
         ref_url = f"""<a href="{DB_data["SCIX_url"]}" target="_blank" title="{title}">{short_title}</a>"""
+
         data_url = DB_data["data_url"]
         if data_url == "N/A":
             pass
@@ -92,8 +118,17 @@ def updt_articles_table(df_UCC, current_JSON, database_md_in, max_chars_title=50
             data_url = f"""<a href="{data_url}" target="_blank"> <img src="/images/chinavo.png" alt="ChinaVO url"></a>"""
         else:
             data_url = f"""<a href="{data_url}" target="_blank"> 🔗</a>"""
-        CSV_url = f"""<a href="https://flatgithub.com/ucc23/updt_UCC?filename=data/databases/{DB}.csv" target="_blank">📊</a>"""
-        row += f"| {ref_url} | {DB_data['authors']} | {DB_data['year']} | {data_url} | [{N_in_DB[DB]}](/tables/dbs/{DB}_table) | {CSV_url}"
+
+        cmmts_url = "0"
+        if N_cmmts_dict[DB] > 0:
+            cmmts_url = f"[{N_cmmts_dict[DB]}](/tables/cmmts/{DB}_table)"
+
+        dbs_url, CSV_url = "0", "N/A"
+        if N_in_DB[DB] > 0:
+            dbs_url = f"[{N_in_DB[DB]}](/tables/dbs/{DB}_table)"
+            CSV_url = f"""<a href="https://flatgithub.com/ucc23/updt_UCC?filename=data/databases/{DB}.csv" target="_blank">📊</a>"""
+
+        row += f"| {ref_url} | {DB_data['authors']} | {DB_data['year']} | {data_url} | {cmmts_url} | {dbs_url} | {CSV_url}"
         md_table += row + "|\n"
     md_table += "\n"
 
@@ -106,84 +141,162 @@ def updt_articles_table(df_UCC, current_JSON, database_md_in, max_chars_title=50
     return database_md_updt
 
 
-def updt_DBs_tables(dbs_used, df_updt, DBs_dups_badOCs) -> dict:
+def updt_DBs_tables(dbs_used, df_updt, cmmts_JSONS_lst, DBs_dups_badOCs) -> dict:
     """Update the DBs classification table files"""
-    header = header_default.format("", "/tables/dbs/DB_link_table/")
+    header_db = header_default.format("", "/tables/dbs/DB_link_table/")
+    header_cmmt = header_default.format("", "/tables/cmmts/DB_link_table/")
 
-    # Count DB occurrences in UCC
-    all_DBs = list(dbs_used.keys())
+    fnames_vec = df_updt["fnames"].values
 
-    new_tables_dict = {}
-    for DB_id in all_DBs:
-        md_table = header.replace("DB_link", DB_id)
-        ref_url = f"[{dbs_used[DB_id]['authors']} ({dbs_used[DB_id]['year']})]({dbs_used[DB_id]['SCIX_url']})"
-        md_table += "&nbsp;\n" + f"# {ref_url}" + "\n\n"
+    new_tables_dict = {"data": {}, "comments": {}}
+    for DB_id, vals in dbs_used.items():
+        ref_url = f"[{vals['authors']} ({vals['year']})]({vals['SCIX_url']})"
 
-        #
-        N_tot, p_dup, p_bad = DBs_dups_badOCs[DB_id]
-        parts = []
-        if p_dup > 1:
-            parts.append(
-                f"{p_dup:.0f}% are probable duplicates ([P<sub>dup</sub>>50%](/faq/#how-is-the-duplicate-probability-estimated))"
+        if "comments" in vals["data_cmmts"]:
+            # Original dictionary
+            clusters_dict = cmmts_JSONS_lst[DB_id]["clusters"]
+
+            # Find clusters in comments list that are in UCC
+            # Flatten all cluster sets into a single master set for O(1) lookups
+            master_set = set().union(
+                *[set(fname.split(";")) for fname in clusters_dict.keys()]
             )
-        if p_bad > 1:
-            parts.append(
-                f"{p_bad:.0f}% are classified as [likely non-clusters](/faq/#how-are-objects-flagged-as-likely-not-real)"
-            )
-        if parts:
-            txt = " and ".join(parts)
-            md_table += (
-                f"This database consists of {N_tot} entries, of which " + txt + ".\n\n"
+            # Use a list comprehension with .isdisjoint()
+            # (faster as it short-circuits on the first match)
+            msk = [not set(val.split(";")).isdisjoint(master_set) for val in fnames_vec]
+
+            # Extract 'Name, fname' columns with mask applied
+            names_cols = df_updt[np.array(msk)][["ID_url", "fname", "fnames"]]
+
+            # Filter fnames not in comments
+            names_cols = names_cols[
+                names_cols["fnames"].apply(
+                    lambda val: not set(val.split(";")).isdisjoint(master_set)
+                )
+            ].reset_index(drop=True)
+
+            # Build flat lookup: individual fname -> comment
+            fname_to_cmmt = {}
+            for fname, cmmt in clusters_dict.items():
+                fname_to_cmmt[fname] = cmmt
+
+            # Add 'cmmt' column
+            names_cols["cmmt"] = names_cols["fnames"].apply(
+                lambda val: next(
+                    (fname_to_cmmt[f] for f in val.split(";") if f in fname_to_cmmt),
+                    None,
+                )
             )
 
-        msk = []
-        for _ in df_updt["DB"].values:
-            if DB_id in _.split(";"):
-                msk.append(True)
-            else:
-                msk.append(False)
-        msk = np.array(msk)
+            new_table = generate_table(header_cmmt, DB_id, ref_url, names_cols, "")
+            new_tables_dict["comments"][DB_id] = new_table
 
-        new_table = generate_table(df_updt[msk], md_table)
-        new_tables_dict[DB_id] = new_table
+        if "data" in vals["data_cmmts"]:
+            msk = []
+            for _ in df_updt["DB"].values:
+                if DB_id in _.split(";"):
+                    msk.append(True)
+                else:
+                    msk.append(False)
+
+            N_tot, p_dup, p_bad = DBs_dups_badOCs[DB_id]
+            parts = [
+                f"{p_dup:.0f}% are probable duplicates "
+                "([P<sub>dup</sub>>50%](/faq/#how-is-the-duplicate-probability-estimated))"
+                if p_dup > 1
+                else None,
+                f"{p_bad:.0f}% are classified as "
+                "[likely non-clusters](/faq/#how-are-objects-flagged-as-likely-not-real) "
+                "(names colored red)"
+                if p_bad > 1
+                else None,
+            ]
+            parts = [p for p in parts if p]
+            table_note = (
+                f"This database consists of {N_tot} entries, of which "
+                f"{' and '.join(parts)}.\n\n"
+                if parts
+                else ""
+            )
+
+            new_table = generate_table(
+                header_db, DB_id, ref_url, df_updt[np.array(msk)], table_note
+            )
+            new_tables_dict["data"][DB_id] = new_table
 
     return new_tables_dict
 
 
-def generate_table(df_m, md_table):
+def generate_table(header, DB_id, ref_url, table_rows, table_note):
     """ """
-    md_table += "| Name | RA | DEC | Plx | N50 | r50 | C3 | P<sub>dup</sub> | UTI |\n"
-    md_table += "| --- | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: |\n"
+    parts = [
+        header.replace("DB_link", DB_id),
+        "&nbsp;\n" + f"# {ref_url}" + "\n\n",
+    ]
+    parts.append(table_note + "\n\n")
 
-    for i, row in df_m.iterrows():
-        for col in (
+    if "cmmts" in header:
+        parts.append("| Name | Comment |\n| --- | :-: |\n")
+        parts.append(
+            "\n".join(
+                f"| {row.ID_url} | {row.cmmt} |"
+                for row in table_rows.itertuples(index=False)
+            )
+        )
+    else:
+        cols = [
             "ID_url",
-            # "GLON",
-            # "GLAT",
             "RA_ICRS",
             "DE_ICRS",
+            "GLON",
+            "GLAT",
             "Plx_m_round",
             "N_50",
-            "r_50",
             "C3_abcd",
             "P_dup",
             "UTI",
-        ):
-            md_table += "| " + str(row[col]) + " "
-        md_table += " |\n"
+        ]
+        parts.append(
+            "| Name | RA | DEC | LON | LAT | Plx | N<sub>50</sub> | C3 |"
+            " P<sub>dup</sub> | UTI |\n"
+            "| --- | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: |\n"
+        )
+        arr = table_rows[cols].astype(str).to_numpy()
+        parts.append("\n".join("| " + " | ".join(row) + " |" for row in arr) + "\n")
 
-    # Add script to sort tables
-    md_table += (
-        "\n\n\n"
-        + """<script type="module">
-import { enableTableSorting } from '{{ site.baseurl }}/scripts/table-sorting.js';
-document.querySelectorAll("table").forEach(table => {
-  enableTableSorting(table);
-});
-</script>"""
-    )
+    parts.append(table_sort_js)
+    return "".join(parts)
 
-    return md_table
+
+def general_table_update(
+    logging,
+    root_path_db: Path,
+    root_path_cmmts: Path,
+    temp_path_db: Path,
+    temp_path_cmmts: Path,
+    new_tables_dict: dict,
+) -> None:
+    """
+    Updates a markdown table file if the content has changed.
+    """
+    sections = {
+        "data": (root_path_db, temp_path_db),
+        "comments": (root_path_cmmts, temp_path_cmmts),
+    }
+    N_tot = 0
+    for section, (root_path, temp_path) in sections.items():
+        for DB_id, new_table in new_tables_dict[section].items():
+            fname = f"{DB_id}_table.md"
+            src = root_path / fname
+            dst = temp_path / fname
+
+            old_table = src.read_text() if src.exists() else ""
+
+            if old_table != new_table:
+                dst.write_text(new_table)
+                logging.info(f"Table {DB_id} {'updated' if old_table else 'generated'}")
+                N_tot += 1
+    logging.info(f"{N_tot} tables updated/generated")
 
 
 def count_OCs_classes(C3, class_order):

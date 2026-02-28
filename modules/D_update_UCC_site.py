@@ -19,6 +19,7 @@ from .variables import (
     class_order,
     clusters_csv_path,
     clusters_manifest_path,
+    cmmts_tables_folder,
     data_folder,
     databases_md_path,
     dbs_folder,
@@ -56,7 +57,9 @@ def main():
         temp_members_files_folder,
         temp_image_path,
         temp_dbs_tables_path,
+        temp_cmmts_tables_path,
         ucc_dbs_tables_path,
+        ucc_cmmts_tables_path,
         old_gz_CSV_path,
     ) = load_paths(logging)
 
@@ -100,30 +103,6 @@ def main():
     ###########################################
 
     ###########################################
-    # summ_cmmts_file = "STORED"
-    # if input("\nUpdate summaries and comments? (y/n): ").lower() == "y":
-    #     UCC_summ_cmmts_new = ucc_summ_cmmts.run(
-    #         logging,
-    #         df_BC,
-    #         DBs_JSON,
-    #         cmmts_JSONS,
-    #         B_lookup,
-    #         fnames_B,
-    #     )
-
-    #     if UCC_summ_cmmts_new != UCC_summ_cmmts:
-    #         UCC_summ_cmmts = UCC_summ_cmmts_new
-    #         # Store new JSON file
-    #         with gzip.open(temp_UCC_cmmts_path, "wt", encoding="utf-8") as f:
-    #             json.dump(UCC_summ_cmmts, f)
-    #         logging.info(f"Updated {temp_UCC_cmmts_path} file.")
-    #         summ_cmmts_file = "GENERATED"
-    #     else:
-    #         logging.info("No changes in summaries and comments.")
-
-    ###########################################
-
-    ###########################################
     # Update per cluster md files. If no changes are expected, this step can be skipped
     if input("\nUpdate md files ? (y/n): ").lower() == "y":
         updt_ucc_cluster_files(
@@ -143,6 +122,20 @@ def main():
     ###########################################
 
     ###########################################
+    # This needs to happen before generating the ARTICLE.md file
+    if input("\nUpdate per-article tables? (y/n): ").lower() == "y":
+        # Update tables files
+        updt_indiv_tables(
+            logging,
+            temp_dbs_tables_path,
+            temp_cmmts_tables_path,
+            ucc_dbs_tables_path,
+            ucc_cmmts_tables_path,
+            DBs_JSON,
+            df_BC,
+            cmmts_JSONS_lst,
+        )
+
     if input("\nUpdate UCC plots, pages & tables? (y/n): ").lower() == "y":
         # Update site-wide plots
         make_site_plots(logging, temp_image_path, df_BC)
@@ -157,15 +150,7 @@ def main():
             df_BC,
             database_md,
             articles_md,
-        )
-    if input("\nUpdate per-article tables? (y/n): ").lower() == "y":
-        # Update tables files
-        updt_indiv_tables(
-            logging,
-            temp_dbs_tables_path,
-            ucc_dbs_tables_path,
-            DBs_JSON,
-            df_BC,
+            temp_cmmts_tables_path,
         )
     ###########################################
 
@@ -192,7 +177,9 @@ def main():
 
 def load_paths(
     logging,
-) -> tuple[Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, str]:
+) -> tuple[
+    Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, str
+]:
     """ """
     data_folder_p = Path(data_folder)
     temp_folder_p = Path(temp_folder)
@@ -234,6 +221,7 @@ def load_paths(
     temp_members_files_folder = temp_folder_p / members_files_folder
     temp_image_path = temp_folder_p / images_folder
     temp_dbs_tables_path = temp_folder_p / dbs_tables_folder
+    temp_cmmts_tables_path = temp_folder_p / cmmts_tables_folder
 
     for p in [
         temp_data_folder,
@@ -243,11 +231,13 @@ def load_paths(
         temp_members_files_folder,
         temp_image_path,
         temp_dbs_tables_path,
+        temp_cmmts_tables_path,
     ]:
         ensure_dir(p)
 
     ucc_entries_path = root_ucc_path_p / md_folder
     ucc_dbs_tables_path = root_ucc_path_p / dbs_tables_folder
+    ucc_cmmts_tables_path = root_ucc_path_p / cmmts_tables_folder
 
     # UCC path to compressed CSV file
     folder = Path(root_ucc_path, assets_folder)
@@ -268,7 +258,9 @@ def load_paths(
         temp_members_files_folder,
         temp_image_path,
         temp_dbs_tables_path,
+        temp_cmmts_tables_path,
         ucc_dbs_tables_path,
+        ucc_cmmts_tables_path,
         old_gz_CSV_path,
     )
 
@@ -285,7 +277,7 @@ def load_data(
     pd.DataFrame,
     dict,
     dict,
-    list,
+    dict,
     str,
     str,
     pd.DataFrame,
@@ -322,36 +314,38 @@ def load_data(
     # Read the data for every DB in the UCC as a pandas DataFrame
     DBs_full_data = {}
     for k, v in DBs_JSON.items():
-        DBs_full_data[k] = pd.read_csv(dbs_folder + k + ".csv")
+        # Don't load DBs that only have comments files, as they dont have a CSV
+        # file with the full data
+        if v["data_cmmts"] != "comments":
+            DBs_full_data[k] = pd.read_csv(dbs_folder + k + ".csv")
 
     # Load (and check) all comments JSON files
-    cmmts_JSONS_lst = []
-    json_cmmts_path = f"{data_folder}{UCC_cmmts_folder}"
-    for fpath_json in os.listdir(json_cmmts_path):
-        # Check for duplicate clusters keys in JSON and raise error if any.
-        # 'json.load()' silently drops duplicates, hence the check here
-        with open(f"{json_cmmts_path}{fpath_json}", "r") as f:
-            raw_json = json.load(f, object_pairs_hook=list)
+    cmmts_JSONS_lst = {}
+    for fpath_csv in os.listdir(UCC_cmmts_folder):
+        DB_id = fpath_csv.replace(".csv", "")
 
-        clusters = dict(raw_json)["clusters"]
-        if isinstance(clusters, list):
-            seen = set()
-            dups = {k for k, _ in clusters if k in seen or seen.add(k)}
-            if dups:
-                raise ValueError(
-                    f'Duplicate keys in "clusters": {", ".join(sorted(dups))}'
-                )
+        art_name = DBs_JSON[DB_id]["authors"]
+        art_year = DBs_JSON[DB_id]["year"]
+        art_url = DBs_JSON[DB_id]["SCIX_url"]
+        cluster_dict = {
+            "art_name": art_name,
+            "art_year": art_year,
+            "art_url": art_url,
+            "clusters": {},
+        }
 
-        # Generate dictionary with fnames as keys and comments as values
-        cluster_names, cmmts = zip(*clusters)
-        cluster_fnames = get_fnames(cluster_names)
+        df = pd.read_csv(UCC_cmmts_folder + fpath_csv)
+        if "Cluster" not in df.columns or "Comment" not in df.columns:
+            raise ValueError(
+                f"File {fpath_csv} must contain 'Cluster' and 'Comment' columns"
+            )
+        cluster_fnames = get_fnames(df["Cluster"].values)
         fnames_cmmts = {}
         for i, fname in enumerate(cluster_fnames):
-            fnames_cmmts[fname[0]] = cmmts[i]
-        # Store contents of comments file
-        raw_json = dict(raw_json)
-        raw_json["clusters"] = fnames_cmmts
-        cmmts_JSONS_lst.append(raw_json)
+            fnames_cmmts[fname[0]] = df["Comment"].values[i]
+        # cluster_dict = df.set_index("Cluster")["Comment"].to_dict()
+        cluster_dict["clusters"] = fnames_cmmts
+        cmmts_JSONS_lst[DB_id] = cluster_dict
 
     # Assign GLON bins to clusters (used to generate split members files)
     edges = [int(_) for _ in np.linspace(0, 360, 91)]
@@ -552,7 +546,7 @@ def updt_ucc_cluster_files(
         UCC_cl = dict(zip(cols, UCC_cl))
         fname0 = str(UCC_cl["fname"])
 
-        # if fname0 not in ("alessi19",):
+        # if fname0 not in ("collinder138",):
         #     continue
         # if "melotte" not in fname0:
         #     continue
@@ -780,6 +774,64 @@ def count_fpars(df):
     return sum([v for k, v in N_pars.items()])
 
 
+def updt_indiv_tables(
+    logging,
+    temp_dbs_tables_path,
+    temp_cmmts_tables_path,
+    ucc_dbs_tables_path,
+    ucc_cmmts_tables_path,
+    current_JSON,
+    df_BC,
+    cmmts_JSONS_lst: dict,
+):
+    """ """
+    # New columns used to display in tables
+    df_BC["Name"] = [_.split(";")[0] for _ in df_BC["Names"]]
+    names_url = []
+    for _, cl in df_BC.iterrows():
+        name = str(cl["Name"]).split(";")[0]
+        color = "red" if cl["bad_oc"] == "y" else "$blue"
+        fname = str(cl["fname"])
+        url = r"{{ site.baseurl }}/_clusters/" + fname + "/"
+        clname = rf'<a href="{url}" target="_blank" style="color: {color};">{name}</a>'
+        # names_url.append(f"[{name}]({url})")
+        names_url.append(clname)
+    #
+    df_BC["ID_url"] = names_url
+    df_BC["RA_ICRS"] = np.round(df_BC["RA_ICRS_m"], 2)
+    df_BC["DE_ICRS"] = np.round(df_BC["DE_ICRS_m"], 2)
+    df_BC["GLON"] = np.round(df_BC["GLON_m"], 2)
+    df_BC["GLAT"] = np.round(df_BC["GLAT_m"], 2)
+    df_BC["Plx_m_round"] = np.round(df_BC["Plx_m"], 2)
+    df_BC["N_50"] = df_BC["N_50"].astype(int)
+    df_BC["C3_abcd"] = [ucc_entry.color_C3(_) for _ in df_BC["C3"]]
+    df_BC = df_BC.sort_values("Name").reset_index()
+
+    # from pyinstrument import Profiler
+    # profiler = Profiler()
+    # profiler.start()
+
+    DBs_dups_badOCs = ucc_updt_tables.count_dups_bad_OCs(current_JSON, df_BC)
+
+    # Update pages for individual databases
+    new_tables_dict = ucc_updt_tables.updt_DBs_tables(
+        current_JSON, df_BC, cmmts_JSONS_lst, DBs_dups_badOCs
+    )
+
+    # Update/generate files with tables for individual databases
+    ucc_updt_tables.general_table_update(
+        logging,
+        ucc_dbs_tables_path,
+        ucc_cmmts_tables_path,
+        temp_dbs_tables_path,
+        temp_cmmts_tables_path,
+        new_tables_dict,
+    )
+
+    # profiler.stop()
+    # profiler.open_in_browser()
+
+
 def update_main_pages(
     logging,
     N_fpars,
@@ -788,6 +840,7 @@ def update_main_pages(
     df_UCC,
     database_md,
     articles_md,
+    temp_cmmts_tables_path,
 ):
     """Update main .md files"""
     logging.info("\nUpdating main .md files")
@@ -826,7 +879,7 @@ def update_main_pages(
 
     # Update ARTICLES
     articles_md_updt = ucc_updt_tables.updt_articles_table(
-        df_UCC, current_JSON, articles_md
+        df_UCC, current_JSON, articles_md, temp_cmmts_tables_path
     )
     if articles_md != articles_md_updt:
         with open(temp_folder + articles_md_path, "w") as file:
@@ -834,86 +887,6 @@ def update_main_pages(
         logging.info("ARTICLES.md updated")
     else:
         logging.info("ARTICLES.md not updated (no changes)")
-
-
-def updt_indiv_tables(
-    logging,
-    temp_dbs_tables_path,
-    ucc_dbs_tables_path,
-    current_JSON,
-    df,
-):
-    """ """
-    logging.info("\nUpdating individual tables")
-
-    # New columns used to display in tables
-    df["Name"] = [_.split(";")[0] for _ in df["Names"]]
-    names_url = []
-    for _, cl in df.iterrows():
-        name = str(cl["Name"]).split(";")[0]
-        color = "red" if cl["bad_oc"] == "y" else "$blue"
-        fname = str(cl["fname"])
-        url = r"{{ site.baseurl }}/_clusters/" + fname + "/"
-        clname = rf'<a href="{url}" target="_blank" style="color: {color};">{name}</a>'
-        # names_url.append(f"[{name}]({url})")
-        names_url.append(clname)
-    #
-    df["ID_url"] = names_url
-    df["RA_ICRS"] = np.round(df["RA_ICRS_m"], 2)
-    df["DE_ICRS"] = np.round(df["DE_ICRS_m"], 2)
-    # df["GLON"] = np.round(df["GLON_m"], 2)
-    # df["GLAT"] = np.round(df["GLAT_m"], 2)
-    df["Plx_m_round"] = np.round(df["Plx_m"], 2)
-    df["N_50"] = df["N_50"].astype(int)
-    df["C3_abcd"] = [ucc_entry.color_C3(_) for _ in df["C3"]]
-    df = df.sort_values("Name").reset_index()
-
-    DBs_dups_badOCs = ucc_updt_tables.count_dups_bad_OCs(current_JSON, df)
-
-    # Update pages for individual databases
-    new_tables_dict = ucc_updt_tables.updt_DBs_tables(current_JSON, df, DBs_dups_badOCs)
-    general_table_update(
-        logging, ucc_dbs_tables_path, temp_dbs_tables_path, new_tables_dict
-    )
-
-    # # Update page with UTI values
-    # new_tables_dict = updt_UTI_tables(df_UCC_edit, UTI_msk)
-    # general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
-
-    # new_tables_dict = updt_N50_tables(df_UCC_edit, membs_msk)
-    # general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
-
-    # new_tables_dict = updt_C3_classif_tables(df_UCC_edit, class_order)
-    # general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
-
-    # new_tables_dict = updt_fund_params_table(df_UCC_edit, Cfp_msk)
-    # general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
-
-    # new_tables_dict = updt_Pdup_tables(df_UCC_edit, Pdup_msk)
-    # general_table_update(logging, ucc_tables_path, temp_tables_path, new_tables_dict)
-
-
-def general_table_update(
-    logging, root_path: Path, temp_path: Path, new_tables_dict: dict
-) -> None:
-    """
-    Updates a markdown table file if the content has changed.
-    """
-    for table_name, new_table in new_tables_dict.items():
-        # Read old entry, if any
-        try:
-            with open(root_path / (table_name + "_table.md"), "r") as f:
-                old_table = f.read()
-        except FileNotFoundError:
-            # This is a new table with no md entry yet
-            old_table = ""
-
-        # Write to file if any changes are detected
-        if old_table != new_table:
-            with open(temp_path / (table_name + "_table.md"), "w") as file:
-                file.write(new_table)
-            txt = "updated" if old_table != "" else "generated"
-            logging.info(f"Table {table_name} {txt}")
 
 
 def move_files(

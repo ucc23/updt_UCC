@@ -167,6 +167,7 @@ def main():
 
     # Update the JSON file and save the database as CSV.
     add_DB_to_JSON(
+        JSON_struct,
         SCIX_url,
         citations,
         date_now,
@@ -541,7 +542,7 @@ def proper_json_struct(df_col_id):
     # Parameters and their uncertainties. We use default values here, these need
     # manual checking once the JSON file is updated
     def_pars = {
-        "ext": "Ebv",
+        "av": "Av",
         "diff_ext": "dAv",
         "dist": "dm",
         "age": "loga",
@@ -564,6 +565,7 @@ def proper_json_struct(df_col_id):
 
 
 def add_DB_to_JSON(
+    JSON_struct: dict,
     SCIX_url: str,
     citations: str,
     date_now: str,
@@ -600,6 +602,7 @@ def add_DB_to_JSON(
     # Create 'new_db_json' dictionary with the new DB's params
     new_db_json = {}
     new_db_json["SCIX_url"] = SCIX_url
+    new_db_json["data_cmmts"] = JSON_struct["SMITH2500"]["data_cmmts"]
     new_db_json["citations_count"] = {
         "date": date_now,
         "count": citations,
@@ -609,7 +612,7 @@ def add_DB_to_JSON(
     new_db_json["authors"] = authors
     new_db_json["title"] = title
     new_db_json["year"] = year
-    new_db_json["received"] = "DATE_HERE"
+    new_db_json["received"] = JSON_struct["SMITH2500"]["received"]
     new_db_json["names"] = names
     new_db_json["pos"] = pos_dict
     new_db_json["pars"] = pars_dict

@@ -55,12 +55,24 @@ def main():
         len(rename_C_fname) + len(B_not_in_C) + len(C_not_in_B) + len(C_reprocess)
     )
 
-    logging.info(
-        f"\nProcessing:\n-B entries not in C   : {len(B_not_in_C)}\n"
-        + f"-C entries not in B   : {len(C_not_in_B)}\n"
-        + f"-C entries to rename  : {len(rename_C_fname)}\n"
-        + f"-C entries re-process : {len(C_reprocess)}"
-    )
+    logging.info("\nProcessing:")
+    datasets = [
+        ("B entries not in C (add)", B_not_in_C, "Names"),
+        ("C entries not in B (remove)", C_not_in_B, "fname"),
+        ("C entries to re-process", C_reprocess, "fname"),
+        ("C entries to rename", rename_C_fname, ""),
+    ]
+    for label, df, name_col in datasets:
+        logging.info(f"-{label:20}: {len(df)}")
+        if len(df) > 0:
+            ans = input(f"Show list for '{label}'? (y/n): ").strip().lower()
+            if ans == "y":
+                if name_col == "":
+                    for name in df.keys():
+                        logging.info(f"  {name}")
+                else:
+                    for name in df[name_col].astype(str):
+                        logging.info(f"  {name}")
 
     if N_process == 0:
         if input("\nNo new OCs to process. Process anyway? (y/n): ").lower() != "y":
@@ -272,60 +284,50 @@ def process_entries(
     df_UCC_B: pd.DataFrame, B_not_in_C: pd.DataFrame, C_reprocess: pd.DataFrame
 ) -> pd.DataFrame:
     """ """
-    # Extract all columns except "fnames"
-    B_cols = list(B_not_in_C.keys())
-    B_cols.remove("fname")
-    C_cols = list(C_reprocess.keys())
-    C_cols.remove("fname")
-    all_cols = B_cols + C_cols
+    # # Extract all columns except "fnames"
+    # B_cols = list(B_not_in_C.keys())
+    # B_cols.remove("fname")
+    # C_cols = list(C_reprocess.keys())
+    # C_cols.remove("fname")
+    # all_cols = B_cols + C_cols
 
-    # Generate empty dictionary with all the fnames to be processed
-    all_fnames = list(B_not_in_C["fname"]) + list(C_reprocess["fname"])
-    df_UCC_updt = {"fname": all_fnames}
-    N_tot = len(all_fnames)
-    for k in all_cols:
-        df_UCC_updt[k] = [np.nan] * N_tot
+    # # Generate empty dictionary with all the fnames to be processed
+    # all_fnames = list(B_not_in_C["fname"]) + list(C_reprocess["fname"])
+    # df_UCC_updt = {"fname": all_fnames}
+    # N_tot = len(all_fnames)
+    # for k in all_cols:
+    #     df_UCC_updt[k] = [np.nan] * N_tot
 
-    # Add data from the B_not_in_C dataframe
-    for i, fname in enumerate(B_not_in_C["fname"]):
-        j = df_UCC_updt["fname"].index(fname)
-        for col in B_cols:
-            df_UCC_updt[col][j] = B_not_in_C[col].iloc[i]
+    # # Add data from the B_not_in_C dataframe
+    # for i, fname in enumerate(B_not_in_C["fname"]):
+    #     j = df_UCC_updt["fname"].index(fname)
+    #     for col in B_cols:
+    #         df_UCC_updt[col][j] = B_not_in_C[col].iloc[i]
 
-    # Add data from the C_reprocess dataframe and information from df_UCC_B
-    B_fnames_lst = list(df_UCC_B["fname"])
-    for i, fname in enumerate(C_reprocess["fname"]):
-        j = df_UCC_updt["fname"].index(fname)
-        for col in C_cols:
-            df_UCC_updt[col][j] = C_reprocess[col].iloc[i]
+    # # Add data from the C_reprocess dataframe and information from df_UCC_B
+    # B_fnames_lst = list(df_UCC_B["fname"])
+    # for i, fname in enumerate(C_reprocess["fname"]):
+    #     j = df_UCC_updt["fname"].index(fname)
+    #     for col in C_cols:
+    #         df_UCC_updt[col][j] = C_reprocess[col].iloc[i]
 
-        # Add df_UCC_B data
-        k = B_fnames_lst.index(fname)
-        for col in B_cols:
-            df_UCC_updt[col][j] = df_UCC_B[col].iloc[k]
+    #     # Add df_UCC_B data
+    #     k = B_fnames_lst.index(fname)
+    #     for col in B_cols:
+    #         df_UCC_updt[col][j] = df_UCC_B[col].iloc[k]
 
-    df_UCC_updt = pd.DataFrame(df_UCC_updt).replace({pd.NA: "nan"})
-    # Set dtype of columns
-    str_type = (
-        "fname",
-        "DB",
-        "DB_i",
-        "Names",
-        "fund_pars",
-        "plot_used",
-        "process",
-        "frame_limit",
-        "C3",
-        "shared_members",
-        "shared_members_p",
-        "bad_oc",
-        "DB_coords_used",
+    # df_UCC_updt = pd.DataFrame(df_UCC_updt).replace({pd.NA: "nan"})
+
+    # Rows to reprocess. Merge with df_UCC_B to recover B columns
+    part_C = C_reprocess.merge(
+        df_UCC_B.drop(columns=["fnames"]),
+        on="fname",
+        how="left",
     )
-    for col in df_UCC_updt.columns:
-        if col in str_type:
-            df_UCC_updt[col] = df_UCC_updt[col].astype("string")
-        else:
-            df_UCC_updt[col] = df_UCC_updt[col].astype(float)
+    # Combine both blocks
+    df_UCC_updt = pd.concat([B_not_in_C, part_C], ignore_index=True).replace(
+        {pd.NA: "nan"}
+    )
 
     return df_UCC_updt
 
