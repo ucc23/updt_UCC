@@ -272,7 +272,7 @@ UCC catalogue and searches for modifications that need to be applied to update t
 - `data/df_UCC_C.csv`: Primary source of data for most of the website content
 - `data/zenodo/UCC_members.parquet`: Used for generating cluster plots
 - `data/databases_info.json`: Latest UCC database JSON file
-- `data/json_cmmts/*.json`: JSON files with comments
+- `data/databases/cmmts/*.csv`: CSV files with comments
 
 - `ucc/assets/clusters.csv.gz`: JSON file with the latest UCC data
 - `ucc/_pages/XXXXX.md` (DATABASES, ARTICLES, TABLES)
@@ -358,7 +358,7 @@ $ for dir in plots_*/; do (cd "$dir" && [ -d .git ] && git acp "updt plots"); do
 
 5. Push any remaining changes to the `ucc` repository
 
-6. Deploy the site using the Github workflow [Build GitHub Page](https://github.com/ucc23/ucc/actions/workflows/jekyll-gh-pages.yml)
+6. Deploy the site using the Github workflow [Deploy Jekyll site to Pages](https://github.com/ucc23/ucc/actions/workflows/jekyll.yml)
 
 7. Test live site both in Chrome and Firefox
 

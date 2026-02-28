@@ -1,9 +1,199 @@
+
 import csv
 
 import astropy.units as u
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+
+
+
+df1 = pd.read_csv("../temp_updt/data/databases/SPINA2021.csv")
+df2 = pd.read_csv("../temp_updt/data/databases/SPINA2021_1.csv")
+
+drop_cols = ["XXYZ","e_XXYZ","YXYZ","e_YXYZ","ZXYZ","e_ZXYZ","ULSR","e_ULSR","VLSR","e_VLSR","WLSR","e_WLSR","RRzphi","e_RRzphi","phiRzphi","e_phiRzphi","zRzphi","e_zRzphi","vRRzphi","e_vRRzphi","vphiRzphi","e_vphiRzphi","vzRzphi","e_vzRzphi","JR","e_JR","LZ","e_LZ","JZ","e_JZ","ecc","e_ecc","zmax","e_zmax","Rperi","e_Rperi","Rap","e_Rap","Energy","e_Energy","Rguid","e_Rguid"]
+df1 = df1.drop(columns=drop_cols)
+
+# Show which entries in 'Cluster' column in df2 are not in 'Cluster' column in df1
+missing_clusters = set(df2["Cluster"]) - set(df1["Cluster"])
+print("Missing clusters in SPINA2021 compared to SPINA2021_1:")
+for cluster in missing_clusters:
+    print(cluster)
+missing_clusters = set(df1["Cluster"]) - set(df2["Cluster"])
+print("Missing clusters in SPINA2021_1 compared to SPINA2021:")
+for cluster in missing_clusters:
+    print(cluster)
+
+
+# Combine both dataframes filling empty values with "nan"
+df = pd.merge(
+    df1, df2, on="Cluster", how="outer", suffixes=("_left", "_right")
+)
+
+df.to_csv(
+    "../temp_updt/data/databases/SPINA2021_2.csv",
+    na_rep="nan",
+    index=False,
+    quoting=csv.QUOTE_NONNUMERIC,
+)
+
+breakpoint()
+
+
+
+
+
+df = pd.read_csv("../temp_updt/data/databases/RICHER2021.csv")
+
+df = df.drop(columns=['_RA', '_DE'])
+
+df.to_csv(
+    "../temp_updt/data/databases/RICHER2021_2.csv",
+    na_rep="nan",
+    index=False,
+    quoting=csv.QUOTE_NONNUMERIC,
+)
+
+breakpoint()
+
+
+
+df = pd.read_csv("../temp_updt/data/databases/MORALES2013.csv")
+
+# # Convert RAj2000, DECJ2000 columns to degrees
+# from astropy.coordinates import Angle
+# df["RA"] = np.round(Angle(df["RAJ2000"].astype(str), unit=u.hourangle).degree, 5)
+# df["DEC"] = np.round(Angle(df["DEJ2000"].astype(str), unit=u.deg).degree, 5)
+
+# # Merge columns "Name","OName" separated by comma
+# df["Name"] = df.apply(lambda row: f"{row['Name']}, {row['OName']}" if pd.notna(row["OName"]) else row["Name"], axis=1
+# )
+
+# Remove the word Cluster from the 'Name' column
+df["Name"] = df["Name"].str.replace("IR Cluster", "", regex=False).str.strip()
+df["Name"] = df["Name"].str.replace("Cluster", "", regex=False).str.strip()
+
+df.to_csv(
+    "../temp_updt/data/databases/MORALES2013_2.csv",
+    na_rep="nan",
+    index=False,
+    quoting=csv.QUOTE_NONNUMERIC,
+)
+
+breakpoint()
+
+
+
+
+
+
+
+df = pd.read_csv(
+    "/home/gabriel/Github/UCC/updt_UCC/temp_updt/data/databases/BUKOWIECKI2012.csv"
+)
+
+# Ensure string
+df["Mtotal"] = df["Mtotal"].astype(str).str.strip()
+# Split once
+split_cols = df["Mtotal"].str.split("±", n=1, expand=True)
+# Convert
+d_value = pd.to_numeric(split_cols[0], errors="coerce")
+d_error = pd.to_numeric(split_cols[1], errors="coerce")
+# Replace 'd' and insert 'd_error' next to it
+df["Mtotal"] = d_value
+col_idx = df.columns.get_loc("Mtotal")
+df.insert(col_idx + 1, "e_Mtotal", d_error)
+
+df = df.sort_values("Star cluster").reset_index(drop=True)
+
+df.to_csv(
+    "../temp_updt/BUKOWIECKI2012.csv",
+    na_rep="nan",
+    index=False,
+    quoting=csv.QUOTE_NONNUMERIC,
+)
+
+breakpoint()
+
+
+
+
+df1 = pd.read_csv(
+    "/home/gabriel/Descargas/table1 (1).csv",
+    dtype={"alpha": "string", "delta": "string"}
+)
+df2 = pd.read_csv("/home/gabriel/Descargas/table2.csv")
+
+# # Compare columns 'Star cluster' in both dataframes to see which elements are missing
+# # Ensure consistent formatting (optional but recommended)
+# df1["Star cluster"] = df1["Star cluster"].astype(str).str.strip()
+# df2["Star cluster"] = df2["Star cluster"].astype(str).str.strip()
+# # Convert to sets
+# set1 = set(df1["Star cluster"])
+# set2 = set(df2["Star cluster"])
+# # Elements in df1 but not in df2
+# missing_in_df2 = sorted(set1 - set2)
+# # Elements in df2 but not in df1
+# missing_in_df1 = sorted(set2 - set1)
+# print("In df1 but not in df2:")
+# print(missing_in_df2)
+# print("\nIn df2 but not in df1:")
+# print(missing_in_df1)
+
+# The columns 'alpha, delta' in df1 are in the format hhmmss, ±ddmmss, add 'RA', 'DEC' columns in degrees (Use astropy)
+from astropy.coordinates import SkyCoord
+import astropy.units as u
+# Ensure strings and strip spaces
+df1["alpha"] = df1["alpha"].astype(str).str.strip()
+df1["delta"] = df1["delta"].astype(str).str.strip()
+# If format is strictly hhmmss and ±ddmmss (no separators),
+# insert separators for safe parsing
+def format_ra(ra):
+    return f"{ra[0:2]}h{ra[2:4]}m{ra[4:]}s"
+def format_dec(dec):
+    sign = dec[0]
+    return f"{sign}{dec[1:3]}d{dec[3:5]}m{dec[5:]}s"
+ra_fmt = df1["alpha"].apply(format_ra)
+dec_fmt = df1["delta"].apply(format_dec)
+# Create SkyCoord object
+coords = SkyCoord(ra=ra_fmt.values,
+                  dec=dec_fmt.values,
+                  frame="icrs")
+# Add degree columns
+df1["RA"] = coords.ra.deg.round(5)
+df1["DEC"] = coords.dec.deg.round(5)
+
+# Ensure string
+df2["d"] = df2["d"].astype(str).str.strip()
+# Split once
+split_cols = df2["d"].str.split("±", n=1, expand=True)
+# Convert
+d_value = pd.to_numeric(split_cols[0], errors="coerce")
+d_error = pd.to_numeric(split_cols[1], errors="coerce")
+# Replace 'd' and insert 'd_error' next to it
+df2["d"] = d_value
+col_idx = df2.columns.get_loc("d")
+df2.insert(col_idx + 1, "d_error", d_error)
+
+# Order both dataframes by the 'Star cluster' column
+df1 = df1.sort_values("Star cluster").reset_index(drop=True)
+df2 = df2.sort_values("Star cluster").reset_index(drop=True)
+
+df_comb = pd.merge(
+    df1, df2, on="Star cluster", how="outer", suffixes=("_t1", "_t2")
+)
+
+df_comb.to_csv(
+    "../temp_updt/BUKOWIECKI2011.csv",
+    na_rep="nan",
+    index=False,
+    quoting=csv.QUOTE_NONNUMERIC,
+)
+
+breakpoint()
+
+
+
 
 df1 = pd.read_csv("data/databases/ALMEIDA2023_integ.csv")
 df2 = pd.read_csv("data/databases/ALMEIDA2023_detailed.csv")
