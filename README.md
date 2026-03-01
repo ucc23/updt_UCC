@@ -346,12 +346,10 @@ Publish this new release and copy **its own url** (no the general repository url
 
 2. Update the `_pages/CHANGELOG.md` file, use the Zenodo URL for **this** release
 
-3. Push changes (if any) to each of the `plots/plots_*` repositories. To do this, position
-the command line in the `UCC/plots/` folder and run:
+3. Push changes (if any) to each of the `plots/plots_*` repositories. To do this, run:
 
 ```
-$ cd UCC/plots/
-$ for dir in plots_*/; do (cd "$dir" && [ -d .git ] && git acp "updt plots"); done
+$ for dir in ../plots/plots_*/; do (cd "$dir" && [ -d .git ] && git acp "updt plots"); done
 ```
 
 4. **IMPORTANT**: Make sure that the `_config.yml` file includes all the folders

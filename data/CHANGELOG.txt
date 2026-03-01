@@ -1,5 +1,23 @@
 Some of these are intermediate versions of the UCC database that are not published.
 
+## 260301
+
+- Added Lui et al. (2025)
+- Added Richer et al. (2021)
+- Added Spina et al. (2021)
+- Added Zhong et al. (2020)
+- Added Morales et al. (2013)
+- Added Bukowiecki  et al. (2012)
+- Added Bukowiecki  et al. (2011)
+
+Previously only listed as comments:
+
+- Added Palma et al. (2025)
+- Added Piatti et al. (2011)
+- Added Piecka & Paunzen (2021)
+
+
+
 ## 260219
 
 - Added Obasi et al. (2026)
