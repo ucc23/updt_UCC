@@ -438,7 +438,7 @@ def final_fname_compare(logging, old_df, new_df, N_max=50):
         for _ in diffs_1[:N_max]:
             logging.info(_)
         if N_diff > N_max:
-            logging.info(f"... and {N_diff - N_max} more differences")
+            logging.info(f"... and {N_diff - N_max} more")
 
     fnames_old_set = {x for sub in fnames_old for x in sub}
     fnames_new_set = {x for sub in fnames_new for x in sub}
@@ -449,15 +449,38 @@ def final_fname_compare(logging, old_df, new_df, N_max=50):
         missing = new_vs_old
         if sets_id[0] == "old":
             missing = old_vs_new
+
         N_missing = len(missing)
+
         if N_missing > 0:
             logging.info(
                 f"\nFound {N_missing} fnames in {sets_id[0]} df that are not in {sets_id[1]}:"
             )
+
+            # Print first batch
             for fmiss in missing[:N_max]:
                 logging.info(f"{fmiss}")
-            if N_missing > N_max:
-                logging.info(f"... and {N_missing - N_max} more differences")
+
+            remaining = N_missing - N_max
+
+            # Ask whether to show more
+            while remaining > 0:
+                show_more = (
+                    input(f"\nShow {min(N_max, remaining)} more? (y/n): ")
+                    .strip()
+                    .lower()
+                )
+
+                if show_more != "y":
+                    break
+
+                start = N_missing - remaining
+                end = start + min(N_max, remaining)
+
+                for fmiss in missing[start:end]:
+                    logging.info(f"{fmiss}")
+
+                remaining -= end - start
 
     dif_missig(("new", "old"))
     dif_missig(("old", "new"))
