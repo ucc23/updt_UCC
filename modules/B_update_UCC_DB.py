@@ -1078,10 +1078,11 @@ def fnames_check_UCC_new_DB(
                 fnames_ucc_idxs[k].append(f_ucc_idx)
 
     # Check if any new entry has more than one entry in the UCC associated to it
-    bad_entries = []
+    bad_entries = {}
     for k, v in fnames_ucc_idxs.items():
-        if len(list(set(v))) > 1:
-            bad_entries.append([k, v])
+        v_unq = list(set(v))
+        if len(v_unq) > 1:
+            bad_entries[k] = v_unq
 
     # Check if the 'fnames_ucc_idxs' dictionary contains repeated elements
     locations = defaultdict(set)
@@ -1099,7 +1100,7 @@ def fnames_check_UCC_new_DB(
             f"\nFound {len(bad_entries)} entries in {new_DB} with duplicated "
             + "fnames in the combined DB:"
         )
-        for k, v in bad_entries:
+        for k, v in bad_entries.items():
             new_db_entries = f"({k}) {', '.join(new_DB_fnames[k])}"
             ucc_entries = ", ".join(
                 [
