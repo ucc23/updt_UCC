@@ -105,11 +105,16 @@ def main():
         if flag_check_stop != "no_check":
             check_new_entries(logging, new_DB_fnames, db_matches, flag_check_stop)
 
+        # Check uniqueness of fnames (fnames in new DB vs fnames in UCC sofar)
+        if fnames_check_UCC_new_DB(logging, new_DB, df_UCC_B, new_DB_fnames):
+            logging.info("\nResolve the above issues before moving on")
+            breakpoint()
+            sys.exit(0)
+
         if flag_check_stop != "no_check":
             # Check the entries in the DB vs the entries in the UCC
             check_new_DB_vs_UCC(
                 logging,
-                new_DB,
                 df_UCC_B,
                 df_new,
                 new_DB_fnames,
@@ -909,7 +914,6 @@ def check_new_entries(logging, new_DB_fnames, db_matches, flag_check_stop: str):
 
 def check_new_DB_vs_UCC(
     logging,
-    new_DB,
     df_UCC_B,
     df_new,
     new_DB_fnames,
@@ -917,16 +921,9 @@ def check_new_DB_vs_UCC(
     flag_check_stop: str,
 ) -> None:
     """
-    - Checks for duplicate entries between the new database and the UCC.
     - Checks for OCs very close to each other between the new database and the UCC.
     - Checks positions and flags for attention if required.
     """
-    # Check all fnames in the new DB against all fnames in the UCC
-    # logging.info("\nChecking uniqueness of fnames")
-    if fnames_check_UCC_new_DB(logging, new_DB, df_UCC_B, new_DB_fnames):
-        logging.info("\nResolve the above issues before moving on")
-        breakpoint()
-
     if "GLON_" in df_new.keys():
         # Check for OCs very close to other OCs in the UCC
         if close_OC_UCC_check(
