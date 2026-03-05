@@ -68,11 +68,13 @@ def main():
 
         # Determine the level of checking to perform for this DB
         if new_DB in flag_interactive:
+            # For new DBS, perform all checks and stop if problems are found
             flag_check_stop = "check_stop"
         else:
             if skip_check_flag is False:
                 flag_check_stop = "check_no_stop"  # Never used
             else:
+                # For non-new DBs, skip all checks if skip_check_flag=True
                 flag_check_stop = "no_check"
 
         # Add inner columns with galactic coordinates if possible
@@ -137,7 +139,7 @@ def main():
             db_matches,
         )
 
-    logging.info("\n\n=====================")
+    logging.info("\n\n\n===================================================")
     logging.info("Merging of DBs completed\n")
 
     df_UCC_B = sort_year_importance(new_JSON, df_UCC_B)
@@ -148,7 +150,7 @@ def main():
     # Mandatory sanity check: check every individual fname for duplicates
     exit_flag = duplicates_fnames_check(logging, df_UCC_B)
     if exit_flag:
-        logging.info("\nDuplicated entries found in 'fnames' column")
+        logging.info("\nERROR: duplicated entries found in 'fnames' column. Fix this!")
         breakpoint()
         sys.exit(0)
 
@@ -290,8 +292,8 @@ def load_data(
     all_dbs_data = {}
     # Load existing DBs
     for DB, vals in new_JSON.items():
-        if vals['data_cmmts'] == "comments":
-            logging.info(f"\nSkipping {DB} (marked as 'comments' in JSON)")
+        if vals["data_cmmts"] == "comments":
+            logging.info(f"Skipping {DB} (marked as 'comments' in JSON)")
             continue
         if DB in new_DBs:
             df_new = pd.read_csv(temp_database_folder + DB + ".csv")
@@ -855,14 +857,14 @@ def get_matches_new_DB(
         If an entry in the new DB is not present in the UCC, the corresponding
         index in the list will be None.
     """
-    # db_matches = []
+    # db_matches_old = []
     # # For each fname(s) for each entry in the new DB
     # for new_cl_fnames in new_DB_fnames:
     #     found = None
     #     # For each fname in this new DB entry
     #     for new_cl_fname in new_cl_fnames:
     #         # For each fname(s) for each entry in the UCC
-    #         for j, ucc_cl_fnames in enumerate(df_UCC["fnames"]):
+    #         for j, ucc_cl_fnames in enumerate(df_UCC_B["fnames"]):
     #             # Check if the fname in the new DB is included in the UCC
     #             if new_cl_fname in ucc_cl_fnames.split(";"):
     #                 # If it is, return the UCC index
@@ -870,7 +872,7 @@ def get_matches_new_DB(
     #                 break
     #         if found is not None:
     #             break
-    #     db_matches.append(found)
+    #     db_matches_old.append(found)
 
     # Build lookup dictionary from fname -> UCC index
     fname_to_idx = {}
