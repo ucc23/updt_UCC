@@ -15,6 +15,7 @@ from .utils import logger
 from .variables import (
     JSON_struct,
     NASA_API_TOKEN_file,
+    UCC_cmmts_folder,
     dbs_folder,
     name_DBs_json,
     temp_folder,
@@ -99,9 +100,6 @@ def main():
             )
             sys.exit(0)
 
-    # Request user for bibcode
-    ADS_bibcode = get_ads_bibcode()
-
     # Print info to screen
     pars_vals_all = dict(JSON_struct["SMITH2500"]["pars"])
     for _, v in current_JSON.items():
@@ -111,6 +109,9 @@ def main():
     for k, v in pars_vals_all.items():
         logging.info(f"{k:<10} : {', '.join(list(set(v)))}")
     logging.info("")
+
+    # Request user for bibcode
+    ADS_bibcode = get_ads_bibcode()
 
     # Check if url is already listed in the current JSON file
     ADS_bibcode = ADS_bibcode.replace("/", "")
@@ -166,7 +167,7 @@ def main():
     names, pos_dict, pars_dict, e_pars_dict = proper_json_struct(df_col_id)
 
     # Update the JSON file and save the database as CSV.
-    add_DB_to_JSON(
+    new_json_dict = add_DB_to_JSON(
         JSON_struct,
         SCIX_url,
         citations,
@@ -189,6 +190,24 @@ def main():
     logging.info("\n********************************************************")
     logging.info("Check the JSON and CSV files carefully before moving on!")
     logging.info("********************************************************")
+
+    # Sanity check to see if the new JSON file contains the proper comments files
+    # Keys that require a comments file
+    json_keys_with_cmmts = {
+        k for k, v in new_json_dict.items() if "comments" in v["data_cmmts"]
+    }
+    # File stems present in comments folder
+    folder_keys = {p.stem for p in Path(UCC_cmmts_folder).glob("*.csv")}
+    # JSON -> file
+    missing_files = sorted(json_keys_with_cmmts - folder_keys)
+    if missing_files:
+        logging.info(f"WARNING: missing comments file(s) {';'.join(missing_files)}")
+    # Folder -> JSON
+    extra_files = sorted(folder_keys - set(new_json_dict))
+    if extra_files:
+        logging.info(
+            f"WARNING: file(s) in folder not present in JSON {';'.join(extra_files)}"
+        )
 
 
 def get_citations_year(current_year, year, citations):
@@ -581,7 +600,7 @@ def add_DB_to_JSON(
     pos_dict: dict,
     pars_dict: dict,
     e_pars_dict: dict,
-) -> None:
+) -> dict:
     """ """
     # Extract years in current JSON file
     years = []
@@ -631,3 +650,5 @@ def add_DB_to_JSON(
     # Save to (temp) JSON file
     with open(temp_JSON_file, "w") as f:
         json.dump(new_json_dict, f, indent=2)  # Use indent for readability
+
+    return new_json_dict
