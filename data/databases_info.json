@@ -19,7 +19,7 @@
     },
     "pars": {
       "av": {
-        "Ebv": "E_B-V_"
+        "ebv": "E_B-V_"
       },
       "dist": {
         "dm": "DM0"
@@ -57,7 +57,7 @@
     },
     "pars": {
       "av": {
-        "Ebv": "E(B-V)"
+        "ebv": "E(B-V)"
       },
       "dist": {
         "dpc": "Dist"
@@ -98,7 +98,7 @@
     },
     "pars": {
       "av": {
-        "Ebv": "E(B-V)"
+        "ebv": "E(B-V)"
       },
       "dist": {
         "dpc": "HDis"
@@ -137,7 +137,7 @@
     },
     "pars": {
       "av": {
-        "Ebv": "E(B-V)"
+        "ebv": "E(B-V)"
       },
       "dist": {
         "dpc": "d_pc"
@@ -170,7 +170,7 @@
     },
     "pars": {
       "av": {
-        "Ebv": "E(B-V)"
+        "ebv": "E(B-V)"
       },
       "dist": {
         "dpc": "Dist"
@@ -229,7 +229,7 @@
     },
     "pars": {
       "av": {
-        "Ebv": "E(B-V)"
+        "ebv": "E(B-V)"
       },
       "dist": {
         "dpc": "Dist"
@@ -263,7 +263,7 @@
     },
     "pars": {
       "av": {
-        "Ebv": "E(B-V)"
+        "ebv": "E(B-V)"
       },
       "dist": {
         "dpc": "Dist"
@@ -315,7 +315,7 @@
     },
     "pars": {
       "av": {
-        "Ebv": "E(B-V)"
+        "ebv": "E(B-V)"
       },
       "dist": {
         "dpc": "R"
@@ -346,7 +346,7 @@
     },
     "pars": {
       "av": {
-        "Ebv": "E(B-V)"
+        "ebv": "E(B-V)"
       },
       "dist": {
         "dkpc": "Dist"
@@ -357,7 +357,7 @@
     },
     "e_pars": {
       "e_av": {
-        "eEbv": "e_E(B-V)"
+        "eebv": "e_E(B-V)"
       },
       "e_dist": {
         "edkpc": "e_Dist"
@@ -408,7 +408,7 @@
     },
     "pars": {
       "av": {
-        "Ebv": "E(B-V)"
+        "ebv": "E(B-V)"
       },
       "dist": {
         "dpc": "Dist"
@@ -469,7 +469,7 @@
     },
     "pars": {
       "av": {
-        "Ebv": "E(B-V)"
+        "ebv": "E(B-V)"
       },
       "dist": {
         "dpc": "Dist"
@@ -513,7 +513,7 @@
     },
     "pars": {
       "av": {
-        "Ebv": "E(B-V)"
+        "ebv": "E(B-V)"
       },
       "dist": {
         "dpc": "Distance"
@@ -524,7 +524,7 @@
     },
     "e_pars": {
       "e_av": {
-        "eEbv": "e_E(B-V)"
+        "eebv": "e_E(B-V)"
       },
       "e_dist": {
         "edpc": "e_Distance"
@@ -554,7 +554,7 @@
     },
     "pars": {
       "av": {
-        "Ebv": "E(B-V)"
+        "ebv": "E(B-V)"
       },
       "dist": {
         "dpc": "Dist"
@@ -565,7 +565,7 @@
     },
     "e_pars": {
       "e_av": {
-        "eEbv": "e_E(B-V)"
+        "eebv": "e_E(B-V)"
       },
       "e_dist": {
         "edpc": "e_Dist"
@@ -634,7 +634,7 @@
     },
     "pars": {
       "av": {
-        "Ebv": "E(B-V)"
+        "ebv": "E(B-V)"
       },
       "dist": {
         "dm": "m-M",
@@ -673,7 +673,7 @@
     },
     "pars": {
       "av": {
-        "Ebv": "E(B-V)"
+        "ebv": "E(B-V)"
       },
       "dist": {
         "dpc": "d"
@@ -724,6 +724,47 @@
       }
     },
     "e_pars": {}
+  },
+  "CAMARGO2012": {
+    "SCIX_url": "https://scixplorer.org/abs/2012MNRAS.423.1940C",
+    "data_cmmts": "data",
+    "citations_count": {
+      "date": "2026-03-02",
+      "count": "20",
+      "citations_year": 1.4
+    },
+    "data_url": "N/A",
+    "authors": "Camargo et al.",
+    "title": "Towards a census of the Galactic anticentre star clusters - II. Exploring lower overdensities",
+    "year": "2012",
+    "received": "20120329",
+    "names": "Cluster",
+    "pos": {
+      "RA": "RA",
+      "DEC": "DEC"
+    },
+    "pars": {
+      "av": {
+        "av": "A_V"
+      },
+      "dist": {
+        "dkpc": "d_sun"
+      },
+      "age": {
+        "amyr": "Age"
+      }
+    },
+    "e_pars": {
+      "e_av": {
+        "eav": "e_A_V"
+      },
+      "e_dist": {
+        "edkpc": "e_d_sun"
+      },
+      "e_age": {
+        "eamyr": "e_Age"
+      }
+    }
   },
   "BUKOWIECKI2012": {
     "SCIX_url": "https://scixplorer.org/abs/2012AcA....62..281B",
@@ -809,7 +850,7 @@
     },
     "pars": {
       "av": {
-        "Ebv": "E(B-V)"
+        "ebv": "E(B-V)"
       },
       "dist": {
         "dpc": "d"
@@ -852,7 +893,7 @@
     },
     "pars": {
       "av": {
-        "Ebv": "E(B-V)"
+        "ebv": "E(B-V)"
       },
       "dist": {
         "dpc": "d"
@@ -891,6 +932,47 @@
     "pars": {},
     "e_pars": {}
   },
+  "TADROSS2014": {
+    "SCIX_url": "https://scixplorer.org/abs/2014JAsGe...3...88T",
+    "data_cmmts": "data",
+    "citations_count": {
+      "date": "2026-03-02",
+      "count": "4",
+      "citations_year": 0.3
+    },
+    "data_url": "N/A",
+    "authors": "Tadross",
+    "title": "The astrophysical behavior of open clusters along the Milky Way Galaxy",
+    "year": "2014",
+    "received": "20140303",
+    "names": "Cluster",
+    "pos": {
+      "RA": "RA",
+      "DEC": "DEC"
+    },
+    "pars": {
+      "av": {
+        "ebv": "EBV"
+      },
+      "dist": {
+        "dkpc": "R_sun"
+      },
+      "age": {
+        "agyr": "Age"
+      }
+    },
+    "e_pars": {
+      "e_av": {
+        "eebv": "e_EBV"
+      },
+      "e_dist": {
+        "edkpc": "e_R_sun"
+      },
+      "e_age": {
+        "eamyr": "e_Age"
+      }
+    }
+  },
   "SCHOLZ2015": {
     "SCIX_url": "https://scixplorer.org/abs/2015A%26A...581A..39S",
     "data_cmmts": "data",
@@ -914,7 +996,7 @@
     },
     "pars": {
       "av": {
-        "Ebv": "E(B-V)"
+        "ebv": "E(B-V)"
       },
       "dist": {
         "dpc": "d"
@@ -955,7 +1037,7 @@
     },
     "pars": {
       "av": {
-        "Ebv": "E(B-V)"
+        "ebv": "E(B-V)"
       },
       "dist": {
         "dpc": "d"
@@ -988,7 +1070,7 @@
     },
     "pars": {
       "av": {
-        "Ebv": "E(B-V)"
+        "ebv": "E(B-V)"
       },
       "dist": {
         "dpc": "Dist"
@@ -1022,7 +1104,7 @@
     },
     "pars": {
       "av": {
-        "Ebv": "E(B-V)"
+        "ebv": "E(B-V)"
       },
       "dist": {
         "dpc": "Dist"
@@ -1033,7 +1115,7 @@
     },
     "e_pars": {
       "e_av": {
-        "eEbv": "e_E(B-V)"
+        "eebv": "e_E(B-V)"
       },
       "e_age": {
         "eloga": "e_logt"
@@ -1063,7 +1145,7 @@
     },
     "pars": {
       "av": {
-        "Ebv": "E(B-V)"
+        "ebv": "E(B-V)"
       },
       "dist": {
         "dpc": "d"
@@ -1074,7 +1156,7 @@
     },
     "e_pars": {
       "e_av": {
-        "eEbv": "e_E(B-V)"
+        "eebv": "e_E(B-V)"
       },
       "e_dist": {
         "edpc": "e_d"
@@ -1246,7 +1328,7 @@
     },
     "pars": {
       "av": {
-        "Ebv": "E(B-V)"
+        "ebv": "E(B-V)"
       },
       "dist": {
         "dkpc": "Dist"
@@ -1260,7 +1342,7 @@
     },
     "e_pars": {
       "e_av": {
-        "eEbv": "e_E(B-V)"
+        "eebv": "e_E(B-V)"
       },
       "e_dist": {
         "edkpc": "e_Dist"
@@ -1368,7 +1450,7 @@
     },
     "pars": {
       "av": {
-        "Av": "AV"
+        "av": "AV"
       },
       "dist": {
         "dm": "Dist"
@@ -1424,7 +1506,7 @@
     },
     "pars": {
       "av": {
-        "Ebv": "E(B-V)"
+        "ebv": "E(B-V)"
       },
       "dist": {
         "dkpc": "Dist"
@@ -1438,7 +1520,7 @@
     },
     "e_pars": {
       "e_av": {
-        "eEbv": "e_E(B-V)"
+        "eebv": "e_E(B-V)"
       },
       "e_dist": {
         "edkpc": "e_Dist"
@@ -1475,7 +1557,7 @@
     },
     "pars": {
       "av": {
-        "Ebv": "E(B-V)"
+        "ebv": "E(B-V)"
       },
       "dist": {
         "dpc": "Dist"
@@ -1489,7 +1571,7 @@
     },
     "e_pars": {
       "e_av": {
-        "eEbv": "e_E(B-V)"
+        "eebv": "e_E(B-V)"
       },
       "e_dist": {
         "edpc": "e_Dist"
@@ -1595,6 +1677,39 @@
       }
     }
   },
+  "KOUNKEL2019": {
+    "SCIX_url": "https://scixplorer.org/abs/2019AJ....158..122K",
+    "data_cmmts": "data",
+    "citations_count": {
+      "date": "2026-03-03",
+      "count": "219",
+      "citations_year": 31.3
+    },
+    "data_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2019AJ....158..122K",
+    "authors": "Kounkel & Covey",
+    "title": "Untangling the Galaxy. I. Local Structure and Star Formation History of the Milky Way",
+    "year": "2019",
+    "received": "20190626",
+    "names": "Theia",
+    "pos": {
+      "RA": "_RA.icrs",
+      "DEC": "_DE.icrs",
+      "plx": "plx",
+      "Rv": "RV"
+    },
+    "pars": {
+      "av": {
+        "av": "Av"
+      },
+      "dist": {
+        "dpc": "dist"
+      },
+      "age": {
+        "loga": "logAge"
+      }
+    },
+    "e_pars": {}
+  },
   "BASTIAN2019": {
     "SCIX_url": "https://scixplorer.org/abs/2019A&A...630L...8B",
     "data_cmmts": "data",
@@ -1674,7 +1789,7 @@
     },
     "pars": {
       "av": {
-        "Ebv": "E(B-V)ref"
+        "ebv": "E(B-V)ref"
       },
       "dist": {
         "dpc": "Distref"
@@ -1715,7 +1830,7 @@
     },
     "pars": {
       "av": {
-        "Ag": "AG"
+        "ag": "AG"
       },
       "dist": {
         "dpc": "d_pc"
@@ -1809,7 +1924,7 @@
     },
     "pars": {
       "av": {
-        "Ebv": "E(B-V)"
+        "ebv": "E(B-V)"
       },
       "dist": {
         "dpc": "Dist"
@@ -1820,7 +1935,7 @@
     },
     "e_pars": {
       "e_av": {
-        "eEbv": "e_E(B-V)"
+        "eebv": "e_E(B-V)"
       },
       "e_dist": {
         "edpc": "e_Dist"
@@ -1853,6 +1968,44 @@
     "pars": {},
     "e_pars": {}
   },
+  "KOUNKEL2020": {
+    "SCIX_url": "https://scixplorer.org/abs/2020AJ....160..279K",
+    "data_cmmts": "data",
+    "citations_count": {
+      "date": "2026-03-04",
+      "count": "114",
+      "citations_year": 19.0
+    },
+    "data_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2020AJ....160..279K",
+    "authors": "Kounkel et al.",
+    "title": "Untangling the Galaxy. II. Structure within 3 kpc",
+    "year": "2020",
+    "received": "20200415",
+    "names": "Cluster",
+    "pos": {},
+    "pars": {
+      "av": {
+        "av": "AVmag"
+      },
+      "dist": {
+        "dpc": "Dist"
+      },
+      "age": {
+        "loga": "logAge"
+      }
+    },
+    "e_pars": {
+      "e_av": {
+        "eav": "e_AVmag"
+      },
+      "e_dist": {
+        "edm": "e_Dist"
+      },
+      "e_age": {
+        "eloga": "e_logAge"
+      }
+    }
+  },
   "CANTAT2020": {
     "SCIX_url": "https://scixplorer.org/abs/2020A%26A...640A...1C",
     "data_cmmts": "data",
@@ -1876,7 +2029,7 @@
     },
     "pars": {
       "av": {
-        "Av": "AVNN"
+        "av": "AVNN"
       },
       "dist": {
         "dm": "DMNN"
@@ -1885,24 +2038,6 @@
         "loga": "AgeNN"
       }
     },
-    "e_pars": {}
-  },
-  "PIECKA2021": {
-    "SCIX_url": "https://scixplorer.org/abs/2021A%26A...649A..54P",
-    "data_cmmts": "comments",
-    "citations_count": {
-      "date": "2026-02-27",
-      "count": "22",
-      "citations_year": 4.4
-    },
-    "data_url": "N/A",
-    "authors": "Piecka & Paunzen",
-    "title": "Aggregates of clusters in the Gaia data",
-    "year": "2021",
-    "received": "20201216",
-    "names": "None",
-    "pos": {},
-    "pars": {},
     "e_pars": {}
   },
   "HUNT2021": {
@@ -1984,7 +2119,7 @@
     },
     "pars": {
       "av": {
-        "Ag": "AG"
+        "ag": "AG"
       },
       "dist": {
         "dm": "m-M"
@@ -2107,7 +2242,7 @@
     },
     "pars": {
       "av": {
-        "Av": "Av"
+        "av": "Av"
       },
       "dist": {
         "dpc": "Dist"
@@ -2121,7 +2256,7 @@
     },
     "e_pars": {
       "e_av": {
-        "eAv": "e_Av"
+        "eav": "e_Av"
       },
       "e_dist": {
         "edpc": "e_Dist"
@@ -2157,7 +2292,7 @@
     },
     "pars": {
       "av": {
-        "Ebprp": "E(Bp-Rp)"
+        "ebprp": "E(Bp-Rp)"
       },
       "age": {
         "amyr": "Age"
@@ -2165,7 +2300,7 @@
     },
     "e_pars": {
       "e_av": {
-        "eAv": "e_E(Bp-Rp)"
+        "eav": "e_E(Bp-Rp)"
       },
       "e_age": {
         "eamyr": "e_Age"
@@ -2195,7 +2330,7 @@
     },
     "pars": {
       "av": {
-        "Ebv": "E(B-V)"
+        "ebv": "E(B-V)"
       },
       "dist": {
         "dpc": "Dist"
@@ -2232,7 +2367,7 @@
     },
     "pars": {
       "av": {
-        "Ebv": "E(B-V)"
+        "ebv": "E(B-V)"
       },
       "dist": {
         "dm": "Dmod"
@@ -2243,7 +2378,7 @@
     },
     "e_pars": {
       "e_av": {
-        "eEbv": "e_E(B-V)"
+        "eebv": "e_E(B-V)"
       },
       "e_dist": {
         "edm": "e_Dmod"
@@ -2252,6 +2387,24 @@
         "eloga": "e_logt"
       }
     }
+  },
+  "PIECKA2021": {
+    "SCIX_url": "https://scixplorer.org/abs/2021A%26A...649A..54P",
+    "data_cmmts": "comments",
+    "citations_count": {
+      "date": "2026-02-27",
+      "count": "22",
+      "citations_year": 4.4
+    },
+    "data_url": "N/A",
+    "authors": "Piecka & Paunzen",
+    "title": "Aggregates of clusters in the Gaia data",
+    "year": "2021",
+    "received": "20201216",
+    "names": "None",
+    "pos": {},
+    "pars": {},
+    "e_pars": {}
   },
   "SANTOS2021": {
     "SCIX_url": "https://scixplorer.org/abs/2021MNRAS.508.1033S",
@@ -2276,7 +2429,7 @@
     },
     "pars": {
       "av": {
-        "Av": [
+        "av": [
           "AVPM",
           "AVPf"
         ]
@@ -2302,7 +2455,7 @@
     },
     "e_pars": {
       "e_av": {
-        "eAv": [
+        "eav": [
           "e_AVPM",
           "e_AVPf_l",
           "e_AVPf_h"
@@ -2354,7 +2507,7 @@
     },
     "pars": {
       "av": {
-        "Av": "Avmag"
+        "av": "Avmag"
       },
       "dist": {
         "dkpc": "dmode",
@@ -2366,7 +2519,7 @@
     },
     "e_pars": {
       "e_av": {
-        "eAv": "e_Avmag"
+        "eav": "e_Avmag"
       },
       "e_dist": {
         "edkpc": [
@@ -2434,7 +2587,7 @@
     },
     "pars": {
       "av": {
-        "Evi": "E(V-I)"
+        "evi": "E(V-I)"
       },
       "dist": {
         "dm": "m-M"
@@ -2475,7 +2628,7 @@
     },
     "pars": {
       "av": {
-        "Av": "AV"
+        "av": "AV"
       },
       "dist": {
         "dpc": "Dist"
@@ -2485,6 +2638,81 @@
       }
     },
     "e_pars": {}
+  },
+  "DIAS2022": {
+    "SCIX_url": "https://scixplorer.org/abs/2022MNRAS.512.4464D",
+    "data_cmmts": "data,comments",
+    "citations_count": {
+      "date": "2026-03-02",
+      "count": "5",
+      "citations_year": 1.2
+    },
+    "data_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2022MNRAS.512.4464D",
+    "authors": "Dias et al.",
+    "title": "58 open clusters investigated with UBVRI and Gaia eDR3 data",
+    "year": "2022",
+    "received": "20211202",
+    "names": "Cluster",
+    "pos": {
+      "RA": "alpha_deg",
+      "DEC": "delta_deg",
+      "plx": "plx",
+      "pmra": "mu_alpha_cos_delta",
+      "pmde": "mu_delta",
+      "Rv": "RV_km_s"
+    },
+    "pars": {
+      "av": {
+        "av": [
+          "Av_UBVRI_mag",
+          "Av_Gaia_mag"
+        ]
+      },
+      "dist": {
+        "dpc": [
+          "Distance_UBVRI_pc",
+          "Distance_Gaia_pc"
+        ]
+      },
+      "age": {
+        "loga": [
+          "logAge_UBVRI_dex",
+          "logAge_Gaia_dex"
+        ]
+      },
+      "met": {
+        "feh": [
+          "FeH_UBVRI_dex",
+          "FeH_Gaia_dex"
+        ]
+      }
+    },
+    "e_pars": {
+      "e_av": {
+        "eav": [
+          "e_Av_UBVRI_mag",
+          "e_Av_Gaia_mag"
+        ]
+      },
+      "e_dist": {
+        "edpc": [
+          "e_Distance_UBVRI_pc",
+          "e_Distance_Gaia_pc"
+        ]
+      },
+      "e_age": {
+        "eloga": [
+          "e_logAge_UBVRI_dex",
+          "e_logAge_Gaia_dex"
+        ]
+      },
+      "e_met": {
+        "efeh": [
+          "e_FeH_UBVRI_dex",
+          "e_FeH_Gaia_dex"
+        ]
+      }
+    }
   },
   "HAO2022": {
     "SCIX_url": "https://scixplorer.org/abs/2022A%26A...660A...4H",
@@ -2510,7 +2738,7 @@
     },
     "pars": {
       "av": {
-        "Ag": "AG"
+        "ag": "AG"
       },
       "age": {
         "loga": "age"
@@ -2549,7 +2777,7 @@
     },
     "pars": {
       "av": {
-        "Ag": "AG"
+        "ag": "AG"
       },
       "dist": {
         "dm": "m-M"
@@ -2583,7 +2811,7 @@
     },
     "pars": {
       "av": {
-        "Ebv": "E(B-V)"
+        "ebv": "E(B-V)"
       },
       "dist": {
         "dm": "dm"
@@ -2626,7 +2854,7 @@
     },
     "pars": {
       "av": {
-        "Av": "A0"
+        "av": "A0"
       },
       "age": {
         "loga": "logAge"
@@ -2682,7 +2910,7 @@
     },
     "pars": {
       "av": {
-        "Av": "A0"
+        "av": "A0"
       },
       "dist": {
         "dm": "m-M"
@@ -2824,7 +3052,7 @@
     },
     "pars": {
       "av": {
-        "Ebv": "E(B-V)"
+        "ebv": "E(B-V)"
       },
       "dist": {
         "dm": "m-M"
@@ -2858,7 +3086,7 @@
     },
     "pars": {
       "av": {
-        "Av": "Av"
+        "av": "Av"
       },
       "dist": {
         "dm": "Dist"
@@ -2912,7 +3140,7 @@
     },
     "pars": {
       "av": {
-        "Av": "Av"
+        "av": "Av"
       },
       "dist": {
         "dkpc": "d_kpc"
@@ -2949,7 +3177,7 @@
     },
     "pars": {
       "av": {
-        "Evi": "E(V-I)"
+        "evi": "E(V-I)"
       },
       "dist": {
         "dm": "m-M"
@@ -3015,7 +3243,7 @@
     },
     "pars": {
       "av": {
-        "Av": "Av"
+        "av": "Av"
       },
       "dist": {
         "dkpc": "dist"
@@ -3038,7 +3266,7 @@
     },
     "e_pars": {
       "e_av": {
-        "eAv": "e_Av"
+        "eav": "e_Av"
       },
       "e_dist": {
         "edkpc": "e_dist"
@@ -3081,10 +3309,10 @@
     },
     "pars": {
       "av": {
-        "Av": "AV50"
+        "av": "AV50"
       },
       "diff_ext": {
-        "dAv": "diffAV50"
+        "dav": "diffAV50"
       },
       "dist": {
         "dm": "MOD50"
@@ -3095,13 +3323,13 @@
     },
     "e_pars": {
       "e_av": {
-        "eAv": [
+        "eav": [
           "AV16",
           "AV84"
         ]
       },
       "e_diff_ext": {
-        "edAv": [
+        "edav": [
           "diffAV16",
           "diffAV84"
         ]
@@ -3144,7 +3372,7 @@
     },
     "pars": {
       "av": {
-        "Av": "A0"
+        "av": "A0"
       },
       "dist": {
         "dm": "m-M"
@@ -3181,7 +3409,7 @@
         "loga": "a_mean"
       },
       "av": {
-        "Ebv": "E_mean"
+        "ebv": "E_mean"
       },
       "dist": {
         "dm": "d_mean"
@@ -3198,7 +3426,7 @@
         "eloga": "a_std"
       },
       "e_av": {
-        "eEbv": "E_std"
+        "eebv": "E_std"
       },
       "e_dist": {
         "edm": "d_std"
@@ -3232,7 +3460,7 @@
     },
     "pars": {
       "av": {
-        "Av": "AV50"
+        "av": "AV50"
       },
       "dist": {
         "dm": "dMod50"
@@ -3246,7 +3474,7 @@
     },
     "e_pars": {
       "e_av": {
-        "eAv": [
+        "eav": [
           "AV16",
           "AV84"
         ]
@@ -3338,6 +3566,48 @@
       }
     }
   },
+  "SWIGGUM2024": {
+    "SCIX_url": "https://scixplorer.org/abs/2024Natur.631...49S",
+    "data_cmmts": "data",
+    "citations_count": {
+      "date": "2026-03-04",
+      "count": "23",
+      "citations_year": 11.5
+    },
+    "data_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2024Natur.631...49S",
+    "authors": "Swiggum et al.",
+    "title": "Most nearby young star clusters formed in three massive complexes",
+    "year": "2024",
+    "received": "20240101",
+    "names": "Name",
+    "pos": {
+      "RA": "RA_ICRS",
+      "DEC": "DE_ICRS",
+      "plx": "Plx",
+      "pmra": "pmRA",
+      "pmde": "pmDE",
+      "Rv": "RVcomb"
+    },
+    "pars": {
+      "dist": {
+        "dpc": "dist"
+      },
+      "age": {
+        "amyr": "Age"
+      },
+      "mass": {
+        "mass": "Mass50"
+      }
+    },
+    "e_pars": {
+      "e_mass": {
+        "emass": [
+          "Mass16",
+          "Mass84"
+        ]
+      }
+    }
+  },
   "ZHANG2024": {
     "SCIX_url": "https://scixplorer.org/abs/2024A%26A...692A.212Z",
     "data_cmmts": "data",
@@ -3396,7 +3666,7 @@
     },
     "pars": {
       "av": {
-        "Av": "AV"
+        "av": "AV"
       },
       "dist": {
         "dm": "MOD"
@@ -3408,24 +3678,6 @@
         "feh": "Z"
       }
     },
-    "e_pars": {}
-  },
-  "PALMA2025": {
-    "SCIX_url": "https://scixplorer.org/abs/2025A%26A...693A.218P",
-    "data_cmmts": "comments",
-    "citations_count": {
-      "date": "2026-02-27",
-      "count": "11",
-      "citations_year": 11.0
-    },
-    "data_url": "N/A",
-    "authors": "Palma et al.",
-    "title": "Binary and grouped open clusters A new catalogue",
-    "year": "2025",
-    "received": "20241019",
-    "names": "None",
-    "pos": {},
-    "pars": {},
     "e_pars": {}
   },
   "ALMEIDA2025": {
@@ -3448,7 +3700,7 @@
     },
     "pars": {
       "av": {
-        "Av": "AV"
+        "av": "AV"
       },
       "dist": {
         "dpc": "Dist"
@@ -3462,7 +3714,7 @@
     },
     "e_pars": {
       "e_av": {
-        "eAv": "e_AV"
+        "eav": "e_AV"
       },
       "e_dist": {
         "edpc": "e_Dist"
@@ -3495,7 +3747,7 @@
     },
     "pars": {
       "av": {
-        "Av": "Av"
+        "av": "Av"
       },
       "dist": {
         "dpc": "Dist"
@@ -3543,7 +3795,7 @@
     },
     "pars": {
       "av": {
-        "Av": "AVmag"
+        "av": "AVmag"
       },
       "dist": {
         "dm": "m-M"
@@ -3563,7 +3815,7 @@
     },
     "e_pars": {
       "e_av": {
-        "eAv": "e_AVmag"
+        "eav": "e_AVmag"
       },
       "e_dist": {
         "edm": "e_m-M"
@@ -3578,6 +3830,24 @@
         "emass": "e_Mass"
       }
     }
+  },
+  "PALMA2025": {
+    "SCIX_url": "https://scixplorer.org/abs/2025A%26A...693A.218P",
+    "data_cmmts": "comments",
+    "citations_count": {
+      "date": "2026-02-27",
+      "count": "11",
+      "citations_year": 11.0
+    },
+    "data_url": "N/A",
+    "authors": "Palma et al.",
+    "title": "Binary and grouped open clusters A new catalogue",
+    "year": "2025",
+    "received": "20241019",
+    "names": "None",
+    "pos": {},
+    "pars": {},
+    "e_pars": {}
   },
   "HU2025": {
     "SCIX_url": "https://scixplorer.org/abs/2025A%26A...699A.246H",
@@ -3645,7 +3915,7 @@
     },
     "pars": {
       "av": {
-        "Av": "A_V"
+        "av": "A_V"
       },
       "dist": {
         "dm": "dist_mod"
@@ -3659,7 +3929,7 @@
     },
     "e_pars": {
       "e_av": {
-        "eAv": [
+        "eav": [
           "A_V_16",
           "A_V_84"
         ]
@@ -3704,7 +3974,7 @@
     },
     "pars": {
       "av": {
-        "Av": "AV"
+        "av": "AV"
       },
       "dist": {
         "dm": "DM"
@@ -3718,7 +3988,7 @@
     },
     "e_pars": {
       "e_av": {
-        "eAv": [
+        "eav": [
           "AV16",
           "AV84"
         ]
@@ -3764,7 +4034,7 @@
     },
     "pars": {
       "av": {
-        "Av": "E(B-V)"
+        "av": "E(B-V)"
       },
       "dist": {
         "dm": "DM"
@@ -3796,6 +4066,40 @@
     "pars": {},
     "e_pars": {}
   },
+  "MALHOTRA2026": {
+    "SCIX_url": "https://scixplorer.org/abs/2026A%26A...706A..62M",
+    "data_cmmts": "data,comments",
+    "citations_count": {
+      "date": "2026-03-02",
+      "count": "0",
+      "citations_year": 0.0
+    },
+    "data_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2026A%26A...706A..62M",
+    "authors": "Malhotra et al.",
+    "title": "Stellar masses and mass ratios for Gaia open cluster members",
+    "year": "2026",
+    "received": "20251002",
+    "names": "Name",
+    "pos": {
+      "RA": "_RA",
+      "DEC": "_DE"
+    },
+    "pars": {
+      "av": {
+        "av": "AV"
+      },
+      "dist": {
+        "dpc": "D"
+      },
+      "age": {
+        "loga": "logAge"
+      },
+      "met": {
+        "feh": "[Fe/H]"
+      }
+    },
+    "e_pars": {}
+  },
   "CHI2025": {
     "SCIX_url": "https://scixplorer.org/abs/2025PASJ...77.1050C",
     "data_cmmts": "data",
@@ -3819,7 +4123,7 @@
     },
     "pars": {
       "av": {
-        "Av": "Av"
+        "av": "Av"
       },
       "dist": {
         "dm": "M"
@@ -3833,7 +4137,7 @@
     },
     "e_pars": {
       "e_av": {
-        "eAv": "Av_sigma"
+        "eav": "Av_sigma"
       },
       "e_dist": {
         "edm": "M_sigma"
