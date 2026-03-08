@@ -3,9 +3,72 @@ import csv
 import numpy as np
 import pandas as pd
 
+
+
+df = pd.read_csv("../data/databases/BICA2003.csv")
+
+type_dict = {
+    "IRC": "Infrared cluster.",
+    "IRCC": "Cluster candidate.",
+    "IRGr": "Stellar group.",
+    "IROC": "Open cluster.",
+}
+
+cmmts = {"Cluster": [], "Comment": []}
+for i, row in df.iterrows():
+    cmmts["Cluster"].append(row["BDS2003"].split(",")[0])
+    cmmts["Comment"].append(type_dict[row["Class"]])
+
+cluster_df = pd.DataFrame(cmmts)
+cluster_df.to_csv(
+    "../data/databases/cmmts/BICA2003.csv", index=False, quoting=csv.QUOTE_ALL
+)
+
+breakpoint()
+
+
+df = pd.read_csv("../data/databases/DUTRA2003.csv")
+
+type_dict = {
+    "IRC": "Infrared cluster.",
+    "IRCC": "Cluster candidate.",
+    "IRGr": "Stellar group.",
+    "IROC": "Open cluster.",
+}
+
+cmmts = {"Cluster": [], "Comment": []}
+for i, row in df.iterrows():
+    cmmts["Cluster"].append(row["Seq"].split(",")[0])
+    cmmts["Comment"].append(type_dict[row["Type"]])
+
+cluster_df = pd.DataFrame(cmmts)
+cluster_df.to_csv(
+    "../data/databases/cmmts/DUTRA2003.csv", index=False, quoting=csv.QUOTE_ALL
+)
+
+breakpoint()
+
+
+df = pd.read_csv("../data/databases/MALHOTRA2026.csv")
+
+cmmts = {"Cluster": [], "Comment": []}
+for i, row in df.iterrows():
+    Mlow, Mhi = row["M*low"], row["M*hi"]
+    cmmts["Cluster"].append(row["Name"])
+    txt = f"Lowest/Highest stellar mass in the catalogue with a mass-ratio estimate: {Mlow}/{Mhi} Msun"
+    cmmts["Comment"].append(txt)
+
+cluster_df = pd.DataFrame(cmmts)
+cluster_df.to_csv(
+    "../data/databases/cmmts/MALHOTRA2026.csv", index=False, quoting=csv.QUOTE_ALL
+)
+
+breakpoint()
+
+
 df = pd.read_csv("../data/databases/RICHER2021.csv")
 
-cmmts = {"Clusters": [], "Comments": []}
+cmmts = {"Cluster": [], "Comment": []}
 for i, row in df.iterrows():
     Nwd, Nt1, Nt4 = row["Nwd"], row["Nt1"], row["Nt4"]
     if np.isnan(Nwd):
@@ -248,3 +311,56 @@ breakpoint()
 #         print(
 #             f'"{cluster}": "Part of multiple system {pair}, along with {others_str}.",'
 #         )
+
+
+df = pd.read_csv("/home/gabriel/Descargas/HUNT2024.csv")
+
+type_dict = {
+    "o": "Classified as open cluster",
+    "m": "Classified as moving group",
+    "g": "ERROR",
+    "d": "Too distant to classify",
+    "r": "Rejected:",
+}
+clss_dict = {
+    "FP": "false positive",
+    "FP?": "false positive?",
+    "TP": "true positive",
+    "TP?": "true positive?",
+    "": ""
+}
+
+cmmts = {"Cluster": [], "Comment": []}
+for i, row in df.iterrows():
+    if row["Type"] == "g":
+        continue
+
+    # if float(row['CMDCl50']) > 0.75 and row["Name"].startswith("HSC") and row['N'] > 250:
+    #     print(f"{row['Name']} {row['CMDCl50']:.2f} {row['N']}")
+    # continue
+
+    cmmts["Cluster"].append(row["Name"].strip())
+    cmd_human = clss_dict[row["CMDClHuman"].strip()]
+
+    ss = ""
+    if cmd_human != "":
+        ss = "es"
+    txt = f" CMD class{ss}: {row['CMDCl50']:.2f} (50th percentile)"
+
+    if cmd_human != "":
+        txt += f", {cmd_human} (human-assigned)."
+    else:
+        txt += "."
+    if row["Type"] == "r":
+        cmmt = f"Rejected: {row['Note'].strip()}"
+        cmmts["Comment"].append(cmmt + ".")
+    else:
+        cmmt = type_dict[row["Type"]]
+        cmmts["Comment"].append(cmmt + "." + txt)
+
+cluster_df = pd.DataFrame(cmmts)
+cluster_df.to_csv(
+    "../data/databases/cmmts/HUNT2024_2.csv", index=False, quoting=csv.QUOTE_ALL
+)
+
+breakpoint()
