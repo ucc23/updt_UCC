@@ -47,36 +47,16 @@ def main():
     )
 
     # Detect entries to be processed
-    rename_C_fname, B_not_in_C, C_not_in_B, C_reprocess = detect_entries_to_process(
-        df_UCC_B, df_UCC_C
+    rename_C_fname, B_not_in_C, C_not_in_B, N_process = detect_entries_to_process(
+        logging, df_UCC_B, df_UCC_C
     )
-
-    N_process = (
-        len(rename_C_fname) + len(B_not_in_C) + len(C_not_in_B) + len(C_reprocess)
-    )
-
-    logging.info("\nProcessing:")
-    datasets = [
-        ("B entries not in C (add)", B_not_in_C, "Names"),
-        ("C entries not in B (remove)", C_not_in_B, "fname"),
-        ("C entries to re-process", C_reprocess, "fname"),
-        ("C entries to rename", rename_C_fname, ""),
-    ]
-    for label, df, name_col in datasets:
-        logging.info(f"-{label:20}: {len(df)}")
-        if len(df) > 0:
-            ans = input(f"Show list for '{label}'? (y/n): ").strip().lower()
-            if ans == "y":
-                if name_col == "":
-                    for name in df.keys():
-                        logging.info(f"  {name}")
-                else:
-                    for name in df[name_col].astype(str):
-                        logging.info(f"  {name}")
 
     if N_process == 0:
         if input("\nNo new OCs to process. Process anyway? (y/n): ").lower() != "y":
             sys.exit()
+    else:
+        if input(f"\n{N_process} entries to process. Continue? (y/n): ").lower() == "y":
+            pass
 
     load_file = False
     temp_UCC_updt_file = temp_folder + "df_UCC_C_updt.csv"
@@ -225,8 +205,8 @@ def load_data(
 
 
 def detect_entries_to_process(
-    df_UCC_B: pd.DataFrame, df_UCC_C: pd.DataFrame
-) -> tuple[dict, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    logging, df_UCC_B: pd.DataFrame, df_UCC_C: pd.DataFrame
+) -> tuple[dict, pd.DataFrame, pd.DataFrame, int]:
     """
 
     B_not_in_C  --> Add to C
@@ -250,9 +230,20 @@ def detect_entries_to_process(
         fnames = fnames.split(";")
         for fname in fnames:
             if fname in C_fname_lst:
-                # This C entry needs ranaming: fname --> fnames[0]
+                # This C entry needs renaming: fname --> fnames[0]
                 rename_C_fname[fname] = fnames[0]
                 break
+
+    # Find matches and store the first string of the matched entry
+    fnames_split = df_UCC_B["fnames"].str.split(";")
+    C_not_in_B_new_fname = {"rename": 0, "incorporate": {}}
+    for fname in C_not_in_B["fname"]:
+        m = fnames_split.apply(lambda x: fname in x if isinstance(x, list) else False)
+        if m.any():
+            if fname in rename_C_fname.keys():
+                C_not_in_B_new_fname["rename"] += 1
+            else:
+                C_not_in_B_new_fname["incorporate"][fname] = fnames_split[m].iloc[0][0]
 
     if len(rename_C_fname) > 0:
         # Remove the entries that just need renaming
@@ -273,11 +264,59 @@ def detect_entries_to_process(
                 continue
             shared = set(df1["fname"]) & set(df2["fname"])
             if len(shared) > 0:
+                # This should never happen
                 raise ValueError(
                     f"{df_names[i]} and {df_names[j]} share {len(shared)} elements"
                 )
 
-    return rename_C_fname, B_not_in_C, C_not_in_B, C_reprocess
+    #
+    N_process = (
+        len(rename_C_fname) + len(B_not_in_C) + len(C_not_in_B) + len(C_reprocess)
+    )
+
+    logging.info("\nProcessing:")
+    datasets = [
+        ("B entries to add to C", B_not_in_C, "Names"),
+        ("C entries to re-process", C_reprocess, "fname"),
+    ]
+    for label, df, name_col in datasets:
+        logging.info(f"\n-{label:20}: {len(df)}")
+        if len(df) > 0:
+            ans = "y"
+            if len(df) > 100:
+                ans = input(f"Show list for '{label}'? (y/n): ").strip().lower()
+            if ans == "y":
+                for name in df[name_col].astype(str):
+                    logging.info(f"  {name}")
+
+    label = "C entries to rename"
+    logging.info(f"\n-{label:20}: {len(rename_C_fname)}")
+    if len(rename_C_fname) > 0:
+        ans = "y"
+        if len(rename_C_fname) > 100:
+            ans = input(f"Show list for '{label}'? (y/n): ").strip().lower()
+        if ans == "y":
+            for name, new_name in rename_C_fname.items():
+                logging.info(f"  {name} --> {new_name}")
+
+    label = "C entries to remove (not in B anymore)"
+    N_rem = C_not_in_B_new_fname["rename"] + len(C_not_in_B_new_fname["incorporate"])
+    logging.info(f"\n-{label:20}: {N_rem}")
+    if N_rem > 0:
+        ans = "y"
+        if N_rem > 100:
+            ans = input(f"Show list for '{label}'? (y/n): ").strip().lower()
+        if ans == "y":
+            logging.info(
+                f"To be renamed N={C_not_in_B_new_fname['rename']} (shown above)"
+            )
+            logging.info(
+                f"To be incorporated ({len(C_not_in_B_new_fname['incorporate'])}):"
+            )
+            for name, new_name in C_not_in_B_new_fname["incorporate"].items():
+                logging.info(f"  {name} --> {new_name}")
+
+    return rename_C_fname, B_not_in_C, C_not_in_B, N_process
 
 
 def process_entries(
