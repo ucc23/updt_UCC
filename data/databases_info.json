@@ -34,6 +34,48 @@
       }
     }
   },
+  "DUTRA2000": {
+    "SCIX_url": "https://scixplorer.org/abs/2000A%26A...359L...9D",
+    "data_cmmts": "data",
+    "citations_count": {
+      "date": "2026-03-05",
+      "count": "67",
+      "citations_year": 2.6
+    },
+    "data_url": "N/A",
+    "authors": "Dutra & Bica",
+    "title": "New star clusters projected close to the Galactic Centre",
+    "year": "2000",
+    "received": "20000529",
+    "names": "Object",
+    "pos": {
+      "RA": "RA",
+      "DEC": "DEC"
+    },
+    "pars": {},
+    "e_pars": {}
+  },
+  "DUTRA2001": {
+    "SCIX_url": "https://scixplorer.org/abs/2001A%26A...376..434D",
+    "data_cmmts": "data",
+    "citations_count": {
+      "date": "2026-03-05",
+      "count": "108",
+      "citations_year": 4.3
+    },
+    "data_url": "N/A",
+    "authors": "Dutra & Bica",
+    "title": "New infrared star clusters and candidates in the Galaxy detected with 2MASS",
+    "year": "2001",
+    "received": "20010417",
+    "names": "Object",
+    "pos": {
+      "RA": "RA",
+      "DEC": "DEC"
+    },
+    "pars": {},
+    "e_pars": {}
+  },
   "DIAS2002": {
     "SCIX_url": "https://scixplorer.org/abs/2002A%26A...389..871D",
     "data_cmmts": "data,comments",
@@ -113,6 +155,48 @@
         ]
       }
     },
+    "e_pars": {}
+  },
+  "BICA2003": {
+    "SCIX_url": "https://scixplorer.org/abs/2003A%26A...397..177B",
+    "data_cmmts": "data",
+    "citations_count": {
+      "date": "2026-03-05",
+      "count": "127",
+      "citations_year": 5.5
+    },
+    "data_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2003A%26A...397..177B",
+    "authors": "Bica et al.",
+    "title": "A Catalogue of infrared star clusters and stellar groups",
+    "year": "2003",
+    "received": "20020820",
+    "names": "Name",
+    "pos": {
+      "RA": "RA",
+      "DEC": "DEC"
+    },
+    "pars": {},
+    "e_pars": {}
+  },
+  "DUTRA2003": {
+    "SCIX_url": "https://scixplorer.org/abs/2003A%26A...400..533D",
+    "data_cmmts": "data,comments",
+    "citations_count": {
+      "date": "2026-03-04",
+      "count": "193",
+      "citations_year": 8.4
+    },
+    "data_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2003A%26A...400..533D",
+    "authors": "Dutra et al.",
+    "title": "New infrared star clusters in the southern Milky Way with 2MASS",
+    "year": "2003",
+    "received": "20021112",
+    "names": "Seq",
+    "pos": {
+      "RA": "RA",
+      "DEC": "DEC"
+    },
+    "pars": {},
     "e_pars": {}
   },
   "ALESSI2003": {
@@ -204,6 +288,27 @@
         "mass": "Mass(M_sun)"
       }
     },
+    "e_pars": {}
+  },
+  "BICA2003_1": {
+    "SCIX_url": "https://scixplorer.org/abs/2003A%26A...404..223B",
+    "data_cmmts": "data,comments",
+    "citations_count": {
+      "date": "2026-03-04",
+      "count": "202",
+      "citations_year": 8.8
+    },
+    "data_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2003A%26A...404..223B",
+    "authors": "Bica et al.",
+    "title": "New infrared star clusters in the Northern and Equatorial Milky Way with 2MASS",
+    "year": "2003",
+    "received": "20030121",
+    "names": "BDS2003",
+    "pos": {
+      "RA": "RA",
+      "DEC": "DEC"
+    },
+    "pars": {},
     "e_pars": {}
   },
   "KHARCHENKO2005": {
