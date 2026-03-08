@@ -1,0 +1,32 @@
+"Object","l","b","RA (2000)","Dec (2000)","D (arcmin)","d (arcmin)","Remarks","RA","DEC"
+"Dutra-Bica 59, DB2001_1",2.2,3.45,"17:37:40.7","-25:15:03",1.9,1.7,"resolved cluster or dust window, related to LDN74? partly optical",264.41555,-25.24813
+"Dutra-Bica 60, DB2001_2",3.73,3.96,"17:39:20.1","-23:41:00",1.0,0.6,"resolved stellar group, related to LDN114? partly optical",264.83247,-23.68377
+"DB2001_3",66.96,-1.28,"20:04:52.9","29:11:45",2.0,2.0,"mostly a resolved cluster in nebula IC 4955=BFS2c, in complex IC4954",301.2197,29.19125
+"DB2001_5",75.77,0.34,"20:21:41.8","37:25:50",1.7,1.7,"cluster and/or IR nebula in radio HII region G75.8+0.4, rel. to OH maser ON2, backgr. of cluster Be87",305.42756,37.43231
+"DB2001_6",77.96,-0.01,"20:29:36.9","39:01:15",3.0,3.0,"partly resolved cluster in radio HII region DR9",307.40332,39.01658
+"DB2001_7",78.04,0.62,"20:27:13.0","39:26:56",3.5,3.0,"resolved cluster in radio HII region DR6",306.80363,39.44964
+"DB2001_8",78.16,-0.37,"20:31:45.4","38:58:00",2.0,2.0,"partly resolved cluster in Radio HII region DR13",307.92916,38.96599
+"DB2001_9",78.16,-0.55,"20:32:27.8","38:51:26",1.4,1.2,"partly resolved cluster related to IRAS 20306+3841, in radio complex W69",308.11551,38.85933
+"DB2001_10",79.3,0.29,"20:32:29.0","40:16:30",2.5,2.0,"mostly a resolved cluster in radio HII region G79.306+0.282 in DR15, related to IRAS20306+4005",308.11591,40.27537
+"DB2001_11",79.31,1.3,"20:28:09.7","40:52:42",3.5,3.0,"mostly a resolved cluster in Radio HII region DR7, related to IRAS 20264+4042",307.04855,40.87786
+"DB2001_15",81.31,1.1,"20:35:23.0","42:22:05",2.9,2.2,"resolved cluster in radio HII region DR17",308.84702,42.3716
+"DB2001_16",81.44,0.48,"20:38:29.0","42:06:25",2.3,2.0,"mostly a resolved cluster, in radio complex W75, related to radio HII region G81.5+0.6?",309.62074,42.10114
+"DB2001_17",81.57,-0.07,"20:41:15.9","41:51:51",1.7,1.7,"resolved cluster in radio HII region DR23",310.31365,41.8685
+"DB2001_18",81.66,-0.02,"20:41:20.1","41:58:22",1.8,1.3,"resolved stellar group at the edge of radio HII region DR23, related to DR23?",310.3348,41.97025
+"DB2001_20",82.0,0.8,"20:38:37.0","42:39:24",1.5,1.5,"mostly a resolved cluster in radio HII region W75N, pair with W75N IR cluster",309.73726,42.74033
+"DB2001_21",82.04,2.33,"20:32:21.8","43:41:05",2.5,2.0,"resolved cluster in radio HII region G82.0+2.3, related to radio HII region DR16?",308.09094,43.69065
+"DB2001_22",82.57,0.4,"20:42:33.5","42:56:50",1.7,1.5,"partly resolved cluster in radio HII region G82.6+0.4",310.64453,42.9461
+"DB2001_24",173.48,2.45,"5:39:12.5","35:45:53",1.2,1.2,"partly resolved cluster in HII region Sh2-233SE, pair with Sh2-233SE IR Cluster",84.80734,35.76774
+"DB2001_25",182.05,0.42,"5:52:04.9","27:23:32",3.5,3.5,"resolved cluster or dust window, related to IRAS 05489+2723?, partly optical",88.01171,27.39581
+"DB2001_29",191.92,0.82,"6:14:45.1","19:00:28",2.5,2.0,"resolved cluster in nebula BFS52, related to IRAS 06117+1901",93.68547,19.00248
+"DB2001_30",192.54,-0.15,"6:12:24.9","17:59:28",0.9,0.9,"partly resolved cluster in HII region Sh2-254",93.10057,17.99371
+"DB2001_31",192.6,-0.12,"6:12:36.6","17:56:55",1.7,1.7,"mostly a resolved cluster in HII region Sh2-256",93.15852,17.95548
+"DB2001_32",192.72,0.03,"6:13:28.0","17:55:27",2.0,2.0,"partly resolved cluster in HII region Sh2-258",93.35736,17.92211
+"DB2001_35",218.74,1.85,"7:08:39.0","-4:19:07",0.6,0.4,"mostly unresolved cluster in HII region IC 466=Sh2-288",107.1644,-4.31824
+"DB2001_36",267.72,-1.09,"8:58:05.0","-47:22:40",1.2,1.2,"partly resolved cluster in reflection nebula vdBH-RN26, in RCW38?",134.5235,-47.36513
+"DB2001_37",287.81,-0.82,"10:45:54.0","-59:56:58",1.5,1.5,"partly resolved cluster in reflection nebula vdBH-RN43, in eta Carinae Complex?",161.46402,-59.95221
+"DB2001_38",351.61,0.17,"17:23:23.4","-35:53:44",0.4,0.3,"mostly unresolved cluster in radio HII region G351.6+0.2",260.84023,-35.89445
+"DB2001_39",352.86,-0.2,"17:28:19.1","-35:04:15",0.3,0.3,"mostly unresolved cluster candidate in G352.866-0.199",262.07609,-35.06581
+"DB2001_40",353.42,-0.36,"17:30:28.2","-34:41:30",1.7,1.5,"mostly unresolved cluster in radio HII region G353.4-0.4",262.61575,-34.68741
+"DB2001_41",354.67,0.48,"17:30:24.0","-33:11:15",1.0,0.7,"partly resolved cluster in radio HII region G354.664+0.470",262.59944,-33.18145
+"DB2001_42",359.28,-0.25,"17:44:52.7","-29:40:48",2.0,1.7,"resolved cluster in radio HII region G359.3-0.3, dust window?",266.21882,-29.68085
