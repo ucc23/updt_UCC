@@ -79,9 +79,18 @@ def main():
 
         # Add inner columns with galactic coordinates if possible
         if "RA" in newDB_json["pos"].keys():
+            ra_col = newDB_json["pos"]["RA"]
+            dec_col = newDB_json["pos"]["DEC"]
+            # Wrap negative RA values to [0, 360)
+            msk = df_new[ra_col] < 0
+            if msk.any():
+                logging.info(
+                    f"\nFound {msk.sum()} entries with negative RA values. Wrapping to [0, 360)"
+                )
+                df_new.loc[msk, ra_col] = df_new.loc[msk, ra_col] + 360
             df_new["GLON_"], df_new["GLAT_"] = radec2lonlat(
-                df_new[newDB_json["pos"]["RA"]].to_numpy(),
-                df_new[newDB_json["pos"]["DEC"]].to_numpy(),
+                df_new[ra_col].to_numpy(),
+                df_new[dec_col].to_numpy(),
             )
 
         # Standardize names in the DB
@@ -147,10 +156,19 @@ def main():
     # Add medians and STDDEVs of fundamental parameters
     df_UCC_B = add_fpars_stats(df_UCC_B)
 
-    # Mandatory sanity check: check every individual fname for duplicates
+    # Mandatory sanity check
+    # Check every individual fname for duplicates
     exit_flag = duplicates_fnames_check(logging, df_UCC_B)
     if exit_flag:
         logging.info("\nERROR: duplicated entries found in 'fnames' column. Fix this!")
+        breakpoint()
+        sys.exit(0)
+    # Check every individual fname for duplicates
+    exit_flag = ra_dec_check(logging, df_UCC_B)
+    if exit_flag:
+        logging.info(
+            "\nERROR: entries were found with missing (RA, DEC) values. Fix this!"
+        )
         breakpoint()
         sys.exit(0)
 
@@ -1697,6 +1715,32 @@ def duplicates_fnames_check(logging, df_UCC_B: pd.DataFrame, sep: str = ";") -> 
                             printed_pairs.add(pair)
 
     return dup_flag
+
+
+def ra_dec_check(logging, df_UCC_B):
+    """Check that all RA and Dec values are within valid ranges and not NaN."""
+
+    ra = df_UCC_B["RA_ICRS"]
+    dec = df_UCC_B["DE_ICRS"]
+
+    invalid_ra = df_UCC_B[ra.isna() | (ra < 0) | (ra >= 360)]
+    invalid_dec = df_UCC_B[dec.isna() | (dec < -90) | (dec > 90)]
+
+    if not invalid_ra.empty:
+        logging.info(f"\nFound {len(invalid_ra)} entries with invalid RA values:")
+        for idx, row in invalid_ra.iterrows():
+            logging.info(
+                f"{idx} ({row['fnames'].split(';')[0]}) --> RA={row['RA_ICRS']}"
+            )
+
+    if not invalid_dec.empty:
+        logging.info(f"\nFound {len(invalid_dec)} entries with invalid Dec values:")
+        for idx, row in invalid_dec.iterrows():
+            logging.info(
+                f"{idx} ({row['fnames'].split(';')[0]}) --> Dec={row['DE_ICRS']}"
+            )
+
+    return not invalid_ra.empty or not invalid_dec.empty
 
 
 def move_files(
