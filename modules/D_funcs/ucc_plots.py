@@ -418,7 +418,7 @@ def make_N_vs_year_plot(file_out_name, df_UCC, fontsize=7, dpi=300):
     # Extract minimum year of publication for each catalogued OC
     years = []
     # Go through each OC in the database
-    for i, oc in enumerate(df_UCC["DB"]):
+    for oc in df_UCC["DB"]:
         oc_years = []
         # Extract the years of the DBs were this OC is catalogued
         for cat0 in oc.split(";"):
@@ -484,15 +484,31 @@ def make_N_vs_year_plot(file_out_name, df_UCC, fontsize=7, dpi=300):
     #     # Custom arrow
     #     arrowprops=dict(arrowstyle="->", lw=0.7),
     # )
-    plt.annotate(
-        "Gaia data release",
-        xy=(2010, 3600),
-        xytext=(1870, 3600),
-        fontsize=fontsize,
-        verticalalignment="center",
-        # Custom arrow
-        arrowprops=dict(arrowstyle="->", lw=0.7),
-    )
+
+    # plt.annotate(
+    #     "Gaia data release",
+    #     # xy=(2016, 3600),
+    #     # xytext=(1870, 3600),
+    #     xy=(2016, 3600),
+    #     xytext=(1950, 300),
+    #     fontsize=fontsize,
+    #     verticalalignment="center",
+    #     arrowprops=dict(
+    #         # arrowstyle="-|>",
+    #         arrowstyle="->",
+    #         lw=0.7,
+    #         relpos=(1, 0.5)   # arrow starts at right-middle of text
+    #         # mutation_scale=14,
+    #         # fc="black",   # head fill
+    #         # ec="black"    # outline around the head
+    #     ),
+    #     zorder=100
+    # )
+
+    plt.annotate("", xy=(2016,3600), xytext=(2016,350),
+                 arrowprops=dict(arrowstyle="->", lw=0.7), zorder=100)
+    plt.text(1950, 300, "Gaia data release", fontsize=fontsize, va="center")
+
 
     plt.text(
         x=1880,
@@ -510,7 +526,7 @@ def make_N_vs_year_plot(file_out_name, df_UCC, fontsize=7, dpi=300):
     )
     plt.axhline(100000, ls=":", lw=2, alpha=0.5, c="k")
 
-    plt.xlim(1759, max(years) + 25)
+    plt.xlim(1759, 2049)
     # plt.title(r"Catalogued OCs in the literature", fontsize=fontsize)
     plt.ylim(20, 250000)
     plt.xticks(fontsize=fontsize)
