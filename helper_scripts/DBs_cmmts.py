@@ -5,35 +5,31 @@ import pandas as pd
 
 
 
-df = pd.read_csv("../data/databases/BICA2003.csv")
 
-type_dict = {
-    "IRC": "Infrared cluster.",
-    "IRCC": "Cluster candidate.",
-    "IRGr": "Stellar group.",
-    "IROC": "Open cluster.",
-}
+df = pd.read_csv("../data/databases/DUTRA2001.csv")
 
 cmmts = {"Cluster": [], "Comment": []}
 for i, row in df.iterrows():
-    cmmts["Cluster"].append(row["BDS2003"].split(",")[0])
-    cmmts["Comment"].append(type_dict[row["Class"]])
+    cmmts["Cluster"].append(row["Object"].split(",")[0])
+    cmmts["Comment"].append(row["Remarks"].capitalize())
 
 cluster_df = pd.DataFrame(cmmts)
 cluster_df.to_csv(
-    "../data/databases/cmmts/BICA2003.csv", index=False, quoting=csv.QUOTE_ALL
+    "../data/databases/cmmts/DUTRA2001.csv", index=False, quoting=csv.QUOTE_ALL
 )
 
 breakpoint()
 
 
+
+
 df = pd.read_csv("../data/databases/DUTRA2003.csv")
 
 type_dict = {
-    "IRC": "Infrared cluster.",
-    "IRCC": "Cluster candidate.",
-    "IRGr": "Stellar group.",
-    "IROC": "Open cluster.",
+    "IRC": "Classified as infrared cluster (IRC).",
+    "IRCC": "Classified as cluster candidate (IRCC).",
+    "IRGr": "Classified as stellar group (IRGr).",
+    "IROC": "Classified as open cluster (IROC).",
 }
 
 cmmts = {"Cluster": [], "Comment": []}
@@ -47,6 +43,57 @@ cluster_df.to_csv(
 )
 
 breakpoint()
+
+
+
+
+
+df = pd.read_csv("../data/databases/BICA2003.csv")
+
+type_dict = {
+    "IRC": "Classified as infrared cluster (IRC).",
+    "IRCC": "Classified as cluster candidate (IRCC).",
+    "IRGr": "Classified as stellar group (IRGr).",
+    "IROC": "Classified as open cluster (IROC).",
+}
+
+cmmts = {"Cluster": [], "Comment": []}
+for i, row in df.iterrows():
+    cmmts["Cluster"].append(row["Name"].split(",")[0])
+    cmmts["Comment"].append(type_dict[row["Class"]])
+
+cluster_df = pd.DataFrame(cmmts)
+cluster_df.to_csv(
+    "../data/databases/cmmts/BICA2003.csv", index=False, quoting=csv.QUOTE_ALL
+)
+
+breakpoint()
+
+
+
+
+df = pd.read_csv("../data/databases/BICA2003_1.csv")
+
+type_dict = {
+    "IRC": "Classified as infrared cluster (IRC).",
+    "IRCC": "Classified as cluster candidate (IRCC).",
+    "IRGr": "Classified as stellar group (IRGr).",
+    "IROC": "Classified as open cluster (IROC).",
+}
+
+cmmts = {"Cluster": [], "Comment": []}
+for i, row in df.iterrows():
+    cmmts["Cluster"].append(row["BDS2003"].split(",")[0])
+    cmmts["Comment"].append(type_dict[row["Class"]])
+
+cluster_df = pd.DataFrame(cmmts)
+cluster_df.to_csv(
+    "../data/databases/cmmts/BICA2003_1.csv", index=False, quoting=csv.QUOTE_ALL
+)
+
+breakpoint()
+
+
 
 
 df = pd.read_csv("../data/databases/MALHOTRA2026.csv")
