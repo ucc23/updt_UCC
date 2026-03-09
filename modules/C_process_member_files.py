@@ -47,8 +47,8 @@ def main():
     )
 
     # Detect entries to be processed
-    rename_C_fname, B_not_in_C, C_not_in_B, N_process = detect_entries_to_process(
-        logging, df_UCC_B, df_UCC_C
+    rename_C_fname, B_not_in_C, C_not_in_B, C_reprocess, N_process = (
+        detect_entries_to_process(logging, df_UCC_B, df_UCC_C)
     )
 
     if N_process == 0:
@@ -214,9 +214,8 @@ def load_data(
 
 def detect_entries_to_process(
     logging, df_UCC_B: pd.DataFrame, df_UCC_C: pd.DataFrame
-) -> tuple[dict, pd.DataFrame, pd.DataFrame, int]:
+) -> tuple[dict, pd.DataFrame, pd.DataFrame, pd.DataFrame, int]:
     """
-
     B_not_in_C  --> Add to C
     C_not_in_B  --> Remove from C
     C_reprocess --> Reprocess in C
@@ -284,18 +283,22 @@ def detect_entries_to_process(
 
     logging.info("\nProcessing:")
     datasets = [
-        ("B entries to add to C", B_not_in_C, "Names"),
-        ("C entries to re-process", C_reprocess, "fname"),
+        ("B entries to add to C", B_not_in_C, "Names", "DB"),
+        ("C entries to re-process", C_reprocess, "fname", ""),
     ]
-    for label, df, name_col in datasets:
+    for label, df, name_col, db in datasets:
         logging.info(f"\n-{label:20}: {len(df)}")
         if len(df) > 0:
             ans = "y"
             if len(df) > 100:
                 ans = input(f"Show list for '{label}'? (y/n): ").strip().lower()
             if ans == "y":
-                for name in df[name_col].astype(str):
-                    logging.info(f"  {name}")
+                for _, row in df.iterrows():
+                    name = row[name_col]
+                    db_name = f"  {name}"
+                    if db != "":
+                        db_name = f"  {name:<30}{f'({row[db]})':>20}"
+                    logging.info(f"{db_name}")
 
     label = "C entries to rename"
     logging.info(f"\n-{label:20}: {len(rename_C_fname)}")
@@ -307,7 +310,7 @@ def detect_entries_to_process(
             for name, new_name in rename_C_fname.items():
                 logging.info(f"  {name} --> {new_name}")
 
-    label = "C entries to remove (not in B anymore)"
+    label = "C entries to remove (incorporated to another entry)"
     N_rem = C_not_in_B_new_fname["rename"] + len(C_not_in_B_new_fname["incorporate"])
     logging.info(f"\n-{label:20}: {N_rem}")
     if N_rem > 0:
@@ -324,7 +327,7 @@ def detect_entries_to_process(
             for name, new_name in C_not_in_B_new_fname["incorporate"].items():
                 logging.info(f"  {name} --> {new_name}")
 
-    return rename_C_fname, B_not_in_C, C_not_in_B, N_process
+    return rename_C_fname, B_not_in_C, C_not_in_B, C_reprocess, N_process
 
 
 def process_entries(
