@@ -327,6 +327,22 @@ This will generate a full version of the site locally which can take a while. Fo
 faster build, avoid processing the files in the `_clusters, _tables` folder (for
 example, using a different `include` with fewer/different selected folders)
 
+The script `test_build.sh` can also be used to check that the local build:
+
+```
+$ ./test_build.sh
+```
+
+or
+
+```
+$ ./test_build.sh N -xxxx -yyyy
+```
+
+where `N` is the number of random clusters to be generated and `-xxxx` and `-yyyy` are
+the first letters of names we want to exclude.
+
+
 **Check the local version in both Chrome and Firefox**.
 
 
