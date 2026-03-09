@@ -57,7 +57,7 @@
   },
   "DUTRA2001": {
     "SCIX_url": "https://scixplorer.org/abs/2001A%26A...376..434D",
-    "data_cmmts": "data",
+    "data_cmmts": "data,comments",
     "citations_count": {
       "date": "2026-03-05",
       "count": "108",
@@ -159,7 +159,7 @@
   },
   "BICA2003": {
     "SCIX_url": "https://scixplorer.org/abs/2003A%26A...397..177B",
-    "data_cmmts": "data",
+    "data_cmmts": "data,comments",
     "citations_count": {
       "date": "2026-03-05",
       "count": "127",
@@ -381,7 +381,7 @@
   },
   "MERCER2005": {
     "SCIX_url": "https://scixplorer.org/abs/2005ApJ...635..560M",
-    "data_cmmts": "data",
+    "data_cmmts": "data,comments",
     "citations_count": {
       "date": "2026-02-10",
       "count": "137",
