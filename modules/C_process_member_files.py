@@ -75,16 +75,8 @@ def main():
         # Generate dataframe to store data extracted from the OCs to be processed
         df_UCC_C_updt = process_entries(df_UCC_B, B_not_in_C, C_reprocess)
         # Generate member files for new OCs and obtain their data
-        N_clust_max_general = np.nan
-        if input("\nSet a general N_clust_max value? (y/n): ").lower() == "y":
-            N_clust_max_general = int(input("Enter N_clust_max value: "))
         df_UCC_C_updt = member_files_updt(
-            logging,
-            gaia_frames_data,
-            df_GCs,
-            df_UCC_C,
-            df_UCC_C_updt,
-            N_clust_max_general,
+            logging, gaia_frames_data, df_GCs, df_UCC_C, df_UCC_C_updt
         )
 
     df_UCC_C_new = update_C_cat(C_not_in_B, rename_C_fname, df_UCC_C, df_UCC_C_updt)
@@ -379,11 +371,16 @@ def process_entries(
         {pd.NA: "nan"}
     )
 
+    if input("\nSet a general N_clust_max value? (y/n): ").lower() == "y":
+        N_clust_max_general = int(input("Enter N_clust_max value: "))
+        # Update the 'df_UCC_updt['N_clust_max']' column with this value
+        df_UCC_updt["N_clust_max"] = N_clust_max_general
+
     return df_UCC_updt
 
 
 def member_files_updt(
-    logging, gaia_frames_data, df_GCs, df_UCC_C, df_UCC_C_updt, N_clust_max_general
+    logging, gaia_frames_data, df_GCs, df_UCC_C, df_UCC_C_updt
 ) -> pd.DataFrame:
     """
     Updates the Unified Cluster Catalogue (UCC) with new open clusters (OCs).
@@ -407,17 +404,13 @@ def member_files_updt(
         logging.info(f"\n{idx + 1}/{N_tot} Processing {fname0}")
 
         # Extract manual parameters if any
-        N_clust, N_clust_max, N_box, frame_limit = np.nan, np.nan, np.nan, ""
-        if str(cl_row["process"]) == "y":
-            N_clust, N_clust_max, N_box, frame_limit = cl_row[
-                ["N_clust", "N_clust_max", "N_box", "frame_limit"]
-            ]
+        # N_clust, N_clust_max, N_box, frame_limit = np.nan, np.nan, np.nan, ""
+        # if str(cl_row["process"]) == "y":
+        N_clust, N_clust_max, N_box, frame_limit = cl_row[
+            ["N_clust", "N_clust_max", "N_box", "frame_limit"]
+        ]
         if isinstance(frame_limit, float) or frame_limit == "nan":
             frame_limit = ""
-
-        if np.isnan(N_clust_max) and not np.isnan(N_clust_max_general):
-            N_clust_max = N_clust_max_general
-            logging.info(f" Using general N_clust_max value: {N_clust_max}")
 
         df_field, df_membs = get_fastMP_membs(
             logging,
