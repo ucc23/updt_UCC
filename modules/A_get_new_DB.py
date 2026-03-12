@@ -11,11 +11,10 @@ import requests
 from astroquery.vizier import Vizier
 from rapidfuzz import fuzz
 
-from .utils import logger
+from .utils import logger, comments_check
 from .variables import (
     JSON_struct,
     NASA_API_TOKEN_file,
-    UCC_cmmts_folder,
     dbs_folder,
     name_DBs_json,
     temp_folder,
@@ -191,23 +190,7 @@ def main():
     logging.info("Check the JSON and CSV files carefully before moving on!")
     logging.info("********************************************************")
 
-    # Sanity check to see if the new JSON file contains the proper comments files
-    # Keys that require a comments file
-    json_keys_with_cmmts = {
-        k for k, v in new_json_dict.items() if "comments" in v["data_cmmts"]
-    }
-    # File stems present in comments folder
-    folder_keys = {p.stem for p in Path(UCC_cmmts_folder).glob("*.csv")}
-    # JSON -> file
-    missing_files = sorted(json_keys_with_cmmts - folder_keys)
-    if missing_files:
-        logging.info(f"WARNING: missing comments file(s) {';'.join(missing_files)}")
-    # Folder -> JSON
-    extra_files = sorted(folder_keys - set(new_json_dict))
-    if extra_files:
-        logging.info(
-            f"WARNING: file(s) in folder not present in JSON {';'.join(extra_files)}"
-        )
+    comments_check(new_json_dict)
 
 
 def get_citations_year(current_year, year, citations):

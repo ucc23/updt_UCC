@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 
 from .D_funcs import ucc_entry, ucc_plots, ucc_summ_cmmts, ucc_updt_tables
-from .utils import get_fnames, load_BC_cats, logger
+from .utils import get_fnames, load_BC_cats, logger, comments_check
 from .variables import (
     UCC_cmmts_folder,
     UCC_members_file,
@@ -75,6 +75,8 @@ def main():
         articles_md,
         df_clusters_CSV_current,
     ) = load_data(logging, ucc_B_file, ucc_C_file, zenodo_members_file, old_gz_CSV_path)
+
+    comments_check(DBs_JSON)
 
     ###########################################
     # Update clusters .webp files

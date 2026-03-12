@@ -9,7 +9,7 @@ import pandas as pd
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from modules.variables import temp_folder
+from modules.variables import UCC_cmmts_folder, temp_folder
 
 
 def logger():
@@ -485,6 +485,26 @@ def final_fname_compare(logging, old_df, new_df, N_max=50):
     dif_missig(("new", "old"))
     dif_missig(("old", "new"))
     logging.info("")
+
+
+def comments_check(new_json_dict):
+    """Sanity check to see if the new JSON file contains the proper comments files"""
+    # Keys that require a comments file
+    json_keys_with_cmmts = {
+        k for k, v in new_json_dict.items() if "comments" in v["data_cmmts"]
+    }
+    # File stems present in comments folder
+    folder_keys = {p.stem for p in Path(UCC_cmmts_folder).glob("*.csv")}
+    # JSON -> file
+    missing_files = sorted(json_keys_with_cmmts - folder_keys)
+    if missing_files:
+        logging.info(f"⚠️ WARNING: missing comments file(s) {';'.join(missing_files)}")
+    # Folder -> JSON
+    extra_files = sorted(folder_keys - set(new_json_dict))
+    if extra_files:
+        logging.info(
+            f"⚠️ WARNING: file(s) in folder not present in JSON {';'.join(extra_files)}"
+        )
 
 
 def save_df_UCC(
