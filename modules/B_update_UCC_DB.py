@@ -317,6 +317,25 @@ def load_data(
             df_new = pd.read_csv(temp_database_folder + DB + ".csv")
         else:
             df_new = pd.read_csv(dbs_folder + DB + ".csv")
+
+        # Check that the all columns specified in the JSON file are present in the DB
+        json_cols = [
+            vals["names"],
+            *vals["pos"].values(),
+            *(v for d in vals["pars"].values() for v in d.values()),
+            *(v for d in vals["e_pars"].values() for v in d.values()),
+        ]
+        # Force flat
+        cols = []
+        for x in json_cols:
+            if isinstance(x, (list, tuple, set)):
+                cols.extend(x)
+            else:
+                cols.append(x)
+        missing = [c for c in cols if c not in df_new.columns]
+        if missing:
+            raise ValueError(f"Missing columns in {DB}: {missing}")
+
         logging.info(f"{DB} loaded (N={len(df_new)})")
         all_dbs_data[DB] = [df_new, new_JSON[DB]]
 
