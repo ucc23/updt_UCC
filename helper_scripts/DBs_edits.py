@@ -8,6 +8,112 @@ from astropy.coordinates import SkyCoord
 import astropy.units as u
 
 
+df = pd.read_csv("../temp_updt/data/databases/BIJAVARA2025.csv")
+df4 = pd.read_csv("../temp_updt/data/databases/BIJAVARA2025_4.csv")
+
+# # Drop the follosing columns
+# drop_cols = ["StarID","GaiaDR3", "Gmag"]
+# df = df.drop(columns=drop_cols)
+
+# # Combine rows with duplicated values in the 'Cluster' column. For columns
+# # "Age","Rgc","Av" use the first value available, for columns "RAJ2000","DEJ2000" use the median
+# cols_first = ["Age", "Rgc", "Av"]
+# cols_median = ["RAJ2000", "DEJ2000"]
+
+# agg_dict = {c: "first" for c in cols_first}
+# agg_dict.update({c: "median" for c in cols_median})
+
+# df_out = (
+#     df.groupby("Cluster", as_index=False)
+#       .agg(agg_dict)
+# )
+
+# df1 = pd.read_csv("../temp_updt/data/databases/BIJAVARA2025_1.csv")
+# df2 = pd.read_csv("../temp_updt/data/databases/BIJAVARA2025_2.csv")
+# df3 = pd.read_csv("../temp_updt/data/databases/BIJAVARA2025_3.csv")
+
+# # Merge the three dataframes along 'Cluster' column
+# df_merged = pd.merge(df1, df2, on="Cluster", how="outer", suffixes=("_1", "_2"))
+
+df_merged = pd.merge(df, df4, on="Cluster", how="outer", suffixes=("_1", "_2"))
+
+df_merged.to_csv(
+    "../temp_updt/data/databases/BIJAVARA2025_1.csv",
+    na_rep="nan",
+    index=False,
+    quoting=csv.QUOTE_NONNUMERIC,
+)
+
+breakpoint()
+
+
+
+
+
+
+df = pd.read_csv("../temp_updt/data/databases/CUI2025.csv")
+
+# Convert GLON,GLAT columns to RA,DEC using astropy
+coords = SkyCoord(
+    l=df["GLON"].values * u.deg, b=df["GLAT"].values * u.deg, frame="galactic"
+).icrs
+df["RA"] = coords.ra.deg.round(5)
+df["DEC"] = coords.dec.deg.round(5)
+
+df.to_csv(
+    "../temp_updt/data/databases/CUI2025_2.csv",
+    na_rep="nan",
+    index=False,
+    quoting=csv.QUOTE_NONNUMERIC,
+)
+
+breakpoint()
+
+
+
+
+df = pd.read_csv("../temp_updt/data/databases/SPINA2022.csv")
+
+# Round all float columns to 5 decimals
+float_cols = df.select_dtypes(include=["float"]).columns
+df[float_cols] = df[float_cols].round(5)
+
+df.to_csv(
+    "../temp_updt/data/databases/SPINA2022.csv",
+    na_rep="nan",
+    index=False,
+    quoting=csv.QUOTE_NONNUMERIC,
+)
+
+breakpoint()
+
+
+
+
+
+
+df = pd.read_csv("../temp_updt/data/databases/AHUMADA2007.csv")
+
+coords = SkyCoord(
+    ra=df["RAJ2000"].astype(str),
+    dec=df["DEJ2000"].astype(str),
+    unit=(u.hourangle, u.deg),
+    frame='icrs'
+)
+# Extract decimal degrees
+df["RA"] = coords.ra.deg.round(5)
+df["DEC"] = coords.dec.deg.round(5)
+
+df.to_csv(
+    "../temp_updt/data/databases/AHUMADA2007_1.csv",
+    na_rep="nan",
+    index=False,
+    quoting=csv.QUOTE_NONNUMERIC,
+)
+
+breakpoint()
+
+
 
 
 df = pd.read_csv("../temp_updt/data/databases/BICA2003_1.csv")

@@ -3,7 +3,56 @@ import csv
 import numpy as np
 import pandas as pd
 
+df = pd.read_csv("../data/databases/cmmts/RAIN2021.csv")
 
+# Strip strings in the 'Cluster' column
+df["Cluster"] = df["Cluster"].str.strip()
+
+df = df.groupby("Cluster", as_index=False)["Comment"].agg(
+    lambda x: "".join(x.dropna().astype(str))
+)
+
+
+df.to_csv(
+    "../data/databases/cmmts/RAIN2021_1.csv", index=False, quoting=csv.QUOTE_ALL
+)
+
+breakpoint()
+
+
+
+
+df = pd.read_csv("../data/databases/cmmts/AHUMADA2007.csv")
+ref_df = pd.read_csv("../data/databases/cmmts/refs.csv")
+
+df = df.groupby("Cluster", as_index=False)["Comment"].agg(
+    lambda x: "".join(x.dropna().astype(str))
+)
+
+
+# Mapping: integer reference -> BibCode
+ref_map = dict(zip(ref_df["Ref"], ref_df["BibCode"]))
+
+
+# Replacement function
+def replace_refs(text):
+    if pd.isna(text):
+        return text
+    return re.sub(
+        r"\((\d+)\)",
+        lambda m: f"({ref_map.get(int(m.group(1)), m.group(1))})",
+        text,
+    )
+
+
+# Apply to Comment column
+df["Comment"] = df["Comment"].apply(replace_refs)
+
+df.to_csv(
+    "../data/databases/cmmts/AHUMADA2007_1.csv", index=False, quoting=csv.QUOTE_ALL
+)
+
+breakpoint()
 
 
 df = pd.read_csv("../data/databases/DUTRA2001.csv")
@@ -19,8 +68,6 @@ cluster_df.to_csv(
 )
 
 breakpoint()
-
-
 
 
 df = pd.read_csv("../data/databases/DUTRA2003.csv")
@@ -45,9 +92,6 @@ cluster_df.to_csv(
 breakpoint()
 
 
-
-
-
 df = pd.read_csv("../data/databases/BICA2003.csv")
 
 type_dict = {
@@ -70,8 +114,6 @@ cluster_df.to_csv(
 breakpoint()
 
 
-
-
 df = pd.read_csv("../data/databases/BICA2003_1.csv")
 
 type_dict = {
@@ -92,8 +134,6 @@ cluster_df.to_csv(
 )
 
 breakpoint()
-
-
 
 
 df = pd.read_csv("../data/databases/MALHOTRA2026.csv")
@@ -374,7 +414,7 @@ clss_dict = {
     "FP?": "false positive?",
     "TP": "true positive",
     "TP?": "true positive?",
-    "": ""
+    "": "",
 }
 
 cmmts = {"Cluster": [], "Comment": []}
