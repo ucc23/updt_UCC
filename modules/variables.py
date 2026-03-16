@@ -144,25 +144,25 @@ fpars_headers = (
 # Z to FeH
 c_z_sun = 0.0152
 
-# Extinction to Av
+# Coefficients to transform from E(V-I) and Gaia's bands are taken from
+# Wang & Chen (2019), Table 3:
+# https://iopscience.iop.org/article/10.3847/1538-4357/ab1c61
 #
-# Ag is always assumed to be Gaia's G band. The coefficient in Av=1.2*Ag
-# comes from the sources:
-# Jordi et al 2010; https://www.aanda.org/articles/aa/full_html/2010/15/aa15441-10/aa15441-10.html
-# Wang & Chen 2019; https://iopscience.iop.org/article/10.3847/1538-4357/ab1c61
+# Av = 1/(c_x - c_Y) * E(X-Y)
+coeffs = {
+    "c_B": 1.317,  # Johnson B
+    "c_V": 1.0,  # Johnson V
+    "c_I": 0.63,  # SDSS I
+    "c_G": 0.789,  # Gaia G
+    "c_BP": 1.002,  # Gaia BP
+    "c_RP": 0.589,  # Gaia RP
+}
 #
-# Conversion from Evi is also taken from Wang & Chen 2019
-#
-# Conversion from E(Bp-Rp) to Av from Richer et al. (2021)
-# https://scixplorer.org/abs/2021ApJ...912..165R/abstract
-#
-# E(B-V) = 0.771*E(Bp-Rp) -> Av = 3.1*E(B-V) = 3.1*0.771*E(Bp-Rp) = 2.39*E(Bp-Rp)
-# AG = 2.059*E(Bp-Rp) -> Av = 1.2*AG = 1.2*2.059E(Bp-Rp) = 2.47*E(Bp-Rp)
-
-c_Ag = 1.2
-c_Ebv = 3.1
-c_Evi = 2.5
-c_Ebprp = 2.39
+c_Ebv = 1 / (coeffs["c_B"] - coeffs["c_V"])
+c_Evi = 1 / (coeffs["c_V"] - coeffs["c_I"])
+c_Ag = 1 / coeffs["c_G"]
+c_Ebprp = 1 / (coeffs["c_BP"] - coeffs["c_RP"])
+c_Egrp = 1 / (coeffs["c_G"] - coeffs["c_RP"])
 
 
 # Zenodo paths and names
