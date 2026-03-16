@@ -11,7 +11,7 @@ import requests
 from astroquery.vizier import Vizier
 from rapidfuzz import fuzz
 
-from .utils import logger, comments_check
+from .utils import comments_check, logger
 from .variables import (
     JSON_struct,
     NASA_API_TOKEN_file,
@@ -490,7 +490,6 @@ def new_DB_columns_match(
     df_col_id = {}
     for col in df.keys():
         id_match, ratio_min = None, ratio_min_fix
-
         for key, vals in merged_dict.items():
             vals_ratios = []
             for val in vals:
@@ -512,7 +511,7 @@ def new_DB_columns_match(
             except KeyError:
                 df_col_id[id_match] = [ratio_min, col]
 
-    # Only values are used
+    # Only values are used (drop ratios at index 0)
     df_col_id = {k: v[1] for k, v in df_col_id.items()}
 
     no_match_cols = []
