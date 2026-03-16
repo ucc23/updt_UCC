@@ -3,6 +3,20 @@ Some of these are intermediate versions of the UCC database that are not publish
 
 ## 2603XX
 
+- Added Bijavara et al. (2025)
+- Added Cui et al. (2025)
+- Added Guerco et al. (2025)
+- Added Li et al. (2023)
+- Added Spina et al. (2022)
+- Added Jadhav et al. (2021)
+- Added Perren et al. (2015)
+- Added Ahumada & Lapasset (2007)
+
+
+
+
+## 260309
+
 - Added Malhotra et al. (2026)
 - Added Swiggum et al. (2024)
 - Added Dias et al. (2022)
@@ -15,7 +29,6 @@ Some of these are intermediate versions of the UCC database that are not publish
 - Added Bica et al. (2003)
 - Added Dutra & Bica (2001)
 - Added Dutra et al. (2000)
-
 
 
 
