@@ -169,4 +169,6 @@ data/ucc_archived_nogit/*
 temp_updt/*
 NASA_API_TOKEN
 UCC_members.parquet
+helper_scripts/members_process/old/*
+helper_scripts/members_process/*.parquet
 WARP.md
