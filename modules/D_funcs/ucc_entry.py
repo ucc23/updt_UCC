@@ -107,7 +107,9 @@ def make(
     members_file = members_files_mapping[fname0]
 
     # Generate fundamental parameters table
-    fpars_table, N_rows_pars, mult_vals_note_flag = fpars_in_lit(current_JSON, UCC_cl, tsp)
+    fpars_table, N_rows_pars, mult_vals_note_flag = fpars_in_lit(
+        current_JSON, UCC_cl, tsp
+    )
 
     # summary = UCC_summ_cmmts[fname0]["summary"]
     UTI_C_N_desc, UTI_C_dens_desc, UTI_C_C3_desc, UTI_C_lit_desc, UTI_C_dup_desc = (
@@ -247,7 +249,7 @@ def make(
         N_rows_pars=N_rows_pars,
         note_asterisk=mult_vals_note_flag,
         shared_table=shared_table,
-        N_rows_shared=N_rows_shared
+        N_rows_shared=N_rows_shared,
     )
 
     return contents
@@ -391,6 +393,12 @@ def fpars_in_lit(
         else:
             if par in ("age", "mass"):
                 medians.append(f"{val:.0f}")
+            elif par == "blue_str":
+                if val > 0 and val < 1:
+                    # Handle fractional values
+                    medians.append(f"{val:.3f}")
+                else:
+                    medians.append(f"{val:.0f}")
             elif par == "met":
                 medians.append(f"{val:.3f}")
             else:
