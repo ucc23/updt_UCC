@@ -165,6 +165,7 @@ def plot_CMD(
 ):
     """ """
     plt.style.use(custom_style_path)
+    # plt.style.use('../../modules/D_funcs/science2.mplstyle')
 
     # Sort by probabilities
     df_membs = df_membs.sort_values(probs_col, kind="stable")
@@ -505,10 +506,14 @@ def make_N_vs_year_plot(file_out_name, df_UCC, fontsize=7, dpi=300):
     #     zorder=100
     # )
 
-    plt.annotate("", xy=(2016,3600), xytext=(2016,350),
-                 arrowprops=dict(arrowstyle="->", lw=0.7), zorder=100)
+    plt.annotate(
+        "",
+        xy=(2016, 3600),
+        xytext=(2016, 350),
+        arrowprops=dict(arrowstyle="->", lw=0.7),
+        zorder=100,
+    )
     plt.text(1950, 300, "Gaia data release", fontsize=fontsize, va="center")
-
 
     plt.text(
         x=1880,
