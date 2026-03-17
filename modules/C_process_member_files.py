@@ -371,10 +371,11 @@ def process_entries(
         {pd.NA: "nan"}
     )
 
-    if input("\nSet a general N_clust_max value? (y/n): ").lower() == "y":
-        N_clust_max_general = int(input("Enter N_clust_max value: "))
-        # Update the 'df_UCC_updt['N_clust_max']' column with this value
-        df_UCC_updt["N_clust_max"] = N_clust_max_general
+    if not df_UCC_updt.empty:
+        if input("\nSet a general N_clust_max value? (y/n): ").lower() == "y":
+            N_clust_max_general = int(input("Enter N_clust_max value: "))
+            # Update the 'df_UCC_updt['N_clust_max']' column with this value
+            df_UCC_updt["N_clust_max"] = N_clust_max_general
 
     return df_UCC_updt
 
@@ -901,16 +902,22 @@ def updt_zenodo_csv(
         "mass_stddev",
         "bi_frac_median",
         "bi_frac_stddev",
-        "blue_str_values",
+        "blue_str_median",
+        "blue_str_stddev",
     ):
         df_UCC_C[col] = df_UCC_B[col]
 
     # Round columns
     df_UCC_C["P_dup"] = np.round(1 - df_UCC_C["C_dup"], 2)
-    df_UCC_C["age_median"] = np.round(df_UCC_C["age_median"], 0)
-    df_UCC_C["age_stddev"] = np.round(df_UCC_C["age_stddev"], 0)
-    df_UCC_C["mass_median"] = np.round(df_UCC_C["mass_median"], 0)
-    df_UCC_C["mass_stddev"] = np.round(df_UCC_C["mass_stddev"], 0)
+    cols = [
+        "age_median",
+        "age_stddev",
+        "mass_median",
+        "mass_stddev",
+        "blue_str_median",
+        "blue_str_stddev",
+    ]
+    df_UCC_C[cols] = df_UCC_C[cols].round(0)
 
     # Re-name columns
     df_UCC_C.rename(
@@ -939,7 +946,8 @@ def updt_zenodo_csv(
             "mass_stddev": "Mass_STDDEV",
             "bi_frac_median": "Binary_fr",
             "bi_frac_stddev": "Binary_fr_STDDEV",
-            "blue_str_values": "Blue_str",
+            "blue_str_median": "BSS",
+            "blue_str_stddev": "BSS_STDDEV",
         },
         inplace=True,
     )
@@ -975,7 +983,8 @@ def updt_zenodo_csv(
                 "Mass_STDDEV",
                 "Binary_fr",
                 "Binary_fr_STDDEV",
-                "Blue_str",
+                "BSS",
+                "BSS_STDDEV",
                 "C3",
                 "P_dup",
                 "UTI",

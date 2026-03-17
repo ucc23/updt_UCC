@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 
 from .D_funcs import ucc_entry, ucc_plots, ucc_summ_cmmts, ucc_updt_tables
-from .utils import get_fnames, load_BC_cats, logger, comments_check
+from .utils import comments_check, get_fnames, load_BC_cats, logger
 from .variables import (
     UCC_cmmts_folder,
     UCC_members_file,
@@ -302,12 +302,6 @@ def load_data(
 
     # Merge df_UCC_B and df_UCC_C dataframes
     df_BC = pd.concat([df_UCC_B, df_UCC_C], axis=1)
-
-    # Process blue straggler values keeping the last one (most recent) as "median"
-    df_BC.rename(columns={"blue_str_values": "blue_str_median"}, inplace=True)
-    df_BC["blue_str_median"] = pd.to_numeric(
-        df_BC["blue_str_median"].astype(str).str.split(";").str[-1], errors="coerce"
-    )
 
     # Load clusters data in JSON file
     with open(name_DBs_json) as f:
