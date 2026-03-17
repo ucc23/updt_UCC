@@ -343,6 +343,15 @@ def load_data(
         cluster_dict["clusters"] = fnames_cmmts
         cmmts_JSONS_lst[DB_id] = cluster_dict
 
+    # --- sort by year (descending) ---
+    cmmts_JSONS_lst = dict(
+        sorted(
+            cmmts_JSONS_lst.items(),
+            key=lambda x: x[1]["art_year"],
+            reverse=True,
+        )
+    )
+
     # Assign GLON bins to clusters (used to generate split members files)
     edges = [int(_) for _ in np.linspace(0, 360, 91)]
     labels = [f"{edges[i]}_{edges[i + 1]}" for i in range(len(edges) - 1)]
