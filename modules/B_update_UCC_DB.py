@@ -155,7 +155,7 @@ def main():
     df_UCC_B = sort_year_importance(new_JSON, df_UCC_B)
 
     # Add medians and STDDEVs of fundamental parameters
-    df_UCC_B = add_fpars_stats(df_UCC_B)
+    df_UCC_B = add_fpars_stats(logging, df_UCC_B)
 
     # Mandatory sanity check
     # Check every individual fname for duplicates
@@ -252,11 +252,11 @@ def load_data(
     # Remove _median and _stddev columns from df_UCC_B. These are added at the end
     # For 'blue_str' the column is named different and there is no stddev
     fpars_order_lst = list(fpars_order)
-    fpars_order_lst.remove("blue_str")
+    # fpars_order_lst.remove("blue_str")
     cols_to_remove = (
         [_ + "_median" for _ in fpars_order_lst]
         + [_ + "_stddev" for _ in fpars_order_lst]
-        + ["blue_str_values"]
+        # + ["blue_str_values"]
     )
     df_UCC_B = df_UCC_B.drop(columns=cols_to_remove)
 
@@ -1650,11 +1650,11 @@ def sort_year_importance(new_JSON, df_UCC_B):
     return df_UCC_B
 
 
-def add_fpars_stats(df):
+def add_fpars_stats(logging, df):
     """For each column in 'fpars_order', calculate the median and stddev"""
 
     for par in fpars_order:
-        # Vectorized string cleaning and splitting
+        # String cleaning and splitting
         temp_df = (
             df[par]
             .str.replace("*", "", regex=False)
@@ -1663,26 +1663,25 @@ def add_fpars_stats(df):
         )
 
         if par == "blue_str":
-            # Stack to remove NaNs and convert to string
-            # Group by the original index (level 0) and join
-            df[f"{par}_values"] = (
-                temp_df.stack().astype(str).groupby(level=0).agg(";".join)
-            )
-            # Ensure rows that were all NaN are preserved as NaN/None
-            df[f"{par}_values"] = df[f"{par}_values"].reindex(df.index)
-            # df[f"{par}_stddev"] = np.nan
+            # Filter fractional values
+            # Identify rows where ALL non-NaN values are fractional
+            all_frac = ((temp_df > 0) & (temp_df < 1)).all(axis=1)
+            if all_frac.sum() > 0:
+                logging.info(
+                    f"\nFound {all_frac.sum()} entries with all BSS values in (0, 1) range"
+                )
+            # Condition to keep non-fractional values
+            cond = (temp_df == 0) | (temp_df >= 1)
+            # apply filter only to rows that are NOT fully fractional
+            temp_df = temp_df.where(cond | all_frac.to_frame().reindex_like(temp_df))
 
-        else:
-            # Standard vectorized statistics
-            med = temp_df.median(axis=1)
-            if par in {"age", "mass"}:
-                df[f"{par}_median"] = med.round(0)
-            else:
-                df[f"{par}_median"] = med.round(4)
-            if par in {"age", "mass"}:
-                df[f"{par}_stddev"] = temp_df.std(axis=1).round(0)
-            else:
-                df[f"{par}_stddev"] = temp_df.std(axis=1).round(4)
+        # Statistics (NaNs automatically ignored, ddof=1 by default for std)
+        med = temp_df.median(axis=1)
+        std = temp_df.std(axis=1)
+
+        dec = 0 if par in {"age", "mass", "blue_str"} else 4
+        df[f"{par}_median"] = med.round(dec)
+        df[f"{par}_stddev"] = std.round(dec)
 
     return df
 
