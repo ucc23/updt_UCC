@@ -358,7 +358,7 @@ the first letters of names we want to exclude.
   -d Add a _Publication date_ with the format: YYYY-MM-DD
   -e Use the same version number from the README (format: YYMMDD) in the release
 
-Publish this new release and copy **its own url** (no the general repository url)
+Publish this new release and copy **its own url** (not the general repository url)
 
 2. Update the `_pages/CHANGELOG.md` file, use the Zenodo URL for **this** release
 
