@@ -143,14 +143,14 @@ for _, row in df_B.iterrows():
                 if len(conflicts) == 2 and all(v == 1 for v in conflicts.values()):
                     i, j = pairs[0]
                     msg = (
+                        f"{name:<15} (Δ={max_ra_dec_diff:.2f}º): "
                         f"{name}: {cl_dbs[i]} vs {cl_dbs[j]} "
-                        f"(max Δ={max_ra_dec_diff:.2f}º)"
                     )
                 else:
                     offender = max(conflicts, key=conflicts.get)
                     msg = (
-                        f"{name}: suspect {cl_dbs[offender]} "
-                        f"(max Δ={max_ra_dec_diff:.2f}º) "
+                        f"{name:<15} (Δ={max_ra_dec_diff:.2f}º): "
+                        f"suspect {cl_dbs[offender]} "
                         f"[{conflicts[offender]} conflicts]"
                     )
 
