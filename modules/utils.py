@@ -63,9 +63,9 @@ def load_BC_cats(cat_ID: str, path: str):
     if cat_ID == "B":
         df = pd.read_csv(
             path,
-            dtype={
-                "blue_str_values": str,
-            },
+            # dtype={
+            #     "blue_str_values": str,
+            # },
         )
 
     elif cat_ID == "C":
