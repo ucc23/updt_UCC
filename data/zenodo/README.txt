@@ -1,7 +1,7 @@
 # The Unified Cluster Catalogue (UCC)
 
-These files correspond to the 260309 version of the UCC database (https://ucc.ar),
-composed of 18025 clusters with a combined 1089553 members.
+These files correspond to the 260317 version of the UCC database (https://ucc.ar),
+composed of 18022 clusters with a combined 1089054 members.
 If you find this data useful please cite its associated article
 ([Perren et al. 2023](https://ui.adsabs.harvard.edu/abs/2023MNRAS.526.4107P))
 using the following BibTex snippet:
@@ -69,8 +69,9 @@ Mass_[Msun]      : Mass [Msun]
 Mass_STDDEV      : Mass standard deviation
 Binary_fr        : Estimated binary fraction
 Binary_fr_STDDEV : Estimated binary fraction standard deviation
-Blue_str         : Blue stragglers value (fraction and/or total count)
-C3               : Combined quality class
+BSS              : Blue stragglers (total number)
+BSS_STDDEV       : Blue stragglers standard deviation
+C3               : Combined quality class (see Perren et al. 2023)
 P_dup            : Probability that this entry is a duplicate of a previous one
 UTI              : UCC Trust Index, a measure of the reliability of the cluster
 bad_oc           : Flag that indicates that this is likely an asterism,
