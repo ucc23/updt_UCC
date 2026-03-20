@@ -8,6 +8,63 @@ from astropy.coordinates import SkyCoord
 import astropy.units as u
 
 
+df = pd.read_csv("../temp_updt/data/databases/OTTO2026.csv")
+
+# Combine columns 'Cluster' and 'cn' using a _
+df["Cluster"] = df.apply(
+    lambda row: f"{row['Cluster']}_{row['cn']}" if pd.notna(row["cn"]) else row["Cluster"],
+    axis=1,
+)
+
+# Drop cn column
+df = df.drop(columns=["cn"])
+
+df.to_csv(
+    "../temp_updt/data/databases/OTTO2026_1.csv",
+    na_rep="nan",
+    index=False,
+    quoting=csv.QUOTE_NONNUMERIC,
+)
+
+breakpoint()
+
+
+
+
+
+df = pd.read_csv("../temp_updt/data/databases/ANGELO2023.csv")
+
+# Convert RA,DEC using astropy
+coords = SkyCoord(
+    ra=df["RA"].astype(str),
+    dec=df["DEC"].astype(str),
+    unit=(u.hourangle, u.deg),
+    frame='icrs'
+)
+# Extract decimal degrees
+df["RA_deg"] = coords.ra.deg.round(5)
+df["DEC_deg"] = coords.dec.deg.round(5)
+
+df.to_csv(
+    "../temp_updt/data/databases/ANGELO2023_1.csv",
+    na_rep="nan",
+    index=False,
+    quoting=csv.QUOTE_NONNUMERIC,
+)
+
+breakpoint()
+
+
+
+
+
+
+
+
+
+
+
+
 df = pd.read_csv("../temp_updt/data/databases/BIJAVARA2025.csv")
 df4 = pd.read_csv("../temp_updt/data/databases/BIJAVARA2025_4.csv")
 

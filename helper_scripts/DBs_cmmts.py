@@ -3,6 +3,30 @@ import csv
 import numpy as np
 import pandas as pd
 
+
+
+df = pd.read_csv("../data/databases/YAN2026.csv")
+
+cmmts = {"Cluster": [], "Comment": []}
+for i, row in df.iterrows():
+    txt = f"Number of WDs: expected from single-star evolution N={row['expect_wd_number']}, with probability of formation through binary evolution >=0.5 N={row['prob_wd_number']}."
+    cmmts["Cluster"].append(row["Name"])
+    cmmts["Comment"].append(txt)
+
+cluster_df = pd.DataFrame(cmmts)
+cluster_df.to_csv(
+    "../data/databases/cmmts/YAN2026.csv", index=False, quoting=csv.QUOTE_ALL
+)
+breakpoint()
+
+
+
+
+
+
+
+
+
 df = pd.read_csv("../data/databases/cmmts/RAIN2021.csv")
 
 # Strip strings in the 'Cluster' column

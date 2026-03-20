@@ -44,63 +44,9 @@ knonw_bad_coords = {
 }
 
 print("\n\n")
-# for _, row in df_B.iterrows():
-#     if row["fnames"].startswith(skip_ocs):
-#         continue
-
-#     if row["fnames"].split(";")[0] in knonw_bad_coords.keys():
-#         continue
-
-#     cl_dbs = row["DB"].split(";")
-#     cl_db_i = [int(_) for _ in row["DB_i"].split(";")]
-#     pairs = [(db, i) for db, i in zip(cl_dbs, cl_db_i) if db in all_dbs]
-#     cl_dbs, cl_db_i = map(list, zip(*pairs)) if pairs else ([], [])
-
-#     if len(cl_dbs) > 1:
-#         cl_ra, cl_dec = [], []
-#         for i, cl_db in enumerate(cl_dbs):
-#             cl_ra.append(all_dbs[cl_db]["RA"][cl_db_i[i]])
-#             cl_dec.append(all_dbs[cl_db]["DEC"][cl_db_i[i]])
-#         if cl_ra:
-#             conflicts = Counter()
-#             pairs = []
-#             max_ra_dec_diff = 0
-
-#             for i in range(len(cl_ra)):
-#                 for j in range(i + 1, len(cl_ra)):
-#                     ra_diff = abs(cl_ra[i] - cl_ra[j])
-#                     ra_diff = min(ra_diff, 360 - ra_diff)
-#                     dec_diff = abs(cl_dec[i] - cl_dec[j])
-
-#                     # track maxima
-#                     max_ra_dec_diff = max(max_ra_dec_diff, ra_diff, dec_diff)
-
-#                     if ra_diff > deg_diff_lim or dec_diff > deg_diff_lim:
-#                         conflicts[i] += 1
-#                         conflicts[j] += 1
-#                         pairs.append((i, j))
-
-#             if conflicts:
-#                 name = row["fnames"].split(";")[0]
-
-#                 # Only one conflicting pair
-#                 if len(conflicts) == 2 and all(v == 1 for v in conflicts.values()):
-#                     i, j = pairs[0]
-#                     print(
-#                         f"{name}: {cl_dbs[i]} vs {cl_dbs[j]} "
-#                         f"(max Δ={max_ra_dec_diff:.2f}º)"
-#                     )
-#                 else:
-#                     offender = max(conflicts, key=conflicts.get)
-#                     print(
-#                         f"{name}: suspect {cl_dbs[offender]} "
-#                         f"(max Δ={max_ra_dec_diff:.2f}º) "
-#                         f"[{conflicts[offender]} conflicts]"
-#                     )
+print("\n===========================\n")
 
 results = []
-
-print("\n===========================\n")
 for _, row in df_B.iterrows():
     if row["fnames"].startswith(skip_ocs):
         continue
