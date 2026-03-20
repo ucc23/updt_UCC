@@ -3063,7 +3063,7 @@
   },
   "PERREN2022": {
     "SCIX_url": "https://scixplorer.org/abs/2022A%26A...663A.131P",
-    "data_cmmts": "data",
+    "data_cmmts": "data,comments",
     "citations_count": {
       "date": "2026-02-10",
       "count": "14",
@@ -3081,13 +3081,13 @@
     },
     "pars": {
       "av": {
-        "ebv": "E(B-V)"
+        "ebv": "EBV"
       },
       "dist": {
         "dm": "dm"
       },
       "age": {
-        "loga": "logt"
+        "loga": "log_age"
       },
       "met": {
         "feh": "FeH"
@@ -3096,10 +3096,47 @@
         "mass": "Mass"
       },
       "bi_frac": {
-        "bf": "bfr"
+        "bf": "b_fr"
       }
     },
-    "e_pars": {}
+    "e_pars": {
+      "e_av": {
+        "eebv": [
+          "EBV_err_m",
+          "EBV_err_p"
+        ]
+      },
+      "e_dist": {
+        "edm": [
+          "dm_err_m",
+          "dm_err_p"
+        ]
+      },
+      "e_age": {
+        "eloga": [
+          "log_age_err_m",
+          "log_age_err_p"
+        ]
+      },
+      "e_met": {
+        "efeh": [
+          "FeH_err_m",
+          "FeH_err_p"
+        ]
+      },
+      "e_mass": {
+        "emass": [
+          "Mass_err_m",
+          "Mass_err_p"
+        ]
+      },
+      "e_bi_frac": {
+        "ebf": [
+          "b_fr_err_m",
+          "b_fr_err_p"
+        ]
+      }
+    }
   },
   "HE2022_1": {
     "SCIX_url": "https://scixplorer.org/abs/2022ApJS..262....7H",
@@ -3427,6 +3464,67 @@
       },
       "e_blue_str": {
         "ebf": "e_fbss-MS"
+      }
+    }
+  },
+  "ANGELO2023": {
+    "SCIX_url": "https://scixplorer.org/abs/2023MNRAS.522..956A",
+    "data_cmmts": "data",
+    "citations_count": {
+      "date": "2026-03-20",
+      "count": "12",
+      "citations_year": 4.0
+    },
+    "data_url": "N/A",
+    "authors": "Angelo et al.",
+    "title": "Enlightening the dynamical evolution of Galactic open clusters an approach using Gaia DR3 and analytical descriptions",
+    "year": "2023",
+    "received": "20221128",
+    "names": "Cluster",
+    "pos": {
+      "RA": "RA_deg",
+      "DEC": "DEC_deg",
+      "pmra": "muAlpha",
+      "pmde": "muDelta"
+    },
+    "pars": {
+      "av": {
+        "ebv": "EBV"
+      },
+      "dist": {
+        "dm": "mM0"
+      },
+      "age": {
+        "loga": "logt"
+      },
+      "met": {
+        "feh": "FeH"
+      },
+      "mass": {
+        "mass": [
+          "Mini",
+          "Mclu"
+        ]
+      }
+    },
+    "e_pars": {
+      "e_av": {
+        "eebv": "EBV_err"
+      },
+      "e_dist": {
+        "edm": "mM0_err"
+      },
+      "e_age": {
+        "eloga": "logt_err"
+      },
+      "e_met": {
+        "efeh": "FeH_err"
+      },
+      "e_mass": {
+        "emass": [
+          "Mini_err",
+          "Mclu_err"
+        ]
       }
     }
   },
@@ -4432,6 +4530,75 @@
     },
     "e_pars": {}
   },
+  "OTTO2026": {
+    "SCIX_url": "https://scixplorer.org/abs/2026AJ....171...91O",
+    "data_cmmts": "data",
+    "citations_count": {
+      "date": "2026-03-20",
+      "count": "9",
+      "citations_year": 18.0
+    },
+    "data_url": "N/A",
+    "authors": "Otto et al.",
+    "title": "The Open Cluster Chemical Abundances and Mapping Survey. VIII. Galactic Chemical Gradient and Azimuthal Analysis from SDSSMWM DR19",
+    "year": "2026",
+    "received": "20250709",
+    "names": "Cluster",
+    "pos": {
+      "RA": "RAdeg",
+      "DEC": "DEdeg",
+      "pmra": "pmRA",
+      "pmde": "pmDE",
+      "Rv": "RV"
+    },
+    "pars": {
+      "age": {
+        "agyr": "Age"
+      },
+      "met": {
+        "feh": [
+          "[FeH]",
+          "[OH]",
+          "[NaH]",
+          "[MgH]",
+          "[AlH]",
+          "[SiH]",
+          "[SH]",
+          "[KH]",
+          "[CaH]",
+          "[TiH]",
+          "[CrH]",
+          "[MnH]",
+          "[CoH]",
+          "[NiH]",
+          "[CeH]",
+          "[NdH]"
+        ]
+      }
+    },
+    "e_pars": {
+      "e_met": {
+        "efeh": [
+          "e_[FeH]",
+          "e_[OH]",
+          "e_[NaH]",
+          "e_[MgH]",
+          "e_[AlH]",
+          "e_[SiH]",
+          "e_[SH]",
+          "e_[KH]",
+          "e_[CaH]",
+          "e_[TiH]",
+          "e_[CrH]",
+          "e_[MnH]",
+          "e_[CoH]",
+          "e_[NiH]",
+          "e_[CeH]",
+          "e_[NdH]"
+        ]
+      }
+    }
+  },
   "OBASI2026": {
     "SCIX_url": "https://scixplorer.org/abs/2026A%26A...705A.244O",
     "data_cmmts": "data",
@@ -4550,6 +4717,34 @@
       },
       "met": {
         "feh": "[Fe/H]"
+      }
+    },
+    "e_pars": {}
+  },
+  "YAN2026": {
+    "SCIX_url": "https://scixplorer.org/abs/2026ApJ...999..167Y",
+    "data_cmmts": "data,comments",
+    "citations_count": {
+      "date": "2026-03-20",
+      "count": "0",
+      "citations_year": 0.0
+    },
+    "data_url": "N/A",
+    "authors": "Yan et al.",
+    "title": "Searching for White Dwarf Candidates Formed Through Binary Evolution in Star Clusters",
+    "year": "2026",
+    "received": "20251209",
+    "names": "Name",
+    "pos": {
+      "RA": "RAdeg",
+      "DEC": "DEdeg",
+      "plx": "plx",
+      "pmra": "pmRA",
+      "pmde": "pmDE"
+    },
+    "pars": {
+      "age": {
+        "amyr": "Age"
       }
     },
     "e_pars": {}
