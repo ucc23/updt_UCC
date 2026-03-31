@@ -708,7 +708,7 @@ def GCs_check(
     newDB_json: dict,
     df_new: pd.DataFrame,
     new_DB_fnames: list[list[str]],
-    search_rad: float = 30,
+    search_rad: float = 60,
 ) -> bool:
     """
     Check for nearby GCs for a new database
@@ -731,7 +731,7 @@ def GCs_check(
     bool
         Flag indicating if probable GCs were found.
     """
-    gc_all = []
+    gc_all = {}
 
     # Check names match first
     for idx, all_fnames in enumerate(new_DB_fnames):
@@ -741,36 +741,13 @@ def GCs_check(
                 gc_match = ",".join(
                     [df_GCs["Name"][gc_idx].strip(), df_GCs["OName"][gc_idx].strip()]
                 )
-                gc_all.append(
-                    [
-                        idx,
-                        df_new.iloc[idx][newDB_json["names"]],
-                        gc_idx,
-                        gc_match,
-                        np.nan,
-                    ]
-                )
+                gc_all[idx] = [
+                    df_new.iloc[idx][newDB_json["names"]],
+                    gc_idx,
+                    gc_match,
+                    0.0,  # 0 distance
+                ]
                 break
-
-    # glon_glat = np.array([df_new["GLON_"], df_new["GLAT_"]]).T
-    # # Read GCs DB
-    # l_gc, b_gc = np.array(df_GCs["GLON"]), np.array(df_GCs["GLAT"])
-    # for idx, (glon_i, glat_i) in enumerate(glon_glat):
-    #     d_arcmin = np.sqrt((glon_i - l_gc) ** 2 + (glat_i - b_gc) ** 2) * 60
-    #     gc_idx = np.argmin(d_arcmin)
-    #     if d_arcmin[gc_idx] < search_rad:
-    #         gc_match = ",".join(
-    #             [df_GCs["Name"][gc_idx].strip(), df_GCs["OName"][gc_idx].strip()]
-    #         )
-    #         gc_all.append(
-    #             [
-    #                 idx,
-    #                 df_new.iloc[idx][newDB_json["names"]],
-    #                 gc_idx,
-    #                 gc_match,
-    #                 d_arcmin[gc_idx]  # gc_dist
-    #             ]
-    #         )
 
     if "GLON_" in df_new.keys():
         # Extract arrays once
@@ -801,32 +778,33 @@ def GCs_check(
         names_gc = df_GCs["Name"].str.strip().to_numpy()
         onames_gc = df_GCs["OName"].str.strip().to_numpy()
 
-        gc_all = [
-            [
-                i,
-                names_new[i],
-                gc_idx[i],
-                f"{names_gc[gc_idx[i]]},{onames_gc[gc_idx[i]]}",
-                gc_dist[i],
-            ]
-            for i in matched_idx
-        ]
+        for i in matched_idx:
+            # Only add if not already matched by name
+            if i not in gc_all:
+                gc_all[i] = [
+                    names_new[i],
+                    gc_idx[i],
+                    f"{names_gc[gc_idx[i]]},{onames_gc[gc_idx[i]]}",
+                    gc_dist[i],
+                ]
 
     gc_flag = False
     if gc_all:
         GCs_found = len(gc_all)
-        gc_all = np.array(gc_all).T
-        i_sort = np.argsort(np.array(gc_all[-1], dtype=float))
-        gc_all = gc_all[:, i_sort].T
-
+        # Convert dictionary → list of tuples including the key
+        gc_list = [
+            (idx, row_id, idx_gc, df_gcs_name, float(d_arcmin))
+            for idx, (row_id, idx_gc, df_gcs_name, d_arcmin) in gc_all.items()
+        ]
+        # Sort by distance
+        gc_list.sort(key=lambda x: x[-1])
         gc_flag = True
         logging.info(f"\nFound {GCs_found} probable GCs:")
-        for gc in gc_all:
-            idx, row_id, idx_gc, df_gcs_name, d_arcmin = gc
+        for idx, row_id, idx_gc, df_gcs_name, d_arcmin in gc_list:
             row_id = row_id.strip()
             logging.info(
                 f"{idx:<6} {row_id:<15} --> {idx_gc:<6} {df_gcs_name.strip():<25}"
-                + f"d={round(float(d_arcmin), 2)}"
+                + f"d={round(d_arcmin, 2)}"
             )
 
     return gc_flag
@@ -1042,13 +1020,14 @@ def positions_check(
     for i, j in enumerate(db_matches):
         # Check centers if the OC is already present in the UCC
         if j is not None:
-            d_arcmin = (
-                np.sqrt(
-                    (df_UCC_glon[j] - df_new_glon[i]) ** 2
-                    + (df_UCC_glat[j] - df_new_glat[i]) ** 2
-                )
-                * 60
-            )
+            # Wrapped longitude difference (degrees)
+            dlon = abs(df_UCC_glon[j] - df_new_glon[i])
+            dlon = min(dlon, 360.0 - dlon)
+            # Latitude difference (degrees)
+            dlat = df_UCC_glat[j] - df_new_glat[i]
+            # Angular separation (arcmin)
+            d_arcmin = np.sqrt(dlon**2 + dlat**2) * 60.0
+
             # Store information on the OCs that require attention
             if d_arcmin > rad_dup:
                 ocs_attention.append([i, new_DB_fnames[i][0], d_arcmin])
