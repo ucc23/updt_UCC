@@ -5,14 +5,247 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from astropy.coordinates import SkyCoord
-import astropy.units as u
+
+
+
+df = pd.read_csv("../temp_updt/data/databases/SINNOTT1988.csv")
+
+# Convert RA,DEC using astropy
+coords = SkyCoord(
+    ra=df["RAB2000"].astype(str),
+    dec=df["DEB2000"].astype(str),
+    unit=(u.hourangle, u.deg),
+    frame="icrs",
+)
+# Extract decimal degrees
+df["RA_deg"] = coords.ra.deg.round(5)
+df["DEC_deg"] = coords.dec.deg.round(5)
+
+# Only keep row with Type=OC
+df = df[df["Type"] == "OC"]
+
+# If "Name" column starts with "I", replace by "IC ", else, add a "NGC "
+df["Name"] = df.apply(
+    lambda row: f"IC {row['Name'][1:].strip()}" if str(row["Name"]).startswith("I") else f"NGC {row['Name'].strip()}",
+    axis=1,
+)
+
+# # If "Name" column is "nan", replace with "VDBH_" + "No" column
+# df["Name"] = df.apply(
+#     lambda row: f"VDBH_{int(row['No'])}" if pd.isna(row["Name"]) else row["Name"], axis=1
+# )
+
+
+df.to_csv(
+    "../temp_updt/data/databases/SINNOTT1988_1.csv",
+    na_rep="nan",
+    index=False,
+    quoting=csv.QUOTE_NONNUMERIC,
+)
+
+breakpoint()
+
+
+
+
+df = pd.read_csv("../temp_updt/data/databases/VDBH1975.csv")
+
+# Convert RA,DEC using astropy
+coords = SkyCoord(
+    ra=df["RA_1950"].astype(str),
+    dec=df["Dec_1950"].astype(str),
+    unit=(u.hourangle, u.deg),
+    frame="icrs",
+)
+# Extract decimal degrees
+df["RA_deg"] = coords.ra.deg.round(5)
+df["DEC_deg"] = coords.dec.deg.round(5)
+
+# If "Name" column is "nan", replace with "VDBH_" + "No" column
+df["Name"] = df.apply(
+    lambda row: f"VDBH_{int(row['No'])}" if pd.isna(row["Name"]) else row["Name"], axis=1
+)
+
+
+df.to_csv(
+    "../temp_updt/data/databases/VDBH1975_1.csv",
+    na_rep="nan",
+    index=False,
+    quoting=csv.QUOTE_NONNUMERIC,
+)
+
+breakpoint()
+
+
+
+df = pd.read_csv("../temp_updt/data/databases/SULENTIC1973.csv")
+
+# Convert RA,DEC using astropy
+coords = SkyCoord(
+    ra=df["_RA.icrs"].astype(str),
+    dec=df["_DE.icrs"].astype(str),
+    unit=(u.hourangle, u.deg),
+    frame="icrs",
+)
+# Extract decimal degrees
+df["RA_deg"] = coords.ra.deg.round(5)
+df["DEC_deg"] = coords.dec.deg.round(5)
+
+# Drop columns
+df = df.drop(columns=["_RA.icrs", "_DE.icrs"])
+
+# Keep only rows were the "Type" column is either 1 or 6 or 16 or 61
+df = df[df["Type"].isin([1, 6, 16, 61])]
+
+df.to_csv(
+    "../temp_updt/data/databases/SULENTIC1973_1.csv",
+    na_rep="nan",
+    index=False,
+    quoting=csv.QUOTE_NONNUMERIC,
+)
+
+breakpoint()
+
+
+
+
+
+
+df = pd.read_csv("../data/databases/ZHONG2020.csv")
+
+# If the "Ref" column is "nan", then change values in the "Ageref", "Distref", and
+# "E(B-V)ref" columns to "nan" for those rows
+df.loc[df["Ref"].isna(), ["Ageref", "Distref", "E(B-V)ref"]] = np.nan
+
+# Round these columns to 5 decimals: "Rap","Rperi","EC","Zmax"
+float_cols = ["Rap", "Rperi", "EC", "Zmax"]
+df[float_cols] = df[float_cols].round(5)
+
+df.to_csv(
+    "../data/databases/ZHONG2020_1.csv",
+    na_rep="nan",
+    index=False,
+    quoting=csv.QUOTE_NONNUMERIC,
+)
+
+breakpoint()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+df = pd.read_csv("../temp_updt/data/databases/LYNGA1987.csv")
+
+cl_id = {
+    "1": "NGC",
+    "2": "IC",
+    "3": "Berkeley",
+    "4": "Czernik",
+    "5": "Dolidze",
+    "6": "Collinder",
+    "7": "Upgren",
+    "8": "Tombaugh",
+    "9": "Ruprecht",
+    "10": "King",
+    "11": "Stock",
+    "13": "Trumpler",
+    "14": "Markarian",
+    "16": "Haffner",
+    "17": "Hogg",
+    "18": "Sher",
+    "19": "Feinstein",
+    "20": "Harvard",
+    "21": "Lynga",
+    "22": "Westerlund",
+    "23": "Basel",
+    "24": "Blanco",
+    "25": "Baractova",
+    "26": "Biurakan",
+    "27": "Melotte",
+    "28": "Pismis",
+    "30": "Trapezium",
+    "32": "Pleiades",
+    "33": "Graff",
+    "34": "Iskudarian",
+    "35": "Stephenson",
+    "36": "Roslund",
+    "37": "Hyades",
+    "41": "van den Bergh-Hagen",
+    "42": "Bochum",
+    "43": "Dolidze-Dzimselejsvili",
+    "45": "Antalova",
+    "46": "Moffat",
+    "47": "Havlen-Moffat",
+    "48": "Frolov",
+    "50": "van den Bergh",
+    "51": "Mayer ",
+    "52": "Latysev",
+    "53": "Sigma Ori",
+    "54": "Graham",
+    "55": "Aveni-Hunter",
+    "56": "Loden",
+    "57": "Grasdalen",
+    "58": "Waterloo",
+    "59": "Auner",
+    "61": "Schuster",
+    "62": "Danks",
+    "63": "Muzzio ",
+    "64": "Pfleiderer",
+}
+
+# Combine columns "ClSeq","ClNum" into a single "Cluster" column (merge with a "_"), using the cl_id dict
+# to get the name of the cluster from the "ClSeq" column
+df["Cluster"] = df.apply(
+    lambda row: (
+        f"{cl_id.get(str(int(row['ClSeq'])), 'Unknown')}_{int(row['ClNum'])}"
+        if pd.notna(row["ClNum"])
+        else cl_id.get(str(int(row["ClSeq"])), "Unknown")
+    ),
+    axis=1,
+)
+
+# Position  the "Cluster" column in the first position
+cluster_col = df.pop("Cluster")
+df.insert(0, "Cluster", cluster_col)
+
+# Drop columns
+df = df.drop(columns=["_RA.icrs", "_DE.icrs"])
+
+# Convert GLON,GLAT columns to RA, DEC in degrees
+coords = SkyCoord(
+    l=df["GLON"].values * u.deg, b=df["GLAT"].values * u.deg, frame="galactic"
+).icrs
+df["RA"] = coords.ra.deg.round(5)
+df["DEC"] = coords.dec.deg.round(5)
+
+df.to_csv(
+    "../temp_updt/data/databases/LYNGA1987.csv",
+    na_rep="nan",
+    index=False,
+    quoting=csv.QUOTE_NONNUMERIC,
+)
+
+breakpoint()
 
 
 df = pd.read_csv("../temp_updt/data/databases/OTTO2026.csv")
 
 # Combine columns 'Cluster' and 'cn' using a _
 df["Cluster"] = df.apply(
-    lambda row: f"{row['Cluster']}_{row['cn']}" if pd.notna(row["cn"]) else row["Cluster"],
+    lambda row: (
+        f"{row['Cluster']}_{row['cn']}" if pd.notna(row["cn"]) else row["Cluster"]
+    ),
     axis=1,
 )
 
@@ -29,9 +262,6 @@ df.to_csv(
 breakpoint()
 
 
-
-
-
 df = pd.read_csv("../temp_updt/data/databases/ANGELO2023.csv")
 
 # Convert RA,DEC using astropy
@@ -39,7 +269,7 @@ coords = SkyCoord(
     ra=df["RA"].astype(str),
     dec=df["DEC"].astype(str),
     unit=(u.hourangle, u.deg),
-    frame='icrs'
+    frame="icrs",
 )
 # Extract decimal degrees
 df["RA_deg"] = coords.ra.deg.round(5)
@@ -53,16 +283,6 @@ df.to_csv(
 )
 
 breakpoint()
-
-
-
-
-
-
-
-
-
-
 
 
 df = pd.read_csv("../temp_updt/data/databases/BIJAVARA2025.csv")
@@ -104,10 +324,6 @@ df_merged.to_csv(
 breakpoint()
 
 
-
-
-
-
 df = pd.read_csv("../temp_updt/data/databases/CUI2025.csv")
 
 # Convert GLON,GLAT columns to RA,DEC using astropy
@@ -127,8 +343,6 @@ df.to_csv(
 breakpoint()
 
 
-
-
 df = pd.read_csv("../temp_updt/data/databases/SPINA2022.csv")
 
 # Round all float columns to 5 decimals
@@ -145,17 +359,13 @@ df.to_csv(
 breakpoint()
 
 
-
-
-
-
 df = pd.read_csv("../temp_updt/data/databases/AHUMADA2007.csv")
 
 coords = SkyCoord(
     ra=df["RAJ2000"].astype(str),
     dec=df["DEJ2000"].astype(str),
     unit=(u.hourangle, u.deg),
-    frame='icrs'
+    frame="icrs",
 )
 # Extract decimal degrees
 df["RA"] = coords.ra.deg.round(5)
@@ -171,15 +381,91 @@ df.to_csv(
 breakpoint()
 
 
-
-
 df = pd.read_csv("../temp_updt/data/databases/BICA2003_1.csv")
 
 # Not in UCC
 msk = []
-oc_check = ('bdsb39','bdsb50','bdsb122','bdsb49','bdsb78','bdsb59','bdsb60','bdsb42','bdsb32','bdsb160','bdsb41','bdsb45','bdsb75','bdsb43','bdsb55','bdsb76','bdsb36','bdsb14','bdsb101','bdsb94','bdsb70','bdsb25','bdsb31','bdsb20','bdsb54','bdsb66','bdsb89','bdsb35','bdsb48','bdsb74','bdsb13','bdsb33','bdsb56','bdsb17','bdsb51','bdsb163','bdsb105','bdsb62','bdsb40','bdsb85','bdsb87','bdsb92','bdsb58','bdsb5','bdsb61','bdsb80','bdsb84','bdsb4','bdsb1','bdsb63','bdsb9','bdsb161','bdsb67','bdsb64','bdsb158','bdsb95','bdsb162','bdsb150','bdsb38','bdsb103','bdsb57','bdsb83','bdsb28','bdsb2','bdsb71','bdsb86','bdsb159','bdsb52','bdsb79','bdsb27','bdsb26','bdsb34','bdsb53','bdsb16','bdsb65','bdsb72','bdsb29',)
-for i, oc in enumerate(df['BDS2003']):
-    foc = oc.split(',')[0].lower().strip().replace("_", "")
+oc_check = (
+    "bdsb39",
+    "bdsb50",
+    "bdsb122",
+    "bdsb49",
+    "bdsb78",
+    "bdsb59",
+    "bdsb60",
+    "bdsb42",
+    "bdsb32",
+    "bdsb160",
+    "bdsb41",
+    "bdsb45",
+    "bdsb75",
+    "bdsb43",
+    "bdsb55",
+    "bdsb76",
+    "bdsb36",
+    "bdsb14",
+    "bdsb101",
+    "bdsb94",
+    "bdsb70",
+    "bdsb25",
+    "bdsb31",
+    "bdsb20",
+    "bdsb54",
+    "bdsb66",
+    "bdsb89",
+    "bdsb35",
+    "bdsb48",
+    "bdsb74",
+    "bdsb13",
+    "bdsb33",
+    "bdsb56",
+    "bdsb17",
+    "bdsb51",
+    "bdsb163",
+    "bdsb105",
+    "bdsb62",
+    "bdsb40",
+    "bdsb85",
+    "bdsb87",
+    "bdsb92",
+    "bdsb58",
+    "bdsb5",
+    "bdsb61",
+    "bdsb80",
+    "bdsb84",
+    "bdsb4",
+    "bdsb1",
+    "bdsb63",
+    "bdsb9",
+    "bdsb161",
+    "bdsb67",
+    "bdsb64",
+    "bdsb158",
+    "bdsb95",
+    "bdsb162",
+    "bdsb150",
+    "bdsb38",
+    "bdsb103",
+    "bdsb57",
+    "bdsb83",
+    "bdsb28",
+    "bdsb2",
+    "bdsb71",
+    "bdsb86",
+    "bdsb159",
+    "bdsb52",
+    "bdsb79",
+    "bdsb27",
+    "bdsb26",
+    "bdsb34",
+    "bdsb53",
+    "bdsb16",
+    "bdsb65",
+    "bdsb72",
+    "bdsb29",
+)
+for i, oc in enumerate(df["BDS2003"]):
+    foc = oc.split(",")[0].lower().strip().replace("_", "")
     if foc in oc_check and df.at[i, "Class"] == "IRGr":
         print(oc, df.at[i, "Class"])
         msk.append(False)
@@ -198,8 +484,6 @@ df.to_csv(
 breakpoint()
 
 
-
-
 df = pd.read_csv("../temp_updt/data/databases/DUTRA2003_orig.csv")
 
 # # Convert GLON,GLAT columns to RA,DEC using astropy
@@ -215,9 +499,72 @@ df = pd.read_csv("../temp_updt/data/databases/DUTRA2003_orig.csv")
 
 # Not in UCC
 msk = []
-oc_check = ('dbsb25','dbsb41','dbsb59','dbsb84','dbsb76','dbsb33','dbsb44','dbsb42','dbsb124','dbsb32','dbsb4','dbsb30','dbsb65','dbsb28','dbsb81','dbsb67','dbsb34','dbsb1','dbsb112','dbsb128','dbsb110','dbsb8','dbsb107','dbsb18','dbsb13','dbsb54','dbsb23','dbsb20','dbsb26','dbsb172','dbsb24','dbsb5','dbsb16','dbsb15','dbsb22','dbsb38','dbsb55','dbsb126','dbsb11','dbsb53','dbsb109','dbsb14','dbsb58','dbsb127','dbsb111','dbsb46','dbsb17','dbsb50','dbsb57','dbsb74','dbsb56','dbsb47','dbsb45','dbsb29','dbsb2','dbsb63','dbsb31','dbsb49','dbsb83','dbsb52','dbsb37','dbsb71')
-for i, oc in enumerate(df['Seq']):
-    foc = oc.split(',')[0].lower().strip().replace("_", "")
+oc_check = (
+    "dbsb25",
+    "dbsb41",
+    "dbsb59",
+    "dbsb84",
+    "dbsb76",
+    "dbsb33",
+    "dbsb44",
+    "dbsb42",
+    "dbsb124",
+    "dbsb32",
+    "dbsb4",
+    "dbsb30",
+    "dbsb65",
+    "dbsb28",
+    "dbsb81",
+    "dbsb67",
+    "dbsb34",
+    "dbsb1",
+    "dbsb112",
+    "dbsb128",
+    "dbsb110",
+    "dbsb8",
+    "dbsb107",
+    "dbsb18",
+    "dbsb13",
+    "dbsb54",
+    "dbsb23",
+    "dbsb20",
+    "dbsb26",
+    "dbsb172",
+    "dbsb24",
+    "dbsb5",
+    "dbsb16",
+    "dbsb15",
+    "dbsb22",
+    "dbsb38",
+    "dbsb55",
+    "dbsb126",
+    "dbsb11",
+    "dbsb53",
+    "dbsb109",
+    "dbsb14",
+    "dbsb58",
+    "dbsb127",
+    "dbsb111",
+    "dbsb46",
+    "dbsb17",
+    "dbsb50",
+    "dbsb57",
+    "dbsb74",
+    "dbsb56",
+    "dbsb47",
+    "dbsb45",
+    "dbsb29",
+    "dbsb2",
+    "dbsb63",
+    "dbsb31",
+    "dbsb49",
+    "dbsb83",
+    "dbsb52",
+    "dbsb37",
+    "dbsb71",
+)
+for i, oc in enumerate(df["Seq"]):
+    foc = oc.split(",")[0].lower().strip().replace("_", "")
     if foc in oc_check and df.at[i, "Type"] == "IRGr":
         print(oc, df.at[i, "Type"])
         msk.append(False)
@@ -235,8 +582,6 @@ df.to_csv(
 breakpoint()
 
 
-
-
 df = pd.read_csv("../temp_updt/data/databases/BICA2003_orig.csv")
 
 # Convert GLON,GLAT columns to RA,DEC using astropy
@@ -251,12 +596,13 @@ df.insert(
     0,
     "Name",
     df["Names"]
-      .str.split(",").str[0]
-      .str.strip()
-      .str.replace("IR Cluster", "", regex=False)
-      .str.replace("Cluster", "", regex=False)
-      .str.replace("Stellar Group", "", regex=False)
-      .str.strip()
+    .str.split(",")
+    .str[0]
+    .str.strip()
+    .str.replace("IR Cluster", "", regex=False)
+    .str.replace("Cluster", "", regex=False)
+    .str.replace("Stellar Group", "", regex=False)
+    .str.strip(),
 )
 
 df.to_csv(
@@ -267,9 +613,6 @@ df.to_csv(
 )
 
 breakpoint()
-
-
-
 
 
 df = pd.read_csv("../temp_updt/data/databases/DUTRA2001_orig.csv")
@@ -291,7 +634,6 @@ df.to_csv(
 breakpoint()
 
 
-
 df = pd.read_csv("../temp_updt/data/databases/DUTRA2000_orig.csv")
 
 # Convert GLON,GLAT columns to RA,DEC using astropy
@@ -309,9 +651,6 @@ df.to_csv(
 )
 
 breakpoint()
-
-
-
 
 
 df = pd.read_csv("../temp_updt/data/databases/BICA2003_orig.csv")
@@ -346,18 +685,73 @@ df.to_csv(
 breakpoint()
 
 
-
-
-
-
-
 df = pd.read_csv("../temp_updt/data/databases/SWIGGUM2024.csv")
 
-drop_cols = ["ID","AllNames","CST","N","CSTt","Nt","GLON","GLAT","r50","rc","rt","rtot","r50pc","rcpc","rtpc","rtotpc","s_pmRA","e_pmRA","s_pmDE","e_pmDE","s_Plx","e_Plx","dist16","dist50","dist84","Ndist","globalPlx","X","Y","Z","RV","s_RV","e_RV","n_RV","CMDCl2.5","CMDCl16","CMDCl50","CMDCl84","CMDCl97.5","CMDClHuman","logAge16","logAge50","logAge84","AV16","AV50","AV84","diffAV16","diffAV50","diffAV84","MOD16","MOD50","MOD84","minClSize","isMerged","isGMMMemb","NXmatches","XmatchType","_RA.icrs","_DE.icrs"]
+drop_cols = [
+    "ID",
+    "AllNames",
+    "CST",
+    "N",
+    "CSTt",
+    "Nt",
+    "GLON",
+    "GLAT",
+    "r50",
+    "rc",
+    "rt",
+    "rtot",
+    "r50pc",
+    "rcpc",
+    "rtpc",
+    "rtotpc",
+    "s_pmRA",
+    "e_pmRA",
+    "s_pmDE",
+    "e_pmDE",
+    "s_Plx",
+    "e_Plx",
+    "dist16",
+    "dist50",
+    "dist84",
+    "Ndist",
+    "globalPlx",
+    "X",
+    "Y",
+    "Z",
+    "RV",
+    "s_RV",
+    "e_RV",
+    "n_RV",
+    "CMDCl2.5",
+    "CMDCl16",
+    "CMDCl50",
+    "CMDCl84",
+    "CMDCl97.5",
+    "CMDClHuman",
+    "logAge16",
+    "logAge50",
+    "logAge84",
+    "AV16",
+    "AV50",
+    "AV84",
+    "diffAV16",
+    "diffAV50",
+    "diffAV84",
+    "MOD16",
+    "MOD50",
+    "MOD84",
+    "minClSize",
+    "isMerged",
+    "isGMMMemb",
+    "NXmatches",
+    "XmatchType",
+    "_RA.icrs",
+    "_DE.icrs",
+]
 # Drop columns
 df = df.drop(columns=drop_cols)
 
-df['dist'] = np.sqrt(df['Xhelio']**2 + df['Yhelio']**2 + df['Zhelio']**2)
+df["dist"] = np.sqrt(df["Xhelio"] ** 2 + df["Yhelio"] ** 2 + df["Zhelio"] ** 2)
 
 # Round all float columns to 5 decimals
 float_cols = df.select_dtypes(include=["float"]).columns
@@ -371,12 +765,6 @@ df.to_csv(
 )
 
 breakpoint()
-
-
-
-
-
-
 
 
 df = pd.read_csv("../temp_updt/data/databases/KOUNKEL2019.csv")
@@ -408,20 +796,20 @@ df = pd.read_csv("../temp_updt/data/databases/KOUNKEL2019.csv")
 
 df_ucc = pd.read_csv("../data/UCC_cat_B.csv")
 
-ucc_fnames = [_.split(';') for _ in df_ucc.fnames.values]
+ucc_fnames = [_.split(";") for _ in df_ucc.fnames.values]
 # ucc_fnames = [_.split(";") for _ in ucc_fnames_v]
 # # Flatten list
 ucc_fnames = [item for sublist in ucc_fnames for item in sublist]
 
 # Compute distance from Heliocentric XYZ
-df['dist'] = np.sqrt(df['X']**2 + df['Y']**2 + df['Z']**2)
-df['dist'] = df['dist'].round(2)
+df["dist"] = np.sqrt(df["X"] ** 2 + df["Y"] ** 2 + df["Z"] ** 2)
+df["dist"] = df["dist"].round(2)
 
 # Nnans, Ntheia, Neither = 0, 0, 0
 msk = []
 for row in df.itertuples():
-    theia_name = str(row.Theia).lower().replace('_', '')
-    
+    theia_name = str(row.Theia).lower().replace("_", "")
+
     if theia_name in ucc_fnames:
         # Ntheia += 1
         msk.append(True)
@@ -471,15 +859,13 @@ df.to_csv(
 breakpoint()
 
 
-
-
 df = pd.read_csv("../temp_updt/data/databases/CAMARGO2012.csv")
 
 coords = SkyCoord(
     ra=df["alpha"].astype(str),
     dec=df["delta"].astype(str),
     unit=(u.hourangle, u.deg),
-    frame='icrs'
+    frame="icrs",
 )
 # Extract decimal degrees
 df["RA"] = coords.ra.deg.round(5)
@@ -514,17 +900,16 @@ df.to_csv(
 breakpoint()
 
 
-
-
-
 # df = pd.read_csv("../temp_updt/data/databases/TADROSS2014.csv")
 df = pd.read_csv("/home/gabriel/Descargas/TADROSS2014.csv")
 
 # Merge cluster_2 column into Cluster column, using a '_'  to join them
 df["Cluster"] = df.apply(
-    lambda row: f"{row['Cluster']}_{row['cluster_2']}"
-    if pd.notna(row["cluster_2"])
-    else row["Cluster"],
+    lambda row: (
+        f"{row['Cluster']}_{row['cluster_2']}"
+        if pd.notna(row["cluster_2"])
+        else row["Cluster"]
+    ),
     axis=1,
 )
 
@@ -534,13 +919,24 @@ df["Cluster"] = df.apply(
 # df["RA"] = np.round(Angle(df["h"].astype(str) + "h" + df["m"].astype(str) + "m" + df["s"].astype(str) + "s", unit=u.hourangle).degree, 5)
 # df["DEC"] = np.round(Angle(df["d"].astype(str) + "d" + df["m.1"].astype(str) + "m" + df["s.1"].astype(str) + "s", unit=u.deg).degree, 5)
 
-from astropy.coordinates import SkyCoord
 import astropy.units as u
+from astropy.coordinates import SkyCoord
+
 coords = SkyCoord(
-    ra=df["h"].astype(str) + "h" + df["m"].astype(str) + "m" + df["s"].astype(str) + "s",
-    dec=df["d"].astype(str) + "d" + df["m.1"].astype(str) + "m" + df["s.1"].astype(str) + "s",
+    ra=df["h"].astype(str)
+    + "h"
+    + df["m"].astype(str)
+    + "m"
+    + df["s"].astype(str)
+    + "s",
+    dec=df["d"].astype(str)
+    + "d"
+    + df["m.1"].astype(str)
+    + "m"
+    + df["s.1"].astype(str)
+    + "s",
     unit=(u.hourangle, u.deg),
-    frame='icrs'
+    frame="icrs",
 )
 # Extract decimal degrees
 df["RA"] = coords.ra.deg.round(5)
@@ -562,7 +958,7 @@ for col in ["Age", "EBV", "R_sun"]:
     df.insert(col_idx + 1, f"e_{col}", error)
 
 
-df = df.drop(columns=["cluster_2", "h","m","s","d","m.1","s.1"])
+df = df.drop(columns=["cluster_2", "h", "m", "s", "d", "m.1", "s.1"])
 
 
 df.to_csv(

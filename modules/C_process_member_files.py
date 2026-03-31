@@ -264,11 +264,6 @@ def detect_entries_to_process(
                     f"{df_names[i]} and {df_names[j]} share {len(shared)} elements"
                 )
 
-    #
-    N_process = (
-        len(rename_C_fname) + len(B_not_in_C) + len(C_not_in_B) + len(C_reprocess)
-    )
-
     logging.info("\nProcessing:")
     datasets = [
         ("B entries to add to C", B_not_in_C, "Names", "DB"),
@@ -296,24 +291,27 @@ def detect_entries_to_process(
             ans = input(f"Show list for '{label}'? (y/n): ").strip().lower()
         if ans == "y":
             for name, new_name in rename_C_fname.items():
-                logging.info(f"  {name} --> {new_name}")
+                logging.info(f"  {name:20} --> {new_name}")
 
     label = "C entries to remove (incorporated to another entry)"
-    N_rem = C_not_in_B_new_fname["rename"] + len(C_not_in_B_new_fname["incorporate"])
-    logging.info(f"\n-{label:20}: {N_rem}")
+    N_rem = C_not_in_B_new_fname["rename"]
+    N_incorp = len(C_not_in_B_new_fname["incorporate"])
+    logging.info(f"\n-{label:20}: {N_rem + N_incorp}")
     if N_rem > 0:
+        logging.info(f"To be renamed N={N_rem} (shown above)")
+    if N_incorp > 0:
+        logging.info(f"To be incorporated ({N_incorp}):")
         ans = "y"
-        if N_rem > 100:
-            ans = input(f"Show list for '{label}'? (y/n): ").strip().lower()
+        if N_incorp > 100:
+            ans = input("Show list? (y/n): ").strip().lower()
         if ans == "y":
-            logging.info(
-                f"To be renamed N={C_not_in_B_new_fname['rename']} (shown above)"
-            )
-            logging.info(
-                f"To be incorporated ({len(C_not_in_B_new_fname['incorporate'])}):"
-            )
             for name, new_name in C_not_in_B_new_fname["incorporate"].items():
                 logging.info(f"  {name} --> {new_name}")
+
+    # Total number of entries to process
+    N_process = (
+        len(rename_C_fname) + len(B_not_in_C) + len(C_not_in_B) + len(C_reprocess)
+    )
 
     return rename_C_fname, B_not_in_C, C_not_in_B, C_reprocess, N_process
 
