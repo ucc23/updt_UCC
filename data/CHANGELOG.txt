@@ -1,12 +1,28 @@
 Some of these are intermediate versions of the UCC database that are not published.
 
 
+## 26XXYY
+
+- Change naming hierarchy for 262 entries: Melotte < IC < NGC
+
+- Added Lynga (1987)
+- Added van den Bergh & Hagen (1975)
+- Added Sulentic et al (1973)
+- Bukowiecki et al. (2011): use kpc distances because (m-M) contains bad values
+- Zhong et al. (2020): fixed bad values
+- Tadross et al. (2014): fixed bad distance units (kpc to pc)
+- New (simpler) formula for `C_lit`
+
+
+
+
+
 ## 260320
 
 - Added Yan et al. (2026)
 - Added Otto et al. (2026)
 - Added Angelo et al. (2023)
-- Fixed bad OCs in Perren et al 2022
+- Fixed bad OCs in Perren et al (2022)
 
 
 

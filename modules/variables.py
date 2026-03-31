@@ -67,8 +67,10 @@ GCs_cat = data_folder + "globulars.csv"
 manual_pars_file = data_folder + "manual_params.csv"
 # Preferred order in which the OCs are assigned their primary name
 naming_order = (
+    "hyades",  # Common name
+    "ngc",  # 1888
+    "ic",  # 1895
     "melotte",  # 1915
-    "hyades",
     "trumpler",  # 1930
     "collinder",  # 1931
     "tombaugh",  # 1940
@@ -80,7 +82,6 @@ naming_order = (
     "loden",  # 1973
     "vdbh",  # 1975
     "bochum",  # 1975
-    "ngc",
 )
 
 # Exceptions to the rule below
