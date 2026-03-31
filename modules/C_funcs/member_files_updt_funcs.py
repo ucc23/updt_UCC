@@ -97,8 +97,8 @@ def get_gaia_frame(
     ra_c,
     dec_c,
     plx_c,
-    N_box: float,
-    frame_limit: str,
+    N_box: float = np.nan,
+    frame_limit: str = "",
     N_min_stars: int = 100,
     box_length_add: float = 0.5,
 ) -> pd.DataFrame:
