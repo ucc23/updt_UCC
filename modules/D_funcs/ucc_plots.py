@@ -432,7 +432,7 @@ def make_N_vs_year_plot(file_out_name, df_UCC, fontsize=7, dpi=300):
     unique, counts = np.unique(years, return_counts=True)
     c_sum = np.cumsum(counts)
 
-    # Combine with old years (previous to 1995)
+    # Combine with old DBs
     #
     # Source: http://www.messier.seds.org/open.html#Messier
     # Messier (1771): 33
@@ -446,8 +446,9 @@ def make_N_vs_year_plot(file_out_name, df_UCC, fontsize=7, dpi=300):
     # Herschel (1786): ???
     #
     # Source:
-    # https://in-the-sky.org/data/catalogue.php?cat=NGC&const=1&type=OC&sort=0&view=1
-    # Dreyer (1888): 640?
+    # The New General Catalogue (NGC)
+    # https://in-the-sky.org/data/catalogue_info.php?cat=NGC
+    # Dreyer (1888): 640
     #
     # Source: https://webda.physics.muni.cz/description.html#cluster_level
     # "The catalogue of cluster parameters prepared by Lyngå (1987, 5th edition, CDS
@@ -459,11 +460,8 @@ def make_N_vs_year_plot(file_out_name, df_UCC, fontsize=7, dpi=300):
     # Mermilliod 1988 (Bull. Inform. CDS 35, 77-91): 570
     # Mermilliod 1996ASPC...90..475M (BDA, 1996): ~500
     #
-    if min(unique) <= 1987:
-        raise ValueError("DB year is smaller than 1987, check")
-    years = [1771, 1888, 1987] + list(unique)
-    min_N = 1151  # Lyngå (1987)
-    values = [33, 640, min_N] + list(np.clip(c_sum, a_min=min_N, a_max=np.inf))
+    years = [1771, 1888] + list(unique)
+    values = [33, 640] + list(np.clip(c_sum, a_min=640, a_max=np.inf))
 
     fig = plt.figure(figsize=(4, 2.5))
     plt.plot(years, values, alpha=0.5, lw=3, marker="o", ms=4, color="maroon", zorder=5)
