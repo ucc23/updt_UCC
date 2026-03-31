@@ -1,4 +1,81 @@
 {
+  "SULENTIC1973": {
+    "SCIX_url": "https://scixplorer.org/abs/1973rncn.book.....S",
+    "data_cmmts": "data",
+    "citations_count": {
+      "date": "2026-03-27",
+      "count": "20",
+      "citations_year": 0.4
+    },
+    "data_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=1973rncn.book.....S",
+    "authors": "Sulentic et al.",
+    "title": "The revised new catalogue of nonstellar astronomical objects",
+    "year": "1973",
+    "received": "19730101",
+    "names": "NGC",
+    "pos": {
+      "RA": "RA_deg",
+      "DEC": "DEC_deg"
+    },
+    "pars": {},
+    "e_pars": {}
+  },
+  "VDBH1975": {
+    "SCIX_url": "https://scixplorer.org/abs/1975AJ.....80...11V",
+    "data_cmmts": "data",
+    "citations_count": {
+      "date": "2026-03-27",
+      "count": "115",
+      "citations_year": 2.3
+    },
+    "data_url": "N/A",
+    "authors": "van den Bergh & Hagen",
+    "title": "Uniform survey of clusters in the southern Milky Way.",
+    "year": "1975",
+    "received": "19750101",
+    "names": "Name",
+    "pos": {
+      "RA": "RA_deg",
+      "DEC": "DEC_deg"
+    },
+    "pars": {},
+    "e_pars": {}
+  },
+  "LYNGA1987": {
+    "SCIX_url": "https://scixplorer.org/abs/1988ESOC...28..379L",
+    "data_cmmts": "data",
+    "citations_count": {
+      "date": "2026-03-25",
+      "count": "5",
+      "citations_year": 0.1
+    },
+    "data_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=VII/92A",
+    "authors": "Lynga",
+    "title": "The Lund catalogue of open cluster data (5th edition).",
+    "year": "1987",
+    "received": "19870101",
+    "names": "Cluster",
+    "pos": {
+      "RA": "RA",
+      "DEC": "DEC",
+      "Rv": "RVel"
+    },
+    "pars": {
+      "av": {
+        "ebv": "E(B-V)"
+      },
+      "dist": {
+        "dpc": "Dist"
+      },
+      "age": {
+        "loga": "log.Age"
+      },
+      "met": {
+        "feh": "[Fe/H]"
+      }
+    },
+    "e_pars": {}
+  },
   "DAMBIS1999": {
     "SCIX_url": "https://scixplorer.org/abs/1999AstL...25....7D",
     "data_cmmts": "data",
@@ -773,8 +850,8 @@
         "ebv": "E(B-V)"
       },
       "dist": {
-        "dm": "m-M",
-        "dkpc": "d_kpc"
+        "dkpc": "d_kpc",
+        "dm": "m-M"
       },
       "age": {
         "loga": "log(age)"
@@ -1091,7 +1168,7 @@
         "ebv": "EBV"
       },
       "dist": {
-        "dkpc": "R_sun"
+        "dpc": "R_sun"
       },
       "age": {
         "agyr": "Age"
@@ -1996,7 +2073,10 @@
         "ebv": "E(B-V)ref"
       },
       "dist": {
-        "dpc": "Distref"
+        "dpc": [
+          "DMode",
+          "Distref"
+        ]
       },
       "age": {
         "agyr": "Ageref"
