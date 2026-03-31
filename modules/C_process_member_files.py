@@ -23,7 +23,6 @@ from .variables import (
     md_folder,
     merged_dbs_file,
     name_DBs_json,
-    path_gaia_frames,
     path_gaia_frames_ranges,
     plots_folder,
     root_ucc_path,
@@ -133,9 +132,6 @@ def get_paths_check_paths(logging) -> tuple[str, str, str]:
     """ """
     txt = ""
     # Check for Gaia files
-    if not os.path.isdir(path_gaia_frames):
-        # raise FileNotFoundError(f"Folder {path_gaia_frames} is not present")
-        txt += f"Folder {path_gaia_frames} is not present\n"
     if not os.path.isfile(path_gaia_frames_ranges):
         # raise FileNotFoundError(f"File {path_gaia_frames_ranges} is not present")
         txt += f"File {path_gaia_frames_ranges} is not present"
@@ -705,8 +701,16 @@ def find_intersections(df_C, df_members):
     return intersection_map
 
 
-def add_info_to_C(current_JSON, df_UCC_B, df_UCC_C, max_dens=5):
-    """ """
+def add_info_to_C(
+    current_JSON, df_UCC_B, df_UCC_C, max_dens=5, N_lit_min=2, C_lit_perc_max=0.5
+):
+    """
+
+    max_dens: density (N_50/r_pc^2) above which C_dens=1
+    C_lit_perc_max: mid-point (above this C_lit=1)
+    N_lit_min: min-point (below this C_lit=0)
+
+    """
 
     def normalize(N, arr, Nmin, Nmax, vmin, vmax):
         msk2 = (N >= Nmin) & (N < Nmax)
@@ -734,17 +738,11 @@ def add_info_to_C(current_JSON, df_UCC_B, df_UCC_C, max_dens=5):
 
     # Count number of times each OC is mentioned in the literature
     N_lit = np.array([len(_.split(";")) for _ in df_UCC_B["DB"]])
-    # Normalizing value
-    N_lit_tot = len({s for cell in df_UCC_B["DB"] for s in cell.split(";")})
-    # N_lit_tot = max(N_lit)
-    # Percentages that define the mapping ranges: 5%, 10%, 15%, 20%
-    Nvals = [int(N_lit_tot * _) for _ in (0.05, 0.1, 0.15, 0.2)]
-    C_lit = np.ones(len(N_lit))
-    C_lit[N_lit < min(Nvals)] = 0.0
-    # Define intervals and mapping ranges
-    bounds = (0.25, 0.5, 0.75, 0.9)
-    for i in range(1, len(bounds)):
-        normalize(N_lit, C_lit, Nvals[i - 1], Nvals[i], bounds[i - 1], bounds[i])
+    # Normalizing value: max number of DBs for a single OC
+    N_lit_tot = max(N_lit)
+    # Simple linear mapping
+    N_lit_max = C_lit_perc_max * N_lit_tot
+    C_lit = np.clip((N_lit - N_lit_min) / (N_lit_max - N_lit_min), 0, 1)
 
     # C_dup indicates the confidence that an entry is a duplicate of a previously
     # reported object. A value of 1 means not at all a duplicate
