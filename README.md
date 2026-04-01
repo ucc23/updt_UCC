@@ -336,10 +336,10 @@ $ ./test_build.sh
 or
 
 ```
-$ ./test_build.sh N -xxxx -yyyy
+$ ./test_build.sh N -cwnu -cwwdl -ckcwdm -hsc -theia
 ```
 
-where `N` is the number of random clusters to be generated and `-xxxx` and `-yyyy` are
+where `N` is the number of random clusters to be generated and `-xxxx` are
 the first letters of names we want to exclude.
 
 
