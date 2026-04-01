@@ -12,7 +12,7 @@ from .C_funcs.member_files_updt_funcs import (
     save_cl_datafile,
     updt_UCC_new_cl_data,
 )
-from .utils import diff_between_dfs, load_BC_cats, logger, save_df_UCC
+from .utils import diff_between_dfs, load_BC_cats, logger, normalize_name, save_df_UCC
 from .variables import (
     C_dup_min,
     C_lit_max,
@@ -41,9 +41,15 @@ def main():
     # Generate paths and check for required folders and files
     ucc_B_file, ucc_C_file, temp_zenodo_fold = get_paths_check_paths(logging)
 
-    gaia_frames_data, current_JSON, df_GCs, df_members, df_UCC_B, df_UCC_C = load_data(
-        logging, ucc_B_file, ucc_C_file
-    )
+    (
+        gaia_frames_data,
+        current_JSON,
+        new_ocs_manual_pars,
+        df_GCs,
+        df_members,
+        df_UCC_B,
+        df_UCC_C,
+    ) = load_data(logging, ucc_B_file, ucc_C_file)
 
     # Detect entries to be processed
     rename_C_fname, B_not_in_C, C_not_in_B, C_reprocess, N_process = (
@@ -72,7 +78,9 @@ def main():
         logging.info("\nTemp file df_UCC_C_updt loaded")
     else:
         # Generate dataframe to store data extracted from the OCs to be processed
-        df_UCC_C_updt = process_entries(df_UCC_B, B_not_in_C, C_reprocess)
+        df_UCC_C_updt = process_entries(
+            df_UCC_B, new_ocs_manual_pars, B_not_in_C, C_reprocess
+        )
         # Generate member files for new OCs and obtain their data
         df_UCC_C_updt = member_files_updt(
             logging, gaia_frames_data, df_GCs, df_UCC_C, df_UCC_C_updt
@@ -174,7 +182,15 @@ def get_paths_check_paths(logging) -> tuple[str, str, str]:
 
 def load_data(
     logging, ucc_B_file, ucc_C_file
-) -> tuple[pd.DataFrame, dict, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+) -> tuple[
+    pd.DataFrame,
+    dict,
+    pd.DataFrame,
+    pd.DataFrame,
+    pd.DataFrame,
+    pd.DataFrame,
+    pd.DataFrame,
+]:
     """ """
     # Load file with Gaia frames ranges
     gaia_frames_data = pd.DataFrame([])
@@ -184,6 +200,19 @@ def load_data(
     # Load clusters data in JSON file
     with open(name_DBs_json) as f:
         current_JSON = json.load(f)
+
+    new_ocs_manual_pars = pd.DataFrame([])
+    new_ocs_manual_pars_fpath = data_folder + "new_ocs_manual_pars.csv"
+    if os.path.isfile(new_ocs_manual_pars_fpath):
+        new_ocs_manual_pars = pd.read_csv(new_ocs_manual_pars_fpath)
+        # 'frame_limit' column should be string and NaN values "nan"
+        new_ocs_manual_pars["frame_limit"] = (
+            new_ocs_manual_pars["frame_limit"].astype("string").fillna("nan")
+        )
+        # build normalized key
+        new_ocs_manual_pars["fname"] = new_ocs_manual_pars["Name"].map(normalize_name)
+        new_ocs_manual_pars.drop(columns=["Name"], inplace=True)
+        new_ocs_manual_pars = new_ocs_manual_pars.set_index("fname")
 
     # Load GCs data
     df_GCs = pd.read_csv(GCs_cat)
@@ -197,7 +226,15 @@ def load_data(
     df_UCC_C = load_BC_cats("C", ucc_C_file)
     logging.info(f"File {ucc_C_file} loaded ({len(df_UCC_C)} entries)")
 
-    return gaia_frames_data, current_JSON, df_GCs, df_members, df_UCC_B, df_UCC_C
+    return (
+        gaia_frames_data,
+        current_JSON,
+        new_ocs_manual_pars,
+        df_GCs,
+        df_members,
+        df_UCC_B,
+        df_UCC_C,
+    )
 
 
 def detect_entries_to_process(
@@ -317,7 +354,10 @@ def detect_entries_to_process(
 
 
 def process_entries(
-    df_UCC_B: pd.DataFrame, B_not_in_C: pd.DataFrame, C_reprocess: pd.DataFrame
+    df_UCC_B: pd.DataFrame,
+    new_ocs_manual_pars: pd.DataFrame,
+    B_not_in_C: pd.DataFrame,
+    C_reprocess: pd.DataFrame,
 ) -> pd.DataFrame:
     """ """
     # # Extract all columns except "fnames"
@@ -366,10 +406,20 @@ def process_entries(
     )
 
     if not df_UCC_updt.empty:
-        if input("\nSet a general N_clust_max value? (y/n): ").lower() == "y":
-            N_clust_max_general = int(input("Enter N_clust_max value: "))
-            # Update the 'df_UCC_updt['N_clust_max']' column with this value
-            df_UCC_updt["N_clust_max"] = N_clust_max_general
+        if not new_ocs_manual_pars.empty:
+            # index df_UCC_updt temporarily on fname
+            df_UCC_updt = df_UCC_updt.set_index("fname")
+            # replace values for matching entries
+            common = df_UCC_updt.index.intersection(new_ocs_manual_pars.index)
+            cols = list(new_ocs_manual_pars.keys())
+            df_UCC_updt.loc[common, cols] = new_ocs_manual_pars.loc[common, cols].values
+            # restore fname as column
+            df_UCC_updt = df_UCC_updt.reset_index()
+        else:
+            if input("\nSet a general N_clust_max value? (y/n): ").lower() == "y":
+                N_clust_max_general = int(input("Enter N_clust_max value: "))
+                # Update the 'df_UCC_updt['N_clust_max']' column with this value
+                df_UCC_updt["N_clust_max"] = N_clust_max_general
 
     return df_UCC_updt
 
