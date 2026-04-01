@@ -62,7 +62,7 @@ def run_script(script_choice):
         print(f"❌ Failed to import module {module_name}: {e}")
         return False
     mod.main()
-    print(f"✅ {script_choice}_script completed successfully!")
+    print(f"\n✅ {script_choice}_script completed successfully!")
     return True
 
 

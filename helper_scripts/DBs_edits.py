@@ -8,6 +8,23 @@ from astropy.coordinates import SkyCoord
 
 
 
+
+df = pd.read_csv("../temp_updt/data/databases/DIAS2026.csv")
+
+
+df.to_csv(
+    "../temp_updt/data/databases/DIAS2026.csv",
+    na_rep="nan",
+    index=False,
+    quoting=csv.QUOTE_NONNUMERIC,
+)
+
+breakpoint()
+
+
+
+
+
 df = pd.read_csv("../temp_updt/data/databases/SINNOTT1988.csv")
 
 # Convert RA,DEC using astropy
