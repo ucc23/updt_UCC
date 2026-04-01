@@ -4378,6 +4378,57 @@
     },
     "e_pars": {}
   },
+  "DIAS2025": {
+    "SCIX_url": "https://scixplorer.org/abs/2025RMxAA..61a...3D",
+    "data_cmmts": "data",
+    "citations_count": {
+      "date": "2026-03-31",
+      "count": "1",
+      "citations_year": 1.0
+    },
+    "data_url": "N/A",
+    "authors": "Dias & Monteiro",
+    "title": "Discovery of 28 Open Clusters with Gaia DR3",
+    "year": "2025",
+    "received": "20250101",
+    "names": "Name",
+    "pos": {
+      "RA": "RA",
+      "DEC": "DEC",
+      "plx": "Plx",
+      "pmra": "pmRA",
+      "pmde": "pmDE",
+      "Rv": "RV"
+    },
+    "pars": {
+      "av": {
+        "av": "AV"
+      },
+      "dist": {
+        "dpc": "Dist"
+      },
+      "age": {
+        "loga": "logt"
+      },
+      "met": {
+        "feh": "[Fe/H]"
+      }
+    },
+    "e_pars": {
+      "e_av": {
+        "eav": "e_AV"
+      },
+      "e_dist": {
+        "edpc": "e_Dist"
+      },
+      "e_age": {
+        "eloga": "e_logt"
+      },
+      "e_met": {
+        "efeh": "e_[Fe/H]"
+      }
+    }
+  },
   "HU2025": {
     "SCIX_url": "https://scixplorer.org/abs/2025A%26A...699A.246H",
     "data_cmmts": "data",
@@ -4679,6 +4730,57 @@
       }
     }
   },
+  "DIAS2026": {
+    "SCIX_url": "https://scixplorer.org/abs/2026AJ....171...24D",
+    "data_cmmts": "data",
+    "citations_count": {
+      "date": "2026-03-31",
+      "count": "0",
+      "citations_year": 0.0
+    },
+    "data_url": "N/A",
+    "authors": "Dias et al.",
+    "title": "Discovery of 178 Open Clusters with Gaia DR3",
+    "year": "2026",
+    "received": "20250716",
+    "names": "Cluster",
+    "pos": {
+      "RA": "RAdeg",
+      "DEC": "DEdeg",
+      "plx": "plx",
+      "pmra": "pmRA",
+      "pmde": "pmDE",
+      "Rv": "RVel"
+    },
+    "pars": {
+      "av": {
+        "av": "AV"
+      },
+      "dist": {
+        "dpc": "Dist"
+      },
+      "age": {
+        "loga": "Age"
+      },
+      "met": {
+        "feh": "[Fe/H]"
+      }
+    },
+    "e_pars": {
+      "e_av": {
+        "eav": "e_AV"
+      },
+      "e_dist": {
+        "edpc": "e_Dist"
+      },
+      "e_age": {
+        "eloga": "e_Age"
+      },
+      "e_met": {
+        "efeh": "e_[Fe/H]"
+      }
+    }
+  },
   "OBASI2026": {
     "SCIX_url": "https://scixplorer.org/abs/2026A%26A...705A.244O",
     "data_cmmts": "data",
@@ -4828,6 +4930,50 @@
       }
     },
     "e_pars": {}
+  },
+  "FERREIRA2026": {
+    "SCIX_url": "https://scixplorer.org/abs/2026arXiv260326572F",
+    "data_cmmts": "data",
+    "citations_count": {
+      "date": "2026-03-31",
+      "count": "0",
+      "citations_year": 0.0
+    },
+    "data_url": "N/A",
+    "authors": "Ferreira et al.",
+    "title": "New star clusters discovered towards the Galactic anticentre direction using Gaia DR3 data",
+    "year": "2026",
+    "received": "20260101",
+    "names": "name",
+    "pos": {
+      "RA": "RAJ2000",
+      "DEC": "DEJ2000",
+      "plx": "plx",
+      "pmra": "pmra",
+      "pmde": "pmdec"
+    },
+    "pars": {
+      "age": {
+        "loga": "logt"
+      },
+      "av": {
+        "ebv": "EBV"
+      },
+      "dist": {
+        "dpc": "D"
+      }
+    },
+    "e_pars": {
+      "e_age": {
+        "eloga": "delta_logt"
+      },
+      "e_av": {
+        "eebv": "delta_EBV"
+      },
+      "e_dist": {
+        "edpc": "delta_D"
+      }
+    }
   },
   "CHI2025": {
     "SCIX_url": "https://scixplorer.org/abs/2025PASJ...77.1050C",
