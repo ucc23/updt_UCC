@@ -1638,7 +1638,7 @@
   },
   "BICA2019": {
     "SCIX_url": "https://scixplorer.org/abs/2019AJ....157...12B",
-    "data_cmmts": "data",
+    "data_cmmts": "data,comments",
     "citations_count": {
       "date": "2026-02-10",
       "count": "84",
@@ -3779,7 +3779,7 @@
   },
   "HUNT2023": {
     "SCIX_url": "https://scixplorer.org/abs/2023A%26A...673A.114H",
-    "data_cmmts": "data",
+    "data_cmmts": "data,comments",
     "citations_count": {
       "date": "2026-02-10",
       "count": "293",
