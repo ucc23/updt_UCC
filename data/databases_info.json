@@ -1298,6 +1298,55 @@
       }
     }
   },
+  "NETOPIL2016": {
+    "SCIX_url": "https://scixplorer.org/abs/2016A%26A...585A.150N",
+    "data_cmmts": "data",
+    "citations_count": {
+      "date": "2026-04-03",
+      "count": "209",
+      "citations_year": 20.9
+    },
+    "data_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2016A%26A...585A.150N",
+    "authors": "Netopil et al.",
+    "title": "On the metallicity of open clusters. III. Homogenised sample",
+    "year": "2016",
+    "received": "20150421",
+    "names": "Cluster",
+    "pos": {
+      "RA": "_RA",
+      "DEC": "_DE"
+    },
+    "pars": {
+      "age": {
+        "agyr": "Age"
+      },
+      "met": {
+        "feh": [
+          "[Fe/H]HQS",
+          "[Fe/H]LQS",
+          "[Fe/H]Phot"
+        ]
+      },
+      "dist": {
+        "dkpc": "RGC"
+      }
+    },
+    "e_pars": {
+      "e_age": {
+        "eagyr": "e_Age"
+      },
+      "e_met": {
+        "efeh": [
+          "e_[Fe/H]HQS",
+          "e_[Fe/H]LQS",
+          "e_[Fe/H]Phot"
+        ]
+      },
+      "e_dist": {
+        "edkpc": "e_RGC"
+      }
+    }
+  },
   "KHARCHENKO2016": {
     "SCIX_url": "https://scixplorer.org/abs/2016A%26A...585A.101K",
     "data_cmmts": "data",
@@ -2764,6 +2813,58 @@
           "e_[Fe/H]M",
           "e_[Fe/H]f_l",
           "e_[Fe/H]f_h"
+        ]
+      }
+    }
+  },
+  "NETOPIL2022": {
+    "SCIX_url": "https://scixplorer.org/abs/2022MNRAS.509..421N",
+    "data_cmmts": "data",
+    "citations_count": {
+      "date": "2026-04-03",
+      "count": "56",
+      "citations_year": 14.0
+    },
+    "data_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2022MNRAS.509..421N",
+    "authors": "Netopil et al.",
+    "title": "The Galactic metallicity gradient shown by open clusters in the light of radial migration",
+    "year": "2022",
+    "received": "20210420",
+    "names": "Name",
+    "pos": {
+      "RA": "RA",
+      "DEC": "DEC",
+      "plx": "plx",
+      "pmra": "pmra",
+      "pmde": "pmde",
+      "Rv": "RV"
+    },
+    "pars": {
+      "av": {
+        "ebv": "E(B-V)"
+      },
+      "dist": {
+        "dkpc": "Dist",
+        "dm": "(m-M)0"
+      },
+      "age": {
+        "loga": "logAge"
+      },
+      "met": {
+        "feh": [
+          "[Fe/H]",
+          "Z"
+        ]
+      }
+    },
+    "e_pars": {
+      "e_dist": {
+        "edkpc": "e_Dist"
+      },
+      "e_met": {
+        "efeh": [
+          "e_[Fe/H]",
+          "e_Z"
         ]
       }
     }
