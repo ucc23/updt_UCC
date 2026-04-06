@@ -1,4 +1,5 @@
 import csv
+import re
 
 import astropy.units as u
 import matplotlib.pyplot as plt
@@ -6,23 +7,111 @@ import numpy as np
 import pandas as pd
 from astropy.coordinates import SkyCoord
 
+df1 = pd.read_csv("../temp_updt/data/databases/NETOPIL2022_0.csv")
+df2 = pd.read_csv("../temp_updt/data/databases/NETOPIL2022_1.csv")
+df3 = pd.read_csv("../temp_updt/data/databases/NETOPIL2022_2.csv")
 
 
+# For columns "Z","[Fe/H]" in df3, the errors of the last significant digits are given in parenthesis
+# generate an error column for each column
+def split_value_error(series):
+    values = []
+    errors = []
+    for s in series.astype(str):
+        m = re.match(r"\s*([+-]?\d*\.?\d+)\((\d+)\)\s*", s)
+        if m:
+            val_str, err_digits = m.groups()
+            # number of decimal places in value
+            if "." in val_str:
+                n_dec = len(val_str.split(".")[1])
+            else:
+                n_dec = 0
+            val = float(val_str)
+            err = float(err_digits) * 10 ** (-n_dec)
+        else:
+            val = pd.to_numeric(s, errors="coerce")
+            err = np.nan
+        values.append(val)
+        errors.append(err)
+    return pd.Series(values), pd.Series(errors)
 
-df = pd.read_csv("../temp_updt/data/databases/DIAS2026.csv")
+
+for col in ["Z", "[Fe/H]"]:
+    df3[col], df3[f"e_{col}"] = split_value_error(df3[col])
+
+# Merge three dfs by their 'Name' column
+df_merged = (
+    df1.merge(df2, on="Name", how="outer")
+    .merge(df3, on="Name", how="outer")
+    .fillna("nan")
+)
 
 
-df.to_csv(
-    "../temp_updt/data/databases/DIAS2026.csv",
+# COmbine 'GLON_x', 'GLON_y' and 'GLAT_x', 'GLAT_y' columns into single 'GLON' and
+# 'GLAT' columns, giving priority to _x values but using _y values if 'nan'
+def combine_cols(row, col_x, col_y):
+    if row[col_x] != "nan":
+        return row[col_x]
+    elif row[col_y] != "nan":
+        return row[col_y]
+    else:
+        return "nan"
+
+
+for col in ("RA", "DEC", "Dist", "logAge", "[Fe/H]", "e_[Fe/H]", "Rgc", "Nstars"):
+    df_merged[col] = df_merged.apply(
+        lambda row: combine_cols(row, col + "_x", col + "_y"), axis=1
+    )
+    df_merged = df_merged.drop(columns=[col + "_x", col + "_y"])
+
+# Drop 'GLON_x', 'GLON_y' and 'GLAT_x', 'GLAT_y' columns
+df_merged = df_merged.drop(columns=["GLON_x", "GLON_y", "GLAT_x", "GLAT_y"])
+
+# Re-order columns
+cols_order = [
+    "Name",
+    "RA",
+    "DEC",
+    "pmra",
+    "e_pmra",
+    "pmde",
+    "e_pmde",
+    "plx",
+    "e_plx",
+    "RV",
+    "e_RV",
+    "r_RV",
+    "E(B-V)",
+    "(m-M)0",
+    "Dist",
+    "e_Dist",
+    "logAge",
+    "[Fe/H]",
+    "e_[Fe/H]",
+    "Z",
+    "e_Z",
+    "Nmeas",
+    "r_[Fe/H]",
+    "Apo",
+    "Peri",
+    "Rguide",
+    "Rbirth",
+    "Ecc",
+    "Zmax",
+    "N",
+    "Rgc",
+    "Nstars",
+]
+df_merged = df_merged[cols_order]
+
+df_merged.to_csv(
+    "../temp_updt/data/databases/NETOPIL2022_c.csv",
     na_rep="nan",
     index=False,
     quoting=csv.QUOTE_NONNUMERIC,
 )
 
 breakpoint()
-
-
-
 
 
 df = pd.read_csv("../temp_updt/data/databases/SINNOTT1988.csv")
@@ -43,7 +132,11 @@ df = df[df["Type"] == "OC"]
 
 # If "Name" column starts with "I", replace by "IC ", else, add a "NGC "
 df["Name"] = df.apply(
-    lambda row: f"IC {row['Name'][1:].strip()}" if str(row["Name"]).startswith("I") else f"NGC {row['Name'].strip()}",
+    lambda row: (
+        f"IC {row['Name'][1:].strip()}"
+        if str(row["Name"]).startswith("I")
+        else f"NGC {row['Name'].strip()}"
+    ),
     axis=1,
 )
 
@@ -63,8 +156,6 @@ df.to_csv(
 breakpoint()
 
 
-
-
 df = pd.read_csv("../temp_updt/data/databases/VDBH1975.csv")
 
 # Convert RA,DEC using astropy
@@ -80,7 +171,8 @@ df["DEC_deg"] = coords.dec.deg.round(5)
 
 # If "Name" column is "nan", replace with "VDBH_" + "No" column
 df["Name"] = df.apply(
-    lambda row: f"VDBH_{int(row['No'])}" if pd.isna(row["Name"]) else row["Name"], axis=1
+    lambda row: f"VDBH_{int(row['No'])}" if pd.isna(row["Name"]) else row["Name"],
+    axis=1,
 )
 
 
@@ -92,7 +184,6 @@ df.to_csv(
 )
 
 breakpoint()
-
 
 
 df = pd.read_csv("../temp_updt/data/databases/SULENTIC1973.csv")
@@ -124,10 +215,6 @@ df.to_csv(
 breakpoint()
 
 
-
-
-
-
 df = pd.read_csv("../data/databases/ZHONG2020.csv")
 
 # If the "Ref" column is "nan", then change values in the "Ageref", "Distref", and
@@ -146,20 +233,6 @@ df.to_csv(
 )
 
 breakpoint()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 df = pd.read_csv("../temp_updt/data/databases/LYNGA1987.csv")

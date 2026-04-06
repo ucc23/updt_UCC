@@ -151,6 +151,8 @@ def main():
 
     logging.info("\n\n\n===================================================")
     logging.info("Merging of DBs completed\n")
+    logging.info(f"Old B file: {len(df_UCC_B_old)}")
+    logging.info(f"New B file: {len(df_UCC_B)}\n")
 
     df_UCC_B = sort_year_importance(new_JSON, df_UCC_B)
 

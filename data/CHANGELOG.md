@@ -1,6 +1,26 @@
 Some of these are intermediate versions of the UCC database that are not published.
 
 
+## 2604XX
+
+- Added Netopil et al (2022)
+- Added Netopil et al (2016)
+
+- Fixed bad naming (duplicates)
+  - Lada & Lada (2003)
+    - L1228 --> LDN_1228
+    - L1641C --> LDN_1641C
+    - NGC 281W --> NGC 281 West
+    - NGC 281E --> NGC 281 East
+  - Morales et al (2013)
+    - W49A Welch Ring --> W49_A
+
+- Added comments from Hunt & Reffert (2023)
+- Added comments from Bica et al (2019)
+
+
+
+
 ## 260401
  
 - Added Dias et al (2026)

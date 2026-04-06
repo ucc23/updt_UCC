@@ -5,6 +5,104 @@ import pandas as pd
 
 
 
+
+df = pd.read_csv("/home/gabriel/Descargas/HUNT2023.csv")
+
+type_dict = {
+    "o": "Classified as open cluster",
+    "m": "Classified as moving group",
+    "g": "ERROR",
+    "d": "Too distant to classify",
+    "r": "Rejected:",
+}
+clss_dict = {
+    "FP": "false positive",
+    "FP?": "false positive?",
+    "TP": "true positive",
+    "TP?": "true positive?",
+    "": "",
+}
+
+cmmts = {"Cluster": [], "Comment": []}
+for i, row in df.iterrows():
+    if row["Type"] == "g":
+        continue
+
+    # if float(row['CMDCl50']) > 0.75 and row["Name"].startswith("HSC") and row['N'] > 250:
+    #     print(f"{row['Name']} {row['CMDCl50']:.2f} {row['N']}")
+    # continue
+
+    cmmts["Cluster"].append(row["Name"].strip())
+    cmd_human = clss_dict[row["CMDClHuman"].strip()]
+
+    ss = ""
+    if cmd_human != "":
+        ss = "es"
+    txt = f" CMD class{ss}: {row['CMDCl50']:.2f} (50th percentile)"
+
+    if cmd_human != "":
+        txt += f", {cmd_human} (human-assigned)."
+    else:
+        txt += "."
+    if row["Type"] == "r":
+        cmmt = f"Rejected: {row['Note'].strip()}"
+        cmmts["Comment"].append(cmmt + ".")
+    else:
+        cmmt = type_dict[row["Type"]]
+        cmmts["Comment"].append(cmmt + "." + txt)
+
+cluster_df = pd.DataFrame(cmmts)
+cluster_df.to_csv(
+    "../data/databases/cmmts/HUNT2023.csv", index=False, quoting=csv.QUOTE_ALL
+)
+
+breakpoint()
+
+
+
+
+
+df = pd.read_csv("/home/gabriel/Descargas/BICA2019_cmmts.csv")
+
+cmmt_dict = {
+    "REF250": "Present study",
+    "REF039": "2MASS website",
+    "REF1622": "Discoveries by our group members and communicated in the present work (2002 to 2017)",
+    "REF298": "Web updates in DAML02, some were later removed (2003 to 2010)",
+    "REF913": "The Preliminary Amateur Open Cluster Catalog, Version 08/03/2003",
+    "REF947": "Analysis of Dolidze objects by M. Kronberger reported in DAML02",
+    "REF949": "Spitzer website",
+    "REF526": "Private communication by S. Ortolani to E. Bica",
+    "REF891": "List of clusters and alike reported by B. Alessi",
+    "REF1051": "Original NGC and IC catalogues at Vizier: NGC 2000.0, Sky Publishing, ed. Sinnott 1988 (1997yCat.7118....0S)",
+    "REF1070": "Asterisms and cluster alikes by B. Alessi reported in DAML02",
+    "REF963": "Asterisms reported by amateur astronomers in the web",
+    "REF1023": "Particular objects in SIMBAD",
+    "REF7000": "Asterisms and clusters by L. Ferrero",
+}
+
+
+# Strip 'Name' column
+df["Name"] = df["Name"].str.strip()
+
+cmmts = {"Cluster": [], "Comment": []}
+for i, row in df.iterrows():
+    refs = [_.strip() for _ in row['Code'].split(',')]
+    txt = ""
+    for ref in refs:
+        if ref in cmmt_dict:
+            txt += cmmt_dict[ref] + ". "
+    if txt != "":
+        cmmts["Cluster"].append(row["Name"])
+        cmmts["Comment"].append(txt.strip())
+
+cluster_df = pd.DataFrame(cmmts)
+cluster_df.to_csv(
+    "../data/databases/cmmts/BICA2019.csv", index=False, quoting=csv.QUOTE_ALL
+)
+breakpoint()
+
+
 df = pd.read_csv("../data/databases/YAN2026.csv")
 
 cmmts = {"Cluster": [], "Comment": []}
@@ -20,13 +118,6 @@ cluster_df.to_csv(
 breakpoint()
 
 
-
-
-
-
-
-
-
 df = pd.read_csv("../data/databases/cmmts/RAIN2021.csv")
 
 # Strip strings in the 'Cluster' column
@@ -37,13 +128,9 @@ df = df.groupby("Cluster", as_index=False)["Comment"].agg(
 )
 
 
-df.to_csv(
-    "../data/databases/cmmts/RAIN2021_1.csv", index=False, quoting=csv.QUOTE_ALL
-)
+df.to_csv("../data/databases/cmmts/RAIN2021_1.csv", index=False, quoting=csv.QUOTE_ALL)
 
 breakpoint()
-
-
 
 
 df = pd.read_csv("../data/databases/cmmts/AHUMADA2007.csv")
