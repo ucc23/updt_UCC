@@ -1239,7 +1239,7 @@ def transf_par(par_format, par_v, flag_mult):
         "amyr": lambda x: f"{x:.0f}",
         "agyr": lambda x: f"{1000 * x:.0f}",
         "feh": lambda x: f"{x:.3f}",
-        "z": lambda x: f"{np.log(x / c_z_sun):.3f}",
+        "z": lambda x: f"{np.log10(x / c_z_sun):.3f}",
         "mass": lambda x: f"{x:.0f}",
         "logm": lambda x: f"{10**x:.0f}",
         "bf": lambda x: f"{x:.2f}",
@@ -1405,13 +1405,15 @@ def extract_new_DB_coords(
     DB_used = DB_ID
     ra_n, dec_n, lon_n, lat_n, plx_n, pmra_n, pmde_n = new_DB_vals
 
+    mid_hierarchy_val = int(0.5 * max(DB_coords_hierarchy.values()))
+
     # If this entry already has assigned values in the UCC
     if row_ucc:
         db_prev = row_ucc["DB_coords_used"]
-        z_prev = DB_coords_hierarchy.get(db_prev, 100)
-        z_new = DB_coords_hierarchy.get(DB_ID, 100)
-        ucc_vals = [row_ucc[c] for c in cols]
+        z_prev = DB_coords_hierarchy.get(db_prev, mid_hierarchy_val)
+        z_new = DB_coords_hierarchy.get(DB_ID, mid_hierarchy_val)
 
+        ucc_vals = [row_ucc[c] for c in cols]
         if z_prev < z_new:
             # If the previous DB has higher priority (smaller z), keep UCC values
             DB_used = db_prev
