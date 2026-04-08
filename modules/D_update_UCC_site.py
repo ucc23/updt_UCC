@@ -418,7 +418,8 @@ def updt_ucc_cluster_plots(
         fname0 = str(UCC_cl["fname"])
         txt = ""
 
-        # Make Aladin plot if image file does not exist. These images are not updated
+        # Make Aladin plot if image file does not exist.
+        # **These images are not updated, only generated once**
         # Path to original image (if it exists)
         orig_aladin_path = (
             f"{root_ucc_path}{plots_folder}plots_{fname0[0]}/aladin/{fname0}.webp"
@@ -442,7 +443,7 @@ def updt_ucc_cluster_plots(
             txt += " Aladin plot generated |"
 
         # Make GC and CMD plots
-        # Check if this OC's plot should be updated or generated
+        # Check if this OC's plot should be generated/updated
         if UCC_cl["plot_used"] == "n":
             # Read members
             df_membs = df_members[df_members["name"] == fname0]
