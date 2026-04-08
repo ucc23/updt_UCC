@@ -28,7 +28,7 @@ def get_fastMP_membs(
     logging,
     df_GCs: pd.DataFrame,
     gaia_frames_data,
-    df_UCC_C: pd.DataFrame,
+    df_UCC_m: pd.DataFrame,
     fname0,
     ra_c,
     dec_c,
@@ -62,7 +62,7 @@ def get_fastMP_membs(
     if my_field.N_cluster > my_field.N_clust_min:
         check_close_cls(
             logging,
-            df_UCC_C,
+            df_UCC_m,
             gaia_frame,
             fname0,
             glon_c,
@@ -332,7 +332,7 @@ def get_Nmembs(
 
 def check_close_cls(
     logging,
-    df_UCC,
+    df_UCC_m,
     gaia_frame,
     fname,
     glon_c: float,
@@ -374,13 +374,13 @@ def check_close_cls(
 
     # Find OCs in frame. Use coordinates estimated using members
     msk = (
-        (df_UCC["GLON_m"] > l_min)
-        & (df_UCC["GLON_m"] < l_max)
-        & (df_UCC["GLAT_m"] > b_min)
-        & (df_UCC["GLAT_m"] < b_max)
-        & (df_UCC["Plx_m"] > plx_min)
+        (df_UCC_m["GLON_m"] > l_min)
+        & (df_UCC_m["GLON_m"] < l_max)
+        & (df_UCC_m["GLAT_m"] > b_min)
+        & (df_UCC_m["GLAT_m"] < b_max)
+        & (df_UCC_m["Plx_m"] > plx_min)
     )
-    in_frame = df_UCC[["fname", "GLON_m", "GLAT_m", "Plx_m", "pmRA_m", "pmDE_m"]][msk]
+    in_frame = df_UCC_m[msk]
     # # Remove this OC from the dataframe
     # msk = in_frame["fname"] != fname
     # in_frame = in_frame[msk]

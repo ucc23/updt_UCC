@@ -433,6 +433,11 @@ def member_files_updt(
     if df_UCC_C_updt.empty:
         return df_UCC_C_updt
 
+    # Used by close objects check
+    df_UCC_m = df_UCC_C[
+        ["fname", "GLON_m", "GLAT_m", "Plx_m", "pmRA_m", "pmDE_m"]
+    ].copy()
+
     N_tot = len(df_UCC_C_updt)
     for idx, cl_row in df_UCC_C_updt.iterrows():
         # Extract some data
@@ -450,7 +455,6 @@ def member_files_updt(
 
         # Extract manual parameters if any
         # N_clust, N_clust_max, N_box, frame_limit = np.nan, np.nan, np.nan, ""
-        # if str(cl_row["process"]) == "y":
         N_clust, N_clust_max, N_box, frame_limit = cl_row[
             ["N_clust", "N_clust_max", "N_box", "frame_limit"]
         ]
@@ -461,7 +465,7 @@ def member_files_updt(
             logging,
             df_GCs,
             gaia_frames_data,
-            df_UCC_C,  # Used by close objects check
+            df_UCC_m,
             fname0,
             ra_c,
             dec_c,
