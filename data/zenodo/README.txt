@@ -47,7 +47,7 @@ name             : Formatted naming to match the members file 'main name'
 N_50             : Number of estimated members with P>0.5
 r_50             : Radius that contains half the members (in arcmin)
 RA_ICRS          : Right ascension
-DEC_ICRS         : Declination
+DE_ICRS          : Declination
 GLON             : Galactic longitude
 GLAT             : Galactic latitude
 Plx              : Parallax [mas]
