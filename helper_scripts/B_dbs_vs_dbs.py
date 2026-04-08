@@ -7,7 +7,9 @@ import pandas as pd
 
 
 def main():
-    """ """ ""
+    """
+    Compare center coordinates across DBs stored in the UCC
+    """
     df_B = pd.read_csv("../data/UCC_cat_B.csv")
 
     # check_coords(df_B)
