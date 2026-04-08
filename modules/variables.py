@@ -86,12 +86,20 @@ naming_order = (
 
 # Exceptions to the rule below
 selected_centers_f = data_folder + "manual_centers.csv"
-# Hierarchy of databases for selecting coordinates, smaller is preferred
+# Manual hierarchy of databases for selecting coordinates, smaller is preferred
 # Exceptions are stored in the file above.
 DB_coords_hierarchy = {
     "CANTAT2020": 0,
     "HUNT2023": 1,
+    "CANTAT2020_1": 2,
+    "CANTAT2018": 3,
+    "MONTEIRO2910": 49,
+    "DIAS2002": 50,
+    "DIAS2014": 100,
+    "JUST2023": 200,
     "WEI2025": 900,
+    "DIB2018": 911,
+    "SCHMEJA2014": 912,
     "LOKTIN2017": 995,
     "KHARCHENKO2016": 996,
     "KHARCHENKO2013": 997,
