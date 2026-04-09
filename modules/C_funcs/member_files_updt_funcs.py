@@ -380,10 +380,7 @@ def check_close_cls(
         & (df_UCC_m["GLAT_m"] < b_max)
         & (df_UCC_m["Plx_m"] > plx_min)
     )
-    in_frame = df_UCC_m[msk]
-    # # Remove this OC from the dataframe
-    # msk = in_frame["fname"] != fname
-    # in_frame = in_frame[msk]
+    in_frame = df_UCC_m[msk].copy()
     # Assign type of object
     in_frame["Type"] = ["o"] * len(in_frame)
     # Rename columns to match GCs
