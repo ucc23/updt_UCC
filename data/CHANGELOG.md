@@ -3,8 +3,19 @@ Some of these are intermediate versions of the UCC database that are not publish
 
 ## 2604XX
 
-- Added Netopil et al (2022)
-- Added Netopil et al (2016)
+- Fixed wrong transformation Z to FeH (was using natural logarithm instead of 10)
+
+- Added:
+  - Dias et al (2018)
+  - Joshi et al (2016)
+  - Dib et al (2018)
+  - Sampedro et al (2017)
+  - Deng et al (2023)
+  - Yang et al (2025)
+  - Heiter et al (2014)
+  - Paunzen et al (2010)
+  - Netopil et al (2022)
+  - Netopil et al (2016)
 
 - Fixed bad naming (duplicates)
   - Lada & Lada (2003)
@@ -15,8 +26,9 @@ Some of these are intermediate versions of the UCC database that are not publish
   - Morales et al (2013)
     - W49A Welch Ring --> W49_A
 
-- Added comments from Hunt & Reffert (2023)
-- Added comments from Bica et al (2019)
+- Added comments from:
+  - Hunt & Reffert (2023)
+  - Bica et al (2019)
 
 
 

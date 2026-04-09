@@ -590,7 +590,7 @@
     },
     "data_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2007MNRAS.374..399F",
     "authors": "Froebrich et al.",
-    "title": "A systematic survey for infrared star clusters with b<20 using 2MASS",
+    "title": "A systematic survey for infrared star clusters with b<20 deg using 2MASS",
     "year": "2007",
     "received": "20060917",
     "names": "ID",
@@ -785,6 +785,32 @@
       },
       "e_age": {
         "eloga": "e_Age"
+      }
+    }
+  },
+  "PAUNZEN2010": {
+    "SCIX_url": "https://scixplorer.org/abs/2010A%26A...517A..32P",
+    "data_cmmts": "data",
+    "citations_count": {
+      "date": "2026-04-06",
+      "count": "49",
+      "citations_year": 3.1
+    },
+    "data_url": "N/A",
+    "authors": "Paunzen et al.",
+    "title": "On the metallicity of open clusters. I. Photometry",
+    "year": "2010",
+    "received": "20100125",
+    "names": "Cluster",
+    "pos": {},
+    "pars": {
+      "met": {
+        "feh": "[Fe/H]"
+      }
+    },
+    "e_pars": {
+      "e_met": {
+        "efeh": "sigma_[Fe/H]"
       }
     }
   },
@@ -1084,6 +1110,32 @@
       }
     }
   },
+  "HEITER2014": {
+    "SCIX_url": "https://scixplorer.org/abs/2014A%26A...561A..93H",
+    "data_cmmts": "data",
+    "citations_count": {
+      "date": "2026-04-06",
+      "count": "104",
+      "citations_year": 8.7
+    },
+    "data_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2014A%26A...561A..93H",
+    "authors": "Heiter et al.",
+    "title": "On the metallicity of open clusters. II. Spectroscopy",
+    "year": "2014",
+    "received": "20130828",
+    "names": "Cluster",
+    "pos": {},
+    "pars": {
+      "met": {
+        "feh": "[Fe/H]"
+      }
+    },
+    "e_pars": {
+      "e_met": {
+        "efeh": "s_[Fe/H]"
+      }
+    }
+  },
   "SCHMEJA2014": {
     "SCIX_url": "https://scixplorer.org/abs/2014A%26A...568A..51S",
     "data_cmmts": "data",
@@ -1378,6 +1430,47 @@
     },
     "e_pars": {}
   },
+  "JOSHI2016": {
+    "SCIX_url": "https://scixplorer.org/abs/2016A%26A...593A.116J",
+    "data_cmmts": "data",
+    "citations_count": {
+      "date": "2026-04-08",
+      "count": "74",
+      "citations_year": 7.4
+    },
+    "data_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2016A%26A...593A.116J",
+    "authors": "Joshi et al.",
+    "title": "Study of open clusters within 1.8 kpc and understanding the Galactic structure",
+    "year": "2016",
+    "received": "20160517",
+    "names": "Name",
+    "pos": {
+      "RA": "RAJ2000",
+      "DEC": "DEJ2000"
+    },
+    "pars": {
+      "av": {
+        "ebv": "E(B-V)"
+      },
+      "dist": {
+        "dkpc": "Dist"
+      },
+      "age": {
+        "loga": "logt"
+      },
+      "mass": {
+        "logm": "logM"
+      }
+    },
+    "e_pars": {
+      "e_age": {
+        "eloga": "e_logt"
+      },
+      "e_mass": {
+        "elogm": "e_logM"
+      }
+    }
+  },
   "ROSER2016": {
     "SCIX_url": "https://scixplorer.org/abs/2016A%26A...595A..22R",
     "data_cmmts": "data",
@@ -1409,6 +1502,29 @@
         "loga": "logt"
       }
     },
+    "e_pars": {}
+  },
+  "SAMPEDRO2017": {
+    "SCIX_url": "https://scixplorer.org/abs/2017MNRAS.470.3937S",
+    "data_cmmts": "data",
+    "citations_count": {
+      "date": "2026-04-06",
+      "count": "74",
+      "citations_year": 8.2
+    },
+    "data_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2017MNRAS.470.3937S",
+    "authors": "Sampedro et al.",
+    "title": "A multimembership catalogue for 1876 open clusters using UCAC4 data",
+    "year": "2017",
+    "received": "20161122",
+    "names": "Name",
+    "pos": {
+      "RA": "RAJ2000",
+      "DEC": "DEJ2000",
+      "plx": "pxcM1",
+      "pmra": "pycM1"
+    },
+    "pars": {},
     "e_pars": {}
   },
   "LOKTIN2017": {
@@ -1451,6 +1567,34 @@
         "eloga": "e_logt"
       }
     }
+  },
+  "DIB2018": {
+    "SCIX_url": "https://scixplorer.org/abs/2018MNRAS.473..849D",
+    "data_cmmts": "data",
+    "citations_count": {
+      "date": "2026-04-07",
+      "count": "74",
+      "citations_year": 9.2
+    },
+    "data_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2018MNRAS.473..849D",
+    "authors": "Dib et al.",
+    "title": "Structure and mass segregation in Galactic stellar clusters",
+    "year": "2018",
+    "received": "20170622",
+    "names": "Cluster",
+    "pos": {
+      "RA": "RAJ2000",
+      "DEC": "DEJ2000"
+    },
+    "pars": {
+      "dist": {
+        "dpc": "Dist"
+      },
+      "age": {
+        "loga": "logAge"
+      }
+    },
+    "e_pars": {}
   },
   "YEN2018": {
     "SCIX_url": "https://scixplorer.org/abs/2018A%26A...615A..12Y",
@@ -1498,6 +1642,27 @@
         ]
       }
     }
+  },
+  "DIAS2018": {
+    "SCIX_url": "https://scixplorer.org/abs/2018MNRAS.478.5184D",
+    "data_cmmts": "data",
+    "citations_count": {
+      "date": "2026-04-08",
+      "count": "20",
+      "citations_year": 2.5
+    },
+    "data_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2018MNRAS.478.5184D",
+    "authors": "Dias et al.",
+    "title": "Update of membership and mean proper motion of open clusters from UCAC5 catalogue",
+    "year": "2018",
+    "received": "20171218",
+    "names": "Cluster",
+    "pos": {
+      "pmra": "pmRAC",
+      "pmde": "pmDEC"
+    },
+    "pars": {},
+    "e_pars": {}
   },
   "ANGELO2019": {
     "SCIX_url": "https://scixplorer.org/abs/2019A%26A...624A...8A",
@@ -3594,6 +3759,41 @@
     },
     "e_pars": {}
   },
+  "DENG2023": {
+    "SCIX_url": "https://scixplorer.org/abs/2023MNRAS.521.6284D",
+    "data_cmmts": "data",
+    "citations_count": {
+      "date": "2026-04-06",
+      "count": "1",
+      "citations_year": 0.3
+    },
+    "data_url": "N/A",
+    "authors": "Deng & Li",
+    "title": "Analysis of metallicities of open clusters in the Galactic disc",
+    "year": "2023",
+    "received": "20221025",
+    "names": "Name",
+    "pos": {},
+    "pars": {
+      "av": {
+        "evi": "E(V-I)"
+      },
+      "age": {
+        "agyr": "Age"
+      },
+      "dist": {
+        "dm": "m-M"
+      },
+      "met": {
+        "feh": "[Fe/H]"
+      }
+    },
+    "e_pars": {
+      "e_met": {
+        "efeh": "sigma_[Fe/H]"
+      }
+    }
+  },
   "CORDONI2023": {
     "SCIX_url": "https://scixplorer.org/abs/2023A%26A...672A..29C",
     "data_cmmts": "data",
@@ -4441,6 +4641,48 @@
     "pos": {},
     "pars": {},
     "e_pars": {}
+  },
+  "YANG2025": {
+    "SCIX_url": "https://scixplorer.org/abs/2025AJ....169..214Y",
+    "data_cmmts": "data",
+    "citations_count": {
+      "date": "2026-04-06",
+      "count": "5",
+      "citations_year": 5.0
+    },
+    "data_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2025AJ....169..214Y",
+    "authors": "Yang et al.",
+    "title": "Chemical Abundance Gradients in Open Clusters from the GaiaLAMOST Sample",
+    "year": "2025",
+    "received": "20241021",
+    "names": "Cluster",
+    "pos": {
+      "RA": "_RA",
+      "DEC": "_DE"
+    },
+    "pars": {
+      "age": {
+        "agyr": "Age"
+      },
+      "met": {
+        "feh": [
+          "[Fe/H]",
+          "[Mg/H]",
+          "[Si/H]",
+          "[Ni/H]"
+        ]
+      }
+    },
+    "e_pars": {
+      "e_met": {
+        "efeh": [
+          "e_[Fe/H]",
+          "e_[Mg/H]",
+          "e_[Si/H]",
+          "e_[Ni/H]"
+        ]
+      }
+    }
   },
   "CUI2025": {
     "SCIX_url": "https://scixplorer.org/abs/2025AJ....169..219C",
