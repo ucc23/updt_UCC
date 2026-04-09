@@ -418,9 +418,8 @@ def updt_ucc_cluster_plots(
         fname0 = str(UCC_cl["fname"])
         txt = ""
 
-        # Make Aladin plot if image file does not exist.
-        # **These images are not updated, only generated once**
-        # Path to original image (if it exists)
+        # Make Aladin plot if image file does not exist or if marked for update.
+        # Path to original image
         orig_aladin_path = (
             f"{root_ucc_path}{plots_folder}plots_{fname0[0]}/aladin/{fname0}.webp"
         )
@@ -428,10 +427,10 @@ def updt_ucc_cluster_plots(
         temp_aladin_path = (
             f"{temp_folder}{plots_folder}plots_{fname0[0]}/aladin/{fname0}.webp"
         )
-        # If no image exists in either path, generate the Aladin plot
-        if (
-            Path(orig_aladin_path).is_file() is False
-            and Path(temp_aladin_path).is_file() is False
+        # If no 'orig' image exists, or if cluster is marked for update and a temp
+        # image does not already exist, generate the Aladin plot
+        if (Path(orig_aladin_path).is_file() is False) or (
+            UCC_cl["plot_used"] == "n" and Path(temp_aladin_path).is_file() is False
         ):
             ucc_plots.plot_aladin(
                 logging,
