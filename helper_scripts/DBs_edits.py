@@ -7,6 +7,111 @@ import numpy as np
 import pandas as pd
 from astropy.coordinates import SkyCoord
 
+
+
+df = pd.read_csv("../temp_updt/data/databases/DIB2018.csv")
+
+# Convert GLON,GLAT columns to RA,DEC using astropy
+coords = SkyCoord(
+    l=df["GLON"].values * u.deg, b=df["GLAT"].values * u.deg, frame="galactic"
+).icrs
+df["RA"] = coords.ra.deg.round(5)
+df["DEC"] = coords.dec.deg.round(5)
+
+# Distance from columns RA,DEC to columns RAJ2000,DECJ2000
+dist = np.sqrt((df["RA"] - df["RAJ2000"]) ** 2 + (df["DEC"] - df["DEJ2000"]) ** 2)
+
+msk= dist > 1
+df["RAJ2000"][msk] = df["RA"][msk]
+# df["DEJ2000"][msk] = df["DEC"][msk]
+
+# ra, dec = df["RA"][msk], df["DEC"][msk]
+# names = df['Cluster'][msk]
+# dists = dist[msk]
+# for aaa in zip(*[names, dists, ra, dec]):
+#     print(aaa)
+# breakpoint()
+
+df.drop(columns=["RA", "DEC"], inplace=True)
+
+
+df.to_csv(
+    "../temp_updt/data/databases/DIB2018_2.csv",
+    na_rep="nan",
+    index=False,
+    quoting=csv.QUOTE_NONNUMERIC,
+)
+
+breakpoint()
+
+
+
+
+
+
+
+df = pd.read_csv("../temp_updt/data/databases/DENG2023.csv")
+
+# # Merge columns "Name and "ID" into a single column "Name", separated by comma
+# df["Name"] = df.apply(
+#     lambda row: f"{row['Name']}, {row['ID']}" if pd.notna(row["ID"]) else row["Name"],
+#     axis=1,
+# )
+
+# df = df.drop(columns=["Category",])
+df = df.drop(columns=["ID"])
+
+df.to_csv(
+    "../temp_updt/data/databases/DENG2023.csv",
+    na_rep="nan",
+    index=False,
+    quoting=csv.QUOTE_NONNUMERIC,
+)
+
+breakpoint()
+
+
+
+
+
+df1 = pd.read_csv("../temp_updt/data/databases/YANG2025.csv")
+df2 = pd.read_csv("../temp_updt/data/databases/YANG2025_1.csv")
+
+# Merge three dfs by their 'Name' column
+df_merged = (
+    df1.merge(df2, on="Cluster", how="outer")
+    .fillna("nan")
+)
+
+
+df_merged.to_csv(
+    "../temp_updt/data/databases/YANG2025_c.csv",
+    na_rep="nan",
+    index=False,
+    quoting=csv.QUOTE_NONNUMERIC,
+)
+
+breakpoint()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 df1 = pd.read_csv("../temp_updt/data/databases/NETOPIL2022_0.csv")
 df2 = pd.read_csv("../temp_updt/data/databases/NETOPIL2022_1.csv")
 df3 = pd.read_csv("../temp_updt/data/databases/NETOPIL2022_2.csv")
