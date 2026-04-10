@@ -2538,6 +2538,24 @@
     },
     "e_pars": {}
   },
+  "HU2021": {
+    "SCIX_url": "https://scixplorer.org/abs/2021A%26A...656A..49H",
+    "data_cmmts": "comments",
+    "citations_count": {
+      "date": "2026-04-10",
+      "count": "18",
+      "citations_year": 3.6
+    },
+    "data_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2021A%26A...656A..49H",
+    "authors": "Hu et al.",
+    "title": "Decoding the morphological evolution of open clusters",
+    "year": "2021",
+    "received": "20210306",
+    "names": "Cluster",
+    "pos": {},
+    "pars": {},
+    "e_pars": {}
+  },
   "HUNT2021": {
     "SCIX_url": "https://scixplorer.org/abs/2021A%26A...646A.104H",
     "data_cmmts": "data",
@@ -4343,6 +4361,18 @@
       "Rv": "RV"
     },
     "pars": {
+      "av": {
+        "av": "AV50"
+      },
+      "diff_ext": {
+        "dav": "diffAV50"
+      },
+      "dist": {
+        "dm": "MOD50"
+      },
+      "age": {
+        "loga": "logAge50"
+      },
       "mass": {
         "mass": [
           "MassJ",
@@ -4351,6 +4381,30 @@
       }
     },
     "e_pars": {
+      "e_av": {
+        "eav": [
+          "AV16",
+          "AV84"
+        ]
+      },
+      "e_diff_ext": {
+        "edav": [
+          "diffAV16",
+          "diffAV84"
+        ]
+      },
+      "e_dist": {
+        "edm": [
+          "MOD16",
+          "MOD84"
+        ]
+      },
+      "e_age": {
+        "eloga": [
+          "logAge16",
+          "logAge84"
+        ]
+      },
       "e_mass": {
         "emass": [
           "e_MassJ",
