@@ -68,6 +68,7 @@ manual_pars_file = data_folder + "manual_params.csv"
 # Preferred order in which the OCs are assigned their primary name
 naming_order = (
     "hyades",  # Common name
+    "pleiades",  # Common name
     "ngc",  # 1888
     "ic",  # 1895
     "melotte",  # 1915
