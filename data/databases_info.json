@@ -1521,8 +1521,8 @@
     "pos": {
       "RA": "RAJ2000",
       "DEC": "DEJ2000",
-      "plx": "pxcM1",
-      "pmra": "pycM1"
+      "pmra": "pxcM1",
+      "pmde": "pycM1"
     },
     "pars": {},
     "e_pars": {}
