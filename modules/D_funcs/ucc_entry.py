@@ -57,6 +57,7 @@ comments: |
 class3: |
 {class3}
 N_comments: "{N_comments}"
+rc_val: {rc_val}
 dens_val: {dens_val}
 N_50_val: {N_50_val}
 scix_url: {scix_url}
@@ -192,6 +193,15 @@ def make(
     # Generate table with OCs that share members with this one
     shared_table, N_rows_shared = table_shared_members(df_BC, fnames_all, UCC_cl, tsp)
 
+    # Core radius (in pc)
+    val = UCC_cl["r_core_pc"]
+    r_core = f"{val:.2f}" if val < 0.1 else f"{val:.1f}" if val < 10 else f"{val:.0f}"
+    # Core density (in pc^-2)
+    val = UCC_cl["dens_core_pc2"]
+    dens_core = (
+        f"{val:.2f}" if val < 0.1 else f"{val:.1f}" if val < 10 else f"{val:.0f}"
+    )
+
     contents = header.format(
         cl_name=cl_names[0],
         more_names=more_names,
@@ -238,7 +248,8 @@ def make(
         comments=comments,
         N_comments=N_comments,
         class3=abcd_c,
-        dens_val=str(UCC_cl["dens_pc2"]),
+        rc_val=r_core,
+        dens_val=dens_core,
         N_50_val=str(int(UCC_cl["N_50"])),
         scix_url=cl_names[0].replace(" ", "%20"),
         posit_table=posit_table,

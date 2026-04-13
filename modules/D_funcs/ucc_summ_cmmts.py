@@ -321,10 +321,14 @@ def fpars_summary(
     dist_flag, fpars_note, dist_txt, dist_range = "", "", "", ""
     if "dist" in medians:
         plx_kpc = 1 / plx
-        ratio_lim = 0.3
-        if plx_kpc < 0.5 and medians["dist"] < 0.5:
-            ratio_lim = 0.5
-        if abs(plx_kpc / medians["dist"] - 1) > ratio_lim:
+        dist_phot = medians["dist"]
+        max_d = max(plx_kpc, dist_phot)
+        rel_diff = abs(plx_kpc - dist_phot) / max_d
+        # Relax tolerance at small distances
+        # ratio_lim = 0.5 if (max_d < 0.5) else 0.3
+        # Linear ratio: 0.3 (≥0.5 kpc) to 0.5 (<0.5 kpc)
+        ratio_lim = 0.3 + 0.45 * np.clip(1 - max_d / 0.5, 0, 1)
+        if rel_diff > ratio_lim:
             dist_flag = "<sup><b>*</b></sup>"
             fpars_note = (
                 '<p class="note"><strong>(*):</strong> '
