@@ -3,10 +3,9 @@ import webbrowser
 import matplotlib.pyplot as plt
 import pandas as pd
 
-df1 = pd.read_csv("/home/gabriel/Github/UCC/updt_UCC/data/UCC_cat_B.csv")
+df1 = pd.read_csv("../data/UCC_cat_B.csv")
 df1["fname"] = [_.split(";")[0] for _ in df1["fnames"]]
-df2 = pd.read_csv("/home/gabriel/Github/UCC/updt_UCC/data/UCC_cat_C.csv")
-
+df2 = pd.read_csv("../data/UCC_cat_C.csv")
 df_merged = pd.merge(df1, df2, left_on="fname", right_on="fname", suffixes=("_B", "_C"))
 
 

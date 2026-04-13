@@ -1,6 +1,15 @@
 Some of these are intermediate versions of the UCC database that are not published.
 
 
+## 260413
+
+- Added Hu et al (2021); comments only
+- Fixed Sampedro et al 2017 bad plx,pmra/pmde columns
+- Better stellar density estimation + add core radius estimation
+- Added more parameters to HUNT2024 (same as HUNT2023)
+
+
+
 ## 260409
 
 - Fixed wrong transformation Z to FeH (was using natural logarithm instead of 10)
