@@ -7,12 +7,20 @@ import numpy as np
 import pandas as pd
 from scipy.spatial.distance import cdist
 
+from .C_funcs.classification import get_classif
 from .C_funcs.member_files_updt_funcs import (
     get_fastMP_membs,
+    get_new_cl_data,
     save_cl_datafile,
     updt_UCC_new_cl_data,
 )
-from .utils import diff_between_dfs, load_BC_cats, logger, normalize_name, save_df_UCC
+from .utils import (
+    diff_between_dfs,
+    load_BC_cats,
+    logger,
+    normalize_name,
+    save_df_UCC,
+)
 from .variables import (
     C_dup_min,
     C_lit_max,
@@ -483,8 +491,63 @@ def member_files_updt(
         # Write selected member stars to file
         save_cl_datafile(logging, fname0, df_membs)
 
-        # Store data from this new entry used to update the UCC
-        df_UCC_C_updt = updt_UCC_new_cl_data(idx, df_UCC_C_updt, df_field, df_membs)
+        # Classification data
+        C1, C2, C3 = get_classif(df_membs, df_field)
+
+        # Extract data from the members array
+        (
+            c_lon,
+            c_lat,
+            c_ra,
+            c_dec,
+            c_plx,
+            e_plx,
+            c_pmRA,
+            c_pmDE,
+            e_pmRA,
+            e_pmDE,
+            c_Rv,
+            e_Rv,
+            N_Rv,
+            X_GC,
+            Y_GC,
+            Z_GC,
+            R_GC,
+            N_50,
+            r_50,
+            r_core,
+            dens_core,
+        ) = get_new_cl_data(df_membs)
+
+        # update 'df_UCC_C_updt' with the extracted data for this cluster
+        df_UCC_C_updt = updt_UCC_new_cl_data(
+            idx,
+            df_UCC_C_updt,
+            C1,
+            C2,
+            C3,
+            c_lon,
+            c_lat,
+            c_ra,
+            c_dec,
+            c_plx,
+            e_plx,
+            c_pmRA,
+            c_pmDE,
+            e_pmRA,
+            e_pmDE,
+            c_Rv,
+            e_Rv,
+            N_Rv,
+            X_GC,
+            Y_GC,
+            Z_GC,
+            R_GC,
+            N_50,
+            r_50,
+            r_core,
+            dens_core,
+        )
 
         # Update file with information. Do this for each iteration to avoid
         # losing data if something goes wrong with any cluster
@@ -758,7 +821,7 @@ def add_info_to_C(
 ):
     """
 
-    max_dens: density (N_50/r_pc^2) above which C_dens=1
+    max_dens: stellar density above which C_dens=1
     C_lit_perc_max: mid-point (above this C_lit=1)
     N_lit_min: min-point (below this C_lit=0)
 
@@ -777,11 +840,8 @@ def add_info_to_C(
     for i in range(1, len(bounds)):
         normalize(N_50, C_N50, Nvals[i - 1], Nvals[i], bounds[i - 1], bounds[i])
 
-    r_50 = df_UCC_C["r_50"].to_numpy()
-    dist_pc = 1000 / np.clip(df_UCC_C["Plx_m"], 0.01, 50)
-    r_pc = dist_pc * np.tan(np.deg2rad(r_50 / 60))
-    dens = N_50 / r_pc**2
-    C_dens = np.clip((dens - 0) / (max_dens - 0), 0, 1)
+    #
+    C_dens = np.clip((df_UCC_C["dens_core_pc2"] - 0) / (max_dens - 0), 0, 1)
 
     # Assign a number to all elements in C3
     C3 = df_UCC_C["C3"].to_numpy()

@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 from astropy import units as u
 from astropy.coordinates import Galactocentric, SkyCoord
-from scipy.spatial.distance import cdist
 
 from ..utils import plx_to_pc, radec2lonlat
 from ..variables import (
@@ -14,7 +13,6 @@ from ..variables import (
     path_gaia_frames,
     temp_members_folder,
 )
-from .classification import get_classif
 from .gaia_query_frames import query_run
 
 # Local version
@@ -601,101 +599,243 @@ def extract_members(
     return pd.DataFrame(data[~msk_membs]), pd.DataFrame(data[msk_membs])
 
 
-def updt_UCC_new_cl_data(
-    idx: int,
-    df_UCC_C_updt: pd.DataFrame,
-    df_field: pd.DataFrame,
+def get_new_cl_data(
     df_membs: pd.DataFrame,
     prob_cut: float = 0.5,
     N_digits: int = 5,
-) -> pd.DataFrame:
+) -> tuple[
+    float,
+    float,
+    float,
+    float,
+    float,
+    float,
+    float,
+    float,
+    float,
+    float,
+    float,
+    float,
+    int,
+    float,
+    float,
+    float,
+    float,
+    int,
+    float,
+    float,
+    float,
+]:
     """
     Extracts cluster parameters from the member DataFrame.
 
-    Parameters
-    ----------
-    df_field : pd.DataFrame
-        DataFrame of field stars.
     df_membs : pd.DataFrame
         DataFrame of cluster members.
     prob_cut : float, optional
         Probability threshold for calculating N_50. Default is 0.5.
 
-    Returns
-    -------
-    pd.DataFrame
     """
+    # Number of estimated members (P>50%)
     N_50 = int((df_membs["probs"] >= prob_cut).sum())
-    lon, lat = np.nanmedian(df_membs["GLON"]), np.nanmedian(df_membs["GLAT"])
-    ra, dec = np.nanmedian(df_membs["RA_ICRS"]), np.nanmedian(df_membs["DE_ICRS"])
-    plx = np.nanmedian(df_membs["Plx"])
+
+    # Center values
+    c_lon, c_lat = np.nanmedian(df_membs["GLON"]), np.nanmedian(df_membs["GLAT"])
+    c_ra, c_dec = np.nanmedian(df_membs["RA_ICRS"]), np.nanmedian(df_membs["DE_ICRS"])
+    c_plx = np.nanmedian(df_membs["Plx"])
+    c_pmRA, c_pmDE = np.nanmedian(df_membs["pmRA"]), np.nanmedian(df_membs["pmDE"])
+    c_Rv = df_membs["RV"].median() if df_membs["RV"].count() else np.nan
+    N_Rv = df_membs["RV"].count()
+
+    # TODO: fix this
     e_plx = np.nanmedian(df_membs["e_Plx"])
-    pmRA, pmDE = np.nanmedian(df_membs["pmRA"]), np.nanmedian(df_membs["pmDE"])
     e_pmRA, e_pmDE = np.nanmedian(df_membs["e_pmRA"]), np.nanmedian(df_membs["e_pmDE"])
-    Rv, e_Rv, N_Rv = np.nan, np.nan, 0
-    if not np.isnan(df_membs["RV"]).all():
-        Rv = np.nanmedian(df_membs["RV"])
-        e_Rv = np.nanmedian(df_membs["e_RV"])
-        N_Rv = int(len(df_membs["RV"]) - np.isnan(df_membs["RV"]).sum())
-
-    # Round values
-    lon, lat = round(lon, N_digits), round(lat, N_digits)
-    if lon < 0:
-        lon += 360.0
-    ra, dec = round(ra, N_digits), round(dec, N_digits)
-    plx, e_plx = round(plx, N_digits), round(e_plx, N_digits)
-    pmRA, pmDE = round(pmRA, N_digits), round(pmDE, N_digits)
-    e_pmRA, e_pmDE = round(e_pmRA, N_digits), round(e_pmDE, N_digits)
-    Rv, e_Rv = round(Rv, N_digits), round(e_Rv, N_digits)
-
-    # Radius that contains half the members
-    xy = np.array([df_membs["GLON"].values, df_membs["GLAT"].values]).T
-    xy_dists = cdist(xy, np.array([[lon, lat]])).T[0]
-    r50_idx = np.argsort(xy_dists)[int(len(df_membs) / 2)]
-    r_50 = xy_dists[r50_idx]
-    # To arcmin
-    r_50 = float(round(r_50 * 60.0, 1))
-
-    # Classification data
-    C1, C2, C3 = get_classif(df_membs, df_field)
+    e_Rv = df_membs["e_RV"].median() if df_membs["e_RV"].count() else np.nan
 
     # Galactocentric coordinates
-    X_GC, Y_GC, Z_GC, R_GC = gc_values(ra, dec, plx)
+    X_GC, Y_GC, Z_GC, R_GC = gc_values(c_ra, c_dec, c_plx)
 
+    # Radius that contains half the members
+    xy_dists = np.sqrt(
+        (np.array(df_membs["GLON"]) - c_lon) ** 2
+        + (np.array(df_membs["GLAT"]) - c_lat) ** 2
+    )
+    # This is equivalent to the median of xy_dists
+    # r_50 = xy_dists[int(np.argsort(xy_dists)[int(len(df_membs) / 2)])]
+    # Store in arcmin
+    r_50 = round(float(np.median(xy_dists)) * 60.0, 1)
+
+    r_core, dens_core = core_values(df_membs)
+
+    # Positive longitude
+    if c_lon < 0:
+        c_lon += 360.0
+    # Round all values
+    vals = [
+        c_lon,
+        c_lat,
+        c_ra,
+        c_dec,
+        c_plx,
+        e_plx,
+        c_pmRA,
+        c_pmDE,
+        e_pmRA,
+        e_pmDE,
+        c_Rv,
+        e_Rv,
+    ]
+    (
+        c_lon,
+        c_lat,
+        c_ra,
+        c_dec,
+        c_plx,
+        e_plx,
+        c_pmRA,
+        c_pmDE,
+        e_pmRA,
+        e_pmDE,
+        c_Rv,
+        e_Rv,
+    ) = [round(v, N_digits) for v in vals]
+
+    return (
+        c_lon,
+        c_lat,
+        c_ra,
+        c_dec,
+        c_plx,
+        e_plx,
+        c_pmRA,
+        c_pmDE,
+        e_pmRA,
+        e_pmDE,
+        c_Rv,
+        e_Rv,
+        N_Rv,
+        X_GC,
+        Y_GC,
+        Z_GC,
+        R_GC,
+        N_50,
+        r_50,
+        r_core,
+        dens_core,
+    )
+
+
+def updt_UCC_new_cl_data(
+    idx: int,
+    df_UCC_C_updt: pd.DataFrame,
+    C1,
+    C2,
+    C3,
+    c_lon,
+    c_lat,
+    c_ra,
+    c_dec,
+    c_plx,
+    e_plx,
+    c_pmRA,
+    c_pmDE,
+    e_pmRA,
+    e_pmDE,
+    c_Rv,
+    e_Rv,
+    N_Rv,
+    X_GC,
+    Y_GC,
+    Z_GC,
+    R_GC,
+    N_50,
+    r_50,
+    r_core,
+    dens_core,
+) -> pd.DataFrame:
     # Temp dict used to update the UCC
     dict_updt = {
-        "plot_used": "n",  # Update to indicate a new plot is required
-        "process": "n",  # Update to indicate this entry was processed
-        "r_50": r_50,
+        "plot_used": "n",  # 'n' indicates that a new plot is required
+        "process": "n",  # 'n' indicates this entry was processed
+        "bad_oc": "n",  # Default value, will be updated later
         "C1": C1,
         "C2": C2,
         "C3": C3,
-        "N_50": N_50,
-        "GLON_m": lon,
-        "GLAT_m": lat,
-        "RA_ICRS_m": ra,
-        "DE_ICRS_m": dec,
-        "Plx_m": plx,
+        "RA_ICRS_m": c_ra,
+        "DE_ICRS_m": c_dec,
+        "GLON_m": c_lon,
+        "GLAT_m": c_lat,
+        "Plx_m": c_plx,
         "e_Plx_m": e_plx,
-        "pmRA_m": pmRA,
+        "pmRA_m": c_pmRA,
         "e_pmRA_m": e_pmRA,
-        "pmDE_m": pmDE,
+        "pmDE_m": c_pmDE,
         "e_pmDE_m": e_pmDE,
-        "Rv_m": Rv,
+        "Rv_m": c_Rv,
         "e_Rv_m": e_Rv,
         "N_Rv": N_Rv,
         "X_GC": X_GC,
         "Y_GC": Y_GC,
         "Z_GC": Z_GC,
         "R_GC": R_GC,
-        "bad_oc": "n",
+        "N_50": N_50,
+        "r_50": r_50,
+        "r_core_pc": r_core,
+        "dens_core_pc2": dens_core,
     }
-
     # Update 'df_UCC_updt' with 'dict_updt' values
     for key, val in dict_updt.items():
         df_UCC_C_updt.loc[idx, key] = val
 
     return df_UCC_C_updt
+
+
+def core_values(df_membs):
+    cent_lon, cent_lat = np.nanmedian(df_membs["GLON"]), np.nanmedian(df_membs["GLAT"])
+
+    # Distances with cos(lat) correction
+    cos_lat = np.cos(np.deg2rad(cent_lat))
+    dlon = (df_membs["GLON"].values - cent_lon) * cos_lat
+    dlat = df_membs["GLAT"].values - cent_lat
+    dists_deg = np.sqrt(dlon**2 + dlat**2)
+
+    # RDP in degrees
+    num_bins = max(10, int(np.sqrt(len(df_membs))))
+    counts, bin_edges = np.histogram(dists_deg, bins=num_bins)
+
+    # To parsec
+    dist_pc = 1000 / np.clip(np.nanmedian(df_membs["Plx"]), 0.01, 50)
+    bin_edges_pc = dist_pc * np.tan(np.deg2rad(bin_edges))
+    bin_centers_pc = (bin_edges_pc[:-1] + bin_edges_pc[1:]) / 2
+    annulus_areas = np.pi * (bin_edges_pc[1:] ** 2 - bin_edges_pc[:-1] ** 2)
+    densities_pc = counts / annulus_areas
+
+    # Density at r_core, estimated as half the peak density within the first 3 bins
+    half_density_pc = densities_pc[:3].max() * 0.5
+
+    # Find first bin where density drops at or below target
+    below = np.where(densities_pc <= half_density_pc)[0]
+    r_c = None
+    if len(below) > 0:
+        idx = below[0]
+        if idx > 0:
+            # Linear interpolation between the bin just above and just below target
+            d0, d1 = densities_pc[idx - 1], densities_pc[idx]
+            r0, r1 = bin_centers_pc[idx - 1], bin_centers_pc[idx]
+            if d0 != d1:  # avoid division by zero
+                r_c = r0 + (half_density_pc - d0) * (r1 - r0) / (d1 - d0)
+        else:
+            r_c = bin_centers_pc[0]  # peak is already below half-max
+    if r_c is None or r_c <= 0:
+        # Density never drops to half within the data.
+        # Approximate r_c as 25% of the max distance.
+        r_c = 0.25 * bin_centers_pc.max()
+
+    # Final core density estimation
+    dists_pc = dist_pc * np.tan(np.deg2rad(dists_deg))
+    N_core = (dists_pc <= r_c).sum()
+    dens_core = N_core / (np.pi * r_c**2) if r_c > 0 else 0.0
+
+    return round(r_c, 2), round(dens_core, 2)
 
 
 def gc_values(ra, dec, plx, max_xyz=20):
