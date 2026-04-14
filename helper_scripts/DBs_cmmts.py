@@ -4,6 +4,21 @@ import numpy as np
 import pandas as pd
 
 
+df = pd.read_csv("../temp_updt/data/databases/HU2021.csv")
+
+cmmts = {"Cluster": [], "Comment": []}
+for i, row in df.iterrows():
+    txt = f"Ellipticities (core, all): e_core={row['ecore']}, e_all={row['eall']}."
+    cmmts["Cluster"].append(row["Cluster"])
+    cmmts["Comment"].append(txt)
+
+cluster_df = pd.DataFrame(cmmts)
+cluster_df.to_csv(
+    "../data/databases/cmmts/HU2021.csv", index=False, quoting=csv.QUOTE_ALL
+)
+breakpoint()
+
+
 
 
 df = pd.read_csv("/home/gabriel/Descargas/HUNT2023.csv")
