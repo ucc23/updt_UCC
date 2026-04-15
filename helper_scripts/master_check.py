@@ -4,10 +4,10 @@ check_ucc.py  –  UCC catalogue consistency checks
 
 Available checks
 ----------------
-  1. coords_bc   – compare B vs C catalogue positions / proper-motions (scatter plot)
-  2. dbs_coords  – cross-DB coordinate consistency within catalogue B
-  3. dbs_params  – cross-DB parameter consistency within catalogue B
-  4. cents_membs – compare B centre coords with member-file medians
+  1. B_vs_C_pos        – compare B vs C catalogue positions / proper-motions
+  2. B_DBs_coords      – cross-DB coordinate consistency within catalogue B
+  3. B_DBs_params      – cross-DB parameter consistency within catalogue B
+  4. B_vs_membs_coords – compare B center coords with member-file medians
 
 """
 
@@ -15,10 +15,10 @@ Available checks
 # Manual exclusions based on previous checks and known issues
 
 # Families to skip in all checks
-skip_pfx = ("hsc", "theia", "dutrabica", "mwsc", "cwnu", "ocsn", "lp")
+skip_pfx = ()  # ("hsc", "theia", "dutrabica", "mwsc", "cwnu", "ocsn", "lp")
 
 # OCs to skip in run_coords_bc
-skip_names = ["melotte111", "platais6"]
+skip_names = ()  # ["melotte111", "platais6"]
 
 # OCs to skip in run_dbs_coords
 known_bad_oc = {
@@ -39,6 +39,10 @@ known_bad_oc = {
 }
 # ---------------------------------------------------------------------------
 
+
+B_cat_path = "../data/UCC_cat_B.csv"
+C_cat_path = "../data/UCC_cat_C.csv"
+members_path = "../data/zenodo/UCC_members.parquet"
 _PARAMS = ["dist", "av", "diff_ext", "age", "met", "mass", "bi_frac", "blue_str"]
 
 
@@ -49,15 +53,16 @@ def main():
         choice = input("Select check [1-4]: ").strip()
 
         if choice == "1":
-            print("coords_bc thresholds (press Enter to keep default):")
+            print("Parameters (press Enter to keep default):")
             pos_thr = _prompt_float("position threshold (deg)", 0.5)
             pm_thr = _prompt_float("PM threshold (mas/yr)", 10.0)
             uti_min = _prompt_float("UTI minimum", 0.1)
-            run_coords_bc(pos_thr=pos_thr, pm_thr=pm_thr, uti_min=uti_min)
+            run_B_vs_C_pos(pos_thr=pos_thr, pm_thr=pm_thr, uti_min=uti_min)
             break
 
         elif choice == "2":
-            run_dbs_coords()
+            pos_thr = _prompt_float("position threshold (deg)", 1)
+            run_B_DBs_coords(pos_thr)
             break
 
         elif choice == "3":
@@ -68,14 +73,14 @@ def main():
                     break
                 print(f"  Invalid parameter. Choose from: {_PARAMS_str}")
             thr = _prompt_float("fractional deviation threshold", 0.25)
-            run_dbs_params(param_col=param, median_perc=thr)
+            run_B_DBs_params(param_col=param, median_perc=thr)
             break
 
         elif choice == "4":
-            print("cents_membs thresholds (press Enter to keep default):")
+            print("Parameters (press Enter to keep default):")
             dist_thr = _prompt_float("angular separation (deg)", 0.5)
-            drad_thr = _prompt_float("normalised separation", 0.25)
-            run_cents_membs(dist_thr=dist_thr, drad_thr=drad_thr)
+            drad_thr = _prompt_float("normalized separation", 0.25)
+            run_B_vs_membs_coords(dist_thr=dist_thr, drad_thr=drad_thr)
             break
         else:
             print("Invalid choice. Please enter 1, 2, 3, or 4.")
@@ -86,12 +91,7 @@ def _prompt_float(label, default):
     return float(raw) if raw else default
 
 
-# ---------------------------------------------------------------------------
-# check 1 – coords_bc
-# ---------------------------------------------------------------------------
-
-
-def run_coords_bc(pos_thr, pm_thr, uti_min):
+def run_B_vs_C_pos(pos_thr, pm_thr, uti_min):
     import webbrowser
 
     import matplotlib.pyplot as plt
@@ -99,13 +99,13 @@ def run_coords_bc(pos_thr, pm_thr, uti_min):
     import pandas as pd
 
     print(
-        f"\nChecking B vs C catalogue consistency  "
+        f"\nChecking B vs C catalogue consistency "
         f"(pos_thr={pos_thr}°, pm_thr={pm_thr} mas/yr, UTI>{uti_min})\n"
     )
 
-    df1 = pd.read_csv("../data/UCC_cat_B.csv")
+    df1 = pd.read_csv(B_cat_path)
     df1["fname"] = [_.split(";")[0] for _ in df1["fnames"]]
-    df2 = pd.read_csv("../data/UCC_cat_C.csv")
+    df2 = pd.read_csv(C_cat_path)
     df = pd.merge(df1, df2, on="fname", suffixes=("_B", "_C"))
 
     df["dist_2D_x"] = (
@@ -124,7 +124,7 @@ def run_coords_bc(pos_thr, pm_thr, uti_min):
         (df["dist_2D_x"] > pos_thr) | (df["dist_2D_y"] > pm_thr)
     )
     print(
-        f"\n{msk.sum()} clusters flagged  "
+        f"\n{msk.sum()} clusters flagged "
         f"(pos_thr={pos_thr}°, pm_thr={pm_thr} mas/yr, UTI>{uti_min})\n"
     )
 
@@ -136,7 +136,7 @@ def run_coords_bc(pos_thr, pm_thr, uti_min):
         "GLAT_m",
         "UTI",
         "dist_2D_x",
-        "dist_2D_y",
+        # "dist_2D_y",
     ]
     cols_pm = [
         "fname",
@@ -145,20 +145,27 @@ def run_coords_bc(pos_thr, pm_thr, uti_min):
         "pmRA_m",
         "pmDE_m",
         "UTI",
-        "dist_2D_x",
+        # "dist_2D_x",
         "dist_2D_y",
     ]
+
+    def fmt(x):
+        return f"{x:8.2f}"
+
+    print("\n=== Position differences ===")
     print(
-        df[cols_pos][msk]
+        df.loc[msk, cols_pos]
         .sort_values("dist_2D_x", ascending=False)
-        .to_string(index=False)
+        .to_string(index=False, formatters={c: fmt for c in cols_pm[1:]})
     )
-    print()
+    print("\n=== Proper motion differences ===")
     print(
-        df[cols_pm][msk]
+        df.loc[msk, cols_pm]
         .sort_values("dist_2D_y", ascending=False)
-        .to_string(index=False)
+        .to_string(index=False, formatters={c: fmt for c in cols_pm[1:]})
     )
+
+    input("\nPress Enter to show interactive plot...")
 
     names = df["fname"][msk].values
     xp = np.array(df["dist_2D_x"][msk])
@@ -210,12 +217,7 @@ def run_coords_bc(pos_thr, pm_thr, uti_min):
     plt.show()
 
 
-# ---------------------------------------------------------------------------
-# check 2 – dbs_coords
-# ---------------------------------------------------------------------------
-
-
-def run_dbs_coords(diff_lim=1.0):
+def run_B_DBs_coords(pos_thr):
     import json
     from collections import Counter
     from pathlib import Path
@@ -224,10 +226,10 @@ def run_dbs_coords(diff_lim=1.0):
     import pandas as pd
 
     print(
-        f"\nChecking cross-DB coordinate consistency within catalogue B (Δ>{diff_lim}°)\n"
+        f"\nChecking cross-DB coordinate consistency within catalogue B (Δ>{pos_thr}°)\n"
     )
 
-    df_B = pd.read_csv("../data/UCC_cat_B.csv")
+    df_B = pd.read_csv(B_cat_path)
 
     with open("../data/databases_info.json") as f:
         databases_info = json.load(f)
@@ -271,7 +273,7 @@ def run_dbs_coords(diff_lim=1.0):
                 d_ra = min(d_ra, 360 - d_ra)
                 d_dec = abs(decs[i] - decs[j])
                 max_diff = max(max_diff, d_ra, d_dec)
-                if d_ra > diff_lim or d_dec > diff_lim:
+                if d_ra > pos_thr or d_dec > pos_thr:
                     conflicts[i] += 1
                     conflicts[j] += 1
                     pair_list.append((i, j))
@@ -289,17 +291,12 @@ def run_dbs_coords(diff_lim=1.0):
                 )
             results.append((max_diff, msg))
 
-    print(f"\n{len(results)} clusters with coordinate conflicts (Δ>{diff_lim}°)\n")
+    print(f"\n{len(results)} clusters with coordinate conflicts\n")
     for _, msg in sorted(results, key=lambda x: x[0], reverse=True):
         print(msg)
 
 
-# ---------------------------------------------------------------------------
-# check 3 – dbs_params
-# ---------------------------------------------------------------------------
-
-
-def run_dbs_params(param_col, median_perc, res_max=500):
+def run_B_DBs_params(param_col, median_perc, res_max=500):
     import numpy as np
     import pandas as pd
 
@@ -308,7 +305,7 @@ def run_dbs_params(param_col, median_perc, res_max=500):
         f"(threshold={100 * median_perc:.0f}% of median, showing top {res_max})\n"
     )
 
-    df_B = pd.read_csv("../data/UCC_cat_B.csv")
+    df_B = pd.read_csv(B_cat_path)
 
     results = []
     for row in df_B.itertuples(index=False):
@@ -363,12 +360,7 @@ def run_dbs_params(param_col, median_perc, res_max=500):
         print(f"\n... and {len(results) - res_max} more")
 
 
-# ---------------------------------------------------------------------------
-# check 4 – cents_membs
-# ---------------------------------------------------------------------------
-
-
-def run_cents_membs(dist_thr, drad_thr):
+def run_B_vs_membs_coords(dist_thr, drad_thr):
     import numpy as np
     import pandas as pd
 
@@ -377,8 +369,8 @@ def run_cents_membs(dist_thr, drad_thr):
         f"(dist>{dist_thr}°, d_norm>{drad_thr})\n"
     )
 
-    df_B = pd.read_csv("../data/UCC_cat_B.csv")
-    df_Z = pd.read_parquet("../data/zenodo/UCC_members.parquet")
+    df_B = pd.read_csv(B_cat_path)
+    df_Z = pd.read_parquet(members_path)
 
     df_B["fname"] = df_B["fnames"].str.split(";").str[0]
     mask_valid = ~df_B["fname"].str.startswith(skip_pfx)
