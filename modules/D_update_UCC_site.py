@@ -654,7 +654,7 @@ def updt_cls_CSV(
     df_BC["DE_ICRS"] = np.round(df_BC["DE_ICRS_m"], 2)
     df_BC["GLON"] = np.round(df_BC["GLON_m"], 2)
     df_BC["GLAT"] = np.round(df_BC["GLAT_m"], 2)
-    df_BC["N_50"] = df_BC["N_50"].astype(int)
+    df_BC["N_membs"] = df_BC["N_membs"].astype(int)
 
     # Compute parallax-based distances in parsecs
     dist_pc = 1000 / np.clip(np.array(df_BC["Plx_m"]), a_min=0.0000001, a_max=np.inf)
@@ -678,7 +678,7 @@ def updt_cls_CSV(
                 "mass_median",
                 "bi_frac_median",
                 "blue_str_median",
-                "N_50",
+                "N_membs",
                 "P_dup",
                 "UTI",
                 "bad_oc",
@@ -802,7 +802,7 @@ def updt_indiv_tables(
     df_BC["GLON"] = np.round(df_BC["GLON_m"], 2)
     df_BC["GLAT"] = np.round(df_BC["GLAT_m"], 2)
     df_BC["Plx_m_round"] = np.round(df_BC["Plx_m"], 2)
-    df_BC["N_50"] = df_BC["N_50"].astype(int)
+    df_BC["N_membs"] = df_BC["N_membs"].astype(int)
     df_BC["C3_abcd"] = [ucc_entry.color_C3(_) for _ in df_BC["C3"]]
     df_BC = df_BC.sort_values("Name").reset_index()
 

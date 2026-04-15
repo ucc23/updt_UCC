@@ -59,7 +59,7 @@ class3: |
 N_comments: "{N_comments}"
 rc_val: {rc_val}
 dens_val: {dens_val}
-N_50_val: {N_50_val}
+N_membs_val: {N_membs_val}
 scix_url: {scix_url}
 posit_table: |
 {posit_table}
@@ -250,7 +250,7 @@ def make(
         class3=abcd_c,
         rc_val=r_core,
         dens_val=dens_core,
-        N_50_val=str(int(UCC_cl["N_50"])),
+        N_membs_val=str(int(UCC_cl["N_membs"])),
         scix_url=cl_names[0].replace(" ", "%20"),
         posit_table=posit_table,
         N_rows_pos=N_rows_pos,

@@ -276,13 +276,13 @@ def generate_table(header, DB_id, ref_url, table_rows, table_note):
             "GLON",
             "GLAT",
             "Plx_m_round",
-            "N_50",
+            "N_membs",
             "C3_abcd",
             "P_dup",
             "UTI",
         ]
         parts.append(
-            "| Name | RA | DEC | LON | LAT | Plx | N<sub>50</sub> | C3 |"
+            "| Name | RA | DEC | LON | LAT | Plx | N<sub>m</sub> | C3 |"
             " P<sub>dup</sub> | UTI |\n"
             "| --- | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: |\n"
         )
