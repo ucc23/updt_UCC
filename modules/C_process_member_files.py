@@ -513,7 +513,7 @@ def member_files_updt(
             Y_GC,
             Z_GC,
             R_GC,
-            N_50,
+            N_membs,
             r_50,
             r_core,
             dens_core,
@@ -543,7 +543,7 @@ def member_files_updt(
             Y_GC,
             Z_GC,
             R_GC,
-            N_50,
+            N_membs,
             r_50,
             r_core,
             dens_core,
@@ -831,14 +831,14 @@ def add_info_to_C(
         msk2 = (N >= Nmin) & (N < Nmax)
         arr[msk2] = vmin + ((N[msk2] - Nmin) / (Nmax - Nmin)) * (vmax - vmin)
 
-    N_50 = df_UCC_C["N_50"].to_numpy()
-    C_N50 = np.ones(len(N_50))
-    C_N50[N_50 < 25] = 0.0
+    N_membs = df_UCC_C["N_membs"].to_numpy()
+    C_N_membs = np.ones(len(N_membs))
+    C_N_membs[N_membs < 25] = 0.0
     # Define intervals and mapping ranges
     bounds = (0.25, 0.5, 0.75, 0.9)
     Nvals = (25, 50, 100, 500)
     for i in range(1, len(bounds)):
-        normalize(N_50, C_N50, Nvals[i - 1], Nvals[i], bounds[i - 1], bounds[i])
+        normalize(N_membs, C_N_membs, Nvals[i - 1], Nvals[i], bounds[i - 1], bounds[i])
 
     #
     C_dens = np.clip((df_UCC_C["dens_core_pc2"] - 0) / (max_dens - 0), 0, 1)
@@ -931,10 +931,10 @@ def add_info_to_C(
     C_dup_same_db = np.array(C_dup_same_db) / 100
 
     # Final UTI
-    UTI = np.clip(0.2 * (C_N50 + C_dens + C_C3 + 2 * C_lit) * C_dup, 0, 1)
+    UTI = np.clip(0.2 * (C_N_membs + C_dens + C_C3 + 2 * C_lit) * C_dup, 0, 1)
 
     # Add data to df
-    df_UCC_C["C_N"] = np.round(C_N50, 2)
+    df_UCC_C["C_N"] = np.round(C_N_membs, 2)
     df_UCC_C["C_dens"] = np.round(C_dens, 2)
     df_UCC_C["C_C3"] = np.round(C_C3, 2)
     df_UCC_C["C_lit"] = np.round(C_lit, 2)
@@ -953,16 +953,6 @@ def add_info_to_C(
     df_UCC_C.loc[msk, "bad_oc"] = "y"
 
     return df_UCC_C
-
-
-# def get_bad_ocs(df):
-#     """Flag entries that have bad values and are possibly asterisms, moving groups,
-#     or artifacts of some kind.
-#     """
-#     msk = (df["UTI"] < UTI_max) & (df["C_dup"] > C_dup_min) & (df["C_lit"] < C_lit_max)
-#     df.loc[msk, "bad_oc"] = "y"
-
-#     return df
 
 
 def update_zenodo_files(
@@ -1068,7 +1058,7 @@ def updt_zenodo_csv(
             [
                 "Name(s)",
                 "name",
-                "N_50",
+                "N_membs",
                 "r_50",
                 "RA_ICRS",
                 "DE_ICRS",

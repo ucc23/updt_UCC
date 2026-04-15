@@ -1,6 +1,6 @@
 # The Unified Cluster Catalogue (UCC)
 
-These files correspond to the 260413 version of the UCC database (https://ucc.ar),
+These files correspond to the 260415 version of the UCC database (https://ucc.ar),
 composed of 18269 clusters with a combined 1095686 members.
 If you find this data useful please cite its associated article
 ([Perren et al. 2023](https://ui.adsabs.harvard.edu/abs/2023MNRAS.526.4107P))
@@ -44,7 +44,7 @@ Columns listed in the `UCC_cat.csv` file (one row per cluster):
 ```
 Name(s)          : Name(s) associated to the OC
 name             : Formatted naming to match the members file 'main name'
-N_50             : Number of estimated members with P>0.5
+N_membs          : Number of estimated members with P>0.5
 r_50             : Radius that contains half the members (in arcmin)
 RA_ICRS          : Right ascension
 DE_ICRS          : Declination

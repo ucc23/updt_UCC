@@ -632,11 +632,11 @@ def get_new_cl_data(
     df_membs : pd.DataFrame
         DataFrame of cluster members.
     prob_cut : float, optional
-        Probability threshold for calculating N_50. Default is 0.5.
+        Probability threshold for calculating N_membs. Default is 0.5.
 
     """
     # Number of estimated members (P>50%)
-    N_50 = int((df_membs["probs"] >= prob_cut).sum())
+    N_membs = int((df_membs["probs"] >= prob_cut).sum())
 
     # Center values
     c_lon, c_lat = np.nanmedian(df_membs["GLON"]), np.nanmedian(df_membs["GLAT"])
@@ -717,7 +717,7 @@ def get_new_cl_data(
         Y_GC,
         Z_GC,
         R_GC,
-        N_50,
+        N_membs,
         r_50,
         r_core,
         dens_core,
@@ -747,7 +747,7 @@ def updt_UCC_new_cl_data(
     Y_GC,
     Z_GC,
     R_GC,
-    N_50,
+    N_membs,
     r_50,
     r_core,
     dens_core,
@@ -777,7 +777,7 @@ def updt_UCC_new_cl_data(
         "Y_GC": Y_GC,
         "Z_GC": Z_GC,
         "R_GC": R_GC,
-        "N_50": N_50,
+        "N_membs": N_membs,
         "r_50": r_50,
         "r_core_pc": r_core,
         "dens_core_pc2": dens_core,
