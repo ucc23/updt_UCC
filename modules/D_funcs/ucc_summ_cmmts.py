@@ -177,11 +177,11 @@ def get_C_txt(C_N, C_dens, C_C3, C_lit, C_dup, plx, Z_GC):
         C_lit,
         [0.9, 0.75, 0.5, 0.25],
         [
-            "very well-studied",
-            "well-studied",
-            "moderately studied",
-            "poorly studied",
-            "<u>rarely</u> studied",
+            "very well-studied",  # >0.9
+            "well-studied",  # > 0.75
+            "moderately studied",  # > 0.5
+            "poorly studied",  # > 0.25
+            "<u>rarely</u> studied",  # ≤ 0.25
         ],
     )
 
