@@ -818,9 +818,14 @@ def add_info_to_C(
     N_lit = np.array([len(_.split(";")) for _ in df_UCC_B["DB"]])
     # Normalizing value: max number of DBs for a single OC
     N_lit_tot = max(N_lit)
-    # Simple linear mapping
     N_lit_max = C_lit_perc_max * N_lit_tot
-    C_lit = np.clip((N_lit - N_lit_min) / (N_lit_max - N_lit_min), 0, 1)
+    C_lit = np.ones(len(N_lit))
+    C_lit[N_lit <= N_lit_min] = 0.0
+    # Define intervals and mapping ranges
+    bounds = (0, 0.5, 0.99)
+    Nvals = (N_lit_min, 10, N_lit_max)
+    for i in range(1, len(bounds)):
+        normalize(N_lit, C_lit, Nvals[i - 1], Nvals[i], bounds[i - 1], bounds[i])
 
     # C_dup indicates the confidence that an entry is a duplicate of a previously
     # reported object. A value of 1 means not at all a duplicate
