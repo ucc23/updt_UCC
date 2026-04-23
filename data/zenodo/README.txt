@@ -46,6 +46,7 @@ Name(s)          : Name(s) associated to the OC
 name             : Formatted naming to match the members file 'main name'
 N_membs          : Number of estimated members with P>0.5
 r_50             : Radius that contains half the members (in arcmin)
+r_core           : Core radius (in parsec)
 RA_ICRS          : Right ascension
 DE_ICRS          : Declination
 GLON             : Galactic longitude
