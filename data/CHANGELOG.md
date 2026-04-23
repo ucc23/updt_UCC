@@ -1,6 +1,14 @@
 Some of these are intermediate versions of the UCC database that are not published.
 
 
+## 26XXYY
+
+- Modified `C_lit` to return better literature weights
+- Fixed a few issues with core radius and density estimates
+
+
+
+
 ## 260413
 
 - Added Hu et al (2021); comments only
