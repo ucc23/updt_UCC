@@ -368,40 +368,6 @@ def process_entries(
     C_reprocess: pd.DataFrame,
 ) -> pd.DataFrame:
     """ """
-    # # Extract all columns except "fnames"
-    # B_cols = list(B_not_in_C.keys())
-    # B_cols.remove("fname")
-    # C_cols = list(C_reprocess.keys())
-    # C_cols.remove("fname")
-    # all_cols = B_cols + C_cols
-
-    # # Generate empty dictionary with all the fnames to be processed
-    # all_fnames = list(B_not_in_C["fname"]) + list(C_reprocess["fname"])
-    # df_UCC_updt = {"fname": all_fnames}
-    # N_tot = len(all_fnames)
-    # for k in all_cols:
-    #     df_UCC_updt[k] = [np.nan] * N_tot
-
-    # # Add data from the B_not_in_C dataframe
-    # for i, fname in enumerate(B_not_in_C["fname"]):
-    #     j = df_UCC_updt["fname"].index(fname)
-    #     for col in B_cols:
-    #         df_UCC_updt[col][j] = B_not_in_C[col].iloc[i]
-
-    # # Add data from the C_reprocess dataframe and information from df_UCC_B
-    # B_fnames_lst = list(df_UCC_B["fname"])
-    # for i, fname in enumerate(C_reprocess["fname"]):
-    #     j = df_UCC_updt["fname"].index(fname)
-    #     for col in C_cols:
-    #         df_UCC_updt[col][j] = C_reprocess[col].iloc[i]
-
-    #     # Add df_UCC_B data
-    #     k = B_fnames_lst.index(fname)
-    #     for col in B_cols:
-    #         df_UCC_updt[col][j] = df_UCC_B[col].iloc[k]
-
-    # df_UCC_updt = pd.DataFrame(df_UCC_updt).replace({pd.NA: "nan"})
-
     # Rows to reprocess. Merge with df_UCC_B to recover B columns
     part_C = C_reprocess.merge(
         df_UCC_B.drop(columns=["fnames"]),
