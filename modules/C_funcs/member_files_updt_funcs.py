@@ -790,16 +790,30 @@ def updt_UCC_new_cl_data(
 
 
 def core_values(df_membs):
-    cent_lon, cent_lat = np.nanmedian(df_membs["GLON"]), np.nanmedian(df_membs["GLAT"])
+    """ """
+    x, y = df_membs["GLON"].values, df_membs["GLAT"].values
+    # Center estimation
+    if len(df_membs) < 100:
+        # For low count, use medians
+        cent_lon, cent_lat = np.nanmedian(x), np.nanmedian(y)
+    else:
+        Nbins = int(max(min(np.sqrt(len(df_membs)), 100), 5))
+        H, xedges, yedges = np.histogram2d(x, y, bins=Nbins)
+        # index of maximum density
+        i, j = np.unravel_index(np.argmax(H), H.shape)
+        # bin boundaries
+        x0, x1 = xedges[i], xedges[i + 1]
+        y0, y1 = yedges[j], yedges[j + 1]
+        cent_lon, cent_lat = (x0 + x1) / 2, (y0 + y1) / 2
 
     # Distances with cos(lat) correction
     cos_lat = np.cos(np.deg2rad(cent_lat))
-    dlon = (df_membs["GLON"].values - cent_lon) * cos_lat
-    dlat = df_membs["GLAT"].values - cent_lat
+    dlon = (x - cent_lon) * cos_lat
+    dlat = y - cent_lat
     dists_deg = np.sqrt(dlon**2 + dlat**2)
 
     # RDP in degrees
-    num_bins = max(10, int(np.sqrt(len(df_membs))))
+    num_bins = int(max(min(25, np.sqrt(len(df_membs))), 5))
     counts, bin_edges = np.histogram(dists_deg, bins=num_bins)
 
     # To parsec
@@ -826,14 +840,15 @@ def core_values(df_membs):
         else:
             r_c = bin_centers_pc[0]  # peak is already below half-max
     if r_c is None or r_c <= 0:
-        # Density never drops to half within the data.
-        # Approximate r_c as 25% of the max distance.
-        r_c = 0.25 * bin_centers_pc.max()
+        # The 10% value comes from Tarricq et al 2022 (Structural parameters of 389
+        # local open clusters) Fig 7: R_c/R_t ~ 0.08
+        r_c = 0.1 * bin_centers_pc.max()
 
     # Final core density estimation
     dists_pc = dist_pc * np.tan(np.deg2rad(dists_deg))
+    r_c = np.clip(r_c, 0.01, 10)
     N_core = (dists_pc <= r_c).sum()
-    dens_core = N_core / (np.pi * r_c**2) if r_c > 0 else 0.0
+    dens_core = np.clip(N_core / (np.pi * r_c**2), 0, 250)
 
     return round(r_c, 2), round(dens_core, 2)
 
