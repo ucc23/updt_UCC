@@ -195,11 +195,21 @@ def make(
 
     # Core radius (in pc)
     val = UCC_cl["r_core_pc"]
-    r_core = f"{val:.2f}" if val < 0.1 else f"{val:.1f}" if val < 10 else f"{val:.0f}"
+    r_core = (
+        f"{val:.2f}"
+        if val < 0.1
+        else f"{round(val, 1):.1f}"
+        if val < 10
+        else f"{val:.0f}"
+    )
     # Core density (in pc^-2)
     val = UCC_cl["dens_core_pc2"]
     dens_core = (
-        f"{val:.2f}" if val < 0.1 else f"{val:.1f}" if val < 10 else f"{val:.0f}"
+        f"{val:.2f}"
+        if val < 0.1
+        else f"{round(val, 1):.1f}"
+        if val < 10
+        else f"{val:.0f}"
     )
 
     contents = header.format(
