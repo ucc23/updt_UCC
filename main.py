@@ -25,11 +25,11 @@ def display_menu():
 
     print("\nB) B_update_UCC_DB.py")
     print("   └─ Update the UCC catalogue")
-    print("   └─ Integrates new data with existing UCC B databse")
+    print("   └─ Integrates new data with existing UCC B database")
 
     print("\nC) C_process_member_files.py")
     print("   └─ Processes stellar membership using fastMP algorithm (if any)")
-    print("   └─ Integrates new/modified data with existing UCC C databse")
+    print("   └─ Integrates new/modified data with existing UCC C database")
 
     print("\nD) D_update_UCC_site.py")
     print("   └─ Update the website files")
