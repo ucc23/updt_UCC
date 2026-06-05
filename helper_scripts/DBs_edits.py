@@ -7,6 +7,35 @@ import numpy as np
 import pandas as pd
 from astropy.coordinates import SkyCoord
 
+
+
+df = pd.read_csv("../temp_updt/data/databases/FU2022.csv")
+
+# Round these columns tp 5 decimal places "RVmed","e_RVmed" "[Fe/H]med","e_[Fe/H]med"
+float_cols = ["RVmed", "e_RVmed", "[Fe/H]med", "e_[Fe/H]med"]
+df[float_cols] = df[float_cols].round(5)
+
+df.to_csv(
+    "../temp_updt/data/databases/FU2022.csv",
+    na_rep="nan",
+    index=False,
+    quoting=csv.QUOTE_NONNUMERIC,
+)
+
+breakpoint()
+
+
+
+
+
+
+
+
+
+
+
+
+
 df = pd.read_csv("../temp_updt/data/databases/SCHWEERS2026.csv")
 
 df.to_csv(
