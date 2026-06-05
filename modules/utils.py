@@ -114,7 +114,7 @@ def radec2lonlat(
     return lb.l.value, lb.b.value  # pyright: ignore
 
 
-def get_fnames(names_all, sep: str = ","):
+def get_fnames(names_all, sep: str = ",")-> list[list[str]]:
     """ """
     fnames = []
     for names in names_all:

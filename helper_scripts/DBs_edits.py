@@ -7,6 +7,16 @@ import numpy as np
 import pandas as pd
 from astropy.coordinates import SkyCoord
 
+df = pd.read_csv("../temp_updt/data/databases/SCHWEERS2026.csv")
+
+df.to_csv(
+    "../temp_updt/data/databases/SCHWEERS2026_2.csv",
+    na_rep="nan",
+    index=False,
+    quoting=csv.QUOTE_NONNUMERIC,
+)
+
+breakpoint()
 
 
 df = pd.read_csv("../temp_updt/DIAS2002.csv")
@@ -18,8 +28,6 @@ coords = SkyCoord(
 df["RAJ2000"] = coords.ra.deg.round(5)
 df["DEJ2000"] = coords.dec.deg.round(5)
 
-
-
 df.to_csv(
     "../temp_updt/DIAS2002_2.csv",
     na_rep="nan",
@@ -28,7 +36,6 @@ df.to_csv(
 )
 
 breakpoint()
-
 
 
 df = pd.read_csv("../temp_updt/data/databases/DIB2018.csv")
@@ -43,7 +50,7 @@ df["DEC"] = coords.dec.deg.round(5)
 # Distance from columns RA,DEC to columns RAJ2000,DECJ2000
 dist = np.sqrt((df["RA"] - df["RAJ2000"]) ** 2 + (df["DEC"] - df["DEJ2000"]) ** 2)
 
-msk= dist > 1
+msk = dist > 1
 df["RAJ2000"][msk] = df["RA"][msk]
 # df["DEJ2000"][msk] = df["DEC"][msk]
 
@@ -67,11 +74,6 @@ df.to_csv(
 breakpoint()
 
 
-
-
-
-
-
 df = pd.read_csv("../temp_updt/data/databases/DENG2023.csv")
 
 # # Merge columns "Name and "ID" into a single column "Name", separated by comma
@@ -93,17 +95,11 @@ df.to_csv(
 breakpoint()
 
 
-
-
-
 df1 = pd.read_csv("../temp_updt/data/databases/YANG2025.csv")
 df2 = pd.read_csv("../temp_updt/data/databases/YANG2025_1.csv")
 
 # Merge three dfs by their 'Name' column
-df_merged = (
-    df1.merge(df2, on="Cluster", how="outer")
-    .fillna("nan")
-)
+df_merged = df1.merge(df2, on="Cluster", how="outer").fillna("nan")
 
 
 df_merged.to_csv(
@@ -114,24 +110,6 @@ df_merged.to_csv(
 )
 
 breakpoint()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 df1 = pd.read_csv("../temp_updt/data/databases/NETOPIL2022_0.csv")

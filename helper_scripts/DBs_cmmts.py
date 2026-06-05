@@ -4,6 +4,23 @@ import numpy as np
 import pandas as pd
 
 
+df = pd.read_csv("../temp_updt/data/databases/LI2026.csv")
+
+cmmts = {"Cluster": [], "Comment": []}
+for i, row in df.iterrows():
+    txt = f"Tidal & Core radii: r_t={row['Rt']:.0f}+/-{row['e_Rt']:.1f} [pc], r_c={row['Rcore']}+/-{row['e_Rcore']} [pc]; stars within r_t: N~{int(row['N'])}"
+    cmmts["Cluster"].append(row["Name"])
+    cmmts["Comment"].append(txt)
+
+cluster_df = pd.DataFrame(cmmts)
+cluster_df.to_csv(
+    "../data/databases/cmmts/LI2026.csv", index=False, quoting=csv.QUOTE_ALL
+)
+breakpoint()
+
+
+
+
 df = pd.read_csv("../temp_updt/data/databases/HU2021.csv")
 
 cmmts = {"Cluster": [], "Comment": []}
