@@ -747,6 +747,39 @@
       }
     }
   },
+  "KHARCHENKO2009": {
+    "SCIX_url": "https://scixplorer.org/abs/2009A%26A...504..681K",
+    "data_cmmts": "data",
+    "citations_count": {
+      "date": "2026-06-05",
+      "count": "40",
+      "citations_year": 2.4
+    },
+    "data_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2009A%26A...504..681K",
+    "authors": "Kharchenko et al.",
+    "title": "Integrated BVJHK{s} parameters and luminosity functions of 650 Galactic open clusters",
+    "year": "2009",
+    "received": "20090303",
+    "names": "Name",
+    "pos": {
+      "RA": "_RA.icrs",
+      "DEC": "_DE.icrs"
+    },
+    "pars": {
+      "av": {
+        "ebv": "E(B-V)"
+      },
+      "dist": {
+        "dpc": "Dist"
+      },
+      "age": {
+        "loga": "logt"
+      }
+    },
+    "e_pars": {
+      "e_dist": {}
+    }
+  },
   "GLUSHKOVA2010": {
     "SCIX_url": "https://scixplorer.org/abs/2010AstL...36...75G",
     "data_cmmts": "data",
