@@ -318,9 +318,6 @@ def load_data(
         logging.info("\n=== Rebuilding the UCC ===\n")
         new_JSON = current_JSON
 
-    # # Remove those entries whose 'data_cmmts' key is equal to 'comments'
-    # new_JSON = {k: v for k, v in new_JSON.items() if v.get("data_cmmts") != "comments"}
-
     # Order new_JSON by the values in the 'received' keys
     new_JSON = dict(sorted(new_JSON.items(), key=lambda item: item[1]["received"]))
 
@@ -330,7 +327,9 @@ def load_data(
         if vals["data_cmmts"] == "comments":
             logging.info(f"Skipping {DB} (marked as 'comments' in JSON)")
             continue
+        new_db_flag = ""
         if DB in new_DBs:
+            new_db_flag = "(new DB)"
             df_new = pd.read_csv(temp_database_folder + DB + ".csv")
         else:
             df_new = pd.read_csv(dbs_folder + DB + ".csv")
@@ -353,7 +352,7 @@ def load_data(
         if missing:
             raise ValueError(f"Missing columns in {DB}: {missing}")
 
-        logging.info(f"{DB} loaded (N={len(df_new)})")
+        logging.info(f"{DB} loaded (N={len(df_new)}) {new_db_flag}")
         all_dbs_data[DB] = [df_new, new_JSON[DB]]
 
     # Create a dictionary with all names and their canonical fnames and Names

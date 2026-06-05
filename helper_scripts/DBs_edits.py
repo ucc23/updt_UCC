@@ -9,6 +9,28 @@ from astropy.coordinates import SkyCoord
 
 
 
+df = pd.read_csv("../temp_updt/DIAS2002.csv")
+
+# Convert GLON,GLAT columns to RA,DEC using astropy
+coords = SkyCoord(
+    l=df["GLON"].values * u.deg, b=df["GLAT"].values * u.deg, frame="galactic"
+).icrs
+df["RAJ2000"] = coords.ra.deg.round(5)
+df["DEJ2000"] = coords.dec.deg.round(5)
+
+
+
+df.to_csv(
+    "../temp_updt/DIAS2002_2.csv",
+    na_rep="nan",
+    index=False,
+    quoting=csv.QUOTE_NONNUMERIC,
+)
+
+breakpoint()
+
+
+
 df = pd.read_csv("../temp_updt/data/databases/DIB2018.csv")
 
 # Convert GLON,GLAT columns to RA,DEC using astropy
