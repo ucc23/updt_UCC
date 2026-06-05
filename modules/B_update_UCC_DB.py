@@ -1,3 +1,4 @@
+import csv
 import json
 import os
 import re
@@ -192,7 +193,12 @@ def main():
         save_df_UCC(logging, df_UCC_B, file_path, order_col="fnames")
 
     # Generate new all_OC_names file
-    df_UCC_B[["fnames", "Names"]].to_csv(temp_all_OC_names, index=False)
+    idx = np.argsort([_.split(";")[0] for _ in df_UCC_B["fnames"]])
+    all_names_csv = pd.DataFrame(df_UCC_B[["fnames", "Names"]])
+    all_names_csv = all_names_csv.reindex(idx)
+    all_names_csv.to_csv(
+        temp_all_OC_names, quoting=csv.QUOTE_NONNUMERIC, index=False
+    )
 
     if input("\nMove files to their final paths? (y/n): ").lower() == "y":
         move_files(
