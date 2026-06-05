@@ -99,8 +99,7 @@ def main():
                 df_new[dec_col].to_numpy(),
             )
 
-        # Standardize names in the DB
-        new_DB_fnames = get_fnames_new_DB(logging, df_new, newDB_json, all_names_dict)
+        new_DB_fnames = get_fnames(df_new[newDB_json["names"]])
 
         # Check the DB for basic requirements
         if flag_check_stop != "no_check":
@@ -114,6 +113,11 @@ def main():
                 newDB_json,
                 flag_check_stop,
             )
+
+        # Standardize names in the DB
+        new_DB_fnames = get_canonical_fnames(
+            logging, df_new, newDB_json, all_names_dict, new_DB_fnames
+        )
 
         # Match the new DB with the UCC
         db_matches = get_matches_new_DB(df_UCC_B, new_DB_fnames)
@@ -196,9 +200,7 @@ def main():
     idx = np.argsort([_.split(";")[0] for _ in df_UCC_B["fnames"]])
     all_names_csv = pd.DataFrame(df_UCC_B[["fnames", "Names"]])
     all_names_csv = all_names_csv.reindex(idx)
-    all_names_csv.to_csv(
-        temp_all_OC_names, quoting=csv.QUOTE_NONNUMERIC, index=False
-    )
+    all_names_csv.to_csv(temp_all_OC_names, quoting=csv.QUOTE_NONNUMERIC, index=False)
 
     if input("\nMove files to their final paths? (y/n): ").lower() == "y":
         move_files(
@@ -828,11 +830,12 @@ def GCs_check(
     return gc_flag
 
 
-def get_fnames_new_DB(
+def get_canonical_fnames(
     logging,
     df_new: pd.DataFrame,
     newDB_json: dict,
     all_names_dict: dict,
+    new_DB_fnames: list[list[str]],
 ) -> list[list[str]]:
     """
     Extract and standardize all names in the new catalogue
@@ -852,26 +855,8 @@ def get_fnames_new_DB(
         List of lists, where each inner list contains the standardized names for
         each cluster in the new catalogue.
     """
-    new_DB_fnames = get_fnames(df_new[newDB_json["names"]])
-
     # Use 'all_names_dict' to add canonical names to the list of names for each cluster
     # in the new DB
-
-    # for i, DB_fnames in enumerate(new_DB_fnames):
-    #     c_fname, c_name = None, None
-    #     for DB_fname in DB_fnames:
-    #         if DB_fname in all_names_dict:
-    #             c_fname = all_names_dict[DB_fname]["fnames"]
-    #             c_name = all_names_dict[DB_fname]["Names"]
-    #             break
-    #     if c_fname is not None:
-    #         # Add the canonical name at the beginning of the list
-    #         new_DB_fnames[i] = [c_fname] + DB_fnames
-    #         # Also add it to the main Names
-    #         df_new.loc[i, newDB_json["names"]] = (
-    #             str(c_name) + ", " + df_new[newDB_json["names"]][i]
-    #         )
-
     for i, DB_fnames in enumerate(new_DB_fnames):
         # Find the first match in the all_names_dict for any of the fnames in DB_fnames
         match = next(
