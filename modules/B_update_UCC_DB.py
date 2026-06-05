@@ -821,7 +821,7 @@ def GCs_check(
         for idx, row_id, idx_gc, df_gcs_name, d_arcmin in gc_list:
             row_id = row_id.strip()
             logging.info(
-                f"{idx:<6} {row_id:<15} --> {idx_gc:<6} {df_gcs_name.strip():<25}"
+                f"{idx:<6} {row_id:<40} --> {idx_gc:<6} {df_gcs_name.strip():<25}"
                 + f"d={round(d_arcmin, 2)}"
             )
 
