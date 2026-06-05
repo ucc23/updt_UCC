@@ -155,7 +155,7 @@
   },
   "DIAS2002": {
     "SCIX_url": "https://scixplorer.org/abs/2002A%26A...389..871D",
-    "data_cmmts": "data,comments",
+    "data_cmmts": "data",
     "citations_count": {
       "date": "2026-02-10",
       "count": "897",
@@ -1430,6 +1430,47 @@
     },
     "e_pars": {}
   },
+  "DIAS2016": {
+    "SCIX_url": "https://scixplorer.org/abs/2002A%26A...389..871D",
+    "data_cmmts": "data,comments",
+    "citations_count": {
+      "date": "2026-02-10",
+      "count": "897",
+      "citations_year": 37.4
+    },
+    "data_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=B/ocl",
+    "authors": "Dias et al.",
+    "title": "v3.5 New catalogue of optically visible open clusters and candidates",
+    "year": "2016",
+    "received": "20160217",
+    "names": "Cluster",
+    "pos": {
+      "RA": "RAJ2000",
+      "DEC": "DEJ2000",
+      "pmra": "pmRA",
+      "pmde": "pmDE",
+      "Rv": "RV"
+    },
+    "pars": {
+      "av": {
+        "ebv": "E(B-V)"
+      },
+      "dist": {
+        "dpc": "Dist"
+      },
+      "age": {
+        "loga": "Age"
+      },
+      "met": {
+        "feh": "[Fe/H]"
+      }
+    },
+    "e_pars": {
+      "e_met": {
+        "efeh": "e_[Fe/H]"
+      }
+    }
+  },
   "JOSHI2016": {
     "SCIX_url": "https://scixplorer.org/abs/2016A%26A...593A.116J",
     "data_cmmts": "data",
@@ -2538,24 +2579,6 @@
     },
     "e_pars": {}
   },
-  "HU2021": {
-    "SCIX_url": "https://scixplorer.org/abs/2021A%26A...656A..49H",
-    "data_cmmts": "comments",
-    "citations_count": {
-      "date": "2026-04-10",
-      "count": "18",
-      "citations_year": 3.6
-    },
-    "data_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2021A%26A...656A..49H",
-    "authors": "Hu et al.",
-    "title": "Decoding the morphological evolution of open clusters",
-    "year": "2021",
-    "received": "20210306",
-    "names": "Cluster",
-    "pos": {},
-    "pars": {},
-    "e_pars": {}
-  },
   "HUNT2021": {
     "SCIX_url": "https://scixplorer.org/abs/2021A%26A...646A.104H",
     "data_cmmts": "data",
@@ -2999,6 +3022,24 @@
         ]
       }
     }
+  },
+  "HU2021": {
+    "SCIX_url": "https://scixplorer.org/abs/2021A%26A...656A..49H",
+    "data_cmmts": "comments",
+    "citations_count": {
+      "date": "2026-04-10",
+      "count": "18",
+      "citations_year": 3.6
+    },
+    "data_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2021A%26A...656A..49H",
+    "authors": "Hu et al.",
+    "title": "Decoding the morphological evolution of open clusters",
+    "year": "2021",
+    "received": "20210306",
+    "names": "Cluster",
+    "pos": {},
+    "pars": {},
+    "e_pars": {}
   },
   "NETOPIL2022": {
     "SCIX_url": "https://scixplorer.org/abs/2022MNRAS.509..421N",
@@ -4738,6 +4779,56 @@
       }
     }
   },
+  "CHI2025": {
+    "SCIX_url": "https://scixplorer.org/abs/2025PASJ...77.1050C",
+    "data_cmmts": "data",
+    "citations_count": {
+      "date": "2026-02-12",
+      "count": "0",
+      "citations_year": 0.0
+    },
+    "data_url": "https://github.com/astronomical-data-processing/openclusterdata",
+    "authors": "Chi et al.",
+    "title": "Cataloging distant Galactic open clusters Identification of 739 new star cluster candidates beyond 5 kpc utilizing GAIA DR3 data",
+    "year": "2025",
+    "received": "20241022",
+    "names": "ID",
+    "pos": {
+      "RA": "ra",
+      "DEC": "dec",
+      "plx": "plx",
+      "pmra": "pmra",
+      "pmde": "pmdec"
+    },
+    "pars": {
+      "av": {
+        "av": "Av"
+      },
+      "dist": {
+        "dm": "M"
+      },
+      "age": {
+        "loga": "Age"
+      },
+      "met": {
+        "feh": "[Fe/H]"
+      }
+    },
+    "e_pars": {
+      "e_av": {
+        "eav": "Av_sigma"
+      },
+      "e_dist": {
+        "edm": "M_sigma"
+      },
+      "e_age": {
+        "eloga": "Age_sigma"
+      },
+      "e_met": {
+        "efeh": "[Fe/H]_sigma"
+      }
+    }
+  },
   "CUI2025": {
     "SCIX_url": "https://scixplorer.org/abs/2025AJ....169..219C",
     "data_cmmts": "data",
@@ -5369,56 +5460,6 @@
       },
       "e_dist": {
         "edpc": "delta_D"
-      }
-    }
-  },
-  "CHI2025": {
-    "SCIX_url": "https://scixplorer.org/abs/2025PASJ...77.1050C",
-    "data_cmmts": "data",
-    "citations_count": {
-      "date": "2026-02-12",
-      "count": "0",
-      "citations_year": 0.0
-    },
-    "data_url": "https://github.com/astronomical-data-processing/openclusterdata",
-    "authors": "Chi et al.",
-    "title": "Cataloging distant Galactic open clusters Identification of 739 new star cluster candidates beyond 5 kpc utilizing GAIA DR3 data",
-    "year": "2025",
-    "received": "20241022",
-    "names": "ID",
-    "pos": {
-      "RA": "ra",
-      "DEC": "dec",
-      "plx": "plx",
-      "pmra": "pmra",
-      "pmde": "pmdec"
-    },
-    "pars": {
-      "av": {
-        "av": "Av"
-      },
-      "dist": {
-        "dm": "M"
-      },
-      "age": {
-        "loga": "Age"
-      },
-      "met": {
-        "feh": "[Fe/H]"
-      }
-    },
-    "e_pars": {
-      "e_av": {
-        "eav": "Av_sigma"
-      },
-      "e_dist": {
-        "edm": "M_sigma"
-      },
-      "e_age": {
-        "eloga": "Age_sigma"
-      },
-      "e_met": {
-        "efeh": "[Fe/H]_sigma"
       }
     }
   }
