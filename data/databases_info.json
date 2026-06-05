@@ -5421,7 +5421,7 @@
   },
   "LI2026": {
     "SCIX_url": "https://scixplorer.org/abs/2026A%26A...708A.238L",
-    "data_cmmts": "comments",
+    "data_cmmts": "data,comments",
     "citations_count": {
       "date": "2026-06-05",
       "count": "0",
