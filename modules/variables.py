@@ -53,9 +53,11 @@ temp_folder = "temp_updt/"
 # updt_ucc paths
 # Path to the file that contains the NASA API token
 NASA_API_TOKEN_file = data_folder + "NASA_API_TOKEN"
-# Root of CSV file with merged DBs
+# Main CSV file with all OCs names
+all_OC_names = "all_names.csv"
+# CSV file with merged DBs
 merged_dbs_file = "UCC_cat_B.csv"
-# Root of CSV file with final UCC catalogue
+# CSV file with final UCC catalogue
 ucc_cat_file = "UCC_cat_C.csv"
 # Path to the DBs
 dbs_folder = data_folder + "databases/"
@@ -88,13 +90,13 @@ naming_order = (
 # Exceptions to the rule below
 selected_centers_f = data_folder + "manual_centers.csv"
 # Manual hierarchy of databases for selecting coordinates, smaller is preferred
-# Exceptions are stored in the file above.
+# For matching values, the newer DB is preferred.
 DB_coords_hierarchy = {
     "CANTAT2020": 0,
     "HUNT2023": 1,
     "CANTAT2020_1": 2,
     "CANTAT2018": 3,
-    "MONTEIRO2910": 49,
+    "MONTEIRO2019": 49,
     "DIAS2002": 50,
     "DIAS2014": 100,
     "JUST2023": 200,

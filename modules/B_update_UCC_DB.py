@@ -23,6 +23,7 @@ from .utils import (
 from .variables import (
     DB_coords_hierarchy,
     GCs_cat,
+    all_OC_names,
     c_Ag,
     c_Ebprp,
     c_Ebv,
@@ -51,7 +52,9 @@ def main():
         skip_check_flag = True
 
     # Generate paths and check for required folders and files
-    temp_database_folder, df_UCC_B_path, temp_JSON_path = get_paths_check_paths(logging)
+    temp_database_folder, temp_all_OC_names, df_UCC_B_path, temp_JSON_path = (
+        get_paths_check_paths(logging)
+    )
 
     (
         new_JSON,
@@ -62,10 +65,11 @@ def main():
         df_UCC_B_old,
         df_UCC_B,
         flag_interactive,
+        all_names_dict,
     ) = load_data(logging, df_UCC_B_path, temp_JSON_path, temp_database_folder)
 
     for new_DB, (df_new, newDB_json) in all_dbs_data.items():
-        logging.info("\n" + "-" * 40 + f"\nAdding {new_DB} to the UCC")
+        logging.info("\n" + "-" * 40 + f"\nAdding {new_DB} ({len(df_new)}) to the UCC")
 
         # Determine the level of checking to perform for this DB
         if new_DB in flag_interactive:
@@ -95,7 +99,7 @@ def main():
             )
 
         # Standardize names in the DB
-        new_DB_fnames = get_fnames_new_DB(logging, df_new, newDB_json)
+        new_DB_fnames = get_fnames_new_DB(logging, df_new, newDB_json, all_names_dict)
 
         # Check the DB for basic requirements
         if flag_check_stop != "no_check":
@@ -117,7 +121,7 @@ def main():
         if flag_check_stop != "no_check":
             check_new_entries(logging, new_DB_fnames, db_matches, flag_check_stop)
 
-        # Check uniqueness of fnames (fnames in new DB vs fnames in UCC sofar)
+        # Check uniqueness of fnames (fnames in new DB vs fnames in UCC so far)
         if fnames_check_UCC_new_DB(logging, new_DB, df_UCC_B, new_DB_fnames):
             logging.info("\nResolve the above issues before moving on")
             breakpoint()
@@ -187,6 +191,9 @@ def main():
         file_path = df_UCC_B_path.replace(data_folder, temp_folder)
         save_df_UCC(logging, df_UCC_B, file_path, order_col="fnames")
 
+    # Generate new all_OC_names file
+    df_UCC_B[["fnames", "Names"]].to_csv(temp_all_OC_names, index=False)
+
     if input("\nMove files to their final paths? (y/n): ").lower() == "y":
         move_files(
             logging,
@@ -195,6 +202,7 @@ def main():
             new_JSON,
             temp_JSON_path,
             all_dbs_data,
+            temp_all_OC_names,
             temp_database_folder,
         )
     else:
@@ -203,8 +211,11 @@ def main():
 
 def get_paths_check_paths(
     logging,
-) -> tuple[str, str, str]:
+) -> tuple[str, str, str, str]:
     """ """
+    # Path to the temporary all_OC_names file
+    temp_all_OC_names = temp_folder + all_OC_names
+
     # Path to the current DBs merged file
     df_UCC_B_path = data_folder + merged_dbs_file
 
@@ -227,7 +238,7 @@ def get_paths_check_paths(
     # Path to the new (temp) JSON file
     temp_JSON_path = temp_folder + name_DBs_json
 
-    return temp_database_folder, df_UCC_B_path, temp_JSON_path
+    return temp_database_folder, temp_all_OC_names, df_UCC_B_path, temp_JSON_path
 
 
 def load_data(
@@ -244,6 +255,7 @@ def load_data(
     pd.DataFrame,
     pd.DataFrame,
     list,
+    dict,
 ]:
     """ """
     df_UCC_B_old = load_BC_cats("B", df_UCC_B_path)
@@ -252,14 +264,10 @@ def load_data(
     # Empty dataframe
     df_UCC_B = pd.DataFrame(df_UCC_B_old[0:0])
     # Remove _median and _stddev columns from df_UCC_B. These are added at the end
-    # For 'blue_str' the column is named different and there is no stddev
     fpars_order_lst = list(fpars_order)
-    # fpars_order_lst.remove("blue_str")
-    cols_to_remove = (
-        [_ + "_median" for _ in fpars_order_lst]
-        + [_ + "_stddev" for _ in fpars_order_lst]
-        # + ["blue_str_values"]
-    )
+    cols_to_remove = [_ + "_median" for _ in fpars_order_lst] + [
+        _ + "_stddev" for _ in fpars_order_lst
+    ]
     df_UCC_B = df_UCC_B.drop(columns=cols_to_remove)
 
     # Load GCs data
@@ -342,13 +350,15 @@ def load_data(
         logging.info(f"{DB} loaded (N={len(df_new)})")
         all_dbs_data[DB] = [df_new, new_JSON[DB]]
 
-    # Re order 'all_dbs_data' dictionary so that ["DIAS2002", "BICA2019"] are first
-    excluded_dbs = ["DIAS2002", "BICA2019"]
-    core_dbs = [_ for _ in all_dbs_data.keys() if _ not in excluded_dbs]
-    all_dbs = excluded_dbs + core_dbs
-    # core_dbs = [_ for _ in all_dbs_data.keys() if _ not in excluded_dbs + new_DBs]
-    # all_dbs = excluded_dbs + core_dbs + new_DBs
-    all_dbs_data = {k: all_dbs_data[k] for k in all_dbs}
+    # Create a dictionary with all names and their canonical fnames and Names
+    all_names = pd.read_csv(data_folder + all_OC_names)
+    all_names_dict = {}
+    for row in all_names.itertuples(index=False):
+        fnames = str(row.fnames).split(";")
+        n_canonical = str(row.Names).split(";")[0]
+        f_canonical = fnames[0]
+        for alias in fnames:
+            all_names_dict[alias] = {"fnames": f_canonical, "Names": n_canonical}
 
     # flag_interactive == new_DBs
     return (
@@ -360,6 +370,7 @@ def load_data(
         df_UCC_B_old,
         df_UCC_B,
         new_DBs,
+        all_names_dict,
     )
 
 
@@ -813,7 +824,10 @@ def GCs_check(
 
 
 def get_fnames_new_DB(
-    logging, df_new: pd.DataFrame, newDB_json: dict
+    logging,
+    df_new: pd.DataFrame,
+    newDB_json: dict,
+    all_names_dict: dict,
 ) -> list[list[str]]:
     """
     Extract and standardize all names in the new catalogue
@@ -835,7 +849,40 @@ def get_fnames_new_DB(
     """
     new_DB_fnames = get_fnames(df_new[newDB_json["names"]])
 
-    # Check that no fname is repeated within entries
+    # Use 'all_names_dict' to add canonical names to the list of names for each cluster
+    # in the new DB
+
+    # for i, DB_fnames in enumerate(new_DB_fnames):
+    #     c_fname, c_name = None, None
+    #     for DB_fname in DB_fnames:
+    #         if DB_fname in all_names_dict:
+    #             c_fname = all_names_dict[DB_fname]["fnames"]
+    #             c_name = all_names_dict[DB_fname]["Names"]
+    #             break
+    #     if c_fname is not None:
+    #         # Add the canonical name at the beginning of the list
+    #         new_DB_fnames[i] = [c_fname] + DB_fnames
+    #         # Also add it to the main Names
+    #         df_new.loc[i, newDB_json["names"]] = (
+    #             str(c_name) + ", " + df_new[newDB_json["names"]][i]
+    #         )
+
+    for i, DB_fnames in enumerate(new_DB_fnames):
+        # Find the first match in the all_names_dict for any of the fnames in DB_fnames
+        match = next(
+            (all_names_dict[f] for f in DB_fnames if f in all_names_dict), None
+        )
+        if match is None:
+            # No match found, this is a new OC with no known aliases
+            continue
+        # Add the canonical fname at the beginning of the list
+        new_DB_fnames[i] = [match["fnames"]] + DB_fnames
+        # Add the canonical name to the main Names column
+        df_new.loc[i, newDB_json["names"]] = (
+            f"{match['Names']}, {df_new[newDB_json['names']][i]}"
+        )
+
+    # Sanity check: no fname is repeated across entries
     seen, duplicates = {}, {}
     for i, sublist in enumerate(new_DB_fnames):
         # use set(sublist) so duplicates inside the same sublist are ignored
@@ -847,7 +894,11 @@ def get_fnames_new_DB(
     if duplicates:
         logging.info(f"\nFound {len(duplicates)} duplicate fnames in new DB entries:")
         for name, idxs in duplicates.items():
-            logging.info(f"'{name}' found in {len(idxs)} entries --> {sorted(idxs)}")
+            idxs_s = sorted(idxs)
+            logging.info(
+                f"{idxs_s} {', '.join([str(df_new.loc[_, newDB_json['names']]) for _ in idxs_s])}"
+                + f" --> '{name}'"
+            )
         breakpoint()
         sys.exit(0)
 
@@ -875,29 +926,13 @@ def get_matches_new_DB(
         If an entry in the new DB is not present in the UCC, the corresponding
         index in the list will be None.
     """
-    # db_matches_old = []
-    # # For each fname(s) for each entry in the new DB
-    # for new_cl_fnames in new_DB_fnames:
-    #     found = None
-    #     # For each fname in this new DB entry
-    #     for new_cl_fname in new_cl_fnames:
-    #         # For each fname(s) for each entry in the UCC
-    #         for j, ucc_cl_fnames in enumerate(df_UCC_B["fnames"]):
-    #             # Check if the fname in the new DB is included in the UCC
-    #             if new_cl_fname in ucc_cl_fnames.split(";"):
-    #                 # If it is, return the UCC index
-    #                 found = j
-    #                 break
-    #         if found is not None:
-    #             break
-    #     db_matches_old.append(found)
-
     # Build lookup dictionary from fname -> UCC index
     fname_to_idx = {}
     for idx, fnames in enumerate(df_UCC_B["fnames"]):
         for fname in fnames.split(sep):
             fname_to_idx[fname] = idx
 
+    # Check if each fname in the new DB is included in the UCC (so far)
     db_matches = []
     for cl_fnames in new_DB_fnames:
         found = next((fname_to_idx[f] for f in cl_fnames if f in fname_to_idx), None)
@@ -1131,7 +1166,7 @@ def fnames_check_UCC_new_DB(
     if duplicates:
         dup_flag = True
         logging.info(
-            f"\nFound {len(duplicates)} entries in {new_DB} with combined "
+            f"\nFound {len(duplicates) * 2} entries in {new_DB} with combined "
             + "fnames in the combined DB:"
         )
         for k, v in duplicates.items():
@@ -1305,8 +1340,9 @@ def combine_UCC_new_DB(
 
     new_db_dict = {_: [] for _ in df_UCC_B.keys()}
 
-    # Iterate over the cluster in the new DB (row_n is a dict)
+    # Iterate over each cluster in the new DB (row_n is a dict)
     for i_new_cl, row_n in enumerate(new_db_rows):
+        # Standardized some naming conventions
         oc_names = rename_standard(str(row_n[newDB_json["names"]]))
 
         row_ucc = {}
@@ -1753,6 +1789,7 @@ def move_files(
     new_json_dict: dict,
     temp_JSON_path: str,
     all_dbs_data: dict,
+    temp_all_OC_names: str,
     temp_database_folder: str,
 ) -> None:
     """ """
@@ -1792,6 +1829,10 @@ def move_files(
         # Move new B file into place
         os.rename(ucc_temp, df_UCC_B_path)
         logging.info(ucc_temp + " --> " + df_UCC_B_path)
+
+    # Move new all_OC_names
+    os.rename(temp_all_OC_names, data_folder + all_OC_names)
+    logging.info(temp_all_OC_names + " --> " + data_folder + all_OC_names)
 
 
 if __name__ == "__main__":
