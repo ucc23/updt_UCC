@@ -3543,6 +3543,36 @@
       }
     }
   },
+  "FU2022": {
+    "SCIX_url": "https://scixplorer.org/abs/2022A%26A...668A...4F",
+    "data_cmmts": "data",
+    "citations_count": {
+      "date": "2026-06-05",
+      "count": "40",
+      "citations_year": 10.0
+    },
+    "data_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2022A%26A...668A...4F",
+    "authors": "Fu et al.",
+    "title": "LAMOST meets Gaia The Galactic open clusters",
+    "year": "2022",
+    "received": "20220315",
+    "names": "Cluster",
+    "pos": {
+      "RA": "_RA",
+      "DEC": "_DE",
+      "Rv": "RVmed"
+    },
+    "pars": {
+      "met": {
+        "feh": "[Fe/H]med"
+      }
+    },
+    "e_pars": {
+      "e_met": {
+        "efeh": "e_[Fe/H]med"
+      }
+    }
+  },
   "HE2022_1": {
     "SCIX_url": "https://scixplorer.org/abs/2022ApJS..262....7H",
     "data_cmmts": "data",
