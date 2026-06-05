@@ -5462,5 +5462,48 @@
         "edpc": "delta_D"
       }
     }
+  },
+  "CORTI2026": {
+    "SCIX_url": "https://scixplorer.org/abs/2026arXiv260601418C",
+    "data_cmmts": "data",
+    "citations_count": {
+      "date": "2026-06-05",
+      "count": "0",
+      "citations_year": 0.0
+    },
+    "data_url": "N/A",
+    "authors": "Corti et al.",
+    "title": "Multiwavelength study of the Carina--Sagittarius Arm. I.Astrometric and photometric search for new open clusters in the 320$^ circ $ $le$ l $le$ 325$^ circ $ region",
+    "year": "2026",
+    "received": "20260531",
+    "names": "ID",
+    "pos": {
+      "RA": "alpha",
+      "DEC": "delta",
+      "pmra": "mu_alpha_cosdelta",
+      "pmde": "mu_delta"
+    },
+    "pars": {
+      "av": {
+        "av": "A_v"
+      },
+      "dist": {
+        "dpc": "Dist_pl"
+      },
+      "age": {
+        "amyr": "AGE"
+      }
+    },
+    "e_pars": {
+      "e_av": {
+        "eav": "e_A_v"
+      },
+      "e_dist": {
+        "edpc": "e_Dist_pl"
+      },
+      "e_age": {
+        "eamyr": "e_AGE"
+      }
+    }
   }
 }
