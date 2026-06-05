@@ -5058,6 +5058,38 @@
       }
     }
   },
+  "SCHWEERS2026": {
+    "SCIX_url": "https://scixplorer.org/abs/2026ApJ..1000..145S",
+    "data_cmmts": "data",
+    "citations_count": {
+      "date": "2026-06-05",
+      "count": "0",
+      "citations_year": 0.0
+    },
+    "data_url": "N/A",
+    "authors": "Schweers & McSwain",
+    "title": "Stellar Paternity Tests Matching High-latitude B Stars to the Open Clusters of their Birth",
+    "year": "2026",
+    "received": "20250430",
+    "names": "Cluster",
+    "pos": {
+      "RA": "Radeg",
+      "DEC": "DEdeg"
+    },
+    "pars": {
+      "dist": {
+        "dpc": "r"
+      },
+      "age": {
+        "loga": "logAge"
+      }
+    },
+    "e_pars": {
+      "e_dist": {
+        "edpc": "e_r"
+      }
+    }
+  },
   "NIZOVKINA2025": {
     "SCIX_url": "https://scixplorer.org/abs/2025A%26A...703A.100N",
     "data_cmmts": "data",
@@ -5494,7 +5526,7 @@
     },
     "data_url": "N/A",
     "authors": "Corti et al.",
-    "title": "Multiwavelength study of the Carina--Sagittarius Arm. I.Astrometric and photometric search for new open clusters in the 320$^ circ $ $le$ l $le$ 325$^ circ $ region",
+    "title": "Multiwavelength study of the Carina--Sagittarius Arm. I.Astrometric and photometric search for new open clusters in the 320<l<325 region",
     "year": "2026",
     "received": "20260531",
     "names": "ID",
