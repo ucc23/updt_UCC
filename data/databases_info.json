@@ -4767,6 +4767,32 @@
       }
     }
   },
+  "QIN2025": {
+    "SCIX_url": "https://scixplorer.org/abs/2025A%26A...695A..22Q",
+    "data_cmmts": "data",
+    "citations_count": {
+      "date": "2026-04-10",
+      "count": "5",
+      "citations_year": 5.0
+    },
+    "data_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2025A%26A...695A..22Q",
+    "authors": "Qin et al.",
+    "title": "The 3D morphology of open clusters in the solar neighborhood III. Fractal dimension of open clusters",
+    "year": "2025",
+    "received": "20241003",
+    "names": "Cluster",
+    "pos": {
+      "RA": "_RA",
+      "DEC": "_DE"
+    },
+    "pars": {
+      "age": {
+        "loga": "logAge",
+        "amyr": "Age"
+      }
+    },
+    "e_pars": {}
+  },
   "WEI2025": {
     "SCIX_url": "https://scixplorer.org/abs/2025AJ....169..115W",
     "data_cmmts": "data",

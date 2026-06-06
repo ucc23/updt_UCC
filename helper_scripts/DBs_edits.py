@@ -8,6 +8,74 @@ import pandas as pd
 from astropy.coordinates import SkyCoord
 
 
+def _join_non_null(a, b):
+    parts = [v for v in (a, b) if pd.notna(v)]
+    return ",".join(str(v) for v in parts) if parts else np.nan
+
+
+def combine_dfs(df1: pd.DataFrame, df2: pd.DataFrame) -> pd.DataFrame:
+    CONCAT_COLS = {"fdim-all", "fdim-inrt", "fdim-outrt"}
+
+    shared = df1.columns.intersection(df2.columns).difference(["Cluster"])
+    only1  = df1.columns.difference(df2.columns)
+    only2  = df2.columns.difference(df1.columns)
+
+    merged = pd.merge(df1, df2, on="Cluster", how="outer", suffixes=("_1", "_2"))
+
+    result = merged[["Cluster"]].copy()
+
+    for col in shared:
+        s1, s2 = merged[f"{col}_1"], merged[f"{col}_2"]
+        result[col] = (
+            s1.combine(s2, _join_non_null) if col in CONCAT_COLS
+            else s2.combine_first(s1)
+        )
+
+    for col in only1:
+        result[col] = merged[col]
+    for col in only2:
+        result[col] = merged[col]
+
+    return result
+
+
+df1 = pd.read_csv("../temp_updt/data/databases/QIN2025_0.csv")
+df2 = pd.read_csv("../temp_updt/data/databases/QIN2025_1.csv")
+
+
+# # Replace "Age" column in df1 with logAge, and change the values
+# df1 = df1.rename(columns={"Age": "logAge"})
+# df1["logAge"] = df1["logAge"].apply(lambda x: np.log10(x * 1e6) if pd.notna(x) else x)
+
+# Round these columns tp 5 decimal places
+float_cols = ["Age", "fdim-all","fdim-inrt","fdim-outrt"]
+df1[float_cols] = df1[float_cols].round(4)
+float_cols = ["logAge", "fdim-all","fdim-inrt","fdim-outrt"]
+df2[float_cols] = df2[float_cols].round(4)
+
+# Combine both dataframes. If repeated values in columns ("logAge", "fdim-all","fdim-inrt","fdim-outrt"), combine with a ','. For _RA and _DE columns prefer the df2 value
+df = combine_dfs(df1, df2)
+
+df[["_RA", "_DE"]] = df[["_RA", "_DE"]].round(5)
+# Move ["_RA", "_DE"] columns after "Cluster" clumn
+cols = df.columns.tolist()
+cols.insert(1, cols.pop(cols.index("_RA")))
+cols.insert(2, cols.pop(cols.index("_DE")))
+df = df[cols]
+
+df.to_csv(
+    "../temp_updt/data/databases/QIN2025.csv",
+    na_rep="nan",
+    index=False,
+    quoting=csv.QUOTE_NONNUMERIC,
+)
+
+breakpoint()
+
+
+
+
+
 
 df = pd.read_csv("../temp_updt/data/databases/FU2022.csv")
 
@@ -23,12 +91,6 @@ df.to_csv(
 )
 
 breakpoint()
-
-
-
-
-
-
 
 
 
