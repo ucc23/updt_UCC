@@ -3215,6 +3215,50 @@
     },
     "e_pars": {}
   },
+  "RAY2022": {
+    "SCIX_url": "https://scixplorer.org/abs/2022AJ....163..195R",
+    "data_cmmts": "data",
+    "citations_count": {
+      "date": "2026-06-06",
+      "count": "6",
+      "citations_year": 1.5
+    },
+    "data_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2022AJ....163..195R",
+    "authors": "Ray et al.",
+    "title": "The Open Cluster Chemical Abundances and Mapping Survey. V. Chemical Abundances of CTIOHydra Clusters Using The Cannon",
+    "year": "2022",
+    "received": "20210805",
+    "names": "Cluster",
+    "pos": {
+      "RA": "_RA",
+      "DEC": "_DE"
+    },
+    "pars": {
+      "age": {
+        "loga": "Age"
+      },
+      "met": {
+        "feh": [
+          "[Fe/H]",
+          "[Si/Fe]",
+          "[Al/Fe]",
+          "[Mg/Fe]",
+          "[O/Fe]"
+        ]
+      }
+    },
+    "e_pars": {
+      "e_met": {
+        "efeh": [
+          "e_[Fe/H]",
+          "e_[Si/Fe]",
+          "e_[Al/Fe]",
+          "e_[Mg/Fe]",
+          "e_[O/Fe]"
+        ]
+      }
+    }
+  },
   "TARRICQ2022": {
     "SCIX_url": "https://scixplorer.org/abs/2022A%26A...659A..59T",
     "data_cmmts": "data",
@@ -5485,6 +5529,35 @@
       }
     },
     "e_pars": {}
+  },
+  "BOIN2026": {
+    "SCIX_url": "https://scixplorer.org/abs/2026A%26A...708A.215B",
+    "data_cmmts": "data",
+    "citations_count": {
+      "date": "2026-06-06",
+      "count": "1",
+      "citations_year": 2.0
+    },
+    "data_url": "N/A",
+    "authors": "Boin et al.",
+    "title": "Stellar age determination using deep neural networks Isochrone ages for 1.3 million stars, based on BaSTI, MIST, PARSEC, Dartmouth, and SYCLIST evolutionary grids",
+    "year": "2026",
+    "received": "20251205",
+    "names": "cluster",
+    "pos": {},
+    "pars": {
+      "age": {
+        "amyr": "age_nest_50"
+      }
+    },
+    "e_pars": {
+      "e_age": {
+        "eamyr": [
+          "age_nest_16",
+          "age_nest_84"
+        ]
+      }
+    }
   },
   "YAN2026": {
     "SCIX_url": "https://scixplorer.org/abs/2026ApJ...999..167Y",
