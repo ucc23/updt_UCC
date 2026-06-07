@@ -1,12 +1,44 @@
 Some of these are intermediate versions of the UCC database that are not published.
 
 
+## 26060606
+
+- BOIN2026
+- RAY2022
+- QIN2025
+
+
+## 26060514-17
+
+Added:
+- CORTI2026, 5 new 'ESFERA' clusters.
+- LI2026
+- SCHWEERS2026
+- FU2022
+- KHARCHENKO2009
+
+
+## 26060513
+
+Split DIAS2002 into DIAS2002 which contains the original Dias et al database (v1), and
+DIAS2016 which contains the latest version (3.5). This means DIAS2016 is now the old
+DIAS2002 and DIAS2002 is now the v1 version.
+
+24 new objects are introduced.
+
+
+
+## 26060511
+
+Using new all_OC_names file. Re-built database, only some (RA, DEC) values changed
+because DIAS2002 and BICA2019 are no longer loaded first by default.
+
+
+
 ## 260423
 
 - Modified `C_lit` to return better literature weights
 - Fixed a few issues with core radius and density estimates
-
-
 
 
 ## 260413
