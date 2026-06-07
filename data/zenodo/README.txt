@@ -1,7 +1,7 @@
 # The Unified Cluster Catalogue (UCC)
 
-These files correspond to the 260423 version of the UCC database (https://ucc.ar),
-composed of 18269 clusters with a combined 1095686 members.
+These files correspond to the 260607 version of the UCC database (https://ucc.ar),
+composed of 18305 clusters with a combined 1096644 members.
 If you find this data useful please cite its associated article
 ([Perren et al. 2023](https://ui.adsabs.harvard.edu/abs/2023MNRAS.526.4107P))
 using the following BibTex snippet:
