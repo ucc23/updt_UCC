@@ -71,11 +71,9 @@ def get_fastMP_membs(
             df_GCs,
         )
 
-    # Define membership object
-    memb = asteca.Membership(my_field, verbose=0)
-
     # Run fastMP
-    probs_fastmp = memb.fastmp()
+    my_field.membership.fastmp()
+    probs_fastmp = my_field.probs
     logging.info(f"probs_all>=0.5={(probs_fastmp >= 0.5).sum()}")
 
     # Check initial versus members centers
