@@ -133,7 +133,7 @@ def main():
 
     if diff_found:
         # Save updated UCC to temporary CSV file
-        save_df_UCC(logging, df_UCC_C_final, temp_folder + ucc_cat_file, "fname")
+        save_df_UCC(logging, df_UCC_C_final, temp_folder + ucc_cat_file)
 
     # Save the generated data to temporary files before moving them
     update_zenodo_files(
@@ -1224,7 +1224,7 @@ def move_files(
             logging.info(f"{src} --> {dst}")
         elif action_type == "archive_csv":
             df_OLD_C = pd.read_csv(src)
-            save_df_UCC(logging, df_OLD_C, dst, "fname", "gzip")
+            save_df_UCC(logging, df_OLD_C, dst, compression="gzip")
             logging.info(f"{src} --> {dst} (archived)")
         elif action_type == "remove":
             if os.path.isfile(src):
