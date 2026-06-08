@@ -187,16 +187,18 @@ The `UCC_cat_C.csv` file contains columns that represent the following informati
 
 ```
 - fnames: names of each entry (must match those in the B file)
-- plots_used: (y/n) tells the E script if an entry plot needs to be generated/updated
+- plots_used: (y/n) tells the E script if an entry plot needs to be generated/updated (n)
 - process: (y/n) manual flag that indicates whether to (re)process this entry
 - N_clust: Fixed number of cluster members (has precedence over N_clust_max)
 - N_clust_max: Maximum number of cluster members
 - N_box: Multiplier value for the box size used to search for members
 - frame_limit: A string in the format "x_111.1" where "x" is one of the characters:
 
-  - 'b' (bottom), 't' (top), 'l' (left), 'r' (right) for (GLON, GLAT) coordinates
-  - 'pmb' (bottom), 'pmt' (top), 'pml' (left), 'pmr' (right) for (pmra, pmde)
-  - 'plxl' (left), 'plxr' (right) for parallax
+   - 'l' (left), 'r' (right) for GLON coordinates
+   - 'b' (bottom), 't' (top) for GLAT coordinates
+   - 'pml' (left), 'pmr' (right) for pmra
+   - 'pmb' (bottom), 'pmt' (top), for pmde
+   - 'plxl' (left), 'plxr' (right) for parallax
 
 and the numbers are the limiting values for each. A single limit can be provided (eg,
 "x_111.1") or several separated by a ',' (eg, "x_111.1,y_222.2,...").
