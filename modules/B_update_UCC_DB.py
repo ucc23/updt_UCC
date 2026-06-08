@@ -1,4 +1,3 @@
-import csv
 import json
 import os
 import re
@@ -12,7 +11,7 @@ from scipy.spatial.distance import cdist
 
 from .utils import (
     diff_between_dfs,
-    final_fname_compare,
+    final_fnames_compare,
     get_fnames,
     load_BC_cats,
     logger,
@@ -41,6 +40,10 @@ from .variables import (
     temp_folder,
 )
 
+# Pre-compute to use in extract_new_DB_coords()
+_NANS_7 = (np.nan,) * 7
+mid_hierarchy_val = int(0.5 * max(DB_coords_hierarchy.values()))
+
 
 def main():
     """
@@ -66,6 +69,7 @@ def main():
         df_UCC_B_old,
         df_UCC_B,
         flag_interactive,
+        all_names,
         all_names_dict,
     ) = load_data(logging, df_UCC_B_path, temp_JSON_path, temp_database_folder)
 
@@ -168,53 +172,34 @@ def main():
     # Add medians and STDDEVs of fundamental parameters
     df_UCC_B = add_fpars_stats(logging, df_UCC_B)
 
-    # Mandatory sanity check
-    # Check every individual fname for duplicates
-    exit_flag = duplicates_fnames_check(logging, df_UCC_B)
-    if exit_flag:
-        logging.info("\nERROR: duplicated entries found in 'fnames' column. Fix this!")
-        breakpoint()
-        sys.exit(0)
-    # Check every individual fname for duplicates
-    exit_flag = ra_dec_check(logging, df_UCC_B)
-    if exit_flag:
-        logging.info(
-            "\nERROR: entries were found with missing (RA, DEC) values. Fix this!"
-        )
-        breakpoint()
-        sys.exit(0)
+    # Generate new all_names and df_UCC_B files
+    all_names_new, df_UCC_B_new = gen_new_files(df_UCC_B)
 
-    # Generate diff files to open with Meld or similar
-    diff_found = diff_between_dfs(
-        logging, "B cat", df_UCC_B_old, df_UCC_B, order_col="fnames"
+    # Mandatory sanity check
+    final_sanity_check(logging, all_names, df_UCC_B)
+
+    # Check for differences between old and new files, update if any are found
+    update_final_files(
+        logging,
+        temp_all_OC_names,
+        df_UCC_B_path,
+        all_names,
+        all_names_new,
+        df_UCC_B_old,
+        df_UCC_B_new,
     )
 
-    # Compare changes in 'fnames' columns between old and new df
-    if diff_found:
-        final_fname_compare(logging, df_UCC_B_old, df_UCC_B)
-
-        file_path = df_UCC_B_path.replace(data_folder, temp_folder)
-        save_df_UCC(logging, df_UCC_B, file_path, order_col="fnames")
-
-    # Generate new all_OC_names file
-    idx = np.argsort([_.split(";")[0] for _ in df_UCC_B["fnames"]])
-    all_names_csv = pd.DataFrame(df_UCC_B[["fnames", "Names"]])
-    all_names_csv = all_names_csv.reindex(idx)
-    all_names_csv.to_csv(temp_all_OC_names, quoting=csv.QUOTE_NONNUMERIC, index=False)
-
-    if input("\nMove files to their final paths? (y/n): ").lower() == "y":
-        move_files(
-            logging,
-            df_UCC_B_path,
-            df_UCC_B_old,
-            new_JSON,
-            temp_JSON_path,
-            all_dbs_data,
-            temp_all_OC_names,
-            temp_database_folder,
-        )
-    else:
-        logging.info("\nFiles not moved.")
+    #
+    move_files(
+        logging,
+        df_UCC_B_path,
+        df_UCC_B_old,
+        new_JSON,
+        temp_JSON_path,
+        all_dbs_data,
+        temp_all_OC_names,
+        temp_database_folder,
+    )
 
 
 def get_paths_check_paths(
@@ -263,6 +248,7 @@ def load_data(
     pd.DataFrame,
     pd.DataFrame,
     list,
+    pd.DataFrame,
     dict,
 ]:
     """ """
@@ -271,12 +257,18 @@ def load_data(
     logging.info(f"\nUCC version {df_UCC_B_path} loaded (N={len(df_UCC_B_old)})")
     # Empty dataframe
     df_UCC_B = pd.DataFrame(df_UCC_B_old[0:0])
-    # Remove _median and _stddev columns from df_UCC_B. These are added at the end
+    # Remove _median and _stddev columns from df_UCC_B. Also remove the "fname" column,
+    # it will be generated at the end of the script
     fpars_order_lst = list(fpars_order)
-    cols_to_remove = [_ + "_median" for _ in fpars_order_lst] + [
-        _ + "_stddev" for _ in fpars_order_lst
-    ]
+    cols_to_remove = (
+        [_ + "_median" for _ in fpars_order_lst]
+        + [_ + "_stddev" for _ in fpars_order_lst]
+        + ["fname"]
+    )
     df_UCC_B = df_UCC_B.drop(columns=cols_to_remove)
+    # Add empty ["fnames", "Names"] columns to df_UCC_B
+    df_UCC_B["fnames"] = ""
+    df_UCC_B["Names"] = ""
 
     # Load GCs data
     df_GCs = pd.read_csv(GCs_cat)
@@ -377,6 +369,7 @@ def load_data(
         df_UCC_B_old,
         df_UCC_B,
         new_DBs,
+        all_names,
         all_names_dict,
     )
 
@@ -846,8 +839,11 @@ def get_canonical_fnames(
         DataFrame of the new catalogue.
     newDB_json : dict
         Dictionary with the parameters of the new catalogue.
-    sep : str, optional
-        Separator used to split the names in the new catalogue. Default is ",".
+    all_names_dict : dict
+        Dictionary mapping all known names to their canonical fnames and Names.
+    new_DB_fnames : list
+        List of lists, where each inner list contains the standardized names for
+        each cluster in the new catalogue.
 
     Returns
     -------
@@ -857,8 +853,10 @@ def get_canonical_fnames(
     """
     # Use 'all_names_dict' to add canonical names to the list of names for each cluster
     # in the new DB
+    col_name = newDB_json["names"]
+    names_list = df_new[col_name].tolist()
     for i, DB_fnames in enumerate(new_DB_fnames):
-        # Find the first match in the all_names_dict for any of the fnames in DB_fnames
+        # Find the first match in all_names_dict for any of the fnames in DB_fnames
         match = next(
             (all_names_dict[f] for f in DB_fnames if f in all_names_dict), None
         )
@@ -868,9 +866,9 @@ def get_canonical_fnames(
         # Add the canonical fname at the beginning of the list
         new_DB_fnames[i] = [match["fnames"]] + DB_fnames
         # Add the canonical name to the main Names column
-        df_new.loc[i, newDB_json["names"]] = (
-            f"{match['Names']}, {df_new[newDB_json['names']][i]}"
-        )
+        names_list[i] = f"{match['Names']}, {names_list[i]}"
+    # Write back to the DataFrame in a single vectorized step
+    df_new[col_name] = names_list
 
     # Sanity check: no fname is repeated across entries
     seen, duplicates = {}, {}
@@ -1087,83 +1085,62 @@ def fnames_check_UCC_new_DB(
     """
     Check that no fname associated to each entry in the new DB is listed in more than
     one entry in the UCC.
-
-    Parameters
-    ----------
-    logging : logging.Logger
-        Logger object for outputting information.
-    df_UCC : pd.DataFrame
-        DataFrame representing the UCC.
-    new_DB_fnames : list
-        List of lists, each containing standardized names for a cluster in the new DB.
-
-    Returns
-    -------
-    bool
-        True if duplicate entries are found, False otherwise.
     """
-    # Create a dictionary to map filenames to their corresponding row indices
-    # Using defaultdict eliminates the explicit check for key existence
-    fname_ucc_map = defaultdict(list)
-    for i, fnames in enumerate(df_UCC_B["fnames"]):
-        for fname in fnames.split(sep):
-            fname_ucc_map[fname].append(i)
+    # Map generation: Direct dictionary comprehension avoids list append overhead
+    fname_ucc_map = {
+        fname: i
+        for i, fnames in enumerate(df_UCC_B["fnames"])
+        for fname in fnames.split(sep)
+    }
 
-    # Find matches between UCC fnames and new_DB_fnames
+    # Index matching: Set comprehensions ensure uniqueness at extraction time O(1)
     fnames_ucc_idxs = {}
     for k, fnames in enumerate(new_DB_fnames):
-        fnames_ucc_idxs[k] = []
-        for fname in fnames:
-            # Check if the filename exists in df_fnames
-            if fname in fname_ucc_map:
-                # 'fname_ucc_map[fname]' will always contain a single element
-                f_ucc_idx = fname_ucc_map[fname][0]
-                fnames_ucc_idxs[k].append(f_ucc_idx)
+        matched_idxs = {fname_ucc_map[f] for f in fnames if f in fname_ucc_map}
+        if matched_idxs:
+            fnames_ucc_idxs[k] = matched_idxs
 
-    # Check if any new entry has more than one entry in the UCC associated to it
-    bad_entries = {}
-    for k, v in fnames_ucc_idxs.items():
-        v_unq = list(set(v))
-        if len(v_unq) > 1:
-            bad_entries[k] = v_unq
+    # Bad entries: Filter directly from the dictionary
+    bad_entries = {k: list(v) for k, v in fnames_ucc_idxs.items() if len(v) > 1}
 
-    # Check if the 'fnames_ucc_idxs' dictionary contains repeated elements
-    locations = defaultdict(set)
-    for key, lst in fnames_ucc_idxs.items():
-        for item in lst:
-            locations[item].add(key)
-    # Items that occur in more than one key
+    # Duplicates: Invert mapping efficiently
+    locations = defaultdict(list)
+    for k, matched_idxs in fnames_ucc_idxs.items():
+        for idx in matched_idxs:
+            locations[idx].append(k)
     duplicates = {item: keys for item, keys in locations.items() if len(keys) > 1}
 
-    dup_flag = False
+    dup_flag = bool(bad_entries or duplicates)
 
-    if bad_entries:
-        dup_flag = True
-        logging.info(
-            f"\nFound {len(bad_entries)} entries in {new_DB} with duplicated "
-            + "fnames in the combined DB:"
-        )
-        for k, v in bad_entries.items():
-            new_db_entries = f"({k}) {', '.join(new_DB_fnames[k])}"
-            ucc_entries = ", ".join(
-                [
-                    f"({_}, {df_UCC_B.iloc[_]['DB']}) {df_UCC_B.iloc[_]['fnames']}"
-                    for _ in v
-                ]
+    # Logging: Extract raw numpy arrays to bypass extreme pd.DataFrame.iloc latency
+    if dup_flag:
+        dbs_arr = df_UCC_B["DB"].values
+        fnames_arr = df_UCC_B["fnames"].values
+
+        if bad_entries:
+            logging.info(
+                f"\nFound {len(bad_entries)} entries in {new_DB} with duplicated "
+                "fnames in the combined DB:"
             )
-            logging.info(f"{new_db_entries} --> {ucc_entries}")
+            for k, v in bad_entries.items():
+                new_db_entries = f"({k}) {', '.join(new_DB_fnames[k])}"
+                ucc_entries = ", ".join(
+                    [f"({_}, {dbs_arr[_]}) {fnames_arr[_]}" for _ in v]
+                )
+                logging.info(f"{new_db_entries} --> {ucc_entries}")
 
-    if duplicates:
-        dup_flag = True
-        logging.info(
-            f"\nFound {len(duplicates) * 2} entries in {new_DB} with combined "
-            + "fnames in the combined DB:"
-        )
-        for k, v in duplicates.items():
-            new_db_entries = "; ".join([", ".join(new_DB_fnames[_]) for _ in v])
-            u_dbs = ",".join(list(set(df_UCC_B["DB"][k].split(";"))))
-            u_fnames = ",".join(list(set(df_UCC_B["fnames"][k].split(";"))))
-            logging.info(f"{tuple(v)} {new_db_entries} --> ({k}) {u_dbs}: {u_fnames}")
+        if duplicates:
+            logging.info(
+                f"\nFound {len(duplicates) * 2} entries in {new_DB} with combined "
+                "fnames in the combined DB:"
+            )
+            for k, v in duplicates.items():
+                new_db_entries = "; ".join([", ".join(new_DB_fnames[_]) for _ in v])
+                u_dbs = ",".join(set(str(dbs_arr[k]).split(";")))
+                u_fnames = ",".join(set(str(fnames_arr[k]).split(";")))
+                logging.info(
+                    f"{tuple(v)} {new_db_entries} --> ({k}) {u_dbs}: {u_fnames}"
+                )
 
     return dup_flag
 
@@ -1324,21 +1301,25 @@ def combine_UCC_new_DB(
     pd.DataFrame
         Dataframe representing the updated database with new and modified entries.
     """
-    # Convert df_new to records once (O(N) operation) to avoid Series creation overhead
-    new_db_rows = df_new.to_dict(orient="records")
-    ucc_dict_rows = df_UCC_B.to_dict(orient="records")
+    # Fast dict mapping for only the needed UCC rows
+    valid_ucc_idxs = [_ for _ in db_matches if _ is not None]
+    ucc_dict_map = df_UCC_B.iloc[valid_ucc_idxs].to_dict(orient="index")
 
-    new_db_dict = {_: [] for _ in df_UCC_B.keys()}
+    # Fast generator for new DB rows
+    new_db_cols = df_new.columns.tolist()
+    new_db_rows = (
+        dict(zip(new_db_cols, row)) for row in df_new.itertuples(index=False, name=None)
+    )
+
+    new_db_dict = {_: [] for _ in df_UCC_B.columns}
 
     # Iterate over each cluster in the new DB (row_n is a dict)
     for i_new_cl, row_n in enumerate(new_db_rows):
         # Standardized some naming conventions
         oc_names = rename_standard(str(row_n[newDB_json["names"]]))
 
-        row_ucc = {}
         ucc_index = db_matches[i_new_cl]
-        if ucc_index is not None:
-            row_ucc = ucc_dict_rows[ucc_index]
+        row_ucc = ucc_dict_map.get(ucc_index, {})
 
         # Extract coordinates from new DB
         ra_n, dec_n, lon_n, lat_n, plx_n, pmra_n, pmde_n, DB_used = (
@@ -1389,17 +1370,17 @@ def combine_UCC_new_DB(
 
 
 def extract_new_DB_coords(
-    DB_ID,
-    row_n,
-    pos_cols,
-    fnames_new_cl,
-    row_ucc,
-    selected_center_coords,
+    DB_ID: str,
+    row_n: dict,
+    pos_cols: dict,
+    fnames_new_cl: list[str],
+    row_ucc: dict,
+    selected_center_coords: dict,
     cols=("RA_ICRS", "DE_ICRS", "GLON", "GLAT", "Plx", "pmRA", "pmDE"),
-):
+) -> tuple[float, float, float, float, float, float, float, str]:
     """ """
     # Extract manually fixed centers (if any)
-    ra_f, dec_f, lon_f, lat_f, plx_f, pmra_f, pmde_f = [np.nan] * 7
+    ra_f, dec_f, lon_f, lat_f, plx_f, pmra_f, pmde_f = _NANS_7
     for fname in fnames_new_cl:
         if fname in selected_center_coords:
             ra_f, dec_f, plx_f, pmra_f, pmde_f, _ = selected_center_coords[fname]
@@ -1408,7 +1389,7 @@ def extract_new_DB_coords(
             break
 
     # Extract values from new DB
-    ra_db, dec_db, lon_db, lat_db, plx_db, pmra_db, pmde_db = [np.nan] * 7
+    ra_db, dec_db, lon_db, lat_db, plx_db, pmra_db, pmde_db = _NANS_7
     if "RA" in pos_cols:
         ra_db, dec_db = row_n[pos_cols["RA"]], row_n[pos_cols["DEC"]]
         lon_db, lat_db = row_n["GLON_"], row_n["GLAT_"]
@@ -1431,7 +1412,7 @@ def extract_new_DB_coords(
     DB_used = DB_ID
     ra_n, dec_n, lon_n, lat_n, plx_n, pmra_n, pmde_n = new_DB_vals
 
-    mid_hierarchy_val = int(0.5 * max(DB_coords_hierarchy.values()))
+    # mid_hierarchy_val = int(0.5 * max(DB_coords_hierarchy.values()))
 
     # If this entry already has assigned values in the UCC
     if row_ucc:
@@ -1529,132 +1510,101 @@ def updt_new_DB(
     return new_db_dict
 
 
-def sort_year_importance(new_JSON, df_UCC_B):
+def sort_year_importance(new_JSON: dict, df_UCC_B: pd.DataFrame) -> pd.DataFrame:
     """
     The fnames are first sorted by year, then by importance ('naming_order' variable,
     mostly for old clusters), and finally by the order in which they are stored in
     the DBs.
+
+    :param new_JSON: dict
+        Dictionary containing the information of all the databases, including the
+        'received' year for each DB.
+    :param df_UCC_B: pd.DataFrame
+        DataFrame of the UCC before sorting.
+
+    :return: pd.DataFrame
+        DataFrame of the UCC after sorting the fnames by year and importance.
     """
 
-    def order_by_name(items: np.ndarray) -> np.ndarray:
-        """
-        Return indexes that reorder a list, moving to the front elements that start
-        with any of the given prefixes. The prefixes earlier in the tuple have higher
-        priority.
+    # Pre-compute hash map for years to avoid repeated dictionary lookups
+    db_years = {db: info["received"] for db, info in new_JSON.items()}
 
-        Parameters
-        ----------
-        items : list of str
-            List of strings to reorder.
+    # Only process rows that actually contain multiple entries
+    mask = df_UCC_B["DB"].str.contains(";", na=False)
+    if not mask.any():
+        return df_UCC_B
 
-        Returns
-        -------
-        np.ndarray[int]
-            Indexes that reorder the list accordingly.
-        """
-        idxs = []
-        for item in items:
-            idx = [np.inf]
-            for j, p in enumerate(naming_order):
-                if item.startswith(p):
-                    idx.append(j)
-                    break
-            idxs.append(min(idx))
-        return np.argsort(idxs, kind="stable")
+    def get_importance(item: str) -> int | float:
+        """Optimized importance map (stops at first match)"""
+        for j, p in enumerate(naming_order):
+            if item.startswith(p):
+                return j
+        return np.inf
 
-    def rm_dups(strings: list | np.ndarray) -> tuple[list[str], list[int]]:
-        """
-        Remove duplicates from a list of strings and return unique values with their
-        original indexes.
+    # Extract only the necessary subset into native Python lists
+    cols = ["Names", "fnames", "DB", "DB_i"] + list(fpars_order)
+    subset = df_UCC_B.loc[mask, cols].to_dict(orient="list")
 
-        Parameters
-        ----------
-        strings : list[str]
-            List of strings, possibly containing duplicates.
+    n_fpars = len(fpars_order)
 
-        Returns
-        -------
-        unique_strings : list[str]
-            List of unique strings, preserving the first occurrence order.
-        indexes : list[int]
-            Indexes of the unique strings in the original list.
-        """
-        seen = {}
-        unique_strings = []
-        rm_idx = []
-        for i, s in enumerate(strings):
-            if s not in seen:
-                seen[s] = True
-                unique_strings.append(s)
-            else:
-                rm_idx.append(i)
+    for k in range(len(subset["DB"])):
+        # Split native strings directly
+        dbs = subset["DB"][k].split(";")
+        names = subset["Names"][k].split(";")
+        fnames = subset["fnames"][k].split(";")
+        db_i = subset["DB_i"][k].split(";")
+        fpars = [subset[par][k].split(";") for par in fpars_order]
 
-        return unique_strings, rm_idx
+        if len(set(dbs)) > 1:
+            # Sort all properties by year (Stable sort using Timsort)
+            years = [db_years.get(db, 0) for db in dbs]
+            i_year = sorted(range(len(years)), key=lambda x: years[x])
 
-    new_rows = {
-        "Names": df_UCC_B["Names"].to_list(),
-        "fnames": df_UCC_B["fnames"].to_list(),
-        "DB": df_UCC_B["DB"].to_list(),
-        "DB_i": df_UCC_B["DB_i"].to_list(),
-        **{k: df_UCC_B[k].to_list() for k in fpars_order},
-    }
-    for k, row in df_UCC_B.iterrows():
-        dbs = row["DB"].split(";")
-        if len(dbs) > 1:
-            names = np.array(row["Names"].split(";"))
-            fnames = np.array(row["fnames"].split(";"))
-            DB = np.array(row["DB"].split(";"))
-            DB_i = np.array(row["DB_i"].split(";"))
-            fund_pars = [np.array(row[par].split(";")) for par in fpars_order]
+            names = [names[i] for i in i_year]
+            fnames = [fnames[i] for i in i_year]
+            dbs = [dbs[i] for i in i_year]
+            db_i = [db_i[i] for i in i_year]
+            fpars = [[par_list[i] for i in i_year] for par_list in fpars]
 
-            if len(set(dbs)) > 1:
-                # Sort by dates
-                ryears = []
-                for db in dbs:
-                    ryears.append(new_JSON[db]["received"])
-                isort = np.argsort(ryears, kind="stable")
-                names = names[isort]
-                fnames = fnames[isort]
-                DB = DB[isort]
-                DB_i = DB_i[isort]
-                fund_pars = [pars[isort] for pars in fund_pars]
+        # Sort names and fnames by importance
+        importance = [get_importance(f) for f in fnames]
+        i_imp = sorted(range(len(fnames)), key=lambda x: importance[x])
 
-            # Sort by importance
-            i_new = order_by_name(fnames)
-            fnames = [fnames[_] for _ in i_new]
-            names = [
-                str(names[_]) for _ in i_new
-            ]  # str() added to avoid Pyright warning
+        fnames = [fnames[i] for i in i_imp]
+        names = [names[i] for i in i_imp]
 
-            # Remove duplicates elements without affecting the order
-            fnames, rm_idx = rm_dups(fnames)
-            if rm_idx:
-                names = [_ for i, _ in enumerate(names) if i not in rm_idx]
-            # Remove duplicates from DB, DB_i, and fund_pars
-            DB, rm_idx = rm_dups(DB)
-            fund_pars_sort = list(fund_pars)
-            if rm_idx:
-                DB_i = [_ for i, _ in enumerate(DB_i) if i not in rm_idx]
-                fund_pars_sort = []
-                for pars in fund_pars:
-                    fund_pars_sort.append(
-                        [_ for i, _ in enumerate(pars) if i not in rm_idx]
-                    )
+        # Single-pass deduplication for fnames/names
+        seen_fnames = set()
+        u_fnames, u_names = [], []
+        for f, n in zip(fnames, names):
+            if f not in seen_fnames:
+                seen_fnames.add(f)
+                u_fnames.append(f)
+                u_names.append(n)
+        # Single-pass deduplication for DB properties
+        seen_db = set()
+        u_dbs, u_db_i = [], []
+        u_fpars = [[] for _ in range(n_fpars)]
 
-            # Update corresponding row in df_UCC_B
-            new_rows["Names"][k] = ";".join(names)
-            new_rows["fnames"][k] = ";".join(fnames)
-            new_rows["DB"][k] = ";".join(DB)
-            new_rows["DB_i"][k] = ";".join(DB_i)
-            for idx_p, par in enumerate(fpars_order):
-                new_rows[par][k] = ";".join(fund_pars_sort[idx_p])
+        for i, db in enumerate(dbs):
+            if db not in seen_db:
+                seen_db.add(db)
+                u_dbs.append(db)
+                u_db_i.append(db_i[i])
+                for j in range(n_fpars):
+                    u_fpars[j].append(fpars[j][i])
 
-    df_UCC_B["Names"] = new_rows["Names"]
-    df_UCC_B["fnames"] = new_rows["fnames"]
-    df_UCC_B["DB"] = new_rows["DB"]
-    df_UCC_B["DB_i"] = new_rows["DB_i"]
-    for par in fpars_order:
-        df_UCC_B[par] = new_rows[par]
+        # Overwrite the subset lists with rejoined strings
+        subset["Names"][k] = ";".join(u_names)
+        subset["fnames"][k] = ";".join(u_fnames)
+        subset["DB"][k] = ";".join(u_dbs)
+        subset["DB_i"][k] = ";".join(u_db_i)
+        for j, par in enumerate(fpars_order):
+            subset[par][k] = ";".join(u_fpars[j])
+
+    # Inject the processed subset back into the main DataFrame
+    for col in cols:
+        df_UCC_B.loc[mask, col] = subset[col]
 
     return df_UCC_B
 
@@ -1772,6 +1722,68 @@ def ra_dec_check(logging, df_UCC_B):
     return not invalid_ra.empty or not invalid_dec.empty
 
 
+def gen_new_files(df_UCC_B):
+    """ """
+    # Generate new all_OC_names file
+    all_names_new = pd.DataFrame(df_UCC_B[["fnames", "Names"]])
+
+    # Generate new df_UCC_B file
+    # Generate 'fname' column with the first name in the list of 'fnames'
+    df_UCC_B["fname"] = df_UCC_B["fnames"].str.split(";").str[0]
+    # Move 'fname' to the first column position
+    df_UCC_B.insert(0, "fname", df_UCC_B.pop("fname"))
+    # Drop ["fnames", "Names"] columns
+    df_UCC_B_new = df_UCC_B.drop(columns=["fnames", "Names"])
+
+    return all_names_new, df_UCC_B_new
+
+
+def final_sanity_check(logging, all_names, df_UCC_B):
+    """ """
+    # Check every individual fname for duplicates
+    exit_flag = duplicates_fnames_check(logging, df_UCC_B)
+    if exit_flag:
+        logging.info("\nERROR: duplicated entries found in 'fnames' column. Fix this!")
+        breakpoint()
+        sys.exit(0)
+
+    # Check that (RA, DEC) ranges are valid
+    exit_flag = ra_dec_check(logging, df_UCC_B)
+    if exit_flag:
+        logging.info(
+            "\nERROR: entries were found with missing (RA, DEC) values. Fix this!"
+        )
+        breakpoint()
+        sys.exit(0)
+    #
+    final_fnames_compare(logging, all_names["fnames"], df_UCC_B["fnames"])
+
+
+def update_final_files(
+    logging,
+    temp_all_OC_names,
+    df_UCC_B_path,
+    all_names,
+    all_names_new,
+    df_UCC_B_old,
+    df_UCC_B_new,
+):
+    """
+    Compare changes in all_names and df_UCC_B files and generate diff files
+    (open with Meld or similar)
+    """
+    diff_found = diff_between_dfs(
+        logging, "all_names", all_names, all_names_new, order_col="fnames"
+    )
+    if diff_found:
+        save_df_UCC(logging, all_names_new, temp_all_OC_names, order_col="fnames")
+
+    diff_found = diff_between_dfs(logging, "B cat", df_UCC_B_old, df_UCC_B_new)
+    if diff_found:
+        file_path = df_UCC_B_path.replace(data_folder, temp_folder)
+        save_df_UCC(logging, df_UCC_B_new, file_path)
+
+
 def move_files(
     logging,
     df_UCC_B_path: str,
@@ -1783,6 +1795,10 @@ def move_files(
     temp_database_folder: str,
 ) -> None:
     """ """
+    if input("\nMove files to their final paths? (y/n): ").lower() != "y":
+        logging.info("\nFiles not moved.")
+        return
+
     # Update JSON file with all the DBs and store the new DB in place
     if os.path.isfile(temp_JSON_path):
         # Save to (temp) JSON file
@@ -1811,7 +1827,7 @@ def move_files(
             + "ucc_archived_nogit/"
             + merged_dbs_file.replace(".csv", f"_{now_time}.csv.gz")
         )
-        save_df_UCC(logging, df_UCC_B_old, archived_B_file, "fnames", "gzip")
+        save_df_UCC(logging, df_UCC_B_old, archived_B_file, compression="gzip")
         # Remove old B csv file
         os.remove(df_UCC_B_path)
         logging.info(df_UCC_B_path + " --> " + archived_B_file)
