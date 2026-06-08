@@ -14,6 +14,7 @@ from .utils import comments_check, get_fnames, load_BC_cats, logger
 from .variables import (
     UCC_cmmts_folder,
     UCC_members_file,
+    all_OC_names,
     articles_md_path,
     assets_folder,
     class_order,
@@ -290,15 +291,20 @@ def load_data(
     df_members = pd.read_parquet(zenodo_members_file)
 
     # Load current CSV data files
+    all_names = pd.read_csv(data_folder + all_OC_names)
     df_UCC_B = load_BC_cats("B", ucc_B_file)
+    # Add columns to B cat
+    df_UCC_B[["fnames", "Names"]] = all_names[["fnames", "Names"]]
+
     logging.info(f"\nFile {ucc_B_file} loaded ({len(df_UCC_B)} entries)")
     df_UCC_C = load_BC_cats("C", ucc_C_file)
     logging.info(f"File {ucc_C_file} loaded ({len(df_UCC_C)} entries)")
 
     # Check B and C alignment
-    fname_B = [_.split(";")[0] for _ in df_UCC_B["fnames"]]
-    if fname_B == df_UCC_C["fname"].to_list() is False:
+    if df_UCC_B["fname"].to_list() == df_UCC_C["fname"].to_list() is False:
         raise ValueError("The 'fname' columns in B and C dataframes differ")
+    # Drop fname from B to avoid duplicate column
+    df_UCC_B = df_UCC_B.drop(columns=["fname"])
 
     # Merge df_UCC_B and df_UCC_C dataframes
     df_BC = pd.concat([df_UCC_B, df_UCC_C], axis=1)
@@ -1005,10 +1011,9 @@ def file_checker(logging) -> None:
         logging.warning("Some entries in final C dataframe still have plot_used='n'\n")
 
     # Check the 'fname' columns in df_UCC_B and df_UCC_C_final dataframes are equal
-    df_UCC_B = pd.read_csv(data_folder + merged_dbs_file, usecols=["fnames"])
-    df_UCC_B_fname = sorted([_.split(";")[0] for _ in df_UCC_B["fnames"]])
+    df_UCC_B = pd.read_csv(data_folder + merged_dbs_file, usecols=["fname"])
     df_UCC_fname = df_UCC_C["fname"].to_list()
-    if not df_UCC_B_fname == df_UCC_fname:
+    if not df_UCC_B["fname"].to_list() == df_UCC_fname:
         flag_error = True
         logging.warning("The 'fname' columns in B and final C dataframes differ\n")
 
