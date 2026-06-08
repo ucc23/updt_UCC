@@ -1,6 +1,23 @@
 Some of these are intermediate versions of the UCC database that are not published.
 
 
+## 260608
+
+Re-process 6 OCS:
+
+- Haffner 18 / 19: cut at glon=243.11
+- ngc6357: cut at glat=0.7
+- trumpler14: N_clust_max=300
+- trumpler15: N_clust_max=250
+- hsc1340: cut at glat top=-20
+
+
+
+## 260607
+
+Added 36 new OCs from latest DBs to C cat.
+
+
 ## 26060606
 
 - BOIN2026
