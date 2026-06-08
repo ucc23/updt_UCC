@@ -24,6 +24,7 @@ from .utils import (
 from .variables import (
     C_dup_min,
     C_lit_max,
+    all_OC_names,
     GCs_cat,
     UCC_members_file,
     UTI_max,
@@ -55,13 +56,14 @@ def main():
         new_ocs_manual_pars,
         df_GCs,
         df_members,
+        all_names,
         df_UCC_B,
         df_UCC_C,
     ) = load_data(logging, ucc_B_file, ucc_C_file)
 
     # Detect entries to be processed
     rename_C_fname, B_not_in_C, C_not_in_B, C_reprocess, N_process = (
-        detect_entries_to_process(logging, df_UCC_B, df_UCC_C)
+        detect_entries_to_process(logging, all_names, df_UCC_B, df_UCC_C)
     )
 
     if N_process == 0:
@@ -198,6 +200,7 @@ def load_data(
     pd.DataFrame,
     pd.DataFrame,
     pd.DataFrame,
+    pd.DataFrame,
 ]:
     """ """
     # Load file with Gaia frames ranges
@@ -229,6 +232,7 @@ def load_data(
     df_members = pd.read_parquet(zenodo_folder + UCC_members_file)
 
     # Load current CSV data files
+    all_names = pd.read_csv(data_folder + all_OC_names)
     df_UCC_B = load_BC_cats("B", ucc_B_file)
     logging.info(f"\nFile {ucc_B_file} loaded ({len(df_UCC_B)} entries)")
     df_UCC_C = load_BC_cats("C", ucc_C_file)
@@ -240,13 +244,14 @@ def load_data(
         new_ocs_manual_pars,
         df_GCs,
         df_members,
+        all_names,
         df_UCC_B,
         df_UCC_C,
     )
 
 
 def detect_entries_to_process(
-    logging, df_UCC_B: pd.DataFrame, df_UCC_C: pd.DataFrame
+    logging, all_names: pd.DataFrame, df_UCC_B: pd.DataFrame, df_UCC_C: pd.DataFrame
 ) -> tuple[dict, pd.DataFrame, pd.DataFrame, pd.DataFrame, int]:
     """
     B_not_in_C  --> Add to C
@@ -255,7 +260,8 @@ def detect_entries_to_process(
     rename_C_fname --> Rename in C
 
     """
-    df_UCC_B["fname"] = [_.split(";")[0] for _ in df_UCC_B["fnames"]]
+    # Add columns to B cat
+    df_UCC_B[["fnames", "Names"]] = all_names[['fnames', 'Names']]
 
     # Entries that must be added to C
     B_not_in_C = df_UCC_B[~df_UCC_B["fname"].isin(df_UCC_C["fname"])]
