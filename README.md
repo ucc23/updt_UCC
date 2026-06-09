@@ -341,11 +341,17 @@ faster build, avoid processing the files in the `_clusters, _tables` folder (for
 example, using a different `include` with fewer/different selected folders)
 
 The script `test_build.sh` can also be used to check that the local build. It will
-select by default 10 random clusters from the `_cluster/` folder and generate the
-site:
+select `N` random clusters from the `_cluster/` folder and generate the site:
 
 ```
-$ ./test_build.sh
+$ ./test_build.sh N
+```
+
+To generate `N` clusters while excluding some clusters, you can pass the prefixes
+to exclude e.g. 'cwnu', 'cwwdl', 'ckcwdm', 'hsc' or 'theia':
+
+```
+$ ./test_build.sh N -cwnu -cwwdl -ckcwdm -hsc -theia
 ```
 
 To select a specific cluster (eg, melotte55) instead of random clusters, run:
@@ -354,12 +360,10 @@ To select a specific cluster (eg, melotte55) instead of random clusters, run:
 $ ./test_build.sh 0 melotte55
 ```
 
-You can also select the number of random clusters to be generated and/or exclude some
-clusters by their name. To generate `N` cluster pages while excluding clusters with
-names starting with 'cwnu', 'cwwdl', 'ckcwdm', 'hsc' or 'theia' you can run:
+where `0` means "do not add random clusters", you can also select several clusters:
 
 ```
-$ ./test_build.sh N -cwnu -cwwdl -ckcwdm -hsc -theia
+$ ./test_build.sh 0 melotte55 ngc2682
 ```
 
 **Check the local version in both Chrome and Firefox**.
