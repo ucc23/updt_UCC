@@ -128,6 +128,19 @@ def get_fnames(names_all, sep: str = ",") -> list[list[str]]:
     return fnames
 
 
+def check_duplicated_fnames(fnames_list: list[list[str]]) -> dict:
+    """Check that no fname is repeated across entries"""
+    seen, duplicates = {}, {}
+    for i, fnames in enumerate(fnames_list):
+        # use set(fnames) so duplicates inside the same fnames are ignored
+        for fname in set(fnames):
+            if fname in seen and seen[fname] != i:
+                duplicates.setdefault(fname, {seen[fname]}).add(i)
+            else:
+                seen[fname] = i
+    return duplicates
+
+
 def rename_standard(all_names: str, sep_in: str = ",", sep_out: str = ";") -> str:
     """
     Standardize the naming of these clusters
