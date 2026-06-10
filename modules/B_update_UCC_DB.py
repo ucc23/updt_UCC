@@ -1471,11 +1471,11 @@ def extract_new_DB_coords(
     DB_used = DB_ID
     ra_n, dec_n, lon_n, lat_n, plx_n, pmra_n, pmde_n = new_DB_vals
 
-    # mid_hierarchy_val = int(0.5 * max(DB_coords_hierarchy.values()))
-
     # If this entry already has assigned values in the UCC
     if row_ucc:
+        # Extract DB used for main coords up to this point
         db_prev = row_ucc["DB_coords_used"]
+        # Get the hierarchies of both DBs: the one used and this one.
         z_prev = DB_coords_hierarchy.get(db_prev, mid_hierarchy_val)
         z_new = DB_coords_hierarchy.get(DB_ID, mid_hierarchy_val)
 
