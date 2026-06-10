@@ -1,6 +1,54 @@
 Some of these are intermediate versions of the UCC database that are not published.
 
 
+## 26060915
+
+VDBH 203 is Collinder 316 in VDBH1975. Add Collinder 316 to VDBH 203 in
+BICA2019 to merge into Collinder 316 in VDBH1975.
+
+The main name of db20013 is ic4955 (mentioned in table 1 of Dutra & Bica 2001),
+made ic4955 the main fname
+
+
+## 26060911
+
+Fix ASCC_72 / MWSC_2044 wrong coordinates issue.
+
+Kharchenko et al (2005, 109 new Galactic open clusters),
+Piskunov et al (2008) and
+Kharchenko et al (2009) mention ASCC_72 with coords (188.25, -60.95)
+Kharchenko et al (2013) connects ASCC_72 & MWSC_2044 to those coords.
+Dias et al (2014) attaches ASCC_72 to those coords.
+Dias et al (2016) attaches ASCC_72 to those coords.
+Kharchenko et al (2016) connects ASCC_72 & MWSC_2044 to those coords.
+Joshi et al (2016) attaches ASCC_72 to those coords.
+Sampedro et al (2017) attaches ASCC_72 to those coords.
+Diba et al (2018) attaches ASCC_72 to those coords.
+Bica et al (2019) assigns 'ASCC 72, MWSC 2044' to **new coords** (193.740,-60.94) 
+Just et al (2023) attaches MWSC_2044 to the original coords
+
+The newer articles attach ASCC_72 to the new coords introduced in BICA2019.
+
+**Fix**: assign the old coords to MWSC_2044 and the new ones to ASCC_72 across the DBs
+that mention these objects. This respects Just et al and all newer articles.
+
+Steps:
+
+1. Kharchenko et al. (2005) (1): rename to MWSC_2044
+2. Piskunov et al. (2008): rename to MWSC_2044
+3. Kharchenko et al (2009): rename to MWSC_2044
+4. Kharchenko et al (2013): remove ASCC_72
+5. Dias et al (2014): replace ASCC_72 with MWSC_2044
+6. Dias et al (2016): replace ASCC_72 with MWSC_2044
+7. Kharchenko et al (2016): remove ASCC_72
+8. Joshi et al (2016): replace ASCC_72 with MWSC_2044
+9. Sampedro et al (2017): replace ASCC_72 with MWSC_2044
+10. Dib et al (2018): replace ASCC_72 with MWSC_2044
+11. Bica et al (2019): remove MWSC_2044
+12. Just et al (2023): removed ASCC_72 naming that I added to the DB
+
+
+
 ## 260608
 
 Re-process 6 OCS:
