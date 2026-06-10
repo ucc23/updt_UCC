@@ -387,7 +387,7 @@ def diff_between_dfs(
         non_matching2 = [row for row in rows2 if tuple(row) not in set1]
 
     if len(non_matching1) == 0 and len(non_matching2) == 0:
-        logging.info(f"No differences found for {cat_name}")
+        logging.info(f"No differences found for {cat_name}\n")
         # Return boolean indicating if any differences where found
         return False
 
@@ -545,4 +545,4 @@ def save_df_UCC(
             index=False,
             quoting=csv.QUOTE_NONNUMERIC,
         )
-    logging.info(f"UCC file (N={len(df)}): '{file_path}'")
+    logging.info(f"UCC file (N={len(df)}): '{file_path}'\n")
