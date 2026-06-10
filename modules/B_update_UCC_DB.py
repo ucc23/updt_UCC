@@ -10,7 +10,6 @@ from rapidfuzz import fuzz, process
 from scipy.spatial.distance import cdist
 
 from .utils import (
-    check_duplicated_fnames,
     diff_between_dfs,
     final_fnames_compare,
     get_fnames,
@@ -354,6 +353,17 @@ def load_data(
 
     # Create a dictionary with all names and their canonical fnames and Names
     all_names = pd.read_csv(data_folder + all_OC_names)
+
+    # Check if sorted
+    all_n_fame0 = [_.split(";")[0] for _ in all_names["fnames"]]
+    for i in range(len(all_n_fame0) - 1):
+        if all_n_fame0[i] > all_n_fame0[i + 1]:
+            print(
+                f"Not sorted at index {i}: {all_n_fame0[i]!r} > {all_n_fame0[i + 1]!r}"
+            )
+            sys.exit(0)
+
+    # Create all_names_dict mapping each alias to its canonical fname and Names
     all_names_dict, all_names_list = {}, []
     for row in all_names.itertuples(index=False):
         fnames = str(row.fnames).split(";")
@@ -363,7 +373,7 @@ def load_data(
             all_names_dict[alias] = {"fnames": f_canonical, "Names": n_canonical}
         all_names_list.append(fnames)
 
-    # Check all_names for duplicates
+    # Check for duplicates
     duplicates = check_duplicated_fnames(all_names_list)
     if duplicates:
         logging.info(f"\nFound {len(duplicates)} duplicate fnames in 'all_names':")
@@ -823,6 +833,19 @@ def get_canonical_fnames(
     df_new[col_name] = names_list
 
     return new_DB_fnames
+
+
+def check_duplicated_fnames(fnames_list: list[list[str]]) -> dict:
+    """Check that no fname is repeated across entries"""
+    seen, duplicates = {}, {}
+    for i, fnames in enumerate(fnames_list):
+        # use set(fnames) so duplicates inside the same fnames are ignored
+        for fname in set(fnames):
+            if fname in seen and seen[fname] != i:
+                duplicates.setdefault(fname, {seen[fname]}).add(i)
+            else:
+                seen[fname] = i
+    return duplicates
 
 
 def check_new_DB_fnames(
