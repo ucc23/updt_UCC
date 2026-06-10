@@ -351,35 +351,7 @@ def load_data(
         logging.info(f"{DB} loaded (N={len(df_new)}) {new_db_flag}")
         all_dbs_data[DB] = [df_new, new_JSON[DB]]
 
-    # Create a dictionary with all names and their canonical fnames and Names
-    all_names = pd.read_csv(data_folder + all_OC_names)
-
-    # Check if sorted
-    all_n_fame0 = [_.split(";")[0] for _ in all_names["fnames"]]
-    for i in range(len(all_n_fame0) - 1):
-        if all_n_fame0[i] > all_n_fame0[i + 1]:
-            print(
-                f"Not sorted at index {i}: {all_n_fame0[i]!r} > {all_n_fame0[i + 1]!r}"
-            )
-            sys.exit(0)
-
-    # Create all_names_dict mapping each alias to its canonical fname and Names
-    all_names_dict, all_names_list = {}, []
-    for row in all_names.itertuples(index=False):
-        fnames = str(row.fnames).split(";")
-        n_canonical = str(row.Names).split(";")[0]
-        f_canonical = fnames[0]
-        for alias in fnames:
-            all_names_dict[alias] = {"fnames": f_canonical, "Names": n_canonical}
-        all_names_list.append(fnames)
-
-    # Check for duplicates
-    duplicates = check_duplicated_fnames(all_names_list)
-    if duplicates:
-        logging.info(f"\nFound {len(duplicates)} duplicate fnames in 'all_names':")
-        for name, idxs in duplicates.items():
-            logging.info(f"{sorted(idxs)} --> '{name}'")
-        sys.exit(0)
+    all_names, all_names_dict = handle_all_names(logging)
 
     # flag_interactive == new_DBs
     return (
@@ -394,6 +366,71 @@ def load_data(
         all_names,
         all_names_dict,
     )
+
+
+def handle_all_names(logging) -> tuple[pd.DataFrame, dict]:
+    """ """
+    # Create a dictionary with all names and their canonical fnames and Names
+    all_names = pd.read_csv(data_folder + all_OC_names)
+
+    # Check for invalid characters in fnames (anything other than letters, numbers, and ';')
+    bad_idx = all_names.index[
+        all_names["fnames"].str.contains(r"[^A-Za-z0-9;]", regex=True, na=False)
+    ]
+    if len(bad_idx) > 0:
+        logging.info(
+            f"\nFound {len(bad_idx)} entries with invalid characters in"
+            + " 'fnames' (only letters, numbers, and ';' allowed):"
+        )
+        for idx in bad_idx:
+            logging.info(f"{idx}: {all_names.loc[idx, 'fnames']}")
+        sys.exit(1)
+
+    # Check if sorted
+    all_n_fame0 = [_.split(";")[0] for _ in all_names["fnames"]]
+    for i in range(len(all_n_fame0) - 1):
+        if all_n_fame0[i] > all_n_fame0[i + 1]:
+            logging.info(
+                f"Not sorted at index {i}: {all_n_fame0[i]!r} > {all_n_fame0[i + 1]!r}"
+            )
+            sys.exit(1)
+
+    # Create all_names_dict mapping each alias to its canonical fname and Names
+    all_names_dict, all_names_list = {}, []
+    for i, row in enumerate(all_names.itertuples(index=False)):
+        fnames = str(row.fnames).split(";")
+        names = str(row.Names).split(";")
+
+        if any(fname.strip() == "" for fname in fnames):
+            logging.info(f"\nEmpty fname found at index {i}: {row.fnames}")
+            sys.exit(1)
+        if any(name.strip() == "" for name in names):
+            logging.info(f"\nEmpty Name found at index {i}: {row.Names}")
+            sys.exit(1)
+
+        if len(fnames) != len(names):
+            logging.info(f"\nMismatch in number of fnames and Names at index {i}")
+            sys.exit(1)
+
+        n_canonical = names[0]
+        f_canonical = fnames[0]
+        for alias in fnames:
+            if alias in all_names_dict:
+                logging.info(f"Duplicate alias '{alias}' found at index {i}")
+                sys.exit(1)
+
+            all_names_dict[alias] = {"fnames": f_canonical, "Names": n_canonical}
+        all_names_list.append(fnames)
+
+    # Check for duplicates
+    duplicates = check_duplicated_fnames(all_names_list)
+    if duplicates:
+        logging.info(f"\nFound {len(duplicates)} duplicate fnames in 'all_names':")
+        for name, idxs in duplicates.items():
+            logging.info(f"{sorted(idxs)} --> '{name}'")
+        sys.exit(1)
+
+    return all_names, all_names_dict
 
 
 def basic_new_DB_checks(
@@ -863,7 +900,7 @@ def check_new_DB_fnames(
                 + f" --> '{name}'"
             )
         breakpoint()
-        sys.exit(0)
+        sys.exit(1)
 
 
 def fnames_check_UCC_new_DB(
@@ -895,7 +932,7 @@ def fnames_check_UCC_new_DB(
         for k in new_fnames_dup:
             logging.info(f"{df_new.iloc[k]['Name']}")
         breakpoint()
-        sys.exit(0)
+        sys.exit(1)
 
     return
 
@@ -958,7 +995,7 @@ def fnames_check_UCC_new_DB(
     if dup_flag:
         logging.info("\nResolve the above issues before moving on")
         breakpoint()
-        sys.exit(0)
+        sys.exit(1)
 
 
 def get_matches_new_DB(
@@ -1804,7 +1841,7 @@ def final_sanity_check(logging, all_names, df_UCC_B):
     if exit_flag:
         logging.info("\nERROR: duplicated entries found in 'fnames' column. Fix this!")
         breakpoint()
-        sys.exit(0)
+        sys.exit(1)
 
     # Check that (RA, DEC) ranges are valid
     exit_flag = ra_dec_check(logging, df_UCC_B)
@@ -1813,7 +1850,7 @@ def final_sanity_check(logging, all_names, df_UCC_B):
             "\nERROR: entries were found with missing (RA, DEC) values. Fix this!"
         )
         breakpoint()
-        sys.exit(0)
+        sys.exit(1)
     #
     final_fnames_compare(logging, all_names["fnames"], df_UCC_B["fnames"])
 
