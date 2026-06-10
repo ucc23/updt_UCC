@@ -1,10 +1,34 @@
 Some of these are intermediate versions of the UCC database that are not published.
 
 
+## 260610
+
+In Dias et al (2014) FSR_0124 has the coordinates of FSR_0123. These incorrect values
+are apparently inherited by:
+
+- Dias et al. 2016
+- Sampedro et al. 2017
+- Sánchez et al. 2020
+
+Neither article assigns parameter values to FSR_0124.
+Sampedro et al. 2017 also has values for FSR_0123
+Sanchez has PMs that correspond to FSR_0123.
+
+Fixes:
+
+- Dias et al. 2014: change FSR_0124 (RA, DEC) to UCC values
+- Dias et al. 2016: change FSR_0124 (RA, DEC) to UCC values
+- Sampedro et al. 2017: change FSR_0124 (RA, DEC) to UCC values
+- Sánchez et al. 2020: rename FSR_0124 to FSR_0123
+
+
+
+
+
 ## 26060915
 
-VDBH 203 is Collinder 316 in VDBH1975. Add Collinder 316 to VDBH 203 in
-BICA2019 to merge into Collinder 316 in VDBH1975.
+VDBH 203 is Collinder 316 in VDBH1975. Add Collinder 316 to VDBH 203 in all_names
+to merge into Collinder 316 in VDBH1975.
 
 The main name of db20013 is ic4955 (mentioned in table 1 of Dutra & Bica 2001),
 made ic4955 the main fname
