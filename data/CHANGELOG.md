@@ -1,7 +1,15 @@
 Some of these are intermediate versions of the UCC database that are not published.
 
 
-## 260610
+## 26061017
+
+Fixed ASCC_120 bad latitude in BICA2019.
+
+Cep A & Cep C are duplicates of Cepheus A & Cepheus C respectively.
+
+
+
+## 26061011
 
 In Dias et al (2014) FSR_0124 has the coordinates of FSR_0123. These incorrect values
 are apparently inherited by:
