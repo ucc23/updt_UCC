@@ -24,10 +24,10 @@ from .utils import (
 from .variables import (
     C_dup_min,
     C_lit_max,
-    all_OC_names,
     GCs_cat,
     UCC_members_file,
     UTI_max,
+    all_OC_names,
     data_folder,
     md_folder,
     merged_dbs_file,
@@ -68,7 +68,7 @@ def main():
 
     if N_process == 0:
         if input("\nNo new OCs to process. Process anyway? (y/n): ").lower() != "y":
-            sys.exit()
+            sys.exit(1)
     else:
         if input(f"\n{N_process} entries to process. Continue? (y/n): ").lower() == "y":
             pass
@@ -156,14 +156,14 @@ def get_paths_check_paths(logging) -> tuple[str, str, str]:
     if txt != "":
         logging.info(txt)
         if input("Move on? (y/n): ").lower() != "y":
-            sys.exit()
+            sys.exit(1)
 
     # If temp file exists, warn
     temp_f = temp_folder + ucc_cat_file
     if os.path.isfile(temp_f):
         logging.warning(f"WARNING: file {temp_f} exists. Moving on will re-write it")
         if input("Move on? (y/n): ").lower() != "y":
-            sys.exit()
+            sys.exit(1)
 
     # Create folder to store the per-cluster parquet member files
     if not os.path.exists(temp_members_folder):
@@ -175,7 +175,7 @@ def get_paths_check_paths(logging) -> tuple[str, str, str]:
                 + "there,\nthey will be used when the script combines the final members data"
             )
             if input("Move on? (y/n): ").lower() != "y":
-                sys.exit()
+                sys.exit(1)
 
     # Temporary zenodo/ folder
     temp_zenodo_fold = temp_folder + zenodo_folder
@@ -261,7 +261,7 @@ def detect_entries_to_process(
 
     """
     # Add columns to B cat
-    df_UCC_B[["fnames", "Names"]] = all_names[['fnames', 'Names']]
+    df_UCC_B[["fnames", "Names"]] = all_names[["fnames", "Names"]]
 
     # Entries that must be added to C
     B_not_in_C = df_UCC_B[~df_UCC_B["fname"].isin(df_UCC_C["fname"])]
