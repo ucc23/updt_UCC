@@ -927,6 +927,7 @@ def add_info_to_C(
         & (df_UCC_C["C_dup"] > C_dup_min)
         & (df_UCC_C["C_lit"] < C_lit_max)
     )
+    df_UCC_C["bad_oc"] = "n"
     df_UCC_C.loc[msk, "bad_oc"] = "y"
 
     return df_UCC_C
