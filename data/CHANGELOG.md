@@ -1,6 +1,12 @@
 Some of these are intermediate versions of the UCC database that are not published.
 
 
+## 260611
+
+- Re-process ngc6618 with N_clust=50
+
+
+
 ## 26061017
 
 Fixed ASCC_120 bad latitude in BICA2019.
