@@ -4,38 +4,39 @@ check_ucc.py  –  UCC catalogue consistency checks
 
 Available checks
 ----------------
-  1. B_vs_C_pos        – compare B vs C catalogue positions / proper-motions
-  2. B_DBs_coords      – cross-DB coordinate consistency within catalogue B
+  1. B_DBs_coords      – cross-DB coordinate consistency within catalogue B
+  2. B_vs_membs_coords – compare B center coords with member-file medians
   3. B_DBs_params      – cross-DB parameter consistency within catalogue B
-  4. B_vs_membs_coords – compare B center coords with member-file medians
+  4. B_vs_C_pos        – compare B vs C catalogue positions / proper-motions
 
 """
+
+import numpy as np
+import pandas as pd
+import json
+from collections import Counter
+from pathlib import Path
 
 # ---------------------------------------------------------------------------
 # Manual exclusions based on previous checks and known issues
 
 # Families to skip in all checks
 skip_pfx = ()  # ("hsc", "theia", "dutrabica", "mwsc", "cwnu", "ocsn", "lp")
+skip_pfx = ("hsc", "theia", "cwnu")
 
-# OCs to skip in run_coords_bc
-skip_names = ()  # ["melotte111", "platais6"]
-
-# OCs to skip in run_dbs_coords
+# OCs to skip (also the DB where the error is, is listed if known)
 known_bad_oc = {
-    "ascc120": ["BICA2019"],
-    "ascc123": ["ALFONSO2024"],
-    "ascc72": ["BICA2019"],
-    "blanco1": ["ALMEIDA2023", "DIAS2021"],
-    "graham1": ["BUKOWIECKI2011"],
-    "melotte245": ["DIAS2021"],
-    "ngc1333": ["HE2022_1"],
-    "saurer1": ["FROEBRICH2007"],
-    "melotte186": ["DIAS2019"],
-    "berkeley58": ["DIAS2021"],
-    "berkeley59": ["DIAS2021"],
-    "collinder461": ["ALMEIDA2023"],
-    "fsr0839": ["GLUSHKOVA2010"],
-    "ic5146": ["LADA2003"],
+    "ascc123": ["ALFONSO2024"], # stock_12 in frame
+    "ngc1981": ["HE2022_1"], # bad RA in DB
+    "pismis24": ["VDBH1975"], # bad RA in DB
+    "platais6": ["CAVALLO2024"], # frame is large, center moves inside
+    "ngc6618": ["CAVALLO2024"], # frame is large, center moves inside
+    "collinder65": [""],  # latitude value shows ~1 deg dispersion
+    "upk287": [""], # frame is large, all centers show dispersion
+    "upk64": [""], # frame is large, all centers show dispersion
+    "feigelson1": [""], # UCC includes member stars that move the center a little bit
+    "eso48901": [""], # UCC inherits He 2022 coords, cluster is disperse
+    "bdsb122": [""], # object is very disperse
 }
 # ---------------------------------------------------------------------------
 
@@ -53,16 +54,17 @@ def main():
         choice = input("Select check [1-4]: ").strip()
 
         if choice == "1":
-            print("Parameters (press Enter to keep default):")
-            pos_thr = _prompt_float("position threshold (deg)", 0.5)
-            pm_thr = _prompt_float("PM threshold (mas/yr)", 10.0)
-            uti_min = _prompt_float("UTI minimum", 0.1)
-            run_B_vs_C_pos(pos_thr=pos_thr, pm_thr=pm_thr, uti_min=uti_min)
+            pos_thr = _prompt_float("position threshold (deg)", 1)
+            drad_thr = _prompt_float("normalized separation", 0.25)
+            run_B_DBs_coords(pos_thr, drad_thr)
             break
 
         elif choice == "2":
-            pos_thr = _prompt_float("position threshold (deg)", 1)
-            run_B_DBs_coords(pos_thr)
+            print("Parameters (press Enter to keep default):")
+            # cat_select = input("  catalog [B/C]: ").strip().upper()
+            pos_thr = _prompt_float("angular separation (deg)", 1)
+            drad_thr = _prompt_float("normalized separation", 0.25)
+            run_B_vs_membs_coords(pos_thr=pos_thr, drad_thr=drad_thr)
             break
 
         elif choice == "3":
@@ -78,10 +80,12 @@ def main():
 
         elif choice == "4":
             print("Parameters (press Enter to keep default):")
-            dist_thr = _prompt_float("angular separation (deg)", 0.5)
-            drad_thr = _prompt_float("normalized separation", 0.25)
-            run_B_vs_membs_coords(dist_thr=dist_thr, drad_thr=drad_thr)
+            pos_thr = _prompt_float("position threshold (deg)", 1)
+            pm_thr = _prompt_float("PM threshold (mas/yr)", 10.0)
+            uti_min = _prompt_float("UTI minimum", 0.1)
+            run_B_vs_C_pos(pos_thr=pos_thr, pm_thr=pm_thr, uti_min=uti_min)
             break
+
         else:
             print("Invalid choice. Please enter 1, 2, 3, or 4.")
 
@@ -93,10 +97,7 @@ def _prompt_float(label, default):
 
 def run_B_vs_C_pos(pos_thr, pm_thr, uti_min):
     import webbrowser
-
     import matplotlib.pyplot as plt
-    import numpy as np
-    import pandas as pd
 
     print(
         f"\nChecking B vs C catalogue consistency "
@@ -104,7 +105,7 @@ def run_B_vs_C_pos(pos_thr, pm_thr, uti_min):
     )
 
     df1 = pd.read_csv(B_cat_path)
-    df1["fname"] = [_.split(";")[0] for _ in df1["fnames"]]
+    # df1["fname"] = [_.split(";")[0] for _ in df1["fnames"]]
     df2 = pd.read_csv(C_cat_path)
     df = pd.merge(df1, df2, on="fname", suffixes=("_B", "_C"))
 
@@ -114,10 +115,10 @@ def run_B_vs_C_pos(pos_thr, pm_thr, uti_min):
     df["dist_2D_y"] = (
         (df["pmRA"] - df["pmRA_m"]) ** 2 + (df["pmDE"] - df["pmDE_m"]) ** 2
     ) ** 0.5
-    df["dist_plx"] = abs(df["Plx"] - df["Plx_m"])
+    # df["dist_plx"] = abs(df["Plx"] - df["Plx_m"])
 
     # remove manually checked / known-problematic families
-    df = df[~df["fname"].isin(skip_names)]
+    df = df[~df["fname"].isin(known_bad_oc)]
     df = df[~df["fname"].str.startswith(skip_pfx, na=False)]
 
     msk = (df["UTI"] > uti_min) & (
@@ -217,19 +218,15 @@ def run_B_vs_C_pos(pos_thr, pm_thr, uti_min):
     plt.show()
 
 
-def run_B_DBs_coords(pos_thr):
-    import json
-    from collections import Counter
-    from pathlib import Path
-
-    import numpy as np
-    import pandas as pd
-
+def run_B_DBs_coords(pos_thr, drad_thr):
+    """ """
     print(
         f"\nChecking cross-DB coordinate consistency within catalogue B (Δ>{pos_thr}°)\n"
     )
 
     df_B = pd.read_csv(B_cat_path)
+
+    df_B = get_norm_dist_rad(df_B)
 
     with open("../data/databases_info.json") as f:
         databases_info = json.load(f)
@@ -248,10 +245,12 @@ def run_B_DBs_coords(pos_thr):
 
     results = []
     for _, row in df_B.iterrows():
-        if row["fnames"].startswith(skip_pfx):
+        fname = row["fname"]
+        if fname.startswith(skip_pfx):
             continue
-        fname = row["fnames"].split(";")[0]
         if fname in known_bad_oc:
+            continue
+        if row.dist_rad < drad_thr:
             continue
 
         cl_dbs = row["DB"].split(";")
@@ -281,17 +280,19 @@ def run_B_DBs_coords(pos_thr):
         if conflicts:
             if len(conflicts) == 2 and all(v == 1 for v in conflicts.values()):
                 ii, jj = pair_list[0]
-                msg = f"{fname:<15} (Δ={max_diff:.2f}°): {cl_dbs[ii]} vs {cl_dbs[jj]}"
+                msg = f"{fname:<15} (Δ={max_diff:.2f}°, {row.dist_rad:.2f}): {cl_dbs[ii]} vs {cl_dbs[jj]}"
             else:
-                # offender = max(conflicts, key=conflicts.get)
-                offender = np.argmax(list(conflicts.values()))
+                # The DB that appears most often in conflicts is the most likely offender
+                offender = conflicts.most_common(1)[0][0]
                 msg = (
-                    f"{fname:<15} (Δ={max_diff:.2f}°): "
+                    f"{fname:<15} (Δ={max_diff:.2f}°, {row.dist_rad:.2f}): "
                     f"suspect {cl_dbs[offender]} [{conflicts[offender]} conflicts]"
                 )
             results.append((max_diff, msg))
 
     print(f"\n{len(results)} clusters with coordinate conflicts\n")
+    print(f"{"Name":<15} (Δ=diff°, dist_rad): suspects (...)")
+    print("---------------------------------------------------")
     for _, msg in sorted(results, key=lambda x: x[0], reverse=True):
         print(msg)
 
@@ -360,35 +361,60 @@ def run_B_DBs_params(param_col, median_perc, res_max=500):
         print(f"\n... and {len(results) - res_max} more")
 
 
-def run_B_vs_membs_coords(dist_thr, drad_thr):
-    import numpy as np
-    import pandas as pd
-
+def run_B_vs_membs_coords(pos_thr, drad_thr, cat_select="B"):
+    """ """
     print(
-        f"\nChecking B centre coords vs member-file medians "
-        f"(dist>{dist_thr}°, d_norm>{drad_thr})\n"
+        f"\nChecking {cat_select} center coords vs member-file medians "
+        f"(dist>{pos_thr}°, dist_rad>{drad_thr})"
     )
 
+    # if cat_select == "B":
     df_B = pd.read_csv(B_cat_path)
-    df_Z = pd.read_parquet(members_path)
+    df_C = pd.read_csv(C_cat_path)
+    df_B["UTI"] = df_C["UTI"]
+    # else:
+    #     df_BC = pd.read_csv(C_cat_path)
+    #     # Rename RA_ICRS_m, DE_ICRS_m columns
+    #     df_BC = df_BC.rename(columns={"RA_ICRS_m": "RA_ICRS", "DE_ICRS_m": "DE_ICRS"})
 
-    df_B["fname"] = df_B["fnames"].str.split(";").str[0]
     mask_valid = ~df_B["fname"].str.startswith(skip_pfx)
 
-    g = df_Z.groupby("name")
+    # Exclude also OCs in known_bad_oc
+    for oc in known_bad_oc:
+        mask_valid &= ~df_B["fname"].str.contains(oc, na=False)
 
-    def circular_span(x):
-        x = np.sort(x.to_numpy())
-        gaps = np.diff(np.r_[x, x[0] + 360])
-        return 360 - gaps.max()
+    df = get_norm_dist_rad(df_B)
 
-    stats = g.agg(
+    res = df[
+        mask_valid & (df["dist"] > pos_thr) & (df["dist_rad"] > drad_thr)
+    ].sort_values("dist_rad", ascending=False)
+
+    print(f"\n{len(res)} clusters flagged  (dist>{pos_thr}° & dist_rad>{drad_thr})\n")
+    for i, r in res.iterrows():
+        print(
+            f"{r.fname[:14]:<15} (UTI={r.UTI:.2f})  "
+            f"dist={r.dist:.2f}° "
+            # f"GLON span={r.rad:.2f}° | "
+            f"dist_rad={r.dist_rad:.2f} | "
+            f"cat=({r.RA_ICRS:.2f}, {r.DE_ICRS:.2f})  "
+            f"memb=({r.RA_Z:.2f}, {r.DE_Z:.2f})"
+        )
+
+
+def get_norm_dist_rad(df_B):
+    """ """
+
+    df_M = pd.read_parquet(members_path)
+    df_M_gr = df_M.groupby("name")
+
+    stats = df_M_gr.agg(
         RA_Z=("RA_ICRS", "median"),
         DE_Z=("DE_ICRS", "median"),
-        n=("GLON", "size"),
+        nmembs=("GLON", "size"),
     )
-    stats["rad"] = g["GLON"].apply(circular_span)
-    stats = stats[stats["n"] > 2]
+    stats["rad"] = df_M_gr["GLON"].apply(circular_span)
+    # Only consider clusters with >2 members to avoid unreliable medians and spans
+    stats = stats[stats["nmembs"] > 2]
 
     df = df_B.merge(
         stats[["RA_Z", "DE_Z", "rad"]], left_on="fname", right_index=True, how="left"
@@ -396,28 +422,24 @@ def run_B_vs_membs_coords(dist_thr, drad_thr):
 
     ra1, dec1 = np.deg2rad(df["RA_ICRS"]), np.deg2rad(df["DE_ICRS"])
     ra2, dec2 = np.deg2rad(df["RA_Z"]), np.deg2rad(df["DE_Z"])
+    # Haversine formula for angular separation on a sphere
     a = (
         np.sin((dec2 - dec1) / 2) ** 2
         + np.cos(dec1) * np.cos(dec2) * np.sin((ra2 - ra1) / 2) ** 2
     )
     df["dist"] = np.rad2deg(2 * np.arcsin(np.sqrt(a)))
-    df["d_rad"] = df["dist"] / df["rad"]
+    df["dist_rad"] = df["dist"] / df["rad"]
 
-    res = df[
-        mask_valid & (df["dist"] > dist_thr) & (df["d_rad"] > drad_thr)
-    ].sort_values("d_rad", ascending=False)
+    return df
 
-    print(f"\n{len(res)} clusters flagged  (dist>{dist_thr}°, d_norm>{drad_thr})\n")
-    for i, r in res.iterrows():
-        print(
-            # f"{i:<7}: {r.fname[:14]:<15} | "
-            f"{r.fname[:14]:<15} "
-            f"dist={r.dist:.2f}° "
-            # f"GLON span={r.rad:.2f}° | "
-            f"d_norm={r.d_rad:.2f} | "
-            f"cat=({r.RA_ICRS:.2f}, {r.DE_ICRS:.2f})  "
-            f"memb=({r.RA_Z:.2f}, {r.DE_Z:.2f})"
-        )
+
+
+def circular_span(x):
+    if not isinstance(x, np.ndarray):
+        x = x.to_numpy()
+    x = np.sort(x)
+    gaps = np.diff(np.r_[x, x[0] + 360])
+    return 360 - gaps.max()
 
 
 if __name__ == "__main__":

@@ -752,7 +752,7 @@ def updt_UCC_new_cl_data(
 ) -> pd.DataFrame:
     # Temp dict used to update the UCC
     dict_updt = {
-        "plot_used": "n",  # 'n' indicates that a new plot is required
+        "plot_used": "n",  # 'n' indicates that a new plot is required. Used by D script
         "process": "n",  # 'n' indicates this entry was processed
         "bad_oc": "n",  # Default value, will be updated later
         "C1": C1,
