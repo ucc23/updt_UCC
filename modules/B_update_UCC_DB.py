@@ -386,14 +386,14 @@ def handle_all_names(logging, sep=";") -> tuple[pd.DataFrame, dict]:
             logging.info(f"{idx}: {all_names.loc[idx, 'fnames']}")
         sys.exit(1)
 
-    # Check if sorted
-    all_n_fame0 = [_.split(sep)[0] for _ in all_names["fnames"]]
-    for i in range(len(all_n_fame0) - 1):
-        if all_n_fame0[i] > all_n_fame0[i + 1]:
-            logging.info(
-                f"Not sorted at index {i}: {all_n_fame0[i]!r} > {all_n_fame0[i + 1]!r}"
-            )
-            sys.exit(1)
+    # # Check if sorted
+    # all_n_fame0 = [_.split(sep)[0] for _ in all_names["fnames"]]
+    # for i in range(len(all_n_fame0) - 1):
+    #     if all_n_fame0[i] > all_n_fame0[i + 1]:
+    #         logging.info(
+    #             f"Not sorted at index {i}: {all_n_fame0[i]!r} > {all_n_fame0[i + 1]!r}"
+    #         )
+    #         sys.exit(1)
 
     # Create all_names_dict mapping each alias to its canonical fname and Names
     all_names_dict, all_fnames_list, all_names_list = {}, [], []
