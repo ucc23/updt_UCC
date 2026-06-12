@@ -81,8 +81,10 @@ naming_order = (
     "ruprecht",  # 1958
     "berkeley",  # 1958
     "pismis",  # 1959
+    "lynga",  # 1970
     "basel",  # 1971
     "loden",  # 1973
+    "westerlund" # prev vdbh
     "vdbh",  # 1975
     "bochum",  # 1975
 )
