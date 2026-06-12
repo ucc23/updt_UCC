@@ -368,7 +368,7 @@ def load_data(
     )
 
 
-def handle_all_names(logging) -> tuple[pd.DataFrame, dict]:
+def handle_all_names(logging, sep=";") -> tuple[pd.DataFrame, dict]:
     """ """
     # Create a dictionary with all names and their canonical fnames and Names
     all_names = pd.read_csv(data_folder + all_OC_names)
@@ -380,14 +380,14 @@ def handle_all_names(logging) -> tuple[pd.DataFrame, dict]:
     if len(bad_idx) > 0:
         logging.info(
             f"\nFound {len(bad_idx)} entries with invalid characters in"
-            + " 'fnames' (only letters, numbers, and ';' allowed):"
+            + f" 'fnames' (only letters, numbers, and '{sep}' allowed):"
         )
         for idx in bad_idx:
             logging.info(f"{idx}: {all_names.loc[idx, 'fnames']}")
         sys.exit(1)
 
     # Check if sorted
-    all_n_fame0 = [_.split(";")[0] for _ in all_names["fnames"]]
+    all_n_fame0 = [_.split(sep)[0] for _ in all_names["fnames"]]
     for i in range(len(all_n_fame0) - 1):
         if all_n_fame0[i] > all_n_fame0[i + 1]:
             logging.info(
@@ -396,39 +396,41 @@ def handle_all_names(logging) -> tuple[pd.DataFrame, dict]:
             sys.exit(1)
 
     # Create all_names_dict mapping each alias to its canonical fname and Names
-    all_names_dict, all_names_list = {}, []
+    all_names_dict, all_fnames_list, all_names_list = {}, [], []
     for i, row in enumerate(all_names.itertuples(index=False)):
-        fnames = str(row.fnames).split(";")
-        names = str(row.Names).split(";")
+        fnames = str(row.fnames).split(sep)
+        names = str(row.Names).split(sep)
+
+        all_fnames_list.append(fnames)
+        all_names_list.append(row.Names)
 
         if any(fname.strip() == "" for fname in fnames):
-            logging.info(f"\nEmpty fname found at index {i}: {row.fnames}")
-            sys.exit(1)
+            raise ValueError(f"\nEmpty fname found at index {i}: {row.fnames}")
         if any(name.strip() == "" for name in names):
-            logging.info(f"\nEmpty Name found at index {i}: {row.Names}")
-            sys.exit(1)
+            raise ValueError(f"\nEmpty Name found at index {i}: {row.Names}")
 
         if len(fnames) != len(names):
-            logging.info(f"\nMismatch in number of fnames and Names at index {i}")
-            sys.exit(1)
+            raise ValueError(f"\nMismatch in number of fnames and Names at index {i}")
 
         n_canonical = names[0]
         f_canonical = fnames[0]
         for alias in fnames:
             if alias in all_names_dict:
-                logging.info(f"Duplicate alias '{alias}' found at index {i}")
-                sys.exit(1)
-
+                raise ValueError(f"Duplicate alias '{alias}' found at index {i}")
             all_names_dict[alias] = {"fnames": f_canonical, "Names": n_canonical}
-        all_names_list.append(fnames)
 
     # Check for duplicates
-    duplicates = check_duplicated_fnames(all_names_list)
+    duplicates = check_duplicated_fnames(all_fnames_list)
     if duplicates:
         logging.info(f"\nFound {len(duplicates)} duplicate fnames in 'all_names':")
         for name, idxs in duplicates.items():
             logging.info(f"{sorted(idxs)} --> '{name}'")
         sys.exit(1)
+
+    # Check that all fnames are equivalent to the normalized names
+    all_fnames_norm = get_fnames(all_names_list, sep=sep)
+    if (all_fnames_list == all_fnames_norm) is False:
+        raise ValueError("Mismatch between all_fnames_list and new_DB_fnames")
 
     return all_names, all_names_dict
 
