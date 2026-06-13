@@ -1,6 +1,35 @@
 Some of these are intermediate versions of the UCC database that are not published.
 
 
+## 260612
+
+- all_names: Added Pismis_18 (and MWSC 2142) to IC_4291 (known original name)
+
+- DIAS2002: removed IC_4291 (Pismis 18 contains params, kept it)
+
+- VDBH1975:
+  - Added VDBH_XX naming to entries
+  - Change of main name:
+    - VDBH_174 --> Lynga_4
+    - VDBH_189 --> Lynga_9
+
+- BICA2019:
+  - Removed VDBH_196 from NGC_6200, the correct match is NGC_6204
+  - Merged NGC_2818A into NGC_2818 (wrong name in BICA2019)
+
+These changes:
+
+- Merge Pismis_18 and IC_4291 into the same entry, and NGC_2818A into
+  NGC_2818, hence removing two entries from the UCC
+- Rename VDBH_174 & VDBH_189 into Lynga_4 & Lynga_9
+
+ISSUE: Pismis_18 contains the correct number of members over IC_4291. Re-process
+IC_4291 removing the N_clust_max=100 that was in place.
+
+
+
+
+
 ## 260611
 
 - Re-process ngc6618 with N_clust=50
