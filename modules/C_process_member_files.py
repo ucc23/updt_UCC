@@ -263,33 +263,50 @@ def detect_entries_to_process(
     # Add columns to B cat
     df_UCC_B[["fnames", "Names"]] = all_names[["fnames", "Names"]]
 
-    # Entries that must be added to C
+    # Entries in B that must be added to C
     B_not_in_C = df_UCC_B[~df_UCC_B["fname"].isin(df_UCC_C["fname"])]
 
-    # Entries that must be removed from C
+    # Entries not in B that must be removed from C
     C_not_in_B = df_UCC_C[~df_UCC_C["fname"].isin(df_UCC_B["fname"])]
 
-    # Entries in B_not_in_C that just need renaming in C_not_in_B
-    rename_C_fname = {}
-    C_fname_lst = C_not_in_B["fname"].to_list()
-    for fnames in B_not_in_C["fnames"]:
-        fnames = fnames.split(";")
-        for fname in fnames:
-            if fname in C_fname_lst:
-                # This C entry needs renaming: fname --> fnames[0]
-                rename_C_fname[fname] = fnames[0]
-                break
+    # # Entries in B_not_in_C that just need renaming in C_not_in_B
+    # rename_C_fname = {}
+    # C_fname_lst = C_not_in_B["fname"].to_list()
+    # for fnames in B_not_in_C["fnames"]:
+    #     fnames = fnames.split(";")
+    #     for fname in fnames:
+    #         if fname in C_fname_lst:
+    #             # This C entry needs renaming: fname --> fnames[0]
+    #             rename_C_fname[fname] = fnames[0]
+    #             break
 
-    # Find matches and store the first string of the matched entry
-    fnames_split = df_UCC_B["fnames"].str.split(";")
-    C_not_in_B_new_fname = {"rename": 0, "incorporate": {}}
+    # fnames_split = df_UCC_B["fnames"].str.split(";")
+    # C_not_in_B_new_fname = {"incorporate": {}, "remove": []}
+    # for fname in C_not_in_B["fname"]:
+    #     # Find if this C entry is present in any of the 'fnames' entries in B.
+    #     # If so, store the first string of the matched entry
+    #     m = fnames_split.apply(lambda x: fname in x if isinstance(x, list) else False)
+    #     if m.any():
+    #         if fname not in rename_C_fname.keys():
+    #             rename_C_fname[fname] = fnames_split[m].iloc[0][0]
+
+    # Build a mapping of all aliases to their canonical names in B
+    alias_to_canonical = {}
+    for fnames in df_UCC_B["fnames"]:
+        fnames_lst = fnames.split(";")
+        canonical = fnames_lst[0]
+        for fname in fnames_lst:
+            alias_to_canonical[fname] = canonical
+
+    # TODO: the block below is supposed to replace both blocks commented above
+
+    # Find entries in C_not_in_B that just need renaming in (i.e.
+    # they are present in B but with a different main name)
+    rename_C_fname = {}
     for fname in C_not_in_B["fname"]:
-        m = fnames_split.apply(lambda x: fname in x if isinstance(x, list) else False)
-        if m.any():
-            if fname in rename_C_fname.keys():
-                C_not_in_B_new_fname["rename"] += 1
-            else:
-                C_not_in_B_new_fname["incorporate"][fname] = fnames_split[m].iloc[0][0]
+        canonical = alias_to_canonical.get(fname)
+        if canonical is not None and canonical != fname:
+            rename_C_fname[fname] = canonical
 
     if len(rename_C_fname) > 0:
         # Remove the entries that just need renaming
@@ -302,6 +319,12 @@ def detect_entries_to_process(
     msk = df_UCC_C["process"] == "y"
     C_reprocess = df_UCC_C[msk].copy()
 
+    # Total number of entries to process
+    N_process = (
+        len(rename_C_fname) + len(B_not_in_C) + len(C_not_in_B) + len(C_reprocess)
+    )
+
+    ###############################################################################
     # Check that these three dataframes don't share elements in their 'fname' columns
     df_names = ["B_not_in_C", "C_not_in_B", "C_reprocess"]
     for i, df1 in enumerate([B_not_in_C, C_not_in_B, C_reprocess]):
@@ -312,8 +335,31 @@ def detect_entries_to_process(
             if len(shared) > 0:
                 # This should never happen
                 raise ValueError(
-                    f"{df_names[i]} and {df_names[j]} share {len(shared)} elements"
+                    f"{df_names[i]} and {df_names[j]} share {len(shared)}"
+                    + " elements (should never happen)"
                 )
+
+    ###############################################################################
+    # Print summary of results
+
+    # Find matches and store the first string of the matched entry
+    fnames_split = df_UCC_B["fnames"].str.split(";")
+    C_not_in_B_new_fname = {"incorporate": {}, "remove": []}
+    for fname in C_not_in_B["fname"]:
+        # Find if this C entry is present in any of the 'fnames' entries in B.
+        # If so, store the first string of the matched entry
+        m = fnames_split.apply(lambda x: fname in x if isinstance(x, list) else False)
+        if m.any():
+            if fname in rename_C_fname.keys():
+                # # This C entry is present in B but with a different main name, needs
+                # # renaming. Equivalent to 'rename_C_fname'
+                # C_not_in_B_new_fname["rename"] += 1
+                pass
+            else:
+                C_not_in_B_new_fname["incorporate"][fname] = fnames_split[m].iloc[0][0]
+        else:
+            # This C entry is not present in B at all, needs to be removed
+            C_not_in_B_new_fname["remove"].append(fname)
 
     logging.info("\nProcessing:")
     datasets = [
@@ -334,7 +380,7 @@ def detect_entries_to_process(
                         db_name = f"  {name:<30}{f'({row[db]})':>20}"
                     logging.info(f"{db_name}")
 
-    label = "C entries to rename"
+    label = "C entries to change main fname"
     logging.info(f"\n-{label:20}: {len(rename_C_fname)}")
     if len(rename_C_fname) > 0:
         ans = "y"
@@ -344,25 +390,33 @@ def detect_entries_to_process(
             for name, new_name in rename_C_fname.items():
                 logging.info(f"  {name:20} --> {new_name}")
 
-    label = "C entries to remove (incorporated to another entry)"
-    N_rem = C_not_in_B_new_fname["rename"]
+    label = "C entries to incorporate to another entry"
+    # N_rename = C_not_in_B_new_fname["rename"]
     N_incorp = len(C_not_in_B_new_fname["incorporate"])
-    logging.info(f"\n-{label:20}: {N_rem + N_incorp}")
-    if N_rem > 0:
-        logging.info(f"To be renamed N={N_rem} (shown above)")
+    # logging.info(f"\n-{label:20}: {N_rename + N_incorp}")
+    # if N_rename > 0:
+    #     logging.info(f"To be renamed N={N_rename} (shown above)")
+    logging.info(f"\n-{label:20}: {N_incorp}")
     if N_incorp > 0:
-        logging.info(f"To be incorporated ({N_incorp}):")
-        ans = "y"
+        items = list(C_not_in_B_new_fname["incorporate"].items())
+        # logging.info(f"To be incorporated ({N_incorp}):")
+        for name, new_name in items[:10]:
+            logging.info(f"  {name} --> {new_name}")
         if N_incorp > 100:
+            if input("Show the rest? (y/n): ").strip().lower() == "y":
+                for name, new_name in items[10:]:
+                    logging.info(f"  {name} --> {new_name}")
+
+    label = "C entries to remove"
+    N_remove = len(C_not_in_B_new_fname["remove"])
+    logging.info(f"\n-{label:20}: {N_remove}")
+    if N_remove > 0:
+        ans = "y"
+        if N_remove > 100:
             ans = input("Show list? (y/n): ").strip().lower()
         if ans == "y":
-            for name, new_name in C_not_in_B_new_fname["incorporate"].items():
-                logging.info(f"  {name} --> {new_name}")
-
-    # Total number of entries to process
-    N_process = (
-        len(rename_C_fname) + len(B_not_in_C) + len(C_not_in_B) + len(C_reprocess)
-    )
+            for name in C_not_in_B_new_fname["remove"]:
+                logging.info(f"  {name}")
 
     return rename_C_fname, B_not_in_C, C_not_in_B, C_reprocess, N_process
 
@@ -1165,7 +1219,7 @@ def move_files(
             old_fpath = os.path.join(md_root, mdfile + ".md")
             new_fpath = os.path.join(md_root, rename_C_fname[mdfile] + ".md")
             post_actions.append(("rename", old_fpath, new_fpath))
-    # now webp files
+    # WEBP files
     for root, dirs, files in os.walk(root_ucc_path + plots_folder):
         dirs[:] = [d for d in dirs if d != ".git"]  # exclude .git
         for name in files:
