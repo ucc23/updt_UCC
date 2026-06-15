@@ -1,4 +1,29 @@
 {
+  "ALTER1970": {
+    "SCIX_url": "https://scixplorer.org/abs/1970csca.book.....A",
+    "data_cmmts": "data",
+    "citations_count": {
+      "date": "2026-06-13",
+      "count": "177",
+      "citations_year": 3.2
+    },
+    "data_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=VII/5A",
+    "authors": "Alter et al.",
+    "title": "Catalogue of star clusters and associations",
+    "year": "1970",
+    "received": "19700101",
+    "names": "Name",
+    "pos": {
+      "RA": "RA",
+      "DEC": "DEC"
+    },
+    "pars": {
+      "dist": {
+        "dpc": "Dist"
+      }
+    },
+    "e_pars": {}
+  },
   "SULENTIC1973": {
     "SCIX_url": "https://scixplorer.org/abs/1973rncn.book.....S",
     "data_cmmts": "data",

@@ -1,6 +1,15 @@
 Some of these are intermediate versions of the UCC database that are not published.
 
 
+## 260613-15
+
+Added Alter et al. (1907). From this addition:
+
+- NGC_6514 was merged into Trifid (remove NGC_6514)
+- Stock_24 changed its main name to Berkeley_3
+
+
+
 ## 260612
 
 - all_names: Added Pismis_18 (and MWSC 2142) to IC_4291 (known original name)
