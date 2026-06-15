@@ -59,19 +59,13 @@ def main():
         all_names,
         df_UCC_B,
         df_UCC_C,
+        old_zenodo_cat,
     ) = load_data(logging, ucc_B_file, ucc_C_file)
 
     # Detect entries to be processed
-    rename_C_fname, B_not_in_C, C_not_in_B, C_reprocess, N_process = (
-        detect_entries_to_process(logging, all_names, df_UCC_B, df_UCC_C)
+    rename_C_fname, C_not_in_B, B_not_in_C, C_reprocess = detect_entries_to_process(
+        logging, all_names, df_UCC_B, df_UCC_C
     )
-
-    if N_process == 0:
-        if input("\nNo new OCs to process. Process anyway? (y/n): ").lower() != "y":
-            sys.exit(1)
-    else:
-        if input(f"\n{N_process} entries to process. Continue? (y/n): ").lower() == "y":
-            pass
 
     load_file = False
     temp_UCC_updt_file = temp_folder + "df_UCC_C_updt.csv"
@@ -130,16 +124,24 @@ def main():
     # Add C coefficients, UTI values, duplicate probabilities and 'bad_oc' flags
     df_UCC_C_final = add_info_to_C(current_JSON, df_UCC_B, df_UCC_C_final)
 
+    # Check that the number of elements per unique 'name' group in df_members_new matched the N_clust column in df_UCC_C_final
+    check_N_clust(logging, df_UCC_C_final, df_members_new)
+
     # Check differences between the original and final C dataframes
     diff_found = diff_between_dfs(logging, "C cat", df_UCC_C, df_UCC_C_final)
-
     if diff_found:
         # Save updated UCC to temporary CSV file
         save_df_UCC(logging, df_UCC_C_final, temp_folder + ucc_cat_file)
 
     # Save the generated data to temporary files before moving them
     update_zenodo_files(
-        logging, temp_zenodo_fold, df_UCC_B, df_UCC_C_final, df_members_new
+        logging,
+        temp_zenodo_fold,
+        old_zenodo_cat,
+        all_names,
+        df_UCC_B,
+        df_UCC_C_final,
+        df_members_new,
     )
 
     if input("\nMove files to their final paths? (y/n): ").lower() == "y":
@@ -191,10 +193,11 @@ def get_paths_check_paths(logging) -> tuple[str, str, str]:
 
 
 def load_data(
-    logging, ucc_B_file, ucc_C_file
+    logging, ucc_B_file: str, ucc_C_file: str
 ) -> tuple[
     pd.DataFrame,
     dict,
+    pd.DataFrame,
     pd.DataFrame,
     pd.DataFrame,
     pd.DataFrame,
@@ -238,6 +241,8 @@ def load_data(
     df_UCC_C = load_BC_cats("C", ucc_C_file)
     logging.info(f"File {ucc_C_file} loaded ({len(df_UCC_C)} entries)")
 
+    old_zenodo_cat = pd.read_csv(zenodo_folder + zenodo_cat_fname)
+
     return (
         gaia_frames_data,
         current_JSON,
@@ -247,178 +252,167 @@ def load_data(
         all_names,
         df_UCC_B,
         df_UCC_C,
+        old_zenodo_cat,
     )
 
 
 def detect_entries_to_process(
-    logging, all_names: pd.DataFrame, df_UCC_B: pd.DataFrame, df_UCC_C: pd.DataFrame
-) -> tuple[dict, pd.DataFrame, pd.DataFrame, pd.DataFrame, int]:
+    logging,
+    all_names: pd.DataFrame,
+    df_UCC_B: pd.DataFrame,
+    df_UCC_C: pd.DataFrame,
+    sep: str = ";",
+) -> tuple[dict, list, pd.DataFrame, pd.DataFrame]:
     """
-    B_not_in_C  --> Add to C
-    C_not_in_B  --> Remove from C
-    C_reprocess --> Reprocess in C
+
+    all_names["fnames"] is a column that contains all the possible fnames with the
+    canonical fname positioned first.
+
+    The logic to detect which entries in C should be renames or removed is as
+    follows:
+
+    for each fname in C:
+        if it is in B:
+            keep it in C
+        else:
+            find its canonical name in all_names
+            if the canonical name is not found:
+                raise an error (this should never happen)
+            else:
+                if the C fname does not match the canonical:
+                    if the canonical name is in C:
+                        This means that the fname in C is a merge and should be removed
+                    else:
+                        This means that the fname in C is a rename to the canonical name
+                else:
+                    raise an error (this should never happen)
+
+    C_not_in_B     --> Remove from C
     rename_C_fname --> Rename in C
+    B_not_in_C     --> Add to C
+    C_reprocess    --> Reprocess in C
+
+    The logic to detect entries in C that
 
     """
-    # Add columns to B cat
-    df_UCC_B[["fnames", "Names"]] = all_names[["fnames", "Names"]]
-
-    # Entries in B that must be added to C
-    B_not_in_C = df_UCC_B[~df_UCC_B["fname"].isin(df_UCC_C["fname"])]
-
-    # Entries not in B that must be removed from C
-    C_not_in_B = df_UCC_C[~df_UCC_C["fname"].isin(df_UCC_B["fname"])]
-
-    # # Entries in B_not_in_C that just need renaming in C_not_in_B
-    # rename_C_fname = {}
-    # C_fname_lst = C_not_in_B["fname"].to_list()
-    # for fnames in B_not_in_C["fnames"]:
-    #     fnames = fnames.split(";")
-    #     for fname in fnames:
-    #         if fname in C_fname_lst:
-    #             # This C entry needs renaming: fname --> fnames[0]
-    #             rename_C_fname[fname] = fnames[0]
-    #             break
-
-    # fnames_split = df_UCC_B["fnames"].str.split(";")
-    # C_not_in_B_new_fname = {"incorporate": {}, "remove": []}
-    # for fname in C_not_in_B["fname"]:
-    #     # Find if this C entry is present in any of the 'fnames' entries in B.
-    #     # If so, store the first string of the matched entry
-    #     m = fnames_split.apply(lambda x: fname in x if isinstance(x, list) else False)
-    #     if m.any():
-    #         if fname not in rename_C_fname.keys():
-    #             rename_C_fname[fname] = fnames_split[m].iloc[0][0]
-
     # Build a mapping of all aliases to their canonical names in B
     alias_to_canonical = {}
-    for fnames in df_UCC_B["fnames"]:
-        fnames_lst = fnames.split(";")
+    for fnames in all_names["fnames"]:
+        fnames_lst = fnames.split(sep)
         canonical = fnames_lst[0]
         for fname in fnames_lst:
             alias_to_canonical[fname] = canonical
 
-    # TODO: the block below is supposed to replace both blocks commented above
+    # Find entries in C that must be renamed or removed
+    C_to_remove = list(df_UCC_C[~df_UCC_C["fname"].isin(df_UCC_B["fname"])]["fname"])
+    # Find entries in 'C_not_in_B' that are present in 'B' but with a different main
+    # name (i.e. they just need renaming in C_not_in_B
+    rename_C_fname, C_not_in_B = {}, {}
+    for C_fname in C_to_remove:
+        # Find the canonical name for this fname in C that is not in B
+        canonical = alias_to_canonical.get(C_fname)
+        if canonical is None:
+            # This means that a fname was completely removed which should never happen
+            raise ValueError(f"Name {C_fname} in C not found in all 'fnames'")
+        else:
+            if C_fname != canonical:
+                if canonical in df_UCC_C["fname"].values:
+                    # The canonical of C_fname is present in C fnames. This means that
+                    # this is a merge 'C_fname --> canonical' and C_fname must be removed
+                    C_not_in_B[C_fname] = canonical
+                else:
+                    # The canonical of C_fname is not present in C fnames. This means that
+                    # C_fname was renamed to canonical
+                    rename_C_fname[C_fname] = canonical
+            else:
+                # C_fname was not found in B fnames but matches a canonical fname.
+                # This should never happen because a cluster is never fully removed
+                # without merging or renaming it
+                raise ValueError(
+                    f"Name {C_fname} in C not found in B but is a canonical fname"
+                )
 
-    # Find entries in C_not_in_B that just need renaming in (i.e.
-    # they are present in B but with a different main name)
-    rename_C_fname = {}
-    for fname in C_not_in_B["fname"]:
-        canonical = alias_to_canonical.get(fname)
-        if canonical is not None and canonical != fname:
-            rename_C_fname[fname] = canonical
-
+    # Entries in B that must be added to C
+    B_not_in_C = df_UCC_B[~df_UCC_B["fname"].isin(df_UCC_C["fname"])]
     if len(rename_C_fname) > 0:
         # Remove the entries that just need renaming
         B_not_in_C = B_not_in_C[~B_not_in_C["fname"].isin(rename_C_fname.values())]
-
-    # Drop 'fnames' column from df_UCC_B
-    B_not_in_C = B_not_in_C.drop(columns=["fnames"])
 
     # Entries manually marked for re-processing in C
     msk = df_UCC_C["process"] == "y"
     C_reprocess = df_UCC_C[msk].copy()
 
+    ###############################################################################
+    # Sanity check
+    reprocess_fnames = set(C_reprocess["fname"])
+
+    overlap = reprocess_fnames & set(C_not_in_B.keys())
+    if overlap:
+        details = ", ".join(f"{f} --> {C_not_in_B[f]}" for f in overlap)
+        raise ValueError(
+            f"Entries marked process='y' are flagged for removal (merge): {details}"
+        )
+
+    overlap = reprocess_fnames & set(rename_C_fname.keys())
+    if overlap:
+        details = ", ".join(f"{f} --> {rename_C_fname[f]}" for f in overlap)
+        raise ValueError(
+            f"Entries marked process='y' are flagged for renaming: {details}"
+        )
+
+    ###############################################################################
+    # Print summary of results
+    def show_items(label, items, formatter=str, limit=50):
+        n = len(items)
+        logging.info(f"\n{label:20}: {n}")
+        if n == 0:
+            return
+        if (
+            n <= limit
+            or input(f"Show list for '{label}'? (y/n): ").strip().lower() == "y"
+        ):
+            for item in items:
+                logging.info(formatter(item))
+
+    logging.info("\nProcessing:")
+    show_specs = [
+        (
+            "1. ADD (B entries to C)",
+            list(B_not_in_C.itertuples(index=False)),
+            lambda row: f"    {row.fname:<20}{f'({row.DB})':>20}",
+        ),
+        (
+            "2. RENAME (changed main fname)",
+            list(rename_C_fname.items()),
+            lambda x: f"    {x[0]:10} --> {x[1]}",
+        ),
+        (
+            "3. REMOVE (merged into another fname)",
+            list(C_not_in_B.items()),
+            lambda x: f"    {x[0]:10} --> {x[1]}",
+        ),
+        (
+            "4. RE-PROCESS (C entries)",
+            list(C_reprocess.itertuples(index=False)),
+            lambda row: f"    {row.fname}",
+        ),
+    ]
+
+    for label, items, formatter in show_specs:
+        show_items(label, items, formatter)
+
     # Total number of entries to process
     N_process = (
         len(rename_C_fname) + len(B_not_in_C) + len(C_not_in_B) + len(C_reprocess)
     )
+    msg = "no"
+    if N_process > 0:
+        msg = f"{N_process}"
+    if input(f"\nThere are {msg} entries to process. Continue? (y/n): ").lower() != "y":
+        sys.exit(1)
 
-    ###############################################################################
-    # Check that these three dataframes don't share elements in their 'fname' columns
-    df_names = ["B_not_in_C", "C_not_in_B", "C_reprocess"]
-    for i, df1 in enumerate([B_not_in_C, C_not_in_B, C_reprocess]):
-        for j, df2 in enumerate([B_not_in_C, C_not_in_B, C_reprocess]):
-            if i >= j:
-                continue
-            shared = set(df1["fname"]) & set(df2["fname"])
-            if len(shared) > 0:
-                # This should never happen
-                raise ValueError(
-                    f"{df_names[i]} and {df_names[j]} share {len(shared)}"
-                    + " elements (should never happen)"
-                )
-
-    ###############################################################################
-    # Print summary of results
-
-    # Find matches and store the first string of the matched entry
-    fnames_split = df_UCC_B["fnames"].str.split(";")
-    C_not_in_B_new_fname = {"incorporate": {}, "remove": []}
-    for fname in C_not_in_B["fname"]:
-        # Find if this C entry is present in any of the 'fnames' entries in B.
-        # If so, store the first string of the matched entry
-        m = fnames_split.apply(lambda x: fname in x if isinstance(x, list) else False)
-        if m.any():
-            if fname in rename_C_fname.keys():
-                # # This C entry is present in B but with a different main name, needs
-                # # renaming. Equivalent to 'rename_C_fname'
-                # C_not_in_B_new_fname["rename"] += 1
-                pass
-            else:
-                C_not_in_B_new_fname["incorporate"][fname] = fnames_split[m].iloc[0][0]
-        else:
-            # This C entry is not present in B at all, needs to be removed
-            C_not_in_B_new_fname["remove"].append(fname)
-
-    logging.info("\nProcessing:")
-    datasets = [
-        ("B entries to add to C", B_not_in_C, "Names", "DB"),
-        ("C entries to re-process", C_reprocess, "fname", ""),
-    ]
-    for label, df, name_col, db in datasets:
-        logging.info(f"\n-{label:20}: {len(df)}")
-        if len(df) > 0:
-            ans = "y"
-            if len(df) > 100:
-                ans = input(f"Show list for '{label}'? (y/n): ").strip().lower()
-            if ans == "y":
-                for _, row in df.iterrows():
-                    name = row[name_col]
-                    db_name = f"  {name}"
-                    if db != "":
-                        db_name = f"  {name:<30}{f'({row[db]})':>20}"
-                    logging.info(f"{db_name}")
-
-    label = "C entries to change main fname"
-    logging.info(f"\n-{label:20}: {len(rename_C_fname)}")
-    if len(rename_C_fname) > 0:
-        ans = "y"
-        if len(rename_C_fname) > 100:
-            ans = input(f"Show list for '{label}'? (y/n): ").strip().lower()
-        if ans == "y":
-            for name, new_name in rename_C_fname.items():
-                logging.info(f"  {name:20} --> {new_name}")
-
-    label = "C entries to incorporate to another entry"
-    # N_rename = C_not_in_B_new_fname["rename"]
-    N_incorp = len(C_not_in_B_new_fname["incorporate"])
-    # logging.info(f"\n-{label:20}: {N_rename + N_incorp}")
-    # if N_rename > 0:
-    #     logging.info(f"To be renamed N={N_rename} (shown above)")
-    logging.info(f"\n-{label:20}: {N_incorp}")
-    if N_incorp > 0:
-        items = list(C_not_in_B_new_fname["incorporate"].items())
-        # logging.info(f"To be incorporated ({N_incorp}):")
-        for name, new_name in items[:10]:
-            logging.info(f"  {name} --> {new_name}")
-        if N_incorp > 100:
-            if input("Show the rest? (y/n): ").strip().lower() == "y":
-                for name, new_name in items[10:]:
-                    logging.info(f"  {name} --> {new_name}")
-
-    label = "C entries to remove"
-    N_remove = len(C_not_in_B_new_fname["remove"])
-    logging.info(f"\n-{label:20}: {N_remove}")
-    if N_remove > 0:
-        ans = "y"
-        if N_remove > 100:
-            ans = input("Show list? (y/n): ").strip().lower()
-        if ans == "y":
-            for name in C_not_in_B_new_fname["remove"]:
-                logging.info(f"  {name}")
-
-    return rename_C_fname, B_not_in_C, C_not_in_B, C_reprocess, N_process
+    C_not_in_B = list(C_not_in_B.keys())
+    return rename_C_fname, C_not_in_B, B_not_in_C, C_reprocess
 
 
 def process_entries(
@@ -430,36 +424,42 @@ def process_entries(
     """ """
     # Rows to reprocess. Merge with df_UCC_B to recover B columns
     part_C = C_reprocess.merge(
-        df_UCC_B.drop(columns=["fnames"]),
+        df_UCC_B,  # .drop(columns=["fnames"]),
         on="fname",
         how="left",
     )
     # Combine both blocks
-    df_UCC_updt = pd.concat([B_not_in_C, part_C], ignore_index=True).replace(
+    df_UCC_C_updt = pd.concat([B_not_in_C, part_C], ignore_index=True).replace(
         {pd.NA: "nan"}
     )
 
-    if not df_UCC_updt.empty:
+    if not df_UCC_C_updt.empty:
         if not new_ocs_manual_pars.empty:
-            # index df_UCC_updt temporarily on fname
-            df_UCC_updt = df_UCC_updt.set_index("fname")
+            # index df_UCC_C_updt temporarily on fname
+            df_UCC_C_updt = df_UCC_C_updt.set_index("fname")
             # replace values for matching entries
-            common = df_UCC_updt.index.intersection(new_ocs_manual_pars.index)
+            common = df_UCC_C_updt.index.intersection(new_ocs_manual_pars.index)
             cols = list(new_ocs_manual_pars.keys())
-            df_UCC_updt.loc[common, cols] = new_ocs_manual_pars.loc[common, cols].values
+            df_UCC_C_updt.loc[common, cols] = new_ocs_manual_pars.loc[
+                common, cols
+            ].values
             # restore fname as column
-            df_UCC_updt = df_UCC_updt.reset_index()
+            df_UCC_C_updt = df_UCC_C_updt.reset_index()
         else:
             if input("\nSet a general N_clust_max value? (y/n): ").lower() == "y":
                 N_clust_max_general = int(input("Enter N_clust_max value: "))
-                # Update the 'df_UCC_updt['N_clust_max']' column with this value
-                df_UCC_updt["N_clust_max"] = N_clust_max_general
+                # Update the 'df_UCC_C_updt['N_clust_max']' column with this value
+                df_UCC_C_updt["N_clust_max"] = N_clust_max_general
 
-    return df_UCC_updt
+    return df_UCC_C_updt
 
 
 def member_files_updt(
-    logging, gaia_frames_data, df_GCs, df_UCC_C, df_UCC_C_updt
+    logging,
+    gaia_frames_data,
+    df_GCs: pd.DataFrame,
+    df_UCC_C: pd.DataFrame,
+    df_UCC_C_updt: pd.DataFrame,
 ) -> pd.DataFrame:
     """
     Updates the Unified Cluster Catalogue (UCC) with new open clusters (OCs).
@@ -473,7 +473,8 @@ def member_files_updt(
     ].copy()
 
     N_tot = len(df_UCC_C_updt)
-    for idx, cl_row in df_UCC_C_updt.iterrows():
+    for idx in df_UCC_C_updt.index:
+        cl_row = df_UCC_C.loc[idx]
         # Extract some data
         fname0, ra_c, dec_c, glon_c, glat_c, pmra_c, pmde_c, plx_c = (
             cl_row["fname"],
@@ -585,7 +586,7 @@ def member_files_updt(
 
 
 def update_C_cat(
-    C_not_in_B: pd.DataFrame,
+    C_not_in_B: list,
     rename_C_fname: dict,
     df_UCC_C: pd.DataFrame,
     df_UCC_C_updt: pd.DataFrame,
@@ -605,7 +606,7 @@ def update_C_cat(
 
     # Remove entries in C_not_in_B from df_UCC_C
     if len(C_not_in_B) > 0:
-        msk = ~df_UCC_C_new["fname"].isin(C_not_in_B["fname"])
+        msk = ~df_UCC_C_new["fname"].isin(C_not_in_B)
         df_UCC_C_new = df_UCC_C_new[msk]
 
     # Update df_UCC_C_new using data from df_UCC_C_updt
@@ -694,7 +695,7 @@ def gen_comb_members_file(logging) -> pd.DataFrame:
 
 def update_membs_file(
     rename_C_fname: dict,
-    C_not_in_B: pd.DataFrame,
+    C_not_in_B: list,
     df_members: pd.DataFrame,
     df_comb: pd.DataFrame,
 ) -> pd.DataFrame:
@@ -712,7 +713,7 @@ def update_membs_file(
 
     # Remove entries in C_not_in_B
     if len(C_not_in_B) > 0:
-        msk = ~df_updated["name"].isin(C_not_in_B["fname"])
+        msk = ~df_updated["name"].isin(C_not_in_B)
         df_updated = pd.DataFrame(df_updated[msk])
 
     if not df_comb.empty:
@@ -733,7 +734,7 @@ def update_membs_file(
     return df_members_new
 
 
-def find_shared_members(logging, df_UCC_C_new, df_members):
+def find_shared_members(logging, df_UCC_C_new: pd.DataFrame, df_members: pd.DataFrame):
     """ """
     logging.info("Finding shared members...")
 
@@ -794,7 +795,7 @@ def find_shared_members(logging, df_UCC_C_new, df_members):
     return df_UCC_C_final
 
 
-def find_intersections(df_C, df_members):
+def find_intersections(df_C: pd.DataFrame, df_members: pd.DataFrame):
     """ """
 
     # Find OCs that contain duplicated element in any other OC, also to speed up
@@ -811,7 +812,7 @@ def find_intersections(df_C, df_members):
     df_msk = df_C[msk]
 
     # The search region is two times the r_50 radius
-    radii = 2 * df_msk["r_50"].to_numpy() / 60
+    radii = 2 * df_msk["r_50"].to_numpy(dtype=float) / 60
 
     # Compute pairwise distances
     coords = df_msk[["GLON_m", "GLAT_m"]].to_numpy()
@@ -843,7 +844,12 @@ def find_intersections(df_C, df_members):
 
 
 def add_info_to_C(
-    current_JSON, df_UCC_B, df_UCC_C, max_dens=5, N_lit_min=2, C_lit_perc_max=0.5
+    current_JSON: dict,
+    df_UCC_B: pd.DataFrame,
+    df_UCC_C: pd.DataFrame,
+    max_dens=5,
+    N_lit_min=2,
+    C_lit_perc_max=0.5,
 ):
     """
 
@@ -857,7 +863,7 @@ def add_info_to_C(
         msk2 = (N >= Nmin) & (N < Nmax)
         arr[msk2] = vmin + ((N[msk2] - Nmin) / (Nmax - Nmin)) * (vmax - vmin)
 
-    N_membs = df_UCC_C["N_membs"].to_numpy()
+    N_membs = df_UCC_C["N_membs"].to_numpy(dtype=float)
     C_N_membs = np.ones(len(N_membs))
     C_N_membs[N_membs < 25] = 0.0
     # Define intervals and mapping ranges
@@ -870,7 +876,7 @@ def add_info_to_C(
     C_dens = np.clip((df_UCC_C["dens_core_pc2"] - 0) / (max_dens - 0), 0, 1)
 
     # Assign a number to all elements in C3
-    C3 = df_UCC_C["C3"].to_numpy()
+    C3 = df_UCC_C["C3"].to_numpy(dtype=str)
     vals = {"A": 1, "B": 0.5, "C": 0.25, "D": 0}
     C_C3 = np.array([vals[a[0]] + vals[a[1]] for a in C3], dtype=float) * 0.5
 
@@ -895,13 +901,14 @@ def add_info_to_C(
     dbs = [_.split(";")[0] for _ in df_UCC_B["DB"]]
     f_year = [int(_.split("_")[0][-4:]) for _ in dbs]
     # Extract first fname
-    fnames = [_.split(";")[0] for _ in df_UCC_B["fnames"]]
+    fnames = df_UCC_B["fname"]  # [_.split(";")[0] for _ in df_UCC_B["fnames"]]
     # Map years and dbs to fnames
     fname_db_to_year = {name: [year, db] for name, year, db in zip(fnames, f_year, dbs)}
 
     C_dup = [100.0] * len(df_UCC_C)
     C_dup_same_db = [100.0] * len(df_UCC_C)
-    for idx, cl in df_UCC_C.iterrows():
+    for idx in df_UCC_C.index:
+        cl = df_UCC_C.loc[idx]
         if str(cl["shared_members"]) == "nan":
             # This OC does not share members with any other, move on to the next
             continue
@@ -987,9 +994,75 @@ def add_info_to_C(
     return df_UCC_C
 
 
+def check_N_clust(
+    logging, df_UCC_C_final: pd.DataFrame, df_members_new: pd.DataFrame
+) -> None:
+    """Check that the number of elements per unique 'name' group in df_members_new
+    matched the N_clust column in df_UCC_C_final"""
+    logging.info(
+        "Checking that the number of members per cluster matches the N_membs column...\n"
+    )
+
+    # Group by 'name' and count unique 'Source'
+    member_counts = df_members_new.groupby("name")["Source"].nunique().reset_index()
+    member_counts.rename(columns={"Source": "N_clust_actual"}, inplace=True)
+
+    # Merge with df_UCC_C_final to compare with 'N_clust'
+    merged = pd.merge(
+        df_UCC_C_final,
+        member_counts,
+        left_on="fname",
+        right_on="name",
+        how="left",
+    )
+
+    # Check for mismatches
+    mismatches = merged[merged["N_membs"] != merged["N_clust_actual"]]
+
+    if not mismatches.empty:
+        # Count and remove small clusters
+        small = mismatches[mismatches["N_membs"] < 25]
+        small_flag = (small["N_clust_actual"] == 25).all()
+        if small_flag is False:
+            n_small = small.sum()
+            logging.warning(
+                f"Not all {n_small} entries with N_membs<25 have 25 members\n"
+            )
+            breakpoint()
+            sys.exit(1)
+
+        mismatches = mismatches[mismatches["N_membs"] >= 25]
+        if not mismatches.empty:
+            batch_size = 100
+            for start in range(0, len(mismatches), batch_size):
+                batch = mismatches.iloc[start : start + batch_size]
+
+                for row in batch.itertuples():
+                    logging.warning(
+                        f"  Cluster '{row.fname}': "
+                        f"N_membs={row.N_membs} vs {row.N_clust_actual}"
+                    )
+
+                if start + batch_size < len(mismatches):
+                    ans = (
+                        input(
+                            f"\nDisplayed {start + len(batch)}/{len(mismatches)} mismatches "
+                            "(N_membs>=25). Show next 100? [y/N]: "
+                        )
+                        .strip()
+                        .lower()
+                    )
+                    if ans != "y":
+                        break
+    else:
+        logging.info("All clusters have matching member counts\n")
+
+
 def update_zenodo_files(
     logging,
     temp_zenodo_fold: str,
+    old_zenodo_cat: pd.DataFrame,
+    all_names: pd.DataFrame,
     df_UCC_B: pd.DataFrame,
     df_UCC_C_final: pd.DataFrame,
     df_members_new: pd.DataFrame,
@@ -1000,7 +1073,12 @@ def update_zenodo_files(
 
     fpath = temp_zenodo_fold + zenodo_cat_fname
     df_UCC_C_copy = df_UCC_C_final.copy()
-    updt_zenodo_csv(logging, df_UCC_B, df_UCC_C_copy, fpath)
+    new_zenodo_cat = updt_zenodo_csv(logging, all_names, df_UCC_B, df_UCC_C_copy, fpath)
+
+    # Check differences between the original and final UCC_cat files
+    diff_between_dfs(
+        logging, "zenodo cat", old_zenodo_cat, new_zenodo_cat, order_col="name"
+    )
 
     N_clusters, N_members = len(df_UCC_C_final), len(df_members_new)
     updt_readme(logging, N_clusters, N_members, temp_zenodo_fold)
@@ -1011,15 +1089,22 @@ def update_zenodo_files(
 
 
 def updt_zenodo_csv(
-    logging, df_UCC_B: pd.DataFrame, df_UCC_C: pd.DataFrame, file_path: str
-) -> None:
+    logging,
+    all_names: pd.DataFrame,
+    df_UCC_B: pd.DataFrame,
+    df_UCC_C: pd.DataFrame,
+    file_path: str,
+) -> pd.DataFrame:
     """
     Generates a CSV file containing a reduced Unified Cluster Catalog
     (UCC) dataset, which can be stored in the Zenodo repository.
     """
+
+    # Add the 'Names' column from all_names
+    df_UCC_C["Names"] = all_names["Names"]
+
     # Add columns from B to C
     for col in (
-        "Names",
         "dist_median",
         "dist_stddev",
         "av_median",
@@ -1086,7 +1171,7 @@ def updt_zenodo_csv(
     )
 
     # Re-order columns
-    df_UCC_C = pd.DataFrame(
+    zenodo_UCC_cat = pd.DataFrame(
         df_UCC_C[
             [
                 "Name(s)",
@@ -1128,7 +1213,7 @@ def updt_zenodo_csv(
     )
 
     # Store to csv file
-    df_UCC_C.to_csv(
+    zenodo_UCC_cat.to_csv(
         file_path,
         na_rep="nan",
         index=False,
@@ -1136,6 +1221,8 @@ def updt_zenodo_csv(
     )
 
     logging.info(f"Zenodo '.csv' file: '{file_path}'")
+
+    return zenodo_UCC_cat
 
 
 def updt_readme(
@@ -1237,15 +1324,10 @@ def move_files(
     fname_C = set(df_UCC_C_final["fname"].tolist())
     # MD removals
     for name in os.listdir(root_ucc_path + md_folder):
-        webname = name.rsplit(".", 1)[0]
-        if webname not in fname_C:
-            # remove_actions.append(os.path.join(root_ucc_path + md_folder, webname + ".md"))
+        mdname = name.rsplit(".", 1)[0]
+        if mdname not in fname_C and mdname not in rename_C_fname:
             post_actions.append(
-                (
-                    "remove",
-                    os.path.join(root_ucc_path + md_folder, webname + ".md"),
-                    None,
-                )
+                ("remove", os.path.join(root_ucc_path + md_folder, mdname + ".md"), None)
             )
     # WEBP removals
     for root, dirs, files in os.walk(root_ucc_path + plots_folder):
@@ -1253,12 +1335,14 @@ def move_files(
         for name in files:
             if not name.endswith(".webp"):
                 continue
-            webname = name.rsplit(".", 1)[0]
-            if webname not in fname_C:
+            webpname = name.rsplit(".", 1)[0]
+            if webpname not in fname_C and webpname not in rename_C_fname:
                 post_actions.append(
-                    ("remove", os.path.join(root, webname + ".webp"), None)
+                    ("remove", os.path.join(root, webpname + ".webp"), None)
                 )
 
+
+    # Print actions and ask for confirmation
     logging.info("\n=== ACTIONS ===")
     for action_type, src, dst in post_actions:
         if action_type == "move":
