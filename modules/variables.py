@@ -71,6 +71,7 @@ manual_pars_file = data_folder + "manual_params.csv"
 naming_order = (
     "hyades",  # Common name
     "pleiades",  # Common name
+    "trifid",  # Common name
     "ngc",  # 1888
     "ic",  # 1895
     "melotte",  # 1915
@@ -84,7 +85,7 @@ naming_order = (
     "lynga",  # 1970
     "basel",  # 1971
     "loden",  # 1973
-    "westerlund" # prev vdbh
+    "westerlund"  # prev vdbh
     "vdbh",  # 1975
     "bochum",  # 1975
 )

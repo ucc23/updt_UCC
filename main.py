@@ -9,7 +9,6 @@ Each script must be run in order for proper UCC database maintenance.
 """
 
 import importlib
-import sys
 
 
 def display_menu():
@@ -94,17 +93,17 @@ def main():
 
         if choice == "Q":
             print("\n👋 Goodbye!")
-            sys.exit(0)
+            # sys.exit(0)
 
         success = run_script(choice)
 
         if success is False:
             print("\n⚠️  Script execution failed. Check the error messages above.")
-            sys.exit(0)
+            # sys.exit(0)
 
         if choice == "D":
             print("\n👋 Final script completed. Goodbye!")
-            sys.exit(0)
+            # sys.exit(0)
 
         # Ask if user wants to continue to next script
         next_script = chr(ord(choice) + 1)  # A->B, B->C, C->D
@@ -115,7 +114,7 @@ def main():
             choice = next_script
         else:
             print("\n👋 Goodbye!")
-            sys.exit(0)
+            # sys.exit(0)
 
 
 if __name__ == "__main__":
@@ -123,4 +122,4 @@ if __name__ == "__main__":
         main()
     except KeyboardInterrupt:
         print("\n\n👋 Goodbye!")
-        sys.exit(0)
+        # sys.exit(0)

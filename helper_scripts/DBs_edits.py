@@ -8,6 +8,86 @@ import pandas as pd
 from astropy.coordinates import SkyCoord
 
 
+
+df = pd.read_csv("../temp_updt/data/databases/ALTER1970.csv")
+
+# # Convert GLON,GLAT columns to RA,DEC using astropy
+# coords = SkyCoord(
+#     l=df["GLON"].values * u.deg, b=df["GLAT"].values * u.deg, frame="galactic"
+# ).icrs
+# df["RAJ2000"] = coords.ra.deg.round(5)
+# df["DEJ2000"] = coords.dec.deg.round(5)
+
+# # In the 'Name' column find instances of strings that begin with "RUPXXX" where XXX is an integer and add at the beginning of that entry "Ruprecht_XXX,"
+# def add_prefix(name, prefix, full_name):
+#     match = re.match(rf"{prefix}(\d+)", name, re.IGNORECASE)
+#     if match:
+#         return f"{full_name}_{match.group(1)}, {name}"
+#     return name
+
+# # df["Name"] = df["Name"].apply(lambda x: add_prefix(x, "RUP", "Ruprecht"))
+# # df["Name"] = df["Name"].apply(lambda x: add_prefix(x, "CR", "Collinder"))
+# # df["Name"] = df["Name"].apply(lambda x: add_prefix(x, "TR", "Trumpler"))
+# # df["Name"] = df["Name"].apply(lambda x: add_prefix(x, "BERK", "Berkeley"))
+# # df["Name"] = df["Name"].apply(lambda x: add_prefix(x, "MEL", "Melotte"))
+# # df["Name"] = df["Name"].apply(lambda x: add_prefix(x, "PISHMISH", "Pismis"))
+# # df["Name"] = df["Name"].apply(lambda x: add_prefix(x, "WEST", "Westerlund"))
+# # df["Name"] = df["Name"].apply(lambda x: add_prefix(x, "TOMB", "Tombaugh"))
+# df["Name"] = df["Name"].apply(lambda x: add_prefix(x, "BIUR", "Biurakan"))
+
+def rm_prefix(name, prefix, full_name):
+    match = re.match(rf"{prefix}(\d+)", name, re.IGNORECASE)
+    if match:
+        return f"{full_name}_{match.group(1)}, {name}"
+    return name
+
+# # df["Name"] = df["Name"].apply(lambda x: add_prefix(x, "RUP", "Ruprecht"))
+# # df["Name"] = df["Name"].apply(lambda x: add_prefix(x, "CR", "Collinder"))
+# # df["Name"] = df["Name"].apply(lambda x: add_prefix(x, "TR", "Trumpler"))
+# # df["Name"] = df["Name"].apply(lambda x: add_prefix(x, "BERK", "Berkeley"))
+# # df["Name"] = df["Name"].apply(lambda x: add_prefix(x, "MEL", "Melotte"))
+# # df["Name"] = df["Name"].apply(lambda x: add_prefix(x, "PISHMISH", "Pismis"))
+# # df["Name"] = df["Name"].apply(lambda x: add_prefix(x, "WEST", "Westerlund"))
+# # df["Name"] = df["Name"].apply(lambda x: add_prefix(x, "TOMB", "Tombaugh"))
+# df["Name"] = df["Name"].apply(lambda x: add_prefix(x, "BIUR", "Biurakan"))
+
+
+
+# # Add to each entry in the 'Name' column, a new name separated by a comma generated as 'VDBH_'+df['No'][i]
+# df["Name"] = df.apply(
+#     lambda row: f"{row['Name']}, VDBH_{int(row['No'])}" if row['Name']!= f"VDBH_{int(row['No'])}" else f"VDBH_{int(row['No'])}",
+#     axis=1,
+# )
+
+df.to_csv(
+    "../temp_updt/data/databases/ALTER1970.csv",
+    na_rep="nan",
+    index=False,
+    quoting=csv.QUOTE_NONNUMERIC,
+)
+
+breakpoint()
+
+
+df = pd.read_csv("../data/databases/VDBH1975.csv")
+
+# Add to each entry in the 'Name' column, a new name separated by a comma generated as 'VDBH_'+df['No'][i]
+df["Name"] = df.apply(
+    lambda row: f"{row['Name']}, VDBH_{int(row['No'])}" if row['Name']!= f"VDBH_{int(row['No'])}" else f"VDBH_{int(row['No'])}",
+    axis=1,
+)
+
+df.to_csv(
+    "../temp_updt/data/databases/VDBH1975.csv",
+    na_rep="nan",
+    index=False,
+    quoting=csv.QUOTE_NONNUMERIC,
+)
+
+breakpoint()
+
+
+
 def _join_non_null(a, b):
     parts = [v for v in (a, b) if pd.notna(v)]
     return ",".join(str(v) for v in parts) if parts else np.nan
