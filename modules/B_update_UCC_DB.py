@@ -67,9 +67,9 @@ def main():
         selected_center_coords,
         all_dbs_data,
         df_UCC_B_old,
-        df_UCC_B,
+        df_UCC_B_new,
         flag_interactive,
-        all_names,
+        all_names_old,
         all_names_dict,
     ) = load_data(logging, df_UCC_B_path, temp_JSON_path, temp_database_folder)
 
@@ -129,11 +129,11 @@ def main():
 
         # Check uniqueness of fnames (fnames in new DB vs fnames in UCC so far)
         fnames_check_UCC_new_DB(
-            logging, df_UCC_B, all_names_dict, new_DB_fnames, df_new
+            logging, df_UCC_B_new, all_names_dict, new_DB_fnames, df_new
         )
 
         # Match the new DB with the UCC
-        db_matches = get_matches_new_DB(df_UCC_B, new_DB_fnames)
+        db_matches = get_matches_new_DB(df_UCC_B_new, new_DB_fnames)
 
         if flag_check_stop != "no_check":
             # Report and check new entries (if any)
@@ -142,7 +142,7 @@ def main():
             # Check positions in the DB vs the UCC
             check_positions(
                 logging,
-                df_UCC_B,
+                df_UCC_B_new,
                 df_new,
                 new_DB_fnames,
                 db_matches,
@@ -153,12 +153,12 @@ def main():
         df_new = add_fpars_col(newDB_json, df_new)
 
         # Combine the new DB with the UCC
-        df_UCC_B = combine_UCC_new_DB(
+        df_UCC_B_new = combine_UCC_new_DB(
             logging,
             selected_center_coords,
             new_DB,
             newDB_json,
-            df_UCC_B,
+            df_UCC_B_new,
             df_new,
             new_DB_fnames,
             db_matches,
@@ -167,28 +167,29 @@ def main():
     logging.info("\n\n\n===================================================")
     logging.info("Merging of DBs completed\n")
     logging.info(f"Old B file: {len(df_UCC_B_old)}")
-    logging.info(f"New B file: {len(df_UCC_B)}\n")
+    logging.info(f"New B file: {len(df_UCC_B_new)}\n")
 
-    df_UCC_B = sort_year_importance(new_JSON, df_UCC_B)
+    df_UCC_B_new = sort_year_importance(new_JSON, df_UCC_B_new)
 
     # Add medians and STDDEVs of fundamental parameters
-    df_UCC_B = add_fpars_stats(logging, df_UCC_B)
-
-    # Generate new all_names and df_UCC_B files
-    all_names_new, df_UCC_B_new = gen_new_files(df_UCC_B)
+    df_UCC_B_new = add_fpars_stats(logging, df_UCC_B_new)
 
     # Mandatory sanity check
-    final_sanity_check(logging, all_names, df_UCC_B)
+    final_sanity_check(logging, all_names_old, df_UCC_B_new)
 
-    # Check for differences between old and new files, update if any are found
+    # Generate final all_names and df_UCC_B files
+    all_names_final = gen_final_all_names(logging, all_names_dict, df_UCC_B_new)
+    df_UCC_B_final = gen_final_B_cat(df_UCC_B_new)
+
+    # Check for differences between old and final files, update if any are found
     update_final_files(
         logging,
         temp_all_OC_names,
         df_UCC_B_path,
-        all_names,
-        all_names_new,
+        all_names_old,
+        all_names_final,
         df_UCC_B_old,
-        df_UCC_B_new,
+        df_UCC_B_final,
     )
 
     #
@@ -258,7 +259,7 @@ def load_data(
 
     logging.info(f"\nUCC version {df_UCC_B_path} loaded (N={len(df_UCC_B_old)})")
     # Empty dataframe
-    df_UCC_B = pd.DataFrame(df_UCC_B_old[0:0])
+    df_UCC_B_new = pd.DataFrame(df_UCC_B_old[0:0])
     # Remove _median and _stddev columns from df_UCC_B. Also remove the "fname" column,
     # it will be generated at the end of the script
     fpars_order_lst = list(fpars_order)
@@ -267,10 +268,10 @@ def load_data(
         + [_ + "_stddev" for _ in fpars_order_lst]
         + ["fname"]
     )
-    df_UCC_B = df_UCC_B.drop(columns=cols_to_remove)
-    # Add empty ["fnames", "Names"] columns to df_UCC_B
-    df_UCC_B["fnames"] = ""
-    df_UCC_B["Names"] = ""
+    df_UCC_B_new = df_UCC_B_new.drop(columns=cols_to_remove)
+    # Add empty ["fnames", "Names"] columns to df_UCC_B_new
+    df_UCC_B_new["fnames"] = ""
+    df_UCC_B_new["Names"] = ""
 
     # Load GCs data
     df_GCs = pd.read_csv(GCs_cat)
@@ -361,7 +362,7 @@ def load_data(
         selected_center_coords,
         all_dbs_data,
         df_UCC_B_old,
-        df_UCC_B,
+        df_UCC_B_new,
         new_DBs,
         all_names,
         all_names_dict,
@@ -414,10 +415,14 @@ def handle_all_names(logging, sep=";") -> tuple[pd.DataFrame, dict]:
 
         n_canonical = names[0]
         f_canonical = fnames[0]
-        for alias in fnames:
+        for j, alias in enumerate(fnames):
             if alias in all_names_dict:
                 raise ValueError(f"Duplicate alias '{alias}' found at index {i}")
-            all_names_dict[alias] = {"fnames": f_canonical, "Names": n_canonical}
+            all_names_dict[alias] = {
+                "fnames": f_canonical,
+                "Names": n_canonical,
+                "alias_name": names[j],
+            }
 
     # Check for duplicates
     duplicates = check_duplicated_fnames(all_fnames_list)
@@ -445,8 +450,11 @@ def basic_new_DB_checks(
     newDB_json: dict,
     flag_check_stop: str,
 ) -> None:
-    """Check new DB for required columns, bad characters in names, wrong VDBH/BH naming,
-    and close GCs.
+    """Check new DB for:
+    - required columns
+    - bad characters in names
+    - wrong VDBH/BH naming
+    - close GCs
     """
     # Extract required columns
     read_cols = [newDB_json["names"]]
@@ -1820,20 +1828,101 @@ def ra_dec_check(logging, df_UCC_B):
     return not invalid_ra.empty or not invalid_dec.empty
 
 
-def gen_new_files(df_UCC_B):
+def gen_final_all_names(
+    logging,
+    all_names_dict_old: dict,
+    df_UCC_B_new: pd.DataFrame,
+    sep: str = ";",
+) -> pd.DataFrame:
     """ """
-    # Generate new all_OC_names file
-    all_names_new = pd.DataFrame(df_UCC_B[["fnames", "Names"]])
+    # Generate new all_names file
+    all_names_new = pd.DataFrame(df_UCC_B_new[["fnames", "Names"]]).reset_index(
+        drop=True
+    )
 
-    # Generate new df_UCC_B file
-    # Generate 'fname' column with the first name in the list of 'fnames'
-    df_UCC_B["fname"] = df_UCC_B["fnames"].str.split(";").str[0]
-    # Move 'fname' to the first column position
-    df_UCC_B.insert(0, "fname", df_UCC_B.pop("fname"))
-    # Drop ["fnames", "Names"] columns
-    df_UCC_B_new = df_UCC_B.drop(columns=["fnames", "Names"])
+    # Recover lost fnames from 'all_names_dict_old' and add them to 'all_names_new'.
+    # This process DOES NOT ALTER the canonical fnames in 'all_names_new'
 
-    return all_names_new, df_UCC_B_new
+    # Create all_names_dict mapping each alias to its position index
+    all_names_dict_new = {}
+    for i, row in enumerate(all_names_new.itertuples(index=False)):
+        for alias in str(row.fnames).split(sep):
+            # if alias in all_names_dict_new:
+            #     raise ValueError(f"Duplicate alias '{alias}' found at index {i}")
+            all_names_dict_new[alias] = {"idx": i}
+
+    # fnames only in the old dictionary, lost in the new one
+    lost_fnames = set(all_names_dict_old) - set(all_names_dict_new)
+    # logging.info(f"\nLost fnames: N={len(lost_fnames)}")
+
+    for lost_fname in lost_fnames:
+        # Canonical fname attached to the lost fname in the old dictionary
+        old_c_fname = all_names_dict_old[lost_fname]["fnames"]
+
+        # Index in the new dictionary of the old canonical fname attached to the lost
+        # fname
+        new_c_idx = all_names_dict_new[old_c_fname]["idx"]
+
+        # Add the lost fname to 'all_names_new', at the 'new_c_idx' index
+        all_names_new.at[new_c_idx, "fnames"] += sep + lost_fname
+        all_names_new.at[new_c_idx, "Names"] += (
+            sep + all_names_dict_old[lost_fname]["alias_name"]
+        )
+
+        # if old_c_fname in all_names_dict_new:
+        #     new_c_fname, new_c_idx = (
+        #         all_names_dict_new[old_c_fname]["fnames"],
+        #         all_names_dict_new[old_c_fname]["idx"],
+        #     )
+
+        #     # Check if the old canonical fname attached to the lost fname is still
+        #     # the same canonical fname in the new dictionary
+        #     if old_c_fname == new_c_fname:
+        #         # The lost fname is still attached to the same canonical fname
+        #         # Add the lost fname to 'all_names_new', at the 'new_c_idx' index
+        #         all_names_new.at[new_c_idx, "fnames"] += sep + lost_fname
+        #         all_names_new.at[new_c_idx, "Names"] += (
+        #             sep + all_names_dict_old[lost_fname]["alias_name"]
+        #         )
+        #     else:
+        #         # The old canonical fname attached to this lost fname is no longer
+        #         # a canonical fname in the new dictionary. Add the lost fname to the
+        #         # new canonical fname in the 'all_names_new' dataframe, at the new_c_idx index.
+        #         all_names_new.at[new_c_idx, "fnames"] += sep + lost_fname
+        #         all_names_new.at[new_c_idx, "Names"] += (
+        #             sep + all_names_dict_old[lost_fname]["alias_name"]
+        #         )
+        # else:
+        #     # this should never happen
+        #     raise ValueError(
+        #         f"Canonical fname '{old_c_fname}' for lost fname '{lost_fname}' not "
+        #         + "found in the new 'all_names' dictionary"
+        #     )
+
+    return all_names_new
+
+
+def gen_final_B_cat(
+    df_UCC_B_new: pd.DataFrame,
+) -> pd.DataFrame:
+    """Generate new df_UCC_B file"""
+    # # Generate 'fname' column
+    # df_UCC_B_new["fname"] = df_UCC_B_new["fnames"].str.split(";").str[0]
+    # # Move 'fname' to the first column position
+    # df_UCC_B_new.insert(0, "fname", df_UCC_B_new.pop("fname"))
+    # # Drop ["fnames", "Names"] columns
+    # df_UCC_B_final = df_UCC_B_new.drop(columns=["fnames", "Names"])
+
+    # Create copy and drop columns
+    df_UCC_B_final = df_UCC_B_new.drop(columns=["fnames", "Names"]).copy()
+    # Generate 'fname' column and insert at the first position
+    df_UCC_B_final.insert(
+        0,
+        "fname",
+        df_UCC_B_new["fnames"].str.partition(";")[0],
+    )
+
+    return df_UCC_B_final
 
 
 def final_sanity_check(logging, all_names, df_UCC_B):
