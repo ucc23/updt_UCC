@@ -474,7 +474,7 @@ def member_files_updt(
 
     N_tot = len(df_UCC_C_updt)
     for idx in df_UCC_C_updt.index:
-        cl_row = df_UCC_C.loc[idx]
+        cl_row = df_UCC_C_updt.loc[idx]
         # Extract some data
         fname0, ra_c, dec_c, glon_c, glat_c, pmra_c, pmde_c, plx_c = (
             cl_row["fname"],
