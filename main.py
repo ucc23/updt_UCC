@@ -93,17 +93,17 @@ def main():
 
         if choice == "Q":
             print("\n👋 Goodbye!")
-            # sys.exit(0)
+            return
 
         success = run_script(choice)
 
         if success is False:
             print("\n⚠️  Script execution failed. Check the error messages above.")
-            # sys.exit(0)
+            return
 
         if choice == "D":
             print("\n👋 Final script completed. Goodbye!")
-            # sys.exit(0)
+            return
 
         # Ask if user wants to continue to next script
         next_script = chr(ord(choice) + 1)  # A->B, B->C, C->D
@@ -114,7 +114,7 @@ def main():
             choice = next_script
         else:
             print("\n👋 Goodbye!")
-            # sys.exit(0)
+            return
 
 
 if __name__ == "__main__":
@@ -122,4 +122,3 @@ if __name__ == "__main__":
         main()
     except KeyboardInterrupt:
         print("\n\n👋 Goodbye!")
-        # sys.exit(0)
