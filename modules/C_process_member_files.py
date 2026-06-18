@@ -367,10 +367,7 @@ def detect_entries_to_process(
         logging.info(f"\n{label:20}: {n}")
         if n == 0:
             return
-        if (
-            n <= limit
-            or input(f"Show list for '{label}'? (y/n): ").strip().lower() == "y"
-        ):
+        if n <= limit or input("Show list? (y/n): ").strip().lower() == "y":
             for item in items:
                 logging.info(formatter(item))
 
@@ -1327,7 +1324,11 @@ def move_files(
         mdname = name.rsplit(".", 1)[0]
         if mdname not in fname_C and mdname not in rename_C_fname:
             post_actions.append(
-                ("remove", os.path.join(root_ucc_path + md_folder, mdname + ".md"), None)
+                (
+                    "remove",
+                    os.path.join(root_ucc_path + md_folder, mdname + ".md"),
+                    None,
+                )
             )
     # WEBP removals
     for root, dirs, files in os.walk(root_ucc_path + plots_folder):
@@ -1340,7 +1341,6 @@ def move_files(
                 post_actions.append(
                     ("remove", os.path.join(root, webpname + ".webp"), None)
                 )
-
 
     # Print actions and ask for confirmation
     logging.info("\n=== ACTIONS ===")
