@@ -124,7 +124,8 @@ def main():
     # Add C coefficients, UTI values, duplicate probabilities and 'bad_oc' flags
     df_UCC_C_final = add_info_to_C(current_JSON, df_UCC_B, df_UCC_C_final)
 
-    # Check that the number of elements per unique 'name' group in df_members_new matched the N_clust column in df_UCC_C_final
+    # Check that the number of elements per unique 'name' group in
+    # df_members_new matched the N_clust column in df_UCC_C_final
     check_N_clust(logging, df_UCC_C_final, df_members_new)
 
     # Check differences between the original and final C dataframes
