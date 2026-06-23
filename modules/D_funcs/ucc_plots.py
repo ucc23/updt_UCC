@@ -162,10 +162,13 @@ def plot_CMD(
     title="UCC",
     cmap="plasma",
     dpi=200,
+    style_path: str | None = None,
 ):
     """ """
-    plt.style.use(custom_style_path)
-    # plt.style.use('../../modules/D_funcs/science2.mplstyle')
+    if style_path is None:
+        plt.style.use(custom_style_path)
+    else:
+        plt.style.use(style_path)
 
     # Sort by probabilities
     df_membs = df_membs.sort_values(probs_col, kind="stable")
