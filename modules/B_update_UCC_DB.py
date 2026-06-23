@@ -11,7 +11,6 @@ from scipy.spatial.distance import cdist
 
 from .utils import (
     diff_between_dfs,
-    final_fnames_compare,
     get_fnames,
     load_BC_cats,
     logger,
@@ -174,12 +173,17 @@ def main():
     # Add medians and STDDEVs of fundamental parameters
     df_UCC_B_new = add_fpars_stats(logging, df_UCC_B_new)
 
-    # Mandatory sanity check
-    final_sanity_check(logging, all_names_old, df_UCC_B_new)
+    # Sanity check
+    sanity_check(logging, all_names_old, df_UCC_B_new)
 
-    # Generate final all_names and df_UCC_B files
-    all_names_final = gen_final_all_names(logging, all_names_dict, df_UCC_B_new)
-    df_UCC_B_final = gen_final_B_cat(df_UCC_B_new)
+    # Generate new all_names and final df_UCC_B dataframes
+    all_names_new, df_UCC_B_final = generate_dfs(df_UCC_B_new)
+
+    # Add any missing fnames to all_names_new (if any), using all_names_dict as reference
+    all_names_final = add_lost_fnames(all_names_dict, all_names_new)
+
+    # Compare final 'fnames' column with the old one to check for unexpected changes
+    final_fnames_compare(logging, all_names_old["fnames"], all_names_final["fnames"])
 
     # Check for differences between old and final files, update if any are found
     update_final_files(
@@ -902,13 +906,33 @@ def check_new_DB_fnames(
     duplicates = check_duplicated_fnames(new_DB_fnames)
 
     if duplicates:
-        logging.info(f"\nFound {len(duplicates)} duplicate fnames within the DB:")
-        for name, idxs in duplicates.items():
+        # If the canonical fname is in the group of duplicates, remove it from
+        # the set of elements that should be removed from the DB. If it is not,
+        # select the first element of the list of duplicates as canonical and
+        # keep the rest as elements that should be removed from the DB
+        duplicates_clean = {}
+        for fname, idxs in duplicates.items():
+            rm_idx = None
+            for idx in idxs:
+                if fname in new_DB_fnames[idx][1:]:
+                    rm_idx = idx
+                    break
+            if rm_idx is not None:
+                duplicates_clean[fname] = [_ for _ in idxs if _ != rm_idx]
+            else:
+                duplicates_clean[fname] = list(idxs)[1:]
+
+        logging.info(
+            f"\nFound {len(duplicates_clean)} groups of duplicated fnames within the DB:"
+        )
+        N_g = 1
+        for fname, idxs in duplicates_clean.items():
+            logging.info(f"Group {N_g}: {fname}")
+            N_g += 1
             idxs_s = sorted(idxs)
-            logging.info(
-                f"{idxs_s} {' | '.join([str(df_new.loc[_, newDB_json['names']]) for _ in idxs_s])}"
-                + f" --> '{name}'"
-            )
+            for idx_s in idxs_s:
+                dnames = str(df_new.loc[idx_s, newDB_json["names"]]).split(",")
+                logging.info(f" -{', '.join(dnames[1:])} --> {dnames[0]} ({idx_s})")
         breakpoint()
         sys.exit(1)
 
@@ -1828,21 +1852,93 @@ def ra_dec_check(logging, df_UCC_B):
     return not invalid_ra.empty or not invalid_dec.empty
 
 
-def gen_final_all_names(
-    logging,
-    all_names_dict_old: dict,
-    df_UCC_B_new: pd.DataFrame,
-    sep: str = ";",
-) -> pd.DataFrame:
+def sanity_check(logging, all_names_old, df_UCC_B, N_max=50):
     """ """
+    # Check every individual fname for duplicates
+    exit_flag = duplicates_fnames_check(logging, df_UCC_B)
+    if exit_flag:
+        logging.info(
+            "\nERROR: duplicated entries found in B cat 'fnames' column. Fix this!"
+        )
+        breakpoint()
+        sys.exit(1)
+
+    # Check that (RA, DEC) ranges are valid
+    exit_flag = ra_dec_check(logging, df_UCC_B)
+    if exit_flag:
+        logging.info(
+            "\nERROR: entries were found with missing (RA, DEC) values in B cat. Fix this!"
+        )
+        breakpoint()
+        sys.exit(1)
+
+    # Check fnames consistency between old 'all_names' and new 'df_UCC_B'
+    fnames_old = [_.split(";") for _ in all_names_old["fnames"]]
+    fnames_new = [_.split(";") for _ in df_UCC_B["fnames"]]
+    fname0_old_lst = [_[0] for _ in fnames_old]
+    fname0_new_lst = [_[0] for _ in fnames_new]
+
+    # Build a lookup: each secondary name --> the full entry it appears in
+    lookup_new = {}
+    for full in fnames_new:
+        for name in full:
+            lookup_new[name] = full
+
+    # Compute differences
+    set_new0 = set(fname0_new_lst)
+    diffs_1 = []
+    for fname0_old in fname0_old_lst:
+        if fname0_old not in set_new0:
+            # Old canonical fname is not in the new canonical fnames, check if it
+            # appears as a secondary fname
+            full = lookup_new.get(fname0_old)
+            if full:
+                diffs_1.append(f"{fname0_old} --> {';'.join(full)}")
+            else:
+                raise ValueError(
+                    f"Canonical fname '{fname0_old}' from old 'all_names' not found in "
+                    + "new 'df_UCC_B', neither as canonical nor as secondary fname"
+                )
+
+    N_diff = len(diffs_1)
+    if N_diff > 0:
+        logging.info(f"Found {N_diff} canonical fnames that changed:\n")
+        for _ in diffs_1[:N_max]:
+            logging.info(_)
+        if N_diff > N_max:
+            logging.info(f"... and {N_diff - N_max} more")
+
+
+def generate_dfs(
+    df_UCC_B_new: pd.DataFrame,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Generate new 'all_names' and 'df_UCC_B' files"""
     # Generate new all_names file
     all_names_new = pd.DataFrame(df_UCC_B_new[["fnames", "Names"]]).reset_index(
         drop=True
     )
 
-    # Recover lost fnames from 'all_names_dict_old' and add them to 'all_names_new'.
-    # This process DOES NOT ALTER the canonical fnames in 'all_names_new'
+    # Create copy and drop columns
+    df_UCC_B_final = df_UCC_B_new.drop(columns=["fnames", "Names"]).copy()
+    # Generate 'fname' column and insert at the first position
+    df_UCC_B_final.insert(
+        0,
+        "fname",
+        df_UCC_B_new["fnames"].str.partition(";")[0],
+    )
 
+    return all_names_new, df_UCC_B_final
+
+
+def add_lost_fnames(
+    all_names_dict_old: dict,
+    all_names_new: pd.DataFrame,
+    sep: str = ";",
+) -> pd.DataFrame:
+    """
+    Recover lost fnames from 'all_names_dict_old' and add them to 'all_names_new'.
+    This process DOES NOT ALTER the canonical fnames in 'all_names_new'
+    """
     # Create all_names_dict mapping each alias to its position index
     all_names_dict_new = {}
     for i, row in enumerate(all_names_new.itertuples(index=False)):
@@ -1852,7 +1948,9 @@ def gen_final_all_names(
             all_names_dict_new[alias] = {"idx": i}
 
     # fnames only in the old dictionary, lost in the new one
-    lost_fnames = set(all_names_dict_old) - set(all_names_dict_new)
+    lost_fnames = [
+        fname for fname in all_names_dict_old if fname not in all_names_dict_new
+    ]
     # logging.info(f"\nLost fnames: N={len(lost_fnames)}")
 
     for lost_fname in lost_fnames:
@@ -1869,81 +1967,50 @@ def gen_final_all_names(
             sep + all_names_dict_old[lost_fname]["alias_name"]
         )
 
-        # if old_c_fname in all_names_dict_new:
-        #     new_c_fname, new_c_idx = (
-        #         all_names_dict_new[old_c_fname]["fnames"],
-        #         all_names_dict_new[old_c_fname]["idx"],
-        #     )
-
-        #     # Check if the old canonical fname attached to the lost fname is still
-        #     # the same canonical fname in the new dictionary
-        #     if old_c_fname == new_c_fname:
-        #         # The lost fname is still attached to the same canonical fname
-        #         # Add the lost fname to 'all_names_new', at the 'new_c_idx' index
-        #         all_names_new.at[new_c_idx, "fnames"] += sep + lost_fname
-        #         all_names_new.at[new_c_idx, "Names"] += (
-        #             sep + all_names_dict_old[lost_fname]["alias_name"]
-        #         )
-        #     else:
-        #         # The old canonical fname attached to this lost fname is no longer
-        #         # a canonical fname in the new dictionary. Add the lost fname to the
-        #         # new canonical fname in the 'all_names_new' dataframe, at the new_c_idx index.
-        #         all_names_new.at[new_c_idx, "fnames"] += sep + lost_fname
-        #         all_names_new.at[new_c_idx, "Names"] += (
-        #             sep + all_names_dict_old[lost_fname]["alias_name"]
-        #         )
-        # else:
-        #     # this should never happen
-        #     raise ValueError(
-        #         f"Canonical fname '{old_c_fname}' for lost fname '{lost_fname}' not "
-        #         + "found in the new 'all_names' dictionary"
-        #     )
-
     return all_names_new
 
 
-def gen_final_B_cat(
-    df_UCC_B_new: pd.DataFrame,
-) -> pd.DataFrame:
-    """Generate new df_UCC_B file"""
-    # # Generate 'fname' column
-    # df_UCC_B_new["fname"] = df_UCC_B_new["fnames"].str.split(";").str[0]
-    # # Move 'fname' to the first column position
-    # df_UCC_B_new.insert(0, "fname", df_UCC_B_new.pop("fname"))
-    # # Drop ["fnames", "Names"] columns
-    # df_UCC_B_final = df_UCC_B_new.drop(columns=["fnames", "Names"])
+def final_fnames_compare(
+    logging, fnames_old: pd.Series, fnames_new: pd.Series, N_max: int = 50
+) -> None:
+    """Find fnames in old 'all_names' that are missing in new 'all_names' and
+    raise an error if any are found.
 
-    # Create copy and drop columns
-    df_UCC_B_final = df_UCC_B_new.drop(columns=["fnames", "Names"]).copy()
-    # Generate 'fname' column and insert at the first position
-    df_UCC_B_final.insert(
-        0,
-        "fname",
-        df_UCC_B_new["fnames"].str.partition(";")[0],
-    )
+    Raises
+    ------
+    ValueError
+        If one or more fnames from the old catalogue are missing in the new
+        catalogue.
+    """
 
-    return df_UCC_B_final
+    # Extract all individual fnames from the semicolon-separated strings in both Series
+    fnames_old_set = {x for sub in fnames_old.str.split(";") for x in sub}
+    fnames_new_set = {x for sub in fnames_new.str.split(";") for x in sub}
 
+    # Find fnames in old 'all_names' that are missing in new 'all_names'
+    missing_old_in_new = sorted(fnames_old_set - fnames_new_set)
 
-def final_sanity_check(logging, all_names, df_UCC_B):
-    """ """
-    # Check every individual fname for duplicates
-    exit_flag = duplicates_fnames_check(logging, df_UCC_B)
-    if exit_flag:
-        logging.info("\nERROR: duplicated entries found in 'fnames' column. Fix this!")
-        breakpoint()
-        sys.exit(1)
+    N_missing = len(missing_old_in_new)
+    if N_missing > 0:
+        logging.info(f"\nFound {N_missing} missing fnames in new 'all_names':")
+        # Print first batch
+        for fmiss in missing_old_in_new[:N_max]:
+            logging.info(f"{fmiss}")
+        remaining = N_missing - N_max
+        # Ask whether to show more
+        while remaining > 0:
+            show_more = (
+                input(f"\nShow {min(N_max, remaining)} more? (y/n): ").strip().lower()
+            )
+            if show_more != "y":
+                break
+            start = N_missing - remaining
+            end = start + min(N_max, remaining)
+            for fmiss in missing_old_in_new[start:end]:
+                logging.info(fmiss)
+            remaining -= end - start
 
-    # Check that (RA, DEC) ranges are valid
-    exit_flag = ra_dec_check(logging, df_UCC_B)
-    if exit_flag:
-        logging.info(
-            "\nERROR: entries were found with missing (RA, DEC) values. Fix this!"
-        )
-        breakpoint()
-        sys.exit(1)
-    #
-    final_fnames_compare(logging, all_names["fnames"], df_UCC_B["fnames"])
+        raise ValueError(f"Found {N_missing} missing fnames")
 
 
 def update_final_files(
