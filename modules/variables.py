@@ -85,9 +85,9 @@ naming_order = (
     "lynga",  # 1970
     "basel",  # 1971
     "loden",  # 1973
-    "westerlund"  # prev vdbh
+    "westerlund",  # prev vdbh
     "vdbh",  # 1975
-    "bochum",  # 1975
+    "bochum",  # 1975 after vdbh
 )
 
 # Exceptions to the rule below
