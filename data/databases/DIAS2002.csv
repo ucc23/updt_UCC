@@ -644,17 +644,11 @@
 "Ruprecht 71","08 49 23","-46 51 00",266.3728,-1.8952,"nan",6.0,"nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan",132.34582,-46.84997
 "VDBH 54","08 49 41","-44 22 00",264.482,-0.284,"nan",4.0,"nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan",132.42075,-44.36666
 "NGC 2666","08 49 47","+44 42 12",175.9158,39.2774," n",11.0,"nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan",132.44583,44.70333
-"NGC 2678","08 50 02","+11 20 18",216.0348,31.4206," n",10.0,"nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan",132.5083,11.33832
-"Chupina 1","08 50 07","+11 56 42",215.3987,31.6938,"nan",5.0,"nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan",132.52914,11.94496
-"Chupina 2","08 50 30","+12 17 42",215.0699,31.9245,"nan",2.1,"nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan",132.62498,12.29498
 "NGC 2682","08 51 18","+11 48 00",215.696,31.8963,"nan",25.0,908.0,0.059,"nan",9.409,-8.62,1.53,-6.0,1.53,1.84,-10.34,30.0," TYC",33.0,6.0,9.0," FJ93",0.002,0.08,38.0,132.82503,11.80002
-"Chupina 3","08 51 27","+11 23 42",216.1467,31.7593,"nan",2.9,"nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan",132.86251,11.39498
 "ESO 211-03","08 51 35","-50 15 18",269.2411,-3.7714," nf",2.5,"nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan",132.89577,-50.25498
-"Chupina 4","08 52 00","+12 22 42",215.1593,32.2925,"nan",5.0,"nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan",132.99998,12.37833
 "Ruprecht 72","08 52 05","-37 36 00",259.5376,4.3625,"nan",3.0,3019.0,0.24,"nan",9.1,"nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan",133.02082,-37.59996
 "Ruprecht 158","08 52 27","-37 34 00",259.5582,4.4397,"nan",2.0,4168.0,0.24,"nan",9.2,"nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan",133.11246,-37.56668
 "ESO 371-25","08 53 00","-35 28 36",258.0101,5.855,"nan",3.0,"nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan",133.25001,-35.47669
-"Chupina 5","08 53 01","+11 51 42",215.8374,32.3036,"nan",4.5,"nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan",133.25419,11.86171
 "VDBH 55","08 56 11","-39 31 00",261.5273,3.7486," d",2.0,"nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan",134.04578,-39.51666
 "VDBH 56","08 57 08","-43 15 00",264.4881,1.4634,"nan",20.0,"nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan",134.28331,-43.24995
 "Muzzio 1","08 57 12","-47 46 00",267.9264,-1.466,"nan",10.0,"nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan",134.30002,-47.76665
@@ -1084,7 +1078,6 @@
 "NGC 6208","16 49 28","-53 43 42",333.7545,-5.7649,"nan",18.0,939.0,0.21,"nan",9.069,-0.24,4.41,0.53,3.25,0.26,0.52,1.0," BDW","nan","nan","nan","nan","nan","nan","nan",252.36668,-53.72835
 "VDBH 200","16 49 56","-44 11 00",341.1516,0.2826,"nan",4.0,"nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan",252.48328,-44.18335
 "NGC 6231","16 54 10","-41 49 30",343.4644,1.1841,"nan",14.0,1243.0,0.439,"nan",6.843,-1.73,1.44,-1.07,1.44,-1.92,0.67,10.0," TYC",-25.0,8.0,"nan"," RGDZ","nan","nan","nan",253.54169,-41.82496
-"ESO 332-08","16 54 43","-40 42 30",344.3972,1.807,"nan",10.0,"nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan",253.67923,-40.70835
 "Lynga 14","16 55 04","-45 14 00",340.9189,-1.0886,"nan",3.0,881.0,1.428,"nan",6.712,"nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan",253.76663,-45.23338
 "VDBH 202","16 55 08","-40 57 00",344.2587,1.5938,"nan",3.0,"nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan",253.78338,-40.95002
 "Collinder 316","16 55 30","-40 50 00",344.3931,1.6131," o",100.0,"nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan",253.87505,-40.83332
