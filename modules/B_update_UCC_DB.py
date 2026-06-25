@@ -30,6 +30,7 @@ from .variables import (
     c_Evi,
     c_z_sun,
     data_folder,
+    naming_order_exceptions,
     dbs_folder,
     fpars_order,
     merged_dbs_file,
@@ -1686,7 +1687,7 @@ def sort_year_importance(new_JSON: dict, df_UCC_B: pd.DataFrame) -> pd.DataFrame
         fpars = [subset[par][k].split(";") for par in fpars_order]
 
         if len(set(dbs)) > 1:
-            # Sort all properties by year (Stable sort using Timsort)
+            # Sort all properties by year
             years = [db_years.get(db, 0) for db in dbs]
             i_year = sorted(range(len(years)), key=lambda x: years[x])
 
@@ -1699,9 +1700,18 @@ def sort_year_importance(new_JSON: dict, df_UCC_B: pd.DataFrame) -> pd.DataFrame
         # Sort names and fnames by importance
         importance = [get_importance(f) for f in fnames]
         i_imp = sorted(range(len(fnames)), key=lambda x: importance[x])
-
         fnames = [fnames[i] for i in i_imp]
         names = [names[i] for i in i_imp]
+
+        # Check for order exceptions
+        if fnames[0] in naming_order_exceptions:
+            new_fname0 = naming_order_exceptions[fnames[0]]
+            i_exc = fnames.index(new_fname0)
+            new_name0 = names[i_exc]
+            fnames.pop(i_exc)
+            names.pop(i_exc)
+            fnames.insert(0, new_fname0)
+            names.insert(0, new_name0)
 
         # Single-pass deduplication for fnames/names
         seen_fnames = set()
@@ -1711,11 +1721,11 @@ def sort_year_importance(new_JSON: dict, df_UCC_B: pd.DataFrame) -> pd.DataFrame
                 seen_fnames.add(f)
                 u_fnames.append(f)
                 u_names.append(n)
+
         # Single-pass deduplication for DB properties
         seen_db = set()
         u_dbs, u_db_i = [], []
         u_fpars = [[] for _ in range(n_fpars)]
-
         for i, db in enumerate(dbs):
             if db not in seen_db:
                 seen_db.add(db)

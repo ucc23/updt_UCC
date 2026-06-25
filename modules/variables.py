@@ -67,6 +67,7 @@ name_DBs_json = data_folder + "databases_info.json"
 GCs_cat = data_folder + "globulars.csv"
 # Path to the file with manual OC parameters
 manual_pars_file = data_folder + "manual_params.csv"
+
 # Preferred order in which the OCs are assigned their primary name
 naming_order = (
     "hyades",  # Common name
@@ -89,9 +90,9 @@ naming_order = (
     "vdbh",  # 1975
     "bochum",  # 1975 after vdbh
 )
+# Exceptions to the naming order, where the value is preferred over the key
+naming_order_exceptions = {"ngc2467east": "haffner18"}
 
-# Exceptions to the rule below
-selected_centers_f = data_folder + "manual_centers.csv"
 # Manual hierarchy of databases for selecting coordinates, smaller is preferred
 # DBs not mentioned here inherit a default value of max()/2 = 500
 # For matching values, the newer DB is preferred.
@@ -119,7 +120,8 @@ DB_coords_hierarchy = {
     "HE2022": 1000,
     "HE2022_1": 1000,
 }
-
+# Exceptions to the rule above
+selected_centers_f = data_folder + "manual_centers.csv"
 
 # Folder that contains the files with per-article comments
 UCC_cmmts_folder = dbs_folder + "cmmts/"
