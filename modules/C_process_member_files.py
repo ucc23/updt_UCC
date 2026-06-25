@@ -146,7 +146,9 @@ def main():
     )
 
     if input("\nMove files to their final paths? (y/n): ").lower() == "y":
-        move_files(logging, temp_zenodo_fold, rename_C_fname, df_UCC_C_final)
+        move_files(
+            logging, temp_zenodo_fold, rename_C_fname, C_not_in_B, df_UCC_C_final
+        )
 
 
 def get_paths_check_paths(logging) -> tuple[str, str, str]:
@@ -263,7 +265,7 @@ def detect_entries_to_process(
     df_UCC_B: pd.DataFrame,
     df_UCC_C: pd.DataFrame,
     sep: str = ";",
-) -> tuple[dict, list, pd.DataFrame, pd.DataFrame]:
+) -> tuple[dict, dict, pd.DataFrame, pd.DataFrame]:
     """
 
     all_names["fnames"] is a column that contains all the possible fnames with the
@@ -306,7 +308,8 @@ def detect_entries_to_process(
 
     # Find entries in C that must be renamed or removed
     C_to_remove = list(df_UCC_C[~df_UCC_C["fname"].isin(df_UCC_B["fname"])]["fname"])
-    # Find entries in 'C_not_in_B' that are present in 'B' but with a different main
+
+    # Find entries in 'C_to_remove' that are present in 'B' but with a different main
     # name (i.e. they just need renaming in C_not_in_B
     rename_C_fname, C_not_in_B = {}, {}
     for C_fname in C_to_remove:
@@ -409,7 +412,6 @@ def detect_entries_to_process(
     if input(f"\nThere are {msg} entries to process. Continue? (y/n): ").lower() != "y":
         sys.exit(1)
 
-    C_not_in_B = list(C_not_in_B.keys())
     return rename_C_fname, C_not_in_B, B_not_in_C, C_reprocess
 
 
@@ -584,7 +586,7 @@ def member_files_updt(
 
 
 def update_C_cat(
-    C_not_in_B: list,
+    C_not_in_B: dict,
     rename_C_fname: dict,
     df_UCC_C: pd.DataFrame,
     df_UCC_C_updt: pd.DataFrame,
@@ -604,7 +606,7 @@ def update_C_cat(
 
     # Remove entries in C_not_in_B from df_UCC_C
     if len(C_not_in_B) > 0:
-        msk = ~df_UCC_C_new["fname"].isin(C_not_in_B)
+        msk = ~df_UCC_C_new["fname"].isin(C_not_in_B.keys())
         df_UCC_C_new = df_UCC_C_new[msk]
 
     # Update df_UCC_C_new using data from df_UCC_C_updt
@@ -693,7 +695,7 @@ def gen_comb_members_file(logging) -> pd.DataFrame:
 
 def update_membs_file(
     rename_C_fname: dict,
-    C_not_in_B: list,
+    C_not_in_B: dict,
     df_members: pd.DataFrame,
     df_comb: pd.DataFrame,
 ) -> pd.DataFrame:
@@ -711,7 +713,7 @@ def update_membs_file(
 
     # Remove entries in C_not_in_B
     if len(C_not_in_B) > 0:
-        msk = ~df_updated["name"].isin(C_not_in_B)
+        msk = ~df_updated["name"].isin(C_not_in_B.keys())
         df_updated = pd.DataFrame(df_updated[msk])
 
     if not df_comb.empty:
@@ -1252,7 +1254,11 @@ def updt_readme(
 
 
 def move_files(
-    logging, temp_zenodo_fold: str, rename_C_fname: dict, df_UCC_C_final: pd.DataFrame
+    logging,
+    temp_zenodo_fold: str,
+    rename_C_fname: dict,
+    C_not_in_B: dict,
+    df_UCC_C_final: pd.DataFrame,
 ) -> None:
     """Move files to the appropriate folders"""
     post_actions = []
@@ -1339,9 +1345,28 @@ def move_files(
                 continue
             webpname = name.rsplit(".", 1)[0]
             if webpname not in fname_C and webpname not in rename_C_fname:
-                post_actions.append(
-                    ("remove", os.path.join(root, webpname + ".webp"), None)
-                )
+                old_fpath = os.path.join(root, webpname + ".webp")
+                if "HUNT23" in root or "CANTAT20" in root:
+                    if webpname in C_not_in_B:
+                        new_fname = C_not_in_B[webpname]
+                        # New root path
+                        prefix, rest = root.split("plots_", 1)
+                        _, suffix = rest.split("/", 1)
+                        new_root = f"{prefix}plots_{new_fname[0]}/{suffix}"
+                        new_fpath = os.path.join(new_root, new_fname + ".webp")
+                        if os.path.exists(new_fpath):
+                            logging.warning(
+                                f"File '{new_fname}.webp' already exists in '{root}'. "
+                                f"Cannot rename '{webpname}.webp'"
+                            )
+                        else:
+                            logging.warning(
+                                f"File '{new_fname}.webp' does not exist in '{root}'. "
+                                f"Rename '{webpname}.webp' --> '{new_fname}.webp'"
+                            )
+                            post_actions.append(("rename", old_fpath, new_fpath))
+                else:
+                    post_actions.append(("remove", old_fpath, None))
 
     # Print actions and ask for confirmation
     logging.info("\n=== ACTIONS ===")
