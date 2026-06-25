@@ -2,6 +2,7 @@ import pandas as pd
 
 GCs_cat = "../data/globulars.csv"
 bckp_plots_path = "/media/kingston/new_UCC/UCC_260616/plots"
+bckp_UCC_membs_path = "/media/kingston/new_UCC/UCC_260612/data/zenodo/UCC_members.parquet"
 
 #
 h23_name_changes = {
@@ -24,9 +25,7 @@ h23_name_changes = {
 
 def main() -> None:
     """ """
-    ucc_members_old = pd.read_parquet(
-        "/media/kingston/new_UCC/UCC_260612/data/zenodo/UCC_members.parquet"
-    )
+    ucc_members_old = pd.read_parquet(bckp_UCC_membs_path)
     # Group by 'name' and count unique 'Source'
     ucc_member_counts_old = (
         ucc_members_old.groupby("name")["Source"].nunique().reset_index()
@@ -105,10 +104,11 @@ def main() -> None:
             thresh = 0.25
             target_list = highest_ucc
 
-        # # Ratio against HUNT23
-        # ratio = (N_clust_h23 - N_clust_ucc) / N_clust_ucc
-        # Ratio against old version
-        ratio = (N_clust_ucc_old - N_clust_ucc) / N_clust_ucc
+        # Ratio against HUNT23
+        ratio = (N_clust_h23 - N_clust_ucc) / N_clust_ucc
+
+        # # Ratio against old version
+        # ratio = (N_clust_ucc_old - N_clust_ucc) / N_clust_ucc
 
         if ratio > thresh:
             target_list.append(
@@ -121,63 +121,6 @@ def main() -> None:
                     "ratio": ratio,
                 }
             )
-
-    # for i, h23_fname in enumerate(unique_h23_fnames):
-    #     if h23_fname in fnames_dict:
-    #         fname0 = fnames_dict[h23_fname]
-
-    #         # Skip clusters
-    #         if (
-    #             fname0.startswith("cwnu")
-    #             or fname0.startswith("hsc")
-    #             or fname0.startswith("theia")
-    #             or fname0.startswith("oc0")
-    #         ):
-    #             continue
-
-    #         N_clust_ucc_old = 0
-    #         fnames_all = all_names["fnames"][all_names["fnames"].str.contains(fname0)].iloc[0]
-    #         for fname in fnames_all.split(";"):
-    #             msk_old = ucc_member_counts_old["name"] == fname0
-    #             if msk_old.any():
-    #                 N_clust_ucc_old = max(N_clust_ucc_old, ucc_member_counts_old.loc[msk_old, "N_clust_ucc"].iloc[0])
-
-    #         # msk_old = ucc_member_counts_old["name"] == fname0
-    #         # if not msk_old.any():
-    #         #     print(f"{fname0}")
-    #         #     continue
-
-    #         # N_clust_ucc_old = ucc_member_counts_old.loc[msk_old, "N_clust_ucc"].iloc[0]
-    #         N_clust_ucc = ucc_member_counts.loc[
-    #             ucc_member_counts["name"] == fname0, "N_clust_ucc"
-    #         ].iloc[0]
-    #         N_clust_h23 = h23_member_counts.iloc[i]["N_clust_h23"]
-
-    #         # Determine threshold and target group
-    #         if N_clust_ucc <= 25:
-    #             thresh = 0.90
-    #             target_list = low_ucc
-    #         elif N_clust_ucc <= 100:
-    #             thresh = 0.75
-    #             target_list = mid_ucc
-    #         elif N_clust_ucc <= 500:
-    #             thresh = 0.5
-    #             target_list = high_ucc
-    #         else:
-    #             thresh = 0.25
-    #             target_list = highest_ucc
-    #         ratio = (N_clust_h23 - N_clust_ucc) / N_clust_ucc
-    #         if ratio > thresh:
-    #             target_list.append(
-    #                 {
-    #                     "i": i,
-    #                     "fname0": fname0,
-    #                     "N_clust_ucc_old": N_clust_ucc_old,
-    #                     "N_clust_ucc": N_clust_ucc,
-    #                     "N_clust_h23": N_clust_h23,
-    #                     "ratio": ratio,
-    #                 }
-    #             )
 
     # Define sections for structured printing
     sections = [
