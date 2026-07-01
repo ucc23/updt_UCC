@@ -1,8 +1,10 @@
 import pandas as pd
 
 GCs_cat = "../data/globulars.csv"
-bckp_plots_path = "/media/kingston/new_UCC/UCC_260616/plots"
+HUNT23_membs_path = "members_process/HUNT23_members.parquet"
 bckp_UCC_membs_path = "/media/kingston/new_UCC/UCC_260612/data/zenodo/UCC_members.parquet"
+UCC_membs_path = "../data/zenodo/UCC_members.parquet"
+all_names_path = "../data/all_names.csv"
 
 #
 h23_name_changes = {
@@ -22,9 +24,14 @@ h23_name_changes = {
     "vdBergh_92": "VDB_92",
 }
 
+use_ratio = "HUNT23"
+# use_ratio = "OLD UCC"
+
 
 def main() -> None:
     """ """
+    print(f"Using ratio type: {use_ratio}")
+
     ucc_members_old = pd.read_parquet(bckp_UCC_membs_path)
     # Group by 'name' and count unique 'Source'
     ucc_member_counts_old = (
@@ -32,12 +39,12 @@ def main() -> None:
     )
     ucc_member_counts_old.rename(columns={"Source": "N_clust_ucc"}, inplace=True)
 
-    ucc_members = pd.read_parquet("../data/zenodo/UCC_members.parquet")
+    ucc_members = pd.read_parquet(UCC_membs_path)
     # Group by 'name' and count unique 'Source'
     ucc_member_counts = ucc_members.groupby("name")["Source"].nunique().reset_index()
     ucc_member_counts.rename(columns={"Source": "N_clust_ucc"}, inplace=True)
 
-    all_names = pd.read_csv("../data/all_names.csv")
+    all_names = pd.read_csv(all_names_path)
     fnames_dict = {}
     for fnames in all_names["fnames"]:
         fname_s = fnames.split(";")
@@ -45,7 +52,7 @@ def main() -> None:
             fnames_dict[fname] = fname_s[0]
     # all_names_fname0_lst = [_.split(';')[0] for _ in all_names['fnames']]
 
-    hunt23_membs = pd.read_parquet("members_process/HUNT23_members.parquet")
+    hunt23_membs = pd.read_parquet(HUNT23_membs_path)
     h23_member_counts = hunt23_membs.groupby("Name")["GaiaDR3"].nunique().reset_index()
     h23_member_counts.rename(columns={"GaiaDR3": "N_clust_h23"}, inplace=True)
 
@@ -104,11 +111,14 @@ def main() -> None:
             thresh = 0.25
             target_list = highest_ucc
 
-        # Ratio against HUNT23
-        ratio = (N_clust_h23 - N_clust_ucc) / N_clust_ucc
-
-        # # Ratio against old version
-        # ratio = (N_clust_ucc_old - N_clust_ucc) / N_clust_ucc
+        if use_ratio == "HUNT23":
+            # Ratio against HUNT23
+            ratio = (N_clust_h23 - N_clust_ucc) / N_clust_ucc
+        elif use_ratio == "OLD UCC":    
+            # Ratio against old version
+            ratio = (N_clust_ucc_old - N_clust_ucc) / N_clust_ucc
+        else:
+            raise ValueError(f"Unknown ratio type: {use_ratio}")
 
         if ratio > thresh:
             target_list.append(

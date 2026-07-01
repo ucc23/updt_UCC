@@ -8,7 +8,8 @@ import pandas as pd
 sys.path.append("../")
 
 GCs_cat = "../data/globulars.csv"
-bckp_plots_path = "/media/kingston/new_UCC/UCC_260616/plots"
+C20_membs_path = "members_process/CANTAT20_members.parquet"
+# bckp_plots_path = "/media/kingston/new_UCC/UCC_260616/plots"
 
 #
 c20_name_changes = {
@@ -26,13 +27,21 @@ def main(style_path="../modules/D_funcs/science2.mplstyle") -> None:
             fnames_dict[fname] = fname_s[0]
 
     print("Reading CANTAT20 members...\n")
-    cantat20_membs = pd.read_parquet("members_process/CANTAT20_members.parquet")
+    cantat20_membs = pd.read_parquet(C20_membs_path)
     cantat20_membs["Cluster"] = cantat20_membs["Cluster"].str.strip()
     # Update names with replacements stored in c20_name_changes
     cantat20_membs["Cluster"] = cantat20_membs["Cluster"].replace(c20_name_changes)
 
+    # msk1 = cantat20_membs['Cluster']=="Gulliver_6"
+    # msk2 = cantat20_membs['Cluster']=="UBC_17b"
+    # # Check how many elements are shared between these two groups in the 'GaiaDR2' column
+    # shared_elements = set(cantat20_membs.loc[msk1, "GaiaDR2"]).intersection(set(cantat20_membs.loc[msk2, "GaiaDR2"]))
+    # breakpoint()
+
     # Group by "Cluster" column
     unique_c20_names = list(set(cantat20_membs["Cluster"]))
+
+    breakpoint()
 
     unique_c20_fnames = get_fnames(unique_c20_names)
     unique_c20_fnames = [x for sublist in unique_c20_fnames for x in sublist]

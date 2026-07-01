@@ -4,12 +4,12 @@ import re
 import pandas as pd
 
 input_txt = """
-Adding OBASI2026 (40) to the UCC
+Adding QIN2025 (149) to the UCC
 
 Found 1 groups of duplicated fnames within the DB:
-Group 1: sai106
- - VVVX-Obasi 5 --> SAI 106 (4)
-> /home/gabriel/Github/UCC/updt_UCC/modules/B_update_UCC_DB.py(933)check_new_DB_fnames()
+Group 1: oc0470
+ - Huluwa_3 --> OC 0470 (47)
+> /home/gabriel/Github/UCC/updt_UCC/modules/B_update_UCC_DB.py(938)check_new_DB_fnames()
 -> sys.exit(1)
 (Pdb) 
 """
@@ -23,15 +23,6 @@ def main():
     # Raise error if db_name is empty or not found in the input text
     if not db_name:
         raise ValueError("DB name not found in the input text")
-
-    # idx_to_drop = [
-    #     int(x)
-    #     for x in re.findall(
-    #         r"^\s*-\s+.*?-->\s+.*?\((\d+)\)\s*$",
-    #         input_txt,
-    #         flags=re.MULTILINE,
-    #     )
-    # ]
 
     # Extract rows to remove and their descriptions
     removed_entries = re.findall(
