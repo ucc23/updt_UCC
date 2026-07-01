@@ -91,7 +91,7 @@ naming_order = (
     "bochum",  # 1975 after vdbh
 )
 # Exceptions to the naming order, where the value is preferred over the key
-naming_order_exceptions = {"ngc2467east": "haffner18"}
+naming_order_exceptions = {"ngc2467east": "haffner18", "ngc6334iv": "bdsb97"}
 
 # Manual hierarchy of databases for selecting coordinates, smaller is preferred
 # DBs not mentioned here inherit a default value of max()/2 = 500
