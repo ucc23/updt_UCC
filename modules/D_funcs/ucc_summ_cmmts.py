@@ -563,7 +563,7 @@ def dupl_summary(shared_members_p, C_dup, C_dup_same_db, duplicate, dup_warn):
         return level(
             v,
             [0.9, 0.75, 0.5, 0.25],
-            ["very small", "small", "moderate", "significant", "large"],
+            ["very small", "small", "moderate", "significant", "<u>large</u>"]
         )
 
     # If this unique object contains shared members with other entries
