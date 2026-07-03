@@ -128,7 +128,7 @@ UCC_cmmts_folder = dbs_folder + "cmmts/"
 
 # Bad OCs parameters
 UTI_max = 0.25
-C_dup_min = 0.75
+P_dup_max = 0.25
 C_lit_max = 0.3
 
 
