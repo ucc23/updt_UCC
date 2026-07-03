@@ -96,19 +96,25 @@ def main():
     logging.info("Updating members file...")
     # Concatenate all temporary DataFrames into one
     df_comb = gen_comb_members_file(logging)
-    df_members_new = update_membs_file(rename_C_fname, C_not_in_B, df_members, df_comb)
-    logging.info(
-        f"Zenodo '{UCC_members_file}' file updated (N={len(df_members)}->{len(df_members_new)})\n"
+    flag_membs_changed, df_members_new = update_membs_file(
+        rename_C_fname, C_not_in_B, df_members, df_comb
     )
+    if flag_membs_changed is True:
+        logging.info(
+            f"Zenodo '{UCC_members_file}' file updated (N={len(df_members)}->{len(df_members_new)})\n"
+        )
 
-    # Check that the 'name' column on the members file matches the fnames
-    names0 = df_members_new["name"].unique().tolist()
-    if not sorted(names0) == df_UCC_C_new["fname"].to_list():
-        raise ValueError("'fname' and 'name'  columns do not match")
+        # Check that the 'name' column on the members file matches the fnames
+        names0 = df_members_new["name"].unique().tolist()
+        if not sorted(names0) == df_UCC_C_new["fname"].to_list():
+            raise ValueError("'fname' and 'name'  columns do not match")
 
-    # Find shared members between OCs and update df_UCC_C_new dataframe
-    df_UCC_C_final = find_shared_members(logging, df_UCC_C_new, df_members_new)
-    logging.info("Shared members data updated in UCC\n")
+        # Find shared members between OCs and update df_UCC_C_new dataframe
+        df_UCC_C_final = find_shared_members(logging, df_UCC_C_new, df_members_new)
+        logging.info("Shared members data updated in UCC\n")
+    else:
+        logging.info("No changes in members file. Skipping shared members check")
+        df_UCC_C_final = df_UCC_C_new.copy()
 
     # Sort df_UCC_B by fname column to match 'df_UCC_C_final'
     df_UCC_B = df_UCC_B.sort_values("fname").reset_index(drop=True)
@@ -143,6 +149,7 @@ def main():
         df_UCC_B,
         df_UCC_C_final,
         df_members_new,
+        flag_membs_changed,
     )
 
     if input("\nMove files to their final paths? (y/n): ").lower() == "y":
@@ -244,7 +251,10 @@ def load_data(
     df_UCC_C = load_BC_cats("C", ucc_C_file)
     logging.info(f"File {ucc_C_file} loaded ({len(df_UCC_C)} entries)")
 
-    old_zenodo_cat = pd.read_csv(zenodo_folder + zenodo_cat_fname)
+    old_zenodo_cat = pd.read_csv(
+        zenodo_folder + zenodo_cat_fname,
+        dtype={"name": "string[python]"},
+    )
 
     return (
         gaia_frames_data,
@@ -698,51 +708,88 @@ def update_membs_file(
     C_not_in_B: dict,
     df_members: pd.DataFrame,
     df_comb: pd.DataFrame,
-) -> pd.DataFrame:
+) -> tuple[bool, pd.DataFrame]:
     """
     Update the parquet file containing estimated members from the
     Unified Cluster Catalog (UCC) dataset, formatted for storage in the Zenodo
     repository.
     """
-    df_updated = df_members.copy()
+    # df_updated = df_members.copy()
 
-    # Rename entries
-    if len(rename_C_fname) > 0:
-        msk = df_updated["name"].isin(rename_C_fname.keys())
-        df_updated.loc[msk, "name"] = df_updated.loc[msk, "name"].map(rename_C_fname)
+    # # Rename entries
+    # if len(rename_C_fname) > 0:
+    #     msk = df_updated["name"].isin(rename_C_fname.keys())
+    #     df_updated.loc[msk, "name"] = df_updated.loc[msk, "name"].map(rename_C_fname)
 
-    # Remove entries in C_not_in_B
-    if len(C_not_in_B) > 0:
-        msk = ~df_updated["name"].isin(C_not_in_B.keys())
-        df_updated = pd.DataFrame(df_updated[msk])
+    # # Remove entries in C_not_in_B
+    # if len(C_not_in_B) > 0:
+    #     msk = ~df_updated["name"].isin(C_not_in_B.keys())
+    #     df_updated = pd.DataFrame(df_updated[msk])
 
-    if not df_comb.empty:
-        # Get the list of names in each DataFrame
-        names_df1 = set(df_updated["name"])
-        names_df2 = set(df_comb["name"])
-        # Identify names in df_updated not in df_comb
-        extra_names = names_df1 - names_df2
-        # Filter df_updated for those extra groups
-        df1_extra = df_updated[df_updated["name"].isin(extra_names)]  # pyright: ignore
-        # Concatenate df_comb with the extra df_members groups
-        df_members_new = pd.concat([df_comb, df1_extra], ignore_index=True)
-        df_members_new = pd.DataFrame(df_members_new).sort_values("name")
-    else:
-        df_members_new = df_updated.copy()
-    df_members_new = df_members_new.sort_values("name").reset_index(drop=True)
+    # if not df_comb.empty:
+    #     # Get the list of names in each DataFrame
+    #     names_df1 = set(df_updated["name"])
+    #     names_df2 = set(df_comb["name"])
+    #     # Identify names in df_updated not in df_comb
+    #     extra_names = names_df1 - names_df2
+    #     # Filter df_updated for those extra groups
+    #     df1_extra = df_updated[df_updated["name"].isin(extra_names)]  # pyright: ignore
+    #     # Concatenate df_comb with the extra df_members groups
+    #     df_members_new = pd.concat([df_comb, df1_extra], ignore_index=True)
+    #     df_members_new = pd.DataFrame(df_members_new).sort_values("name")
+    # else:
+    #     df_members_new = df_updated.copy()
+    # df_members_new = df_members_new.sort_values("name").reset_index(drop=True)
 
-    return df_members_new
+    # Fast exit: nothing to do
+    if not rename_C_fname and not C_not_in_B and df_comb.empty:
+        return False, df_members
+
+    df_updated = df_members
+
+    # Rename entries only if necessary
+    if rename_C_fname:
+        msk = df_updated["name"].isin(rename_C_fname)
+        if msk.any():
+            df_updated = df_updated.copy()
+            df_updated.loc[msk, "name"] = df_updated.loc[msk, "name"].map(
+                rename_C_fname
+            )
+
+    # Remove entries only if necessary
+    if C_not_in_B:
+        msk = ~df_updated["name"].isin(C_not_in_B)
+        if not msk.all():
+            if df_updated is df_members:
+                df_updated = df_updated.copy()
+            df_updated = df_updated.loc[msk]
+
+    if df_comb.empty:
+        df_members_new = df_updated.sort_values("name").reset_index(drop=True)
+        return True, df_members_new
+
+    # Append groups present only in df_updated
+    extra = df_updated.loc[~df_updated["name"].isin(df_comb["name"])]
+    df_members_new = (
+        pd.concat([df_comb, extra], ignore_index=True)
+        .sort_values("name")
+        .reset_index(drop=True)
+    )
+
+    return True, df_members_new
 
 
-def find_shared_members(logging, df_UCC_C_new: pd.DataFrame, df_members: pd.DataFrame):
+def find_shared_members(
+    logging, df_UCC_C_new: pd.DataFrame, df_members_new: pd.DataFrame
+):
     """ """
     logging.info("Finding shared members...")
 
     # Find OCs that intersect. This helps to speed up the process
-    intersection_map = find_intersections(df_UCC_C_new, df_members)
+    intersection_map = find_intersections(df_UCC_C_new, df_members_new)
 
     # Group members by 'fname'
-    grouped = df_members.groupby("name")["Source"].apply(set)
+    grouped = df_members_new.groupby("name")["Source"].apply(set)
     N_total = len(grouped)
     results = {
         "fname": grouped.keys().tolist(),
@@ -798,7 +845,7 @@ def find_shared_members(logging, df_UCC_C_new: pd.DataFrame, df_members: pd.Data
 def find_intersections(df_C: pd.DataFrame, df_members: pd.DataFrame):
     """ """
 
-    # Find OCs that contain duplicated element in any other OC, also to speed up
+    # Find OCs that contain duplicated elements in any other OC
     source_counts = df_members["Source"].value_counts()
     shared_sources = source_counts[source_counts > 1].index
     ocs_w_shared_sources = df_members[df_members["Source"].isin(shared_sources)][
@@ -806,21 +853,17 @@ def find_intersections(df_C: pd.DataFrame, df_members: pd.DataFrame):
     ].unique()
 
     # Filter UCC df to only include OCs with shared sources
-    # names = np.array([_.split(";")[0] for _ in df_C["fnames"]])
     arr2_set = set(ocs_w_shared_sources)
     msk = np.fromiter((x in arr2_set for x in df_C["fname"]), dtype=bool)
     df_msk = df_C[msk]
 
-    # The search region is two times the r_50 radius
-    radii = 2 * df_msk["r_50"].to_numpy(dtype=float) / 60
-
     # Compute pairwise distances
     coords = df_msk[["GLON_m", "GLAT_m"]].to_numpy()
     dists = cdist(coords, coords)
-
+    # The search region is two times the r_50 radius
+    radii = 2 * df_msk["r_50"].to_numpy(dtype=float) / 60
     # Compute pairwise sum of radii
     radii_sum = radii[:, None] + radii[None, :]
-
     # Intersection condition: distance <= sum of radii
     # Exclude only the diagonal (self-comparisons)
     not_self = ~np.eye(len(dists), dtype=bool)
@@ -945,7 +988,10 @@ def add_info_to_C(
                     # If 'cl' is more recent than this entry, 'cl' is the duplicate
                     shared_p["n"] = max(shared_p["n"], shared_members_p[j])
                 elif date_received_cl == date_received_shared:
-                    if dbs[idx] != dbs_shared[j]:
+                    if dbs[idx] == dbs_shared[j]:
+                        # These entries share members BUT they belong to the same DB.
+                        shared_p["y"] = max(shared_p["y"], shared_members_p[j])
+                    else:
                         # This should never happen
                         raise ValueError(
                             f"({idx}) {cl['fname']} & {shared_members[j]} share members "
@@ -954,8 +1000,6 @@ def add_info_to_C(
                             "This makes it impossible to disambiguate which one is the "
                             "duplicate of the other."
                         )
-                    # These entries share members BUT they belong to the same DB.
-                    shared_p["y"] = max(shared_p["y"], shared_members_p[j])
 
         if shared_p["n"] > 0.0:
             # At least one entry that shares members with 'cl' belongs to a
@@ -964,6 +1008,7 @@ def add_info_to_C(
         if shared_p["y"] > 0.0:
             # All entries that share members with 'cl' belong to the same DB
             C_dup_same_db[idx] -= shared_p["y"]
+            # C_dup[idx] = min(C_dup[idx], C_dup_same_db[idx])
 
     C_dup = np.array(C_dup) / 100
     C_dup_same_db = np.array(C_dup_same_db) / 100
@@ -1066,6 +1111,7 @@ def update_zenodo_files(
     df_UCC_B: pd.DataFrame,
     df_UCC_C_final: pd.DataFrame,
     df_members_new: pd.DataFrame,
+    flag_membs_changed: bool,
 ):
     """ """
     # Generate updated full UCC catalogue
@@ -1073,19 +1119,21 @@ def update_zenodo_files(
 
     fpath = temp_zenodo_fold + zenodo_cat_fname
     df_UCC_C_copy = df_UCC_C_final.copy()
-    new_zenodo_cat = updt_zenodo_csv(logging, all_names, df_UCC_B, df_UCC_C_copy, fpath)
-
-    # Check differences between the original and final UCC_cat files
-    diff_between_dfs(
-        logging, "zenodo cat", old_zenodo_cat, new_zenodo_cat, order_col="name"
+    flag_zen_cat_changed = updt_zenodo_csv(
+        logging, all_names, df_UCC_B, df_UCC_C_copy, old_zenodo_cat, fpath
     )
 
-    N_clusters, N_members = len(df_UCC_C_final), len(df_members_new)
-    updt_readme(logging, N_clusters, N_members, temp_zenodo_fold)
+    if flag_membs_changed:
+        zenodo_members_file_temp = temp_zenodo_fold + UCC_members_file
+        df_members_new.to_parquet(zenodo_members_file_temp, index=False)
+        logging.info(f"Zenodo members file: '{zenodo_members_file_temp}'")
 
-    zenodo_members_file_temp = temp_zenodo_fold + UCC_members_file
-    df_members_new.to_parquet(zenodo_members_file_temp, index=False)
-    logging.info(f"Zenodo members file: '{zenodo_members_file_temp}'")
+    if flag_zen_cat_changed or flag_membs_changed:
+        # No changes detected in Zenodo files. No updates needed
+        N_clusters, N_members = len(df_UCC_C_final), len(df_members_new)
+        updt_readme(logging, N_clusters, N_members, temp_zenodo_fold)
+    else:
+        logging.info("No changes detected in Zenodo files. No updates needed.")
 
 
 def updt_zenodo_csv(
@@ -1093,8 +1141,9 @@ def updt_zenodo_csv(
     all_names: pd.DataFrame,
     df_UCC_B: pd.DataFrame,
     df_UCC_C: pd.DataFrame,
+    old_zenodo_cat: pd.DataFrame,
     file_path: str,
-) -> pd.DataFrame:
+) -> bool:
     """
     Generates a CSV file containing a reduced Unified Cluster Catalog
     (UCC) dataset, which can be stored in the Zenodo repository.
@@ -1212,17 +1261,24 @@ def updt_zenodo_csv(
         ]
     )
 
-    # Store to csv file
-    zenodo_UCC_cat.to_csv(
-        file_path,
-        na_rep="nan",
-        index=False,
-        quoting=csv.QUOTE_NONNUMERIC,
-    )
+    # Check if the new Zenodo catalogue differs from the old one
+    flag_zen_cat_changed = not old_zenodo_cat.equals(zenodo_UCC_cat)
+    if flag_zen_cat_changed:
+        # Store to csv file
+        zenodo_UCC_cat.to_csv(
+            file_path,
+            na_rep="nan",
+            index=False,
+            quoting=csv.QUOTE_NONNUMERIC,
+        )
+        logging.info(f"Zenodo '.csv' file: '{file_path}'")
 
-    logging.info(f"Zenodo '.csv' file: '{file_path}'")
+        # Check differences between the original and final UCC_cat files
+        diff_between_dfs(
+            logging, "zenodo cat", old_zenodo_cat, zenodo_UCC_cat, order_col="name"
+        )
 
-    return zenodo_UCC_cat
+    return flag_zen_cat_changed
 
 
 def updt_readme(
@@ -1265,13 +1321,15 @@ def move_files(
 
     # Move Zenodo README
     file_path_temp = temp_zenodo_fold + "README.txt"
-    file_path = zenodo_folder + "README.txt"
-    post_actions.append(("move", file_path_temp, file_path))
+    if os.path.isfile(file_path_temp):
+        file_path = zenodo_folder + "README.txt"
+        post_actions.append(("move", file_path_temp, file_path))
 
     # Move Zenodo catalogue
     file_path_temp = temp_zenodo_fold + zenodo_cat_fname
-    file_path = zenodo_folder + zenodo_cat_fname
-    post_actions.append(("move", file_path_temp, file_path))
+    if os.path.isfile(file_path_temp):
+        file_path = zenodo_folder + zenodo_cat_fname
+        post_actions.append(("move", file_path_temp, file_path))
 
     # Move Zenodo members file
     file_path_temp = temp_zenodo_fold + UCC_members_file
@@ -1367,6 +1425,10 @@ def move_files(
                             post_actions.append(("rename", old_fpath, new_fpath))
                 else:
                     post_actions.append(("remove", old_fpath, None))
+
+    if not post_actions:
+        logging.info("No changes to make.")
+        return
 
     # Print actions and ask for confirmation
     logging.info("\n=== ACTIONS ===")
