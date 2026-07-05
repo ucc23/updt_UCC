@@ -99,7 +99,7 @@ naming_order_exceptions = {"ngc2467east": "haffner18", "ngc6334iv": "bdsb97"}
 DB_coords_hierarchy = {
     "CANTAT2020": 0,
     "HUNT2023": 1,
-    "CANTAT2020_1": 2,
+    "CANTATANDERS2020": 2,
     "CANTAT2018": 3,
     "MONTEIRO2019": 49,
     "DIAS2016": 50,
