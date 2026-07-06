@@ -22,9 +22,9 @@ from .utils import (
     save_df_UCC,
 )
 from .variables import (
-    C_dup_min,
     C_lit_max,
     GCs_cat,
+    P_dup_max,
     UCC_members_file,
     UTI_max,
     all_OC_names,
@@ -943,9 +943,9 @@ def add_info_to_C(
     # are already ordered by year)
     dbs = [_.split(";")[0] for _ in df_UCC_B["DB"]]
     f_year = [int(_.split("_")[0][-4:]) for _ in dbs]
-    # Extract first fname
-    fnames = df_UCC_B["fname"]  # [_.split(";")[0] for _ in df_UCC_B["fnames"]]
-    # Map years and dbs to fnames
+    # Extract canonical fname
+    fnames = df_UCC_B["fname"]
+    # Map years and dbs to canonical fnames
     fname_db_to_year = {name: [year, db] for name, year, db in zip(fnames, f_year, dbs)}
 
     C_dup = [100.0] * len(df_UCC_C)
@@ -953,10 +953,10 @@ def add_info_to_C(
     for idx in df_UCC_C.index:
         cl = df_UCC_C.loc[idx]
         if str(cl["shared_members"]) == "nan":
-            # This OC does not share members with any other, move on to the next
+            # This OC does not share members with any other
             continue
 
-        # # Extract the years and dbs associated to the entries that share members
+        # Extract the years and dbs associated to the entries that share members
         # with 'cl'
         shared_members = cl["shared_members"].split(";")
         fyears_shared, dbs_shared = [], []
@@ -972,12 +972,15 @@ def add_info_to_C(
             # 'cl' thus cannot be a duplicate of any of them
             continue
 
+        # List of percentages of shared members between 'cl' and the entries that share
+        # members with it
         shared_members_p = list(map(float, cl["shared_members_p"].split(";")))
+
+        # Date when the initial article for  'cl' was received for publication
         date_received_cl = int(current_JSON[dbs[idx]]["received"])
 
         shared_p = {"n": 0.0, "y": 0.0}
         for j, f_year_shared in enumerate(fyears_shared):
-            # shared_members_j, same_db = 0.0, 'n'
             if f_year_cl > f_year_shared:
                 # If 'cl' is more recent than this entry, 'cl' is the duplicate
                 shared_p["n"] = max(shared_p["n"], shared_members_p[j])
@@ -989,7 +992,7 @@ def add_info_to_C(
                     shared_p["n"] = max(shared_p["n"], shared_members_p[j])
                 elif date_received_cl == date_received_shared:
                     if dbs[idx] == dbs_shared[j]:
-                        # These entries share members BUT they belong to the same DB.
+                        # These entries share members AND they belong to the same DB
                         shared_p["y"] = max(shared_p["y"], shared_members_p[j])
                     else:
                         # This should never happen
@@ -1008,10 +1011,16 @@ def add_info_to_C(
         if shared_p["y"] > 0.0:
             # All entries that share members with 'cl' belong to the same DB
             C_dup_same_db[idx] -= shared_p["y"]
-            # C_dup[idx] = min(C_dup[idx], C_dup_same_db[idx])
 
     C_dup = np.array(C_dup) / 100
     C_dup_same_db = np.array(C_dup_same_db) / 100
+
+    # Replace 'C_dup' values with a smaller value only when 'C_dup_same_db<0.5', ie:
+    # only entries that share a significant fraction of members with other entries in
+    # the same DB. Replace with twice the C_dup_same_db value to avoid over-penalizing
+    # entries that share members with other entries in the same DB.
+    msk = C_dup_same_db < 0.5
+    C_dup[msk] = np.minimum(C_dup[msk], 2*C_dup_same_db[msk])
 
     # Final UTI
     UTI = np.clip(0.2 * (C_N_membs + C_dens + C_C3 + 2 * C_lit) * C_dup, 0, 1)
@@ -1026,14 +1035,17 @@ def add_info_to_C(
     df_UCC_C["P_dup"] = np.round(1 - df_UCC_C["C_dup"], 2)
     df_UCC_C["UTI"] = np.round(UTI, 2)
 
-    # Flag entries that have bad values and are possibly asterisms, moving groups,
-    # or artifacts of some kind.
+    # All entries are by default "good" entries
+    df_UCC_C["bad_oc"] = "n"
+    # Flag as "bad_oc" possible asterisms, moving groups, or artifacts of some kind
     msk = (
+        # Only include entries with very low UTI
         (df_UCC_C["UTI"] < UTI_max)
-        & (df_UCC_C["C_dup"] > C_dup_min)
+        # Only include entries with very low probability of duplication
+        & (df_UCC_C["P_dup"] < P_dup_max)
+        # Only include entries not studied in the literature
         & (df_UCC_C["C_lit"] < C_lit_max)
     )
-    df_UCC_C["bad_oc"] = "n"
     df_UCC_C.loc[msk, "bad_oc"] = "y"
 
     return df_UCC_C
