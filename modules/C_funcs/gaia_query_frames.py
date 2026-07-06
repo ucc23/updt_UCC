@@ -3,6 +3,11 @@ import pandas as pd
 
 from ..utils import radec2lonlat
 
+# Gaia EDR3 zero points. Sigmas are already squared here.
+Zp_G, sigma_ZG_2 = 25.6873668671, 0.00000759
+Zp_BP, sigma_ZBP_2 = 25.3385422158, 0.000007785
+Zp_RP, sigma_ZRP_2 = 24.7478955012, 0.00001428
+
 
 def query_run(
     logging,
@@ -41,17 +46,16 @@ def query_run(
         Central right ascension for the query.
     c_dec : float
         Central declination for the query.
+    frame_lims : list
+        List of tuples specifying manual frame limits in the format (limit_type, value),
+        where limit_type can be 'b', 't', 'l', 'r', 'plxl', 'plxr', 'pmb', 'pmt',
+        'pml', or 'pmr'.
 
     Returns
     -------
     gaia_frame: pd.DataFrame
         DataFrame containing the combined Gaia data.
     """
-    # Gaia EDR3 zero points. Sigmas are already squared here.
-    Zp_G, sigma_ZG_2 = 25.6873668671, 0.00000759
-    Zp_BP, sigma_ZBP_2 = 25.3385422158, 0.000007785
-    Zp_RP, sigma_ZRP_2 = 24.7478955012, 0.00001428
-
     txt_flim = ""
     if frame_lims:
         txt_flim = "; "

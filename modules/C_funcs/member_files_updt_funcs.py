@@ -458,12 +458,14 @@ def check_close_cls(
     )
 
     in_frame_all["Name"] = [_.split(";")[0] for _ in in_frame_all["Name"]]
+    # Remove any row['Name']==fname
+    in_frame_all = in_frame_all[in_frame_all["Name"] != fname].reset_index(drop=True)
 
     # Print info to screen
     in_frame_all = in_frame_all[
         ["Name", "P_d", "GLON", "GLAT", "plx", "pmRA", "pmDE", "Type"]
     ]
-    if len(in_frame_all) > 1:
+    if len(in_frame_all) > 0:
         logging.info(
             f"  WARNING: {len(in_frame_all)} OCs/GCs in frame: "
             + f"[{glon_c:.3f}, {glat_c:.3f}], {plx_c:.3f}"
