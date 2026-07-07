@@ -37,13 +37,13 @@ def get_fastMP_membs(
     plx_c,
     N_clust,
     N_clust_max,
-    N_box,
+    box_size,
     frame_limit,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """ """
     # Obtain the full Gaia frame
     gaia_frame = get_gaia_frame(
-        logging, gaia_frames_data, fname0, ra_c, dec_c, plx_c, N_box, frame_limit
+        logging, gaia_frames_data, fname0, ra_c, dec_c, plx_c, box_size, frame_limit
     )
     # gaia_frame.to_csv("temp_clust.csv", index=False)
     # breakpoint()
@@ -93,7 +93,7 @@ def get_gaia_frame(
     ra_c,
     dec_c,
     plx_c,
-    N_box: float = np.nan,
+    box_size: float = np.nan,
     frame_limit: str = "",
     N_min_stars: int = 100,
     box_length_add: float = 0.5,
@@ -124,8 +124,8 @@ def get_gaia_frame(
     while True:
         # Get frame limits
         box_s, plx_min = get_frame_limits(fname0, plx_c, extra_length)
-        if not np.isnan(N_box):
-            box_s = box_s * N_box
+        if not np.isnan(box_size):
+            box_s = box_size
 
         # Request Gaia frame
         gaia_frame = query_run(

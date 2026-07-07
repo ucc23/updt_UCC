@@ -499,9 +499,8 @@ def member_files_updt(
         logging.info(f"\n{idx + 1}/{N_tot} Processing {fname0}")
 
         # Extract manual parameters if any
-        # N_clust, N_clust_max, N_box, frame_limit = np.nan, np.nan, np.nan, ""
-        N_clust, N_clust_max, N_box, frame_limit = cl_row[
-            ["N_clust", "N_clust_max", "N_box", "frame_limit"]
+        N_clust, N_clust_max, box_size, frame_limit = cl_row[
+            ["N_clust", "N_clust_max", "box_size", "frame_limit"]
         ]
         if isinstance(frame_limit, float) or frame_limit == "nan":
             frame_limit = ""
@@ -521,7 +520,7 @@ def member_files_updt(
             plx_c,
             N_clust,
             N_clust_max,
-            N_box,
+            box_size,
             frame_limit,
         )
 
