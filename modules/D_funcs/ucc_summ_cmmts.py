@@ -318,43 +318,91 @@ def fpars_summary(
 
     fpars_badges, fpars_badges_url = {}, {}
 
+    # (max_dist, max_diff)
+    d_thresholds = (
+        (0.5, 0.5),
+        (1, 0.75),
+        (2, 1),
+        (3, 1.5),
+        (5, 2),
+        (7, 2.5),
+        (9, 3),
+        (10, 3.5),
+        (1e6, 5),
+    )
+
+    d_ranges = (
+        (0.5, "Very close", (0, 0.5)),
+        (1, "Close", (0.5, 1)),
+        (3, "Relatively close", (1, 3)),
+        (5, "Distant", (3, 5)),
+        (10, "Very distant", (5, 10)),
+        (1e6, "Extremely distant", (10, 1e6)),
+    )
+
     dist_flag, fpars_note, dist_txt, dist_range = "", "", "", ""
     if "dist" in medians:
         plx_kpc = 1 / plx
-        dist_phot = medians["dist"]
-        max_d = max(plx_kpc, dist_phot)
-        rel_diff = abs(plx_kpc - dist_phot) / max_d
-        # Relax tolerance at small distances
-        # ratio_lim = 0.5 if (max_d < 0.5) else 0.3
-        # Linear ratio: 0.3 (≥0.5 kpc) to 0.5 (<0.5 kpc)
-        ratio_lim = 0.3 + 0.45 * np.clip(1 - max_d / 0.5, 0, 1)
-        if rel_diff > ratio_lim:
+        dist_phot_kpc = medians["dist"]
+        min_data_dist = min(plx_kpc, dist_phot_kpc)
+        dist_diff_kpc = abs(plx_kpc - dist_phot_kpc)
+        apply_d_flag = False
+        for max_dist, max_diff in d_thresholds:
+            # Check the range that corresponds to the minimum distance
+            if min_data_dist < max_dist:
+                # Check if the difference exceeds the maximum allowed difference for
+                # this range
+                apply_d_flag = dist_diff_kpc > max_diff
+                break
+
+        if apply_d_flag:
             dist_flag = "<sup><b>*</b></sup>"
             fpars_note = (
                 '<p class="note"><strong>(*):</strong> '
                 f"The parallax distance estimate (~{plx_kpc:.2f} kpc) "
                 "differs significantly from the median photometric distance "
-                f"(~{medians['dist']:.2f} kpc).</p>"
+                f"(~{dist_phot_kpc:.2f} kpc).</p>"
             )
 
-        if medians["dist"] < 0.5:
-            dist_txt = "Very close"
-            dist_range = (0, 0.5)
-        elif medians["dist"] < 1:
-            dist_txt = "Close"
-            dist_range = (0.5, 1)
-        elif medians["dist"] < 3:
-            dist_txt = "Relatively close"
-            dist_range = (1, 3)
-        elif medians["dist"] < 5:
-            dist_txt = "Distant"
-            dist_range = (3, 5)
-        elif medians["dist"] < 10:
-            dist_txt = "Very distant"
-            dist_range = (5, 10)
-        else:
-            dist_txt = "Extremely distant"
-            dist_range = (10, 1e6)
+        # max_d = max(plx_kpc, dist_phot)
+        # rel_diff = abs(plx_kpc - dist_phot) / max_d
+        # # Relax tolerance at small distances
+        # # ratio_lim = 0.5 if (max_d < 0.5) else 0.3
+        # # Linear ratio: 0.3 (≥0.5 kpc) to 0.5 (<0.5 kpc)
+        # ratio_lim = 0.3 + 0.45 * np.clip(1 - max_d / 0.5, 0, 1)
+        # if rel_diff > ratio_lim:
+        #     dist_flag = "<sup><b>*</b></sup>"
+        #     fpars_note = (
+        #         '<p class="note"><strong>(*):</strong> '
+        #         f"The parallax distance estimate (~{plx_kpc:.2f} kpc) "
+        #         "differs significantly from the median photometric distance "
+        #         f"(~{medians['dist']:.2f} kpc).</p>"
+        #     )
+
+        # if medians["dist"] < 0.5:
+        #     dist_txt = "Very close"
+        #     dist_range = (0, 0.5)
+        # elif medians["dist"] < 1:
+        #     dist_txt = "Close"
+        #     dist_range = (0.5, 1)
+        # elif medians["dist"] < 3:
+        #     dist_txt = "Relatively close"
+        #     dist_range = (1, 3)
+        # elif medians["dist"] < 5:
+        #     dist_txt = "Distant"
+        #     dist_range = (3, 5)
+        # elif medians["dist"] < 10:
+        #     dist_txt = "Very distant"
+        #     dist_range = (5, 10)
+        # else:
+        #     dist_txt = "Extremely distant"
+        #     dist_range = (10, 1e6)
+
+        for upper, label, interval in d_ranges:
+            if dist_phot_kpc < upper:
+                dist_txt = label
+                dist_range = interval
+                break
 
         fpars_badges["dist"] = dist_txt
         fpars_badges_url["dist"] = dist_range
@@ -563,7 +611,7 @@ def dupl_summary(shared_members_p, C_dup, C_dup_same_db, duplicate, dup_warn):
         return level(
             v,
             [0.9, 0.75, 0.5, 0.25],
-            ["very small", "small", "moderate", "significant", "<u>large</u>"]
+            ["very small", "small", "moderate", "significant", "<u>large</u>"],
         )
 
     # If this unique object contains shared members with other entries
