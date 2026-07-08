@@ -5,7 +5,6 @@ import sys
 
 import numpy as np
 import pandas as pd
-from scipy.spatial.distance import cdist
 
 from .C_funcs.classification import get_classif
 from .C_funcs.member_files_updt_funcs import (
@@ -101,7 +100,8 @@ def main():
     )
     if flag_membs_changed is True:
         logging.info(
-            f"Zenodo '{UCC_members_file}' file updated (N={len(df_members)}->{len(df_members_new)})\n"
+            f"Zenodo '{UCC_members_file}' file updated "
+            f"(N={len(df_members)}->{len(df_members_new)})\n"
         )
 
         # Check that the 'name' column on the members file matches the fnames
@@ -780,20 +780,20 @@ def update_membs_file(
 
 def find_shared_members(
     logging, df_UCC_C_new: pd.DataFrame, df_members_new: pd.DataFrame
-):
+) -> pd.DataFrame:
     """ """
     logging.info("Finding shared members...")
 
     # Find OCs that intersect. This helps to speed up the process
-    intersection_map = find_intersections(df_UCC_C_new, df_members_new)
+    intersection_map = find_intersections(df_members_new)
 
-    # Group members by 'fname'
+    # Group members by 'fname' (called 'name' in df_members_new)
     grouped = df_members_new.groupby("name")["Source"].apply(set)
     N_total = len(grouped)
     results = {
         "fname": grouped.keys().tolist(),
-        "shared_members": ["nan"] * N_total,
-        "shared_members_p": ["nan"] * N_total,
+        "shared_members": ["nan"] * N_total,  # Requires "nan" strings
+        "shared_members_p": ["nan"] * N_total,  # Requires "nan" strings
     }
 
     # Compute shared elements and percentages
@@ -833,6 +833,7 @@ def find_shared_members(
         raise ValueError("The 'fname' columns do not match in 'find_shared_members'")
 
     # Update data columns for shared members
+    df_UCC_C_new = df_UCC_C_new.reset_index(drop=True)
     df_UCC_C_new[["shared_members", "shared_members_p"]] = result_df[
         ["shared_members", "shared_members_p"]
     ]
@@ -841,46 +842,26 @@ def find_shared_members(
     return df_UCC_C_final
 
 
-def find_intersections(df_C: pd.DataFrame, df_members: pd.DataFrame):
-    """ """
-
-    # Find OCs that contain duplicated elements in any other OC
+def find_intersections(df_members: pd.DataFrame) -> dict:
+    """
+    Find OCs that share at least one member 'Source', regardless of
+    spatial separation between the OCs.
+    """
+    # Identify sources that appear in more than one row
     source_counts = df_members["Source"].value_counts()
     shared_sources = source_counts[source_counts > 1].index
-    ocs_w_shared_sources = df_members[df_members["Source"].isin(shared_sources)][
-        "name"
-    ].unique()
 
-    # Filter UCC df to only include OCs with shared sources
-    arr2_set = set(ocs_w_shared_sources)
-    msk = np.fromiter((x in arr2_set for x in df_C["fname"]), dtype=bool)
-    df_msk = df_C[msk]
+    # Restrict to only the rows carrying a shared source before grouping
+    df_shared = df_members[df_members["Source"].isin(shared_sources)]
 
-    # Compute pairwise distances
-    coords = df_msk[["GLON_m", "GLAT_m"]].to_numpy()
-    dists = cdist(coords, coords)
-    # The search region is two times the r_50 radius
-    radii = 2 * df_msk["r_50"].to_numpy(dtype=float) / 60
-    # Compute pairwise sum of radii
-    radii_sum = radii[:, None] + radii[None, :]
-    # Intersection condition: distance <= sum of radii
-    # Exclude only the diagonal (self-comparisons)
-    not_self = ~np.eye(len(dists), dtype=bool)
-    intersection_mask = (dists <= radii_sum) & not_self
+    # Now group only over the reduced set
+    source_to_ocs = df_shared.groupby("Source")["name"].apply(set)
 
-    # Extract intersecting names
-    names = np.array(df_msk["fname"])
-    results = []
-    for i, name in enumerate(names):
-        intersecting = names[intersection_mask[i]]
-        val = {}  # Empty set
-        if intersecting.size > 0:
-            val = set(intersecting)
-        results.append({"name": name, "intersects_with": val})
-
-    intersections = pd.DataFrame(results)
-
-    intersection_map = intersections.set_index("name")["intersects_with"].to_dict()
+    intersection_map: dict[str, set] = {}
+    for ocs in source_to_ocs:
+        if len(ocs) > 1:
+            for name in ocs:
+                intersection_map.setdefault(name, set()).update(ocs - {name})
 
     return intersection_map
 
@@ -1019,7 +1000,7 @@ def add_info_to_C(
     # the same DB. Replace with twice the C_dup_same_db value to avoid over-penalizing
     # entries that share members with other entries in the same DB.
     msk = C_dup_same_db < 0.5
-    C_dup[msk] = np.minimum(C_dup[msk], 2*C_dup_same_db[msk])
+    C_dup[msk] = np.minimum(C_dup[msk], 2 * C_dup_same_db[msk])
 
     # Final UTI
     UTI = np.clip(0.2 * (C_N_membs + C_dens + C_C3 + 2 * C_lit) * C_dup, 0, 1)
