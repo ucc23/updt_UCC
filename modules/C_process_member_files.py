@@ -997,10 +997,9 @@ def add_info_to_C(
 
     # Replace 'C_dup' values with a smaller value only when 'C_dup_same_db<0.5', ie:
     # only entries that share a significant fraction of members with other entries in
-    # the same DB. Replace with twice the C_dup_same_db value to avoid over-penalizing
-    # entries that share members with other entries in the same DB.
+    # the same DB.
     msk = C_dup_same_db < 0.5
-    C_dup[msk] = np.minimum(C_dup[msk], 2 * C_dup_same_db[msk])
+    C_dup[msk] = np.minimum(C_dup[msk], C_dup_same_db[msk])
 
     # Final UTI
     UTI = np.clip(0.2 * (C_N_membs + C_dens + C_C3 + 2 * C_lit) * C_dup, 0, 1)
