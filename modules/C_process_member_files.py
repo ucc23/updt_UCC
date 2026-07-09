@@ -870,6 +870,7 @@ def add_info_to_C(
     current_JSON: dict,
     df_UCC_B: pd.DataFrame,
     df_UCC_C: pd.DataFrame,
+    N_memb_min=10,
     max_dens=5,
     N_lit_min=2,
     C_lit_perc_max=0.5,
@@ -888,10 +889,10 @@ def add_info_to_C(
 
     N_membs = df_UCC_C["N_membs"].to_numpy(dtype=float)
     C_N_membs = np.ones(len(N_membs))
-    C_N_membs[N_membs < 25] = 0.0
+    C_N_membs[N_membs < N_memb_min] = 0.0
     # Define intervals and mapping ranges
-    bounds = (0.25, 0.5, 0.75, 0.9)
-    Nvals = (25, 50, 100, 500)
+    bounds = (0.05, 0.2, 0.5, 0.75, 0.9)
+    Nvals = (N_memb_min, 25, 50, 100, 500)
     for i in range(1, len(bounds)):
         normalize(N_membs, C_N_membs, Nvals[i - 1], Nvals[i], bounds[i - 1], bounds[i])
 
