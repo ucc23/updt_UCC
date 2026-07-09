@@ -535,7 +535,7 @@
   },
   "KRONBERGER2006": {
     "SCIX_url": "https://scixplorer.org/abs/2006A%26A...447..921K",
-    "data_cmmts": "data",
+    "data_cmmts": "data,comments",
     "citations_count": {
       "date": "2026-02-10",
       "count": "133",
