@@ -439,7 +439,6 @@ def updt_ucc_cluster_plots(
             UCC_cl["plot_used"] == "n" and Path(temp_aladin_path).is_file() is False
         ):
             ucc_plots.plot_aladin(
-                logging,
                 UCC_cl["RA_ICRS_m"],
                 UCC_cl["DE_ICRS_m"],
                 UCC_cl["r_50"],
