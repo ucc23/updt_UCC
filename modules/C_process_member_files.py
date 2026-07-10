@@ -877,7 +877,7 @@ def add_info_to_C(
 ):
     """
 
-    max_dens: stellar density above which C_dens=1
+    max_dens: stellar density [pc^-2] above which C_dens=1
     C_lit_perc_max: mid-point (above this C_lit=1)
     N_lit_min: min-point (below this C_lit=0)
 
@@ -891,7 +891,7 @@ def add_info_to_C(
     C_N_membs = np.ones(len(N_membs))
     C_N_membs[N_membs < N_memb_min] = 0.0
     # Define intervals and mapping ranges
-    bounds = (0.05, 0.2, 0.5, 0.75, 0.9)
+    bounds = (0.05, 0.1, 0.5, 0.75, 0.9)
     Nvals = (N_memb_min, 25, 50, 100, 500)
     for i in range(1, len(bounds)):
         normalize(N_membs, C_N_membs, Nvals[i - 1], Nvals[i], bounds[i - 1], bounds[i])
