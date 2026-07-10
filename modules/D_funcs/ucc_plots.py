@@ -1,8 +1,9 @@
+import io
 import warnings
-from urllib.parse import urlencode
 
 import matplotlib.pyplot as plt
 import numpy as np
+import requests
 from astropy import units as u
 from astropy.coordinates import Galactocentric, SkyCoord
 from astropy.io import fits
@@ -361,12 +362,18 @@ def plot_aladin(
     r_50,
     plot_aladin_fpath,
     dpi=100,
+    timeout=15,
 ):
-    """ """
+    """
+    Generate an Aladin plot for the given RA, Dec, and radius (r_50) and save it to
+    the specified file path.
+    """
     plt.style.use("default")
 
+    # Convert the radius from arcminutes to degrees and double it for the field of view
     rad_deg = round(2 * (r_50 / 60.0), 3)
-    query_params = {
+
+    aladin_params = {
         "hips": "P/DSS2/color",
         "ra": ra,
         "dec": dec,
@@ -374,17 +381,45 @@ def plot_aladin(
         "width": 350,
         "height": 245,
     }
+    aladin_url = "https://alasky.u-strasbg.fr/hips-image-services/hips2fits"
 
-    try:
-        url = f"http://alasky.u-strasbg.fr/hips-image-services/hips2fits?{urlencode(query_params)}"
-        hdul = fits.open(url)
-        rotated_img = ndimage.rotate(hdul[0].data.T, 90)
-    except Exception as e:
-        logging.error(f"Error generating Aladin plot for {plot_aladin_fpath}: {e}")
+    skyview_params = {
+        "Position": f"{ra},{dec}",
+        "Coordinates": "J2000",
+        "Survey": "DSS2 IR",
+        "Pixels": "350,254",
+        "Size": rad_deg,
+        "Return": "FITS",
+    }
+    skyview_url = "https://skyview.gsfc.nasa.gov/current/cgi/runquery.pl"
+
+    errors = []
+    for url, params in [(aladin_url, aladin_params), (skyview_url, skyview_params)]:
+        try:
+            resp = requests.get(url, params=params, timeout=timeout)
+            resp.raise_for_status()
+            break
+        except Exception as e:
+            errors.append(f"{e}")
+
+    if errors:
+        raise ValueError(
+            f"Error generating plot for {plot_aladin_fpath}: {'; '.join(errors)}"
+        )
+
+    with fits.open(io.BytesIO(resp.content)) as hdul:
+        img_data = hdul[0].data.copy()
+    img_data = ndimage.rotate(img_data.T, 90)
 
     fig, ax = plt.subplots()
-    plt.imshow(rotated_img)
-    plt.axis("off")
+
+    if "alasky" in url:
+        ax.imshow(img_data)
+    else:
+        logging.warning(f"Using SkyView instead of Aladin for {plot_aladin_fpath}.")
+        ax.imshow(img_data, cmap="gray")
+
+    ax.axis("off")
 
     if rad_deg >= 1:
         fov = str(round(rad_deg, 1)) + "º"
@@ -407,12 +442,74 @@ def plot_aladin(
     )
     t.set_bbox(dict(facecolor="white", alpha=0.75, linewidth=0))
 
-    plt.scatter(0.5, 0.5, marker="+", s=400, color="#B232B2", transform=ax.transAxes)
+    ax.scatter(0.5, 0.5, marker="+", s=400, color="#B232B2", transform=ax.transAxes)
 
     plt.savefig(plot_aladin_fpath, dpi=dpi, bbox_inches="tight", pad_inches=0.0)
-    # https://stackoverflow.com/a/65910539/1391441
-    fig.clear()
     plt.close(fig)
+
+
+# def plot_aladin(
+#     ra,
+#     dec,
+#     r_50,
+#     plot_aladin_fpath,
+#     dpi=100,
+#     survey="DSS2 IR",
+#     timeout=15,
+# ):
+#     """ """
+#     plt.style.use("default")
+#     rad_deg = round(2 * (r_50 / 60.0), 3)
+
+#     params = {
+#         "Position": f"{ra},{dec}",
+#         "Coordinates": "J2000",
+#         "Survey": survey,
+#         "Pixels": "350,245",
+#         "Size": rad_deg,
+#         "Return": "FITS",
+#     }
+#     url = "https://skyview.gsfc.nasa.gov/current/cgi/runquery.pl"
+
+#     try:
+#         resp = requests.get(url, params=params, timeout=timeout)
+#         resp.raise_for_status()
+#         with fits.open(io.BytesIO(resp.content)) as hdul:
+#             img_data = hdul[0].data.copy()
+#     except Exception as e:
+#         raise ValueError(
+#             f"Error generating SkyView plot for {plot_aladin_fpath}: {e}"
+#         ) from e
+
+#     rotated_img = ndimage.rotate(img_data.T, 90)
+
+#     fig, ax = plt.subplots()
+#     ax.imshow(rotated_img, cmap="gray", origin="lower")
+#     ax.axis("off")
+
+#     if rad_deg >= 1:
+#         fov = str(round(rad_deg, 1)) + "º"
+#     else:
+#         fov = str(round(rad_deg * 60, 1)) + "'"
+
+#     t = ax.text(
+#         0.015, 0.02, f"FoV: {fov}", fontsize=14, color="blue", transform=ax.transAxes
+#     )
+#     t.set_bbox(dict(facecolor="grey", alpha=0.75, linewidth=0))
+#     t = ax.text(
+#         0.56,
+#         0.02,
+#         "Click to load Aladin",
+#         fontsize=14,
+#         color="red",
+#         weight="bold",
+#         transform=ax.transAxes,
+#     )
+#     t.set_bbox(dict(facecolor="white", alpha=0.75, linewidth=0))
+#     ax.scatter(0.5, 0.5, marker="+", s=400, color="#B232B2", transform=ax.transAxes)
+
+#     fig.savefig(plot_aladin_fpath, dpi=dpi, bbox_inches="tight", pad_inches=0.0)
+#     plt.close(fig)
 
 
 def make_N_vs_year_plot(file_out_name, df_UCC, fontsize=7, dpi=300):
