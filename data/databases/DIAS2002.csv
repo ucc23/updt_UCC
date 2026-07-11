@@ -481,7 +481,6 @@
 "NGC 2420","07 38 23","+21 34 24",198.1071,19.634,"nan",5.0,3085.0,0.029,"nan",9.048,"nan","nan","nan","nan","nan","nan","nan","nan",84.0,13.0,5.0," F89",-0.266,0.07,19.0,114.59579,21.57335
 "Melotte 72","07 38 24","-10 41 00",227.8411,5.3607,"nan",5.0,"nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan",114.60003,-10.68334
 "Arp-Madore 2","07 38 46","-33 50 36",248.1254,-5.8762,"nan",2.0,13341.0,0.57,"nan",9.335,"nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan",114.69169,-33.84328
-"Collinder 467","07 39 18","-10 33 00",227.8314,5.6187," nf",2.0,"nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan",114.82496,-10.55
 "NGC 2428","07 39 21","-16 31 42",233.0711,2.714," n",12.0,"nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan",114.83753,-16.52834
 "Ruprecht 28","07 39 36","-30 56 00",245.657,-4.3096," nf",5.0,"nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan",114.89999,-30.93331
 "NGC 2430","07 39 41","-16 17 48",232.9082,2.8972," n",15.0,"nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan",114.9208,-16.29671
@@ -780,8 +779,6 @@
 "Trumpler 14","10 43 56","-59 33 00",287.4081,-0.5774," v",5.0,2733.0,0.516,"nan",6.828,-7.25,0.64,2.69,0.52,-7.66,-1.03,1.0," BDW","nan","nan","nan","nan","nan","nan","nan",160.98337,-59.55005
 "Trumpler 15","10 44 43","-59 22 00",287.41,-0.3688," v",14.0,1853.0,0.434,"nan",6.926,-7.71,1.03,3.26,0.78,-8.34,-0.72,1.0," BDW","nan","nan","nan","nan","nan","nan","nan",161.17907,-59.36668
 "Trumpler 16","10 44 58","-59 43 00",287.6015,-0.6635," v",10.0,2673.0,0.493,"nan",6.788,"nan","nan","nan","nan","nan","nan","nan","nan",-20.0,5.0,"nan"," RGDZ","nan","nan","nan",161.24161,-59.71669
-"Collinder 232","10 44 59","-59 33 00",287.5256,-0.5151,"nan",4.0,2996.0,0.57,"nan",6.67,"nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan",161.24578,-59.55002
-"Collinder 234","10 45 21","-59 45 00",287.6598,-0.6704,"nan",4.0,"nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan",161.33757,-59.74996
 "Bochum 11","10 47 15","-60 05 00",288.025,-0.856,"nan",21.0,2412.0,0.576,"nan",6.764,"nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan",161.81245,-60.08333
 "Ruprecht 91","10 47 30","-57 28 00",286.8536,1.4841,"nan",2.0,"nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan",161.87491,-57.46666
 "ESO 437-61","10 48 03","-29 23 24",273.0614,26.2301," p",5.0,"nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan",162.01249,-29.38995
@@ -1163,8 +1160,6 @@
 "Dutra-Bica 44","17 46 35","-24 53 24",3.5686,1.9202,"nan",0.8,"nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan",266.6458,-24.89004
 "NGC 6425","17 47 01","-31 31 48",357.9403,-1.6055,"nan",10.0,778.0,0.399,"nan",7.347,3.11,2.64,-2.79,1.54,-0.78,-4.11,1.0," BDW","nan","nan","nan","nan","nan","nan","nan",266.75421,-31.52999
 "Dutra-Bica 4","17 47 06","-28 46 54",0.3004,-0.1966,"nan",0.6,"nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan",266.77503,-28.7817
-"Dutra-Bica 5","17 47 07","-28 46 06",0.3137,-0.1928,"nan",0.4,"nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan",266.77918,-28.76836
-"Dutra-Bica 6","17 47 10","-28 46 24",0.3151,-0.2047,"nan",0.7,"nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan",266.79162,-28.77333
 "Ruprecht 129","17 47 18","-29 37 00",359.6088,-0.6666,"nan",4.0,"nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan",266.82501,-29.61674
 "Dutra-Bica 45","17 47 18","-24 53 12",3.6557,1.7829,"nan",1.5,"nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan",266.82498,-24.88668
 "Ruprecht 130","17 47 32","-30 06 00",359.2215,-0.96,"nan",3.0,2100.0,1.2,"nan",7.7,"nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan","nan",266.8833,-30.09995
