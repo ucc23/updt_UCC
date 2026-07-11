@@ -90,8 +90,13 @@ naming_order = (
     "vdbh",  # 1975
     "bochum",  # 1975 after vdbh
 )
-# Exceptions to the naming order, where the value is preferred over the key
-naming_order_exceptions = {"ngc2467east": "haffner18", "ngc6334iv": "bdsb97"}
+# Exceptions to the naming order, these should be the canonical fnames
+naming_order_exceptions = {
+    "haffner18",
+    "bdsb97",
+    "monob1d",
+}
+
 
 # Manual hierarchy of databases for selecting coordinates, smaller is preferred
 # DBs not mentioned here inherit a default value of max()/2 = 500

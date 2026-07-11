@@ -30,12 +30,12 @@ from .variables import (
     c_Evi,
     c_z_sun,
     data_folder,
-    naming_order_exceptions,
     dbs_folder,
     fpars_order,
     merged_dbs_file,
     name_DBs_json,
     naming_order,
+    naming_order_exceptions,
     selected_centers_f,
     temp_folder,
 )
@@ -1704,14 +1704,11 @@ def sort_year_importance(new_JSON: dict, df_UCC_B: pd.DataFrame) -> pd.DataFrame
         names = [names[i] for i in i_imp]
 
         # Check for order exceptions
-        if fnames[0] in naming_order_exceptions:
-            new_fname0 = naming_order_exceptions[fnames[0]]
-            i_exc = fnames.index(new_fname0)
-            new_name0 = names[i_exc]
-            fnames.pop(i_exc)
-            names.pop(i_exc)
-            fnames.insert(0, new_fname0)
-            names.insert(0, new_name0)
+        for i, fname in enumerate(fnames):
+            if fname in naming_order_exceptions:
+                fnames.insert(0, fnames.pop(i))
+                names.insert(0, names.pop(i))
+                break
 
         # Single-pass deduplication for fnames/names
         seen_fnames = set()
