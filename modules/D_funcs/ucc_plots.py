@@ -402,10 +402,11 @@ def plot_aladin(
         except Exception as e:
             errors.append(f"{e}")
 
-    if errors:
-        raise ValueError(
-            f"Error generating plot for {plot_aladin_fpath}: {'; '.join(errors)}"
-        )
+    if len(errors) > 1:
+        logging.warning(f"Error generating plot for {plot_aladin_fpath}:")
+        for error in errors:
+            logging.warning("    " + error)
+        raise ValueError("Failed to generate plot")
 
     with fits.open(io.BytesIO(resp.content)) as hdul:
         img_data = hdul[0].data.copy()
