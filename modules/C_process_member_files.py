@@ -883,6 +883,7 @@ def add_info_to_C(
 
     """
 
+    # def test(bounds, Nvals):
     def normalize(N, arr, Nmin, Nmax, vmin, vmax):
         msk2 = (N >= Nmin) & (N < Nmax)
         arr[msk2] = vmin + ((N[msk2] - Nmin) / (Nmax - Nmin)) * (vmax - vmin)
@@ -891,8 +892,10 @@ def add_info_to_C(
     C_N_membs = np.ones(len(N_membs))
     C_N_membs[N_membs < N_memb_min] = 0.0
     # Define intervals and mapping ranges
-    bounds = (0.05, 0.1, 0.5, 0.75, 0.9)
-    Nvals = (N_memb_min, 25, 50, 100, 500)
+    # bounds = (0.05, 0.1, 0.5, 0.75, 0.9)
+    # Nvals = (N_memb_min, 25, 50, 100, 500)
+    bounds = (0., 0.05, 0.5, 0.75, 0.9)
+    Nvals = (5,  20, 50, 75, 100)
     for i in range(1, len(bounds)):
         normalize(N_membs, C_N_membs, Nvals[i - 1], Nvals[i], bounds[i - 1], bounds[i])
 
@@ -1014,6 +1017,26 @@ def add_info_to_C(
     df_UCC_C["C_dup_same_db"] = np.round(C_dup_same_db, 2)
     df_UCC_C["P_dup"] = np.round(1 - df_UCC_C["C_dup"], 2)
     df_UCC_C["UTI"] = np.round(UTI, 2)
+
+        # return C_N_membs, UTI
+
+    # bounds = (0.0, 0.05, 0.1, 0.5, 0.75, 0.9)
+    # Nvals = (5, 10, 25, 50, 75, 100)
+    # import matplotlib.pyplot as plt
+    # while True:
+    #     C_N_membs, UTI = test(bounds, Nvals)
+    #     plt.subplot(121)
+    #     # plt.scatter(C_N_membs, UTI, alpha=.5)
+    #     plt.hist(C_N_membs, 20)
+    #     plt.subplot(122)
+    #     # plt.scatter(df_UCC_C["UTI"], df_UCC_C["UTI"]-UTI, alpha=.5)
+    #     plt.hist(UTI, 20)
+    #     plt.show()
+    #     breakpoint()
+
+    # import matplotlib.pyplot as plt
+    # plt.scatter(df_UCC_C["UTI"], df_UCC_C["UTI"]-UTI, alpha=.5)
+    # plt.show()
 
     # All entries are by default "good" entries
     df_UCC_C["bad_oc"] = "n"
@@ -1388,6 +1411,7 @@ def move_files(
                 )
             )
     # WEBP removals
+    rename_warnings = []
     for root, dirs, files in os.walk(root_ucc_path + plots_folder):
         dirs[:] = [d for d in dirs if d != ".git"]
         for name in files:
@@ -1405,15 +1429,15 @@ def move_files(
                         new_root = f"{prefix}plots_{new_fname[0]}/{suffix}"
                         new_fpath = os.path.join(new_root, new_fname + ".webp")
                         if os.path.exists(new_fpath):
-                            logging.warning(
+                            rename_warnings.append(
                                 f"File '{new_fname}.webp' already exists in '{root}'. "
                                 f"Cannot rename '{webpname}.webp'"
                             )
                         else:
-                            logging.warning(
-                                f"File '{new_fname}.webp' does not exist in '{root}'. "
-                                f"Rename '{webpname}.webp' --> '{new_fname}.webp'"
-                            )
+                            # logging.warning(
+                            #     f"File '{new_fname}.webp' does not exist in '{root}'. "
+                            #     f"Rename '{webpname}.webp' --> '{new_fname}.webp'"
+                            # )
                             post_actions.append(("rename", old_fpath, new_fpath))
                 else:
                     post_actions.append(("remove", old_fpath, None))
@@ -1421,6 +1445,11 @@ def move_files(
     if not post_actions:
         logging.info("No changes to make.")
         return
+
+    if rename_warnings:
+        logging.warning("\n=== RENAME WARNINGS ===")
+        for warning in rename_warnings:
+            logging.warning(warning)
 
     # Print actions and ask for confirmation
     logging.info("\n=== ACTIONS ===")
