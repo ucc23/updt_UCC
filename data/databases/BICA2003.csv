@@ -131,7 +131,6 @@
 "RMC-7, IRAS 06329+0401",207.57,-1.71,"06 35 32","+03 58 52",2.6,1.7,"RMC-7,IRAS06329+0401 Cl","IRC","m8 in Rosette Molec Cl d=1.6 eFIR=1.5 LD=1.2","002",98.88473,3.98656
 "OMC-2",208.82,-19.25,"05 35 25","-05 10 16",2.0,1.7,"OMC-2 Cluster","IRC","mT in OMC-2 d=0.5  eFIR=11.4 LD=0.3","008, 028",83.85677,-5.1685
 "Orion Nebula,OCl-528,OriOB1C",208.97,-19.35,"05 35 21","-05 20 29",70.0,40.0,"Orion Nebula Cluster,OCl-528,OriOB1C","IRC","Opt/IR in Orion Neb  d=0.48  t=3  eFIR=47.2 LD=10","024, 032",83.83163,-5.34001
-"Trapezium",209.01,-19.36,"05 35 20","-05 23 09",5.0,3.0,"Trapezium Cluster","IRC","Opt/IR  mT core of Orion Neb Cl,in Orion Neb  d=0.5 eFIR=49.7 LD=0.7","029",83.83983,-5.37819
 "Morgan 8",210.12,-19.6,"05 36 24","-06 24 56",1.5,1.5,"Morgan 8 IR Cluster","IRC","mP m9 rel neb Ber120,in LDN1641 d=0.5 eFIR=2.2 LD=0.2","008",84.09742,-6.42079
 "KMS35",210.8,-19.5,"05 37 53","-06 57 14",5.0,5.0,"KMS35 IR Cluster,V592 Ori IR Cluster","IRC","m9 in LDN1641 d=0.5 eFIR=3.1 LD=0.6","056, 032",84.47503,-6.94991
 "LDN1641C",210.97,-19.33,"05 38 47","-07 01 40",7.0,5.0,"LDN1641C Cluster,LDN1641 Center Cl","IRC","mP m9 IR Cl in LDN1641  d=0.5 eFIR=4.6 LD=0.7","008, 056, 032",84.70021,-7.01811
