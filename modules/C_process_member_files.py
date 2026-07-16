@@ -18,6 +18,7 @@ from .utils import (
     load_BC_cats,
     logger,
     normalize_name,
+    round_columns,
     save_df_UCC,
 )
 from .variables import (
@@ -870,7 +871,7 @@ def add_info_to_C(
     current_JSON: dict,
     df_UCC_B: pd.DataFrame,
     df_UCC_C: pd.DataFrame,
-    N_memb_min: int = 10,
+    N_memb_min: int = 5,
     max_dens: float = 5.0,
     N_lit_min: int = 2,
     C_lit_perc_max: float = 0.5,
@@ -900,7 +901,7 @@ def add_info_to_C(
         Catalogue table containing literature information.
     df_UCC_C : pandas.DataFrame
         Catalogue table containing cluster properties.
-    N_memb_min : int, default=10
+    N_memb_min : int, default=5
         Number of members below which C_N is forced to zero.
     max_dens : float, default=5
         Core stellar density (pc^-2) corresponding to C_dens = 1.
@@ -916,7 +917,6 @@ def add_info_to_C(
         UTI, and bad-object flag added.
     """
 
-    # def test(bounds, Nvals):
     def normalize(N, arr, Nmin, Nmax, vmin, vmax):
         msk2 = (N >= Nmin) & (N < Nmax)
         arr[msk2] = vmin + ((N[msk2] - Nmin) / (Nmax - Nmin)) * (vmax - vmin)
@@ -928,7 +928,7 @@ def add_info_to_C(
     C_N_membs[N_membs < N_memb_min] = 0.0
     # Define intervals and mapping ranges
     bounds = (0.0, 0.05, 0.5, 0.75, 0.9)
-    Nvals = (5, 20, 50, 75, 100)
+    Nvals = (N_memb_min, 20, 50, 75, 100)
     for i in range(1, len(bounds)):
         normalize(N_membs, C_N_membs, Nvals[i - 1], Nvals[i], bounds[i - 1], bounds[i])
 
@@ -939,8 +939,13 @@ def add_info_to_C(
     #
     # C_C3
     C3 = df_UCC_C["C3"].to_numpy(dtype=str)
-    vals = {"A": 1, "B": 0.5, "C": 0.25, "D": 0}
-    C_C3 = np.array([vals[a[0]] + vals[a[1]] for a in C3], dtype=float) * 0.5
+    C3_SCORE = {
+        "A": 1.00,
+        "B": 0.50,
+        "C": 0.25,
+        "D": 0.00,
+    }
+    C_C3 = np.array([C3_SCORE[a[0]] + C3_SCORE[a[1]] for a in C3], dtype=float) * 0.5
 
     #
     # C_lit
@@ -959,17 +964,23 @@ def add_info_to_C(
 
     #
     # C_dup
+    # Estimate duplication probability by comparing each cluster with all
+    # clusters sharing members. Older publications take precedence over newer
+    # ones; publication received dates are used to break ties.
     # C_dup indicates the confidence that an entry is a duplicate of a previously
     # reported object. A value of 1 means not at all a duplicate
     #
-    # Extract the first DB and year of publication for each entry (assumes the DBs
-    # are already ordered by year)
+
+    # Extract the first DB, year of publication and canonical fname for each entry
+    # (assumes the DBs are already ordered by year)
     dbs = [_.split(";")[0] for _ in df_UCC_B["DB"]]
     f_year = [int(_.split("_")[0][-4:]) for _ in dbs]
-    # Extract canonical fname
     fnames = df_UCC_B["fname"]
     # Map years and dbs to canonical fnames
-    fname_db_to_year = {name: [year, db] for name, year, db in zip(fnames, f_year, dbs)}
+    # fname_db_to_year = {name: [year, db] for name, year, db in zip(fnames, f_year, dbs)}
+    fname_to_db_info = {
+        name: {"year": year, "db": db} for name, year, db in zip(fnames, f_year, dbs)
+    }
 
     C_dup = [100.0] * len(df_UCC_C)
     C_dup_same_db = [100.0] * len(df_UCC_C)
@@ -984,11 +995,18 @@ def add_info_to_C(
         shared_members = cl["shared_members"].split(";")
         fyears_shared, dbs_shared = [], []
         for s in shared_members:
-            fyears_shared.append(fname_db_to_year[s][0])
-            dbs_shared.append(fname_db_to_year[s][1])
+            info = fname_to_db_info.get(s, {})
+            fyears_shared.append(info["year"])
+            dbs_shared.append(info["db"])
+            # fyears_shared.append(fname_db_to_year[s][0])
+            # dbs_shared.append(fname_db_to_year[s][1])
 
-        # Year of publication of 'cl'
-        f_year_cl = f_year[idx]
+        # # Year of publication of 'cl'
+        # f_year_cl = f_year[idx]
+        # Publication details of 'cl'
+        cl_info = fname_to_db_info.get(cl["fname"], {})
+        f_year_cl = cl_info["year"]
+        db_cl = cl_info["db"]
 
         if min(fyears_shared) > f_year_cl:
             # All entries that share members with 'cl' where published *after* 'cl',
@@ -1000,29 +1018,33 @@ def add_info_to_C(
         shared_members_p = list(map(float, cl["shared_members_p"].split(";")))
 
         # Date when the initial article for  'cl' was received for publication
-        date_received_cl = int(current_JSON[dbs[idx]]["received"])
+        date_received_cl = int(current_JSON[db_cl]["received"])
 
-        shared_p = {"n": 0.0, "y": 0.0}
+        shared_p = {"other_db": 0.0, "same_db": 0.0}
         for j, f_year_shared in enumerate(fyears_shared):
             if f_year_cl > f_year_shared:
                 # If 'cl' is more recent than this entry, 'cl' is the duplicate
-                shared_p["n"] = max(shared_p["n"], shared_members_p[j])
+                shared_p["other_db"] = max(shared_p["other_db"], shared_members_p[j])
             elif f_year_cl == f_year_shared:
                 # If the years are equal, use the received date to disambiguate
                 date_received_shared = int(current_JSON[dbs_shared[j]]["received"])
                 if date_received_cl > date_received_shared:
                     # If 'cl' is more recent than this entry, 'cl' is the duplicate
-                    shared_p["n"] = max(shared_p["n"], shared_members_p[j])
+                    shared_p["other_db"] = max(
+                        shared_p["other_db"], shared_members_p[j]
+                    )
                 elif date_received_cl == date_received_shared:
-                    if dbs[idx] == dbs_shared[j]:
+                    if db_cl == dbs_shared[j]:
                         # These entries share members AND they belong to the same DB
-                        shared_p["y"] = max(shared_p["y"], shared_members_p[j])
+                        shared_p["same_db"] = max(
+                            shared_p["same_db"], shared_members_p[j]
+                        )
                     else:
                         # This should never happen
                         raise ValueError(
                             f"({idx}) {cl['fname']} & {shared_members[j]} share members "
                             f"and a publication date ({date_received_cl}), but are "
-                            f"mentioned in different DBs ({dbs[idx], dbs_shared[j]}). "
+                            f"mentioned in different DBs ({db_cl, dbs_shared[j]}). "
                             "This makes it impossible to disambiguate which one is the "
                             "duplicate of the other."
                         )
@@ -1031,13 +1053,13 @@ def add_info_to_C(
             #     f_year_cl < f_year_shared
             #     'cl' cannot be a duplicate of it
 
-        if shared_p["n"] > 0.0:
+        if shared_p["other_db"] > 0.0:
             # At least one entry that shares members with 'cl' belongs to a
             # different DB
-            C_dup[idx] -= shared_p["n"]
-        if shared_p["y"] > 0.0:
+            C_dup[idx] -= shared_p["other_db"]
+        if shared_p["same_db"] > 0.0:
             # All entries that share members with 'cl' belong to the same DB
-            C_dup_same_db[idx] -= shared_p["y"]
+            C_dup_same_db[idx] -= shared_p["same_db"]
 
     C_dup = np.array(C_dup) / 100
     C_dup_same_db = np.array(C_dup_same_db) / 100
@@ -1310,6 +1332,7 @@ def updt_zenodo_csv(
     flag_zen_cat_changed = not old_zenodo_cat.equals(zenodo_UCC_cat)
     if flag_zen_cat_changed:
         # Store to csv file
+        zenodo_UCC_cat = round_columns(zenodo_UCC_cat)
         zenodo_UCC_cat.to_csv(
             file_path,
             na_rep="nan",

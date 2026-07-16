@@ -322,15 +322,12 @@ def diff_between_dfs(
     add_context=True,
 ) -> bool:
     """
-    Order by (lon, lat) and change NaN as "nan".
-
     Compare two DataFrames, find non-matching rows while preserving order, and
     output these rows in two files.
 
     Args:
         df_old (pd.DataFrame): First DataFrame to compare.
         df_new (pd.DataFrame): Second DataFrame to compare.
-        cols_exclude (list | None): List of columns to exclude from the diff
     """
 
     def get_clean_context_rows(source_rows, diff_indices):
