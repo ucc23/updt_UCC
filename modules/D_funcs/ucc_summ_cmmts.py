@@ -569,24 +569,27 @@ def fpars_summary(
     return fpars_summ, fpars_note, fpars_badges, fpars_badges_url
 
 
-def lit_summary(current_year, cl_DB, literature, year_gap=3) -> str:
+def lit_summary(
+    current_year, cl_DB, literature, year_gap_recent=3, year_gap_old=5
+) -> str:
     """ """
+    # cl_DB is sorted by year, so the first and last articles can be extracted
     parts = cl_DB.split(";")
-    first_lit_year = int(parts[0].split("_")[0][-4:])
-    last_lit_year = int(parts[-1].split("_")[0][-4:])
+    oldest_lit_year = int(parts[0].split("_")[0][-4:])
+    newest_lit_year = int(parts[-1].split("_")[0][-4:])
 
-    years_gap_first = current_year - first_lit_year
-    years_gap_last = current_year - last_lit_year
+    years_gap_first = current_year - oldest_lit_year
+    years_gap_last = current_year - newest_lit_year
 
-    if years_gap_first <= year_gap:
-        # The FIRST article associated to this entry is recent
+    if years_gap_first <= year_gap_recent:
+        # EARLIEST publication is considered recent: newly reported cluster
         modifier = ""
         if literature in ("well-studied", "moderately studied"):
-            modifier = f"but it is {literature} "
+            modifier = f"and it is {literature} "
         return f"It was recently reported {modifier}in the literature."
-    elif years_gap_last > 5:
-        # The FIRST article associated to this entry is NOT recent and
-        # this is an OC that has not been revisited in a while
+
+    if years_gap_last > year_gap_old:
+        # LATEST publication is old: cluster has not been revisited recently
         return (
             f"It is {literature} in the literature, with no articles "
             f"listed in the last {years_gap_last} years."

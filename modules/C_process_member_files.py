@@ -870,17 +870,50 @@ def add_info_to_C(
     current_JSON: dict,
     df_UCC_B: pd.DataFrame,
     df_UCC_C: pd.DataFrame,
-    N_memb_min=10,
-    max_dens=5,
-    N_lit_min=2,
-    C_lit_perc_max=0.5,
-):
+    N_memb_min: int = 10,
+    max_dens: float = 5.0,
+    N_lit_min: int = 2,
+    C_lit_perc_max: float = 0.5,
+) -> pd.DataFrame:
     """
+    Compute quality metrics and the Unified Trust Index (UTI) for all catalogue
+    entries.
 
-    max_dens: stellar density [pc^-2] above which C_dens=1
-    C_lit_perc_max: mid-point (above this C_lit=1)
-    N_lit_min: min-point (below this C_lit=0)
+    The following normalized metrics are computed:
 
+    - C_N: confidence based on the number of members.
+    - C_dens: confidence based on projected core stellar density.
+    - C_C3: confidence derived from the C3 classification.
+    - C_lit: confidence based on literature coverage.
+    - C_dup: confidence that the entry is *not* a duplicate.
+    - UTI: overall quality score combining the previous metrics.
+
+    Duplicate confidence is estimated by comparing publication dates and member
+    overlap with other catalogue entries.
+
+    Parameters
+    ----------
+    current_JSON : dict
+        Literature metadata indexed by database name. Each entry must contain a
+        "received" publication date.
+    df_UCC_B : pandas.DataFrame
+        Catalogue table containing literature information.
+    df_UCC_C : pandas.DataFrame
+        Catalogue table containing cluster properties.
+    N_memb_min : int, default=10
+        Number of members below which C_N is forced to zero.
+    max_dens : float, default=5
+        Core stellar density (pc^-2) corresponding to C_dens = 1.
+    N_lit_min : int, default=2
+        Number of literature references below which C_lit is zero.
+    C_lit_perc_max : float, default=0.5
+        Fraction of the maximum literature coverage corresponding to C_lit = 1.
+
+    Returns
+    -------
+    pandas.DataFrame
+        df_UCC_C with the quality metrics, duplication statistics,
+        UTI, and bad-object flag added.
     """
 
     # def test(bounds, Nvals):
@@ -888,25 +921,29 @@ def add_info_to_C(
         msk2 = (N >= Nmin) & (N < Nmax)
         arr[msk2] = vmin + ((N[msk2] - Nmin) / (Nmax - Nmin)) * (vmax - vmin)
 
+    #
+    # C_N_membs
     N_membs = df_UCC_C["N_membs"].to_numpy(dtype=float)
     C_N_membs = np.ones(len(N_membs))
     C_N_membs[N_membs < N_memb_min] = 0.0
     # Define intervals and mapping ranges
-    # bounds = (0.05, 0.1, 0.5, 0.75, 0.9)
-    # Nvals = (N_memb_min, 25, 50, 100, 500)
     bounds = (0.0, 0.05, 0.5, 0.75, 0.9)
     Nvals = (5, 20, 50, 75, 100)
     for i in range(1, len(bounds)):
         normalize(N_membs, C_N_membs, Nvals[i - 1], Nvals[i], bounds[i - 1], bounds[i])
 
     #
+    # C_dens
     C_dens = np.clip((df_UCC_C["dens_core_pc2"] - 0) / (max_dens - 0), 0, 1)
 
-    # Assign a number to all elements in C3
+    #
+    # C_C3
     C3 = df_UCC_C["C3"].to_numpy(dtype=str)
     vals = {"A": 1, "B": 0.5, "C": 0.25, "D": 0}
     C_C3 = np.array([vals[a[0]] + vals[a[1]] for a in C3], dtype=float) * 0.5
 
+    #
+    # C_lit
     # Count number of times each OC is mentioned in the literature
     N_lit = np.array([len(_.split(";")) for _ in df_UCC_B["DB"]])
     # Normalizing value: max number of DBs for a single OC
@@ -920,9 +957,11 @@ def add_info_to_C(
     for i in range(1, len(bounds)):
         normalize(N_lit, C_lit, Nvals[i - 1], Nvals[i], bounds[i - 1], bounds[i])
 
+    #
+    # C_dup
     # C_dup indicates the confidence that an entry is a duplicate of a previously
     # reported object. A value of 1 means not at all a duplicate
-
+    #
     # Extract the first DB and year of publication for each entry (assumes the DBs
     # are already ordered by year)
     dbs = [_.split(";")[0] for _ in df_UCC_B["DB"]]
@@ -1003,8 +1042,8 @@ def add_info_to_C(
     C_dup = np.array(C_dup) / 100
     C_dup_same_db = np.array(C_dup_same_db) / 100
 
-    # Store before modifying C_dup values. This is used to flag entries that share a
-    # members with other entries in others or the same DB
+    # Store before modifying C_dup values. This is used by the 'D' script to flag
+    # entries that share a members with other entries in others or the same DB
     df_UCC_C["C_dup_info"] = np.char.add(
         np.char.add(np.round(C_dup, 2).astype(str), ";"),
         np.round(C_dup_same_db, 2).astype(str),
@@ -1016,6 +1055,7 @@ def add_info_to_C(
     msk = C_dup_same_db < 0.5
     C_dup[msk] = np.minimum(C_dup[msk], C_dup_same_db[msk])
 
+    #
     # Final UTI
     UTI = np.clip(0.2 * (C_N_membs + C_dens + C_C3 + 2 * C_lit) * C_dup, 0, 1)
 
@@ -1027,26 +1067,6 @@ def add_info_to_C(
     df_UCC_C["C_dup"] = np.round(C_dup, 2)
     df_UCC_C["P_dup"] = np.round(1 - df_UCC_C["C_dup"], 2)
     df_UCC_C["UTI"] = np.round(UTI, 2)
-
-    # return C_N_membs, UTI
-
-    # bounds = (0.0, 0.05, 0.1, 0.5, 0.75, 0.9)
-    # Nvals = (5, 10, 25, 50, 75, 100)
-    # import matplotlib.pyplot as plt
-    # while True:
-    #     C_N_membs, UTI = test(bounds, Nvals)
-    #     plt.subplot(121)
-    #     # plt.scatter(C_N_membs, UTI, alpha=.5)
-    #     plt.hist(C_N_membs, 20)
-    #     plt.subplot(122)
-    #     # plt.scatter(df_UCC_C["UTI"], df_UCC_C["UTI"]-UTI, alpha=.5)
-    #     plt.hist(UTI, 20)
-    #     plt.show()
-    #     breakpoint()
-
-    # import matplotlib.pyplot as plt
-    # plt.scatter(df_UCC_C["UTI"], df_UCC_C["UTI"]-UTI, alpha=.5)
-    # plt.show()
 
     # All entries are by default "good" entries
     df_UCC_C["bad_oc"] = "n"
