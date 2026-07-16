@@ -59,8 +59,6 @@ def get_summary(current_year, DBs_JSON, UCC_cl):
         density,
         quality,
         literature,
-        duplicate,
-        dup_warn,
         plx_dist,
         z_position,
     ) = get_C_txt(
@@ -68,7 +66,6 @@ def get_summary(current_year, DBs_JSON, UCC_cl):
         UCC_cl["C_dens"],
         UCC_cl["C_C3"],
         UCC_cl["C_lit"],
-        UCC_cl["C_dup"],
         UCC_cl["Plx_m"],
         UCC_cl["Z_GC"],
     )
@@ -92,14 +89,10 @@ def get_summary(current_year, DBs_JSON, UCC_cl):
     summary += " " + fpars_summ
     summary += " " + lit_summary(current_year, UCC_cl["DB"], literature)
 
-    dup_summ, dup_note = dupl_summary(
-        UCC_cl["shared_members_p"],
-        UCC_cl["C_dup"],
-        UCC_cl["C_dup_same_db"],
-        duplicate,
-        dup_warn,
+    duplicate, dup_note = dupl_summary(
+        UCC_cl["shared_members_p"], UCC_cl["C_dup"], UCC_cl["C_dup_info"]
     )
-    summary += f" {dup_summ}{fpars_note}{dup_note}"
+    summary += f" {fpars_note}{dup_note}"
 
     # Bad OC warning
     if UCC_cl["bad_oc"] == "y":
@@ -136,7 +129,7 @@ def level(value, thresholds, labels):
     return labels[-1]
 
 
-def get_C_txt(C_N, C_dens, C_C3, C_lit, C_dup, plx, Z_GC):
+def get_C_txt(C_N, C_dens, C_C3, C_lit, plx, Z_GC):
     """ """
     members = level(
         C_N,
@@ -185,26 +178,24 @@ def get_C_txt(C_N, C_dens, C_C3, C_lit, C_dup, plx, Z_GC):
         ],
     )
 
-    duplicate, dup_warn = level(
-        C_dup,
-        [0.95, 0.75, 0.5, 0.25, 0.1],
-        [
-            ("a unique", ""),
-            ("very likely a unique", ""),
-            ("likely a unique", ""),
-            ("possibly a duplicate", HTML_WARN),
-            ("<u>likely a duplicate</u>", HTML_WARN),
-            ("<u>very likely a duplicate</u>", HTML_WARN),
-        ],
-    )
+    # duplicate, dup_warn = level(
+    #     C_dup,
+    #     [0.95, 0.75, 0.5, 0.25, 0.1],
+    #     [
+    #         ("a unique", ""),
+    #         ("very likely a unique", ""),
+    #         ("likely a unique", ""),
+    #         ("possibly a duplicate", HTML_WARN),
+    #         ("<u>likely a duplicate</u>", HTML_WARN),
+    #         ("<u>very likely a duplicate</u>", HTML_WARN),
+    #     ],
+    # )
 
     return (
         members,
         density,
         quality,
         literature,
-        duplicate,
-        dup_warn,
         plx_dist,
         z_position,
     )
@@ -604,183 +595,103 @@ def lit_summary(current_year, cl_DB, literature, year_gap=3) -> str:
     return f"It is {literature} in the literature."
 
 
-def dupl_summary(shared_members_p, C_dup, C_dup_same_db, duplicate, dup_warn):
-    """ """
+def dupl_summary(shared_members_p, C_dup, C_dup_info):
+    """
+    Generate a summary of duplication information for the cluster.
+
+    shared_members_p information is included in the C_dup_info values
+
+    C_dup = min(C_dup_diff_db, C_dup_same_db)
+
+    C_dup_info contains only floats, no nans
+
+    HTML_WARN is triggered only for large value of shared members among entries in
+    different catalogues/databases, overlaps in the same catalogue/database is
+    considered less severe
+
+    """
+    # The 'duplicate' variable is used to describe the duplication status of the object
+    # only when members are shared across different catalogues
+    if C_dup >= 0.95:
+        duplicate = "a unique"
+    elif C_dup >= 0.75:
+        duplicate = "very likely a unique"
+    elif C_dup >= 0.5:
+        duplicate = "likely a unique"
+    elif C_dup >= 0.25:
+        duplicate = "possibly a duplicate"
+    elif C_dup >= 0.1:
+        duplicate = "<u>likely a duplicate</u>"
+    else:
+        duplicate = "<u>very likely a duplicate</u>"
 
     def member_level(v):
-        return level(
-            v,
-            [0.9, 0.75, 0.5, 0.25],
-            ["very small", "small", "moderate", "significant", "<u>large</u>"],
+        if v >= 0.9:
+            return "very small"
+        if v >= 0.75:
+            return "small"
+        if v >= 0.5:
+            return "moderate"
+        if v >= 0.25:
+            return "significant"
+        return "<u>large</u>"
+
+    C_dup_diff_db, C_dup_same_db = map(float, C_dup_info.split(";"))
+
+    if C_dup_diff_db < 1.0:
+        prev = "previously reported entry"
+        if C_dup_same_db < 1.0:
+            # If C_dup_diff_db<1.0 & C_dup_same_db<1.0, the entry shares members with
+            # at least one entry in a different catalogue AND with at least one entry
+            # in the same catalogue
+            prev += (
+                f", and a {member_level(C_dup_same_db)} percentage with at least "
+                "one entry reported in the same catalogue"
+            )
+
+        text = (
+            'This is <a href="/faq#how-is-the-duplicate-probability-estimated" '
+            'target="_blank" title="How is the duplicate probability estimated?">'
+            f"{duplicate}</a> object, which shares a "
+            f"{member_level(C_dup_diff_db)} percentage of members with at least one "
+            f"{prev}. {HTML_TABLE}"
         )
 
-    # If this unique object contains shared members with other entries
-    if C_dup == 1.0 and C_dup_same_db == 1.0:
-        if str(shared_members_p) == "nan":
-            # Return with no duplication info added
-            return "", ""
-        shared_members_p = list(map(float, shared_members_p.split(";")))
-        max_p = max(shared_members_p) / 100.0
-        n = len(shared_members_p)
-        dupl_note = (
-            '<p class="note"><strong>Note:</strong> '
-            f"This object shares a {member_level(1 - max_p)} percentage of members "
-            f"with {'a' if n == 1 else n} later reported "
-            f"{'entry' if n == 1 else 'entries'}. {HTML_TABLE}</p>"
-        )
-        return "", dupl_note
+        # If the entry shares a large percentage of members with an entry in a
+        # different catalogue, issue a warning. Otherwise a note is enough
+        if C_dup_diff_db < 0.25:
+            dupl_note = f"<p>{HTML_WARN}{text}</p>"
+        else:
+            dupl_note = f'<p class="note"><strong>Note:</strong> {text}</p>'
 
-    if C_dup == 1.0 and C_dup_same_db < 1.0:
-        # Only same DB duplicates found
-        dupl_note = (
-            '<p class="note"><strong>Note:</strong> '
-            f"This object shares a {member_level(C_dup_same_db)} percentage "
-            "of members with at least one entry reported in the same catalogue. "
-            f"{HTML_TABLE}</p>"
-        )
-        return "", dupl_note
-
-    # Duplicates found in different DBs only (C_dup<1.0 & C_dup_same_db==1.0)
-    prev_or_same_db = "previously reported entry"
-    if C_dup_same_db < 1.0:
-        prev_or_same_db += (
-            f", and a {member_level(C_dup_same_db)} percentage with at least "
-            "one entry reported in the same catalogue"
-        )
-
-    text = (
-        'This is <a href="/faq#how-is-the-duplicate-probability-estimated" '
-        'target="_blank" title="How is the duplicate probability estimated?">'
-        f"{duplicate}</a> object, which shares a "
-        f"{member_level(C_dup)} percentage of members with at least one "
-        f"{prev_or_same_db}. {HTML_TABLE}"
-    )
-
-    if dup_warn:
-        dup_summary, dupl_note = f"<p>{dup_warn}{text}</p>", ""
     else:
-        dup_summary, dupl_note = (
-            "",
-            f'<p class="note"><strong>Note:</strong> {text}</p>',
-        )
+        if C_dup_same_db < 1.0:
+            # If C_dup_diff_db=1.0 & C_dup_same_db<1.0, the entry shares members with
+            # at least one entry in the same catalogue
+            text = (
+                f"This object shares a {member_level(C_dup_same_db)} percentage "
+                "of members with at least one entry reported in the same catalogue. "
+                f"{HTML_TABLE}"
+            )
 
-    return dup_summary, dupl_note
+        else:
+            # If C_dup_diff_db=1.0 & C_dup_same_db=1.0 the entry DOES NOT share any
+            # members with other entries in *previous* databases or in the
+            # *same database*. This means it can only share members with entries
+            # that were reported *later* in the literature
+            if str(shared_members_p) == "nan":
+                # No shared members found
+                text = ""
+            else:
+                shared = list(map(float, shared_members_p.split(";")))
+                level_txt = member_level(1 - max(shared) / 100)
+                n = len(shared)
+                text = (
+                    f"This object shares a {level_txt} percentage of members with "
+                    f"{'a' if n == 1 else n} later reported "
+                    f"{'entry' if n == 1 else 'entries'}. {HTML_TABLE}"
+                )
 
+        dupl_note = f'<p class="note"><strong>Note:</strong> {text}</p>' if text else ""
 
-# def update_summary(
-#     fpars_medians, summaries, descriptors, fpars_badges, fpars_badges_url
-# ):
-#     """ """
-#     # Round fundamental parameters medians to 4 decimal places
-#     fpars_round = {
-#         k: {kk: round(vv, 4) if isinstance(vv, float) else vv for kk, vv in v.items()}
-#         for k, v in fpars_medians.items()
-#     }
-
-#     UCC_summ_cmmts = {}
-#     for fname0, summary in summaries.items():
-#         # if fname0 in UCC_summ_cmmts:
-#         #     # Update summary
-#         #     if summary != UCC_summ_cmmts[fname0]["summary"]:
-#         #         UCC_summ_cmmts[fname0]["summary"] = summary
-#         #         N_summ_updt += 1
-#         #     if descriptors[fname0] != UCC_summ_cmmts[fname0]["descriptors"]:
-#         #         UCC_summ_cmmts[fname0]["descriptors"] = descriptors[fname0]
-#         #         N_desc_updt += 1
-#         #     if fpars_badges[fname0] != UCC_summ_cmmts[fname0]["fpars_badges"]:
-#         #         UCC_summ_cmmts[fname0]["fpars_badges"] = fpars_badges[fname0]
-#         #         N_fbadges_updt += 1
-#         # else:
-#         # Create new entry
-#         UCC_summ_cmmts[fname0] = {
-#             "summary": summary,
-#             "descriptors": descriptors[fname0],
-#             "fpars_badges": fpars_badges[fname0],
-#             "fpars_badges_url": fpars_badges_url[fname0],
-#             "fpars_medians": fpars_round[fname0],
-#         }
-#         # N_new += 1
-#     # logging.info(f"Updated summaries for {N_summ_updt} objects")
-#     # logging.info(f"Updated descriptors for {N_desc_updt} objects")
-#     # logging.info(f"Updated parameters badges for {N_fbadges_updt} objects")
-#     # logging.info(f"Added summaries for {N_new} new objects\n")
-
-#     return UCC_summ_cmmts
-
-
-# def get_comments(cmmt_json_dict) -> tuple[str, str, str, list, dict]:
-#     """Read JSON file with comments from article"""
-
-#     art_name = cmmt_json_dict["art_name"]
-#     art_year = cmmt_json_dict["art_year"]
-#     art_url = cmmt_json_dict["art_url"]
-#     # art_clusters = cmmt_json_dict["clusters"].keys()
-#     # art_cmmts = list(cmmt_json_dict["clusters"].values())
-#     # art_clusters, art_cmmts = zip(*cmmt_json_dict["clusters"])
-
-#     # Convert all names to fnames
-#     # jsonf_fnames = get_fnames(art_clusters)
-
-#     # Check which objects in the JSON file are in the UCC
-#     not_found = []
-#     fnames_found = {}
-#     for i, fnames in enumerate(jsonf_fnames):
-#         not_found_in = []
-#         for fname in fnames:
-#             idx = B_lookup.get(fname)
-#             if idx is None:
-#                 not_found_in.append(fname)
-#             else:
-#                 fnames_found[i] = idx
-#         if not_found_in:
-#             not_found.append(not_found_in)
-#     # if not_found:
-#     #     logging.info(f"{art_ID}: {len(not_found)} objects not found in UCC")
-#     # for cl_not_found in not_found:
-#     #     logging.info(f"  {','.join(cl_not_found)}")
-
-#     return art_name, art_year, art_url, list(art_cmmts), fnames_found
-
-
-# def update_comments(
-#     fnames_lst,
-#     UCC_summ_cmmts,
-#     fnames_B,
-#     art_ID,
-#     art_name,
-#     art_year,
-#     art_url,
-#     art_cmmts,
-#     fnames_found,
-# ):
-#     """ """
-#     for i, idx in fnames_found.items():
-#         fname0 = fnames_B[idx].split(";")[0]
-#         if fname0 not in fnames_lst:
-#             continue
-
-#         comment = art_cmmts[i]
-#         comment_entry = {
-#             "ID": art_ID,
-#             "name": art_name,
-#             "url": art_url,
-#             "year": art_year,
-#             "comment": comment,
-#         }
-
-#         if "comments" not in UCC_summ_cmmts[fname0]:
-#             UCC_summ_cmmts[fname0]["comments"] = [comment_entry]
-#             # UCC_summ_cmmts[fname0]["comments"].append(comment_entry)
-#         else:
-#             # # Check if comment from this article already exists
-#             # flag_ID = False
-#             # for cmt in UCC_summ_cmmts[fname0]["comments"]:
-#             #     if cmt["ID"] == art_ID:
-#             #         flag_ID = True
-#             #         cmt["comment"] = comment
-#             #         break
-#             # # If not, append new comment
-#             # if flag_ID is False:
-#             UCC_summ_cmmts[fname0]["comments"].append(comment_entry)
-
-#     return UCC_summ_cmmts
+    return duplicate, dupl_note

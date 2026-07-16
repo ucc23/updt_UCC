@@ -894,8 +894,8 @@ def add_info_to_C(
     # Define intervals and mapping ranges
     # bounds = (0.05, 0.1, 0.5, 0.75, 0.9)
     # Nvals = (N_memb_min, 25, 50, 100, 500)
-    bounds = (0., 0.05, 0.5, 0.75, 0.9)
-    Nvals = (5,  20, 50, 75, 100)
+    bounds = (0.0, 0.05, 0.5, 0.75, 0.9)
+    Nvals = (5, 20, 50, 75, 100)
     for i in range(1, len(bounds)):
         normalize(N_membs, C_N_membs, Nvals[i - 1], Nvals[i], bounds[i - 1], bounds[i])
 
@@ -987,6 +987,10 @@ def add_info_to_C(
                             "This makes it impossible to disambiguate which one is the "
                             "duplicate of the other."
                         )
+            # else:
+            #     # If 'cl' is older than this entry,
+            #     f_year_cl < f_year_shared
+            #     'cl' cannot be a duplicate of it
 
         if shared_p["n"] > 0.0:
             # At least one entry that shares members with 'cl' belongs to a
@@ -998,6 +1002,13 @@ def add_info_to_C(
 
     C_dup = np.array(C_dup) / 100
     C_dup_same_db = np.array(C_dup_same_db) / 100
+
+    # Store before modifying C_dup values. This is used to flag entries that share a
+    # members with other entries in others or the same DB
+    df_UCC_C["C_dup_info"] = np.char.add(
+        np.char.add(np.round(C_dup, 2).astype(str), ";"),
+        np.round(C_dup_same_db, 2).astype(str),
+    )
 
     # Replace 'C_dup' values with a smaller value only when 'C_dup_same_db<0.5', ie:
     # only entries that share a significant fraction of members with other entries in
@@ -1014,11 +1025,10 @@ def add_info_to_C(
     df_UCC_C["C_C3"] = np.round(C_C3, 2)
     df_UCC_C["C_lit"] = np.round(C_lit, 2)
     df_UCC_C["C_dup"] = np.round(C_dup, 2)
-    df_UCC_C["C_dup_same_db"] = np.round(C_dup_same_db, 2)
     df_UCC_C["P_dup"] = np.round(1 - df_UCC_C["C_dup"], 2)
     df_UCC_C["UTI"] = np.round(UTI, 2)
 
-        # return C_N_membs, UTI
+    # return C_N_membs, UTI
 
     # bounds = (0.0, 0.05, 0.1, 0.5, 0.75, 0.9)
     # Nvals = (5, 10, 25, 50, 75, 100)
