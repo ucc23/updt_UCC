@@ -104,6 +104,7 @@ naming_order_exceptions = {
 DB_coords_hierarchy = {
     "CANTAT2020": 0,
     "HUNT2023": 1,
+    "HUNT2024": 1.5,
     "CANTATANDERS2020": 2,
     "CANTAT2018": 3,
     "MONTEIRO2019": 49,
