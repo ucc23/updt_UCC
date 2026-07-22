@@ -2,7 +2,7 @@ import pandas as pd
 
 GCs_cat = "../data/globulars.csv"
 HUNT23_membs_path = "members_process/HUNT23_members.parquet"
-bckp_UCC_membs_path = "/media/kingston/new_UCC/UCC_260612/data/zenodo/UCC_members.parquet"
+# bckp_UCC_membs_path = "/media/kingston/new_UCC/UCC_260612/data/zenodo/UCC_members.parquet"
 UCC_membs_path = "../data/zenodo/UCC_members.parquet"
 all_names_path = "../data/all_names.csv"
 
@@ -32,12 +32,12 @@ def main() -> None:
     """ """
     print(f"Using ratio type: {use_ratio}")
 
-    ucc_members_old = pd.read_parquet(bckp_UCC_membs_path)
-    # Group by 'name' and count unique 'Source'
-    ucc_member_counts_old = (
-        ucc_members_old.groupby("name")["Source"].nunique().reset_index()
-    )
-    ucc_member_counts_old.rename(columns={"Source": "N_clust_ucc"}, inplace=True)
+    # ucc_members_old = pd.read_parquet(bckp_UCC_membs_path)
+    # # Group by 'name' and count unique 'Source'
+    # ucc_member_counts_old = (
+    #     ucc_members_old.groupby("name")["Source"].nunique().reset_index()
+    # )
+    # ucc_member_counts_old.rename(columns={"Source": "N_clust_ucc"}, inplace=True)
 
     ucc_members = pd.read_parquet(UCC_membs_path)
     # Group by 'name' and count unique 'Source'
@@ -71,32 +71,42 @@ def main() -> None:
 
     # Fast lookups
     ucc_counts = dict(zip(ucc_member_counts["name"], ucc_member_counts["N_clust_ucc"]))
-    ucc_counts_old = dict(
-        zip(ucc_member_counts_old["name"], ucc_member_counts_old["N_clust_ucc"])
-    )
+    # ucc_counts_old = dict(
+    #     zip(ucc_member_counts_old["name"], ucc_member_counts_old["N_clust_ucc"])
+    # )
     # Map every alias -> full fnames string
     alias_to_fnames = {}
     for fnames in all_names["fnames"]:
         for alias in fnames.split(";"):
             alias_to_fnames[alias] = fnames
 
-    skip_prefixes = ("cwnu", "hsc", "theia", "oc0")
+    skip_prefixes = ()  # ("cwnu", "hsc", "theia", "oc0")
     for i, h23_fname in enumerate(unique_h23_fnames):
         fname0 = fnames_dict.get(h23_fname)
         if fname0 is None or fname0.startswith(skip_prefixes):
             continue
 
         N_clust_ucc = ucc_counts[fname0]
-        N_clust_h23 = h23_member_counts.iloc[i]["N_clust_h23"]
 
-        # Get the maximum N_clust_ucc_old for all aliases of fname0
-        N_clust_ucc_old = max(
-            (
-                ucc_counts_old.get(fname, 0)
-                for fname in alias_to_fnames[fname0].split(";")
-            ),
-            default=0,
-        )
+        # N_clust_h23 = h23_member_counts.iloc[i]["N_clust_h23"]
+
+        # Get the maximum N_clust_h23 for all aliases of fname0
+        N_clust_h23 = 0
+        for fname in alias_to_fnames[fname0].split(";"):
+            try:
+                j = unique_h23_fnames.index(fname)
+                N_clust_h23 = max(N_clust_h23, h23_member_counts.iloc[j]["N_clust_h23"])
+            except:
+                continue
+
+        # # Get the maximum N_clust_ucc_old for all aliases of fname0
+        # N_clust_ucc_old = max(
+        #     (
+        #         ucc_counts_old.get(fname, 0)
+        #         for fname in alias_to_fnames[fname0].split(";")
+        #     ),
+        #     default=0,
+        # )
 
         if N_clust_ucc <= 25:
             thresh = 0.90
@@ -113,10 +123,10 @@ def main() -> None:
 
         if use_ratio == "HUNT23":
             # Ratio against HUNT23
-            ratio = (N_clust_h23 - N_clust_ucc) / N_clust_ucc
-        elif use_ratio == "OLD UCC":    
-            # Ratio against old version
-            ratio = (N_clust_ucc_old - N_clust_ucc) / N_clust_ucc
+            ratio = abs(N_clust_h23 - N_clust_ucc) / N_clust_ucc
+        # elif use_ratio == "OLD UCC":
+        #     # Ratio against old version
+        #     ratio = abs(N_clust_ucc_old - N_clust_ucc) / N_clust_ucc
         else:
             raise ValueError(f"Unknown ratio type: {use_ratio}")
 
@@ -125,7 +135,7 @@ def main() -> None:
                 {
                     "i": i,
                     "fname0": fname0,
-                    "N_clust_ucc_old": N_clust_ucc_old,
+                    # "N_clust_ucc_old": N_clust_ucc_old,
                     "N_clust_ucc": N_clust_ucc,
                     "N_clust_h23": N_clust_h23,
                     "ratio": ratio,
@@ -134,10 +144,10 @@ def main() -> None:
 
     # Define sections for structured printing
     sections = [
-        ("--- N_clust_ucc <= 25 ---", low_ucc),
-        ("--- 25 < N_clust_ucc <= 100 ---", mid_ucc),
-        ("--- N_clust_ucc > 100 ---", high_ucc),
         ("--- N_clust_ucc > 500 ---", highest_ucc),
+        ("--- N_clust_ucc > 100 ---", high_ucc),
+        ("--- 25 < N_clust_ucc <= 100 ---", mid_ucc),
+        ("--- N_clust_ucc <= 25 ---", low_ucc),
     ]
 
     for title, data_list in sections:
@@ -148,7 +158,8 @@ def main() -> None:
         for item in sorted_data:
             print(
                 f"{item['ratio']:.2f}, '{item['fname0']}', "
-                f"(UCC_old)={item['N_clust_ucc_old']}, (UCC)={item['N_clust_ucc']},"
+                # f"(UCC_old)={item['N_clust_ucc_old']}, (UCC)={item['N_clust_ucc']},"
+                f"(UCC)={item['N_clust_ucc']},"
                 f" (HUNT23)={item['N_clust_h23']}"
             )
 

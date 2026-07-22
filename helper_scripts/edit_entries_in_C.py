@@ -260,21 +260,71 @@ edit_lst = [
     # ("db200116", "N_clust_max=200"),
     # ("hsc1935", "N_clust=50"),
     #
-    ("afgl6366s", "N_clust=75"),
-    ("oc0403", "N_clust=75"),
-    ("afgl4029", "N_clust=75"),
-    ("fsr0227", "N_clust=75"),
-    ("sh2270", "N_clust=100"),
-    ("casado17", "N_clust=100"),
-    ("g3cc58", "N_clust=150"),
-    ("oc0666", "N_clust=100"),
-    ("dbsb57", "N_clust=200"),
-    ("ngc2483", "N_clust=50"),
-    ("dias1", "N_clust=125"),
-    ("lisc3420", "N_clust=75"),
-    ("ubc526", "N_clust=100"),
-    ("fsr0236", "N_clust=100"),
-    ("fsr0596", "N_clust=75"),
+    # ("afgl6366s", "N_clust=75"),
+    # ("oc0403", "N_clust=75"),
+    # ("afgl4029", "N_clust=75"),
+    # ("fsr0227", "N_clust=75"),
+    # ("sh2270", "N_clust=100"),
+    # ("casado17", "N_clust=100"),
+    # ("g3cc58", "N_clust=150"),
+    # ("oc0666", "N_clust=100"),
+    # ("dbsb57", "N_clust=200"),
+    # ("ngc2483", "N_clust=50"),
+    # ("dias1", "N_clust=125"),
+    # ("lisc3420", "N_clust=75"),
+    # ("ubc526", "N_clust=100"),
+    # ("fsr0236", "N_clust=100"),
+    # ("fsr0596", "N_clust=75"),
+    #
+    # ("ngc1807", "frame_limit=t_-13.35"),
+    # ("hogg16", "frame_limit=r_307.5,b_1.25"),
+    # ("dolidze9", "frame_limit=l_79.75,t_2.4"),
+    # ("ngc1758", "N_clust_max=350"),
+    # ("teutsch143a", "frame_limit=plxr_0.15"),
+    # ("teutsch143b", "frame_limit=plxl_0.15"),
+    #
+    # ("l1641s", "N_clust_max=200"),
+    # ("theia824", "frame_limit=r_103.5"),
+    # ("cwnu136", "N_clust=75"),
+    # ("cwnu512", "N_clust=30"),
+    # ("cwnu472", "N_clust=40"),
+    # ("vvvxcl092", "frame_limit=r_13.96"),
+    # ("vvvxcl093", "frame_limit=l_13.96"),
+    # ("cwwdl10867", "frame_limit=b_2.68"),
+    # ("cwwdl10875", "frame_limit=t_2.68"),
+    # ("fsr0463", "frame_limit=t_11.35"),
+    # ("fsr0466", "frame_limit=b_11.35"),
+    # ("fsr0568", "frame_limit=plxr_0.5"),
+    #
+    # ("ngc1746", "frame_limit=t_-10.55"),
+    #
+    # ("monob1d", "frame_limit=l_203.08"),
+    # ("ngc2264", "frame_limit=r_203.08"),
+    # ("theia2395", "N_clust=50"),
+    # ("rmc5", "frame_limit=l_207.07"),
+    # ("rmc4a", "frame_limit=r_207.07"),
+    # ("rmc4b", "frame_limit=r_207.07"),
+    #
+    # ("oc0627", "frame_limit=t_-2.02"),
+    # ("oc0628", "frame_limit=b_-2.02"),
+    # ("hsc2794", "N_clust=50;frame_limit=plxr_0.29"),
+    # ("hsc2793", "frame_limit=plxl_0.29"),
+    # ("cwnu481", "frame_limit=plxl_0.45"),
+    #
+    # ("ubc207", "frame_limit=r_208.3;N_clust_max=75"),
+    # ("ngc1977", "frame_limit=l_208.2,r_208.7;N_clust_max=100"),
+    # ("ngc1976", "frame_limit=l_208.7,r_209.1,b_-19.42,t_-19.31;N_clust_max=250"),
+    # ("ngc1980", "frame_limit=l_209.2,r_209.8;N_clust_max=300"),
+    # ("morgan8", "frame_limit=l_209.8;N_clust_max=100"),
+    #
+    # ("ubc580", "N_clust=50"),
+    # ("ubc1580", "N_clust=50"),
+    #
+    ("fof1211", "frame_limit=b_-1.13"),
+    ("oc0179", "N_clust=50"),
+    ("db200117", "frame_limit=plxr_0.4"),
+    ("cwnu1482", "frame_limit=t_-1.29"),
+    ("cwnu1943", "frame_limit=b_-1.29"),
 ]
 
 
@@ -285,13 +335,13 @@ fname0 = df_C["fname"].tolist()
 for cluster in edit_lst:
     fname, new_data = cluster
     idx = fname0.index(fname)
-    col, val = new_data.split("=")
-    if col in ("N_clust", "N_clust_max"):
-        # val = int(val)
-        # Round to nearest 10
-        val = ((int(val) + 5) // 10) * 10
-    df_C.loc[idx, col] = val
+    for new_data_col in new_data.split(";"):
+        col, val = new_data_col.split("=")
+        if col in ("N_clust", "N_clust_max"):
+            # Round to nearest 10
+            val = ((int(val) + 5) // 10) * 10
+        df_C.loc[idx, col] = val
     df_C.loc[idx, "process"] = "y"
-    print(f"Updated {fname}: {col}={val}")
+    print(f"Updated {fname}: {new_data}")
 
 df_C.to_csv(C_path, na_rep="nan", index=False, quoting=csv.QUOTE_NONNUMERIC)

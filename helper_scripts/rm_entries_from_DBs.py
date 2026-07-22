@@ -4,11 +4,12 @@ import re
 import pandas as pd
 
 input_txt = """
-Adding QIN2025 (149) to the UCC
+----------------------------------------
+Adding CHI2023_1 (83) to the UCC
 
 Found 1 groups of duplicated fnames within the DB:
-Group 1: oc0470
- - Huluwa_3 --> OC 0470 (47)
+Group 1: lisciii3668
+ - LISC-III_3323 --> LISC-III 3668 (49)
 > /home/gabriel/Github/UCC/updt_UCC/modules/B_update_UCC_DB.py(938)check_new_DB_fnames()
 -> sys.exit(1)
 (Pdb) 
@@ -36,7 +37,7 @@ def main():
     print(f"DB name: {db_name}, removed N={len(idx_to_drop)} rows")
     print("\nRemoved duplicates:\n")
     for desc, _ in removed_entries:
-        print(f"- {desc}")
+        print(f"- {desc.replace("-->", "→")}")
 
     # Remove entries from DB
     db_path = f"{dbs_path}{db_name}.csv"

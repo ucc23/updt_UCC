@@ -3,6 +3,38 @@ import csv
 import numpy as np
 import pandas as pd
 
+df = pd.read_csv("/home/gabriel/Descargas/KRONBERGER2006.csv")
+
+# Find duplicated entries in 'Cluster' column of df and merge them into a single entry,
+# combining the values in each column into a single one separated by a comma
+
+
+def agg_join_all(series):
+    return "".join(series.astype(str))
+
+
+dup_mask = df.duplicated(subset="Cluster", keep=False)
+
+df_dup = df[dup_mask]
+
+agg_dict = {}
+for col in df.columns:
+    if col == "Comment":
+        agg_dict[col] = agg_join_all
+
+df_merged = df_dup.groupby("Cluster", as_index=False).agg(agg_dict)
+
+# Capitalize the first letter of each merged comment
+df_merged["Comment"] = (
+    df_merged["Comment"]
+    .str.replace(r"^([a-z])", lambda m: m.group(1).upper(), regex=True)
+)
+
+df_merged.to_csv(
+    "../data/databases/cmmts/KRONBERGER2006.csv", index=False, quoting=csv.QUOTE_ALL
+)
+breakpoint()
+
 
 df = pd.read_csv("../temp_updt/data/databases/LI2026.csv")
 
@@ -19,8 +51,6 @@ cluster_df.to_csv(
 breakpoint()
 
 
-
-
 df = pd.read_csv("../temp_updt/data/databases/HU2021.csv")
 
 cmmts = {"Cluster": [], "Comment": []}
@@ -34,8 +64,6 @@ cluster_df.to_csv(
     "../data/databases/cmmts/HU2021.csv", index=False, quoting=csv.QUOTE_ALL
 )
 breakpoint()
-
-
 
 
 df = pd.read_csv("/home/gabriel/Descargas/HUNT2023.csv")
@@ -91,9 +119,6 @@ cluster_df.to_csv(
 breakpoint()
 
 
-
-
-
 df = pd.read_csv("/home/gabriel/Descargas/BICA2019_cmmts.csv")
 
 cmmt_dict = {
@@ -119,7 +144,7 @@ df["Name"] = df["Name"].str.strip()
 
 cmmts = {"Cluster": [], "Comment": []}
 for i, row in df.iterrows():
-    refs = [_.strip() for _ in row['Code'].split(',')]
+    refs = [_.strip() for _ in row["Code"].split(",")]
     txt = ""
     for ref in refs:
         if ref in cmmt_dict:
