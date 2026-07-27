@@ -1436,9 +1436,6 @@
           "[Fe/H]LQS",
           "[Fe/H]Phot"
         ]
-      },
-      "dist": {
-        "dkpc": "RGC"
       }
     },
     "e_pars": {
@@ -1451,9 +1448,6 @@
           "e_[Fe/H]LQS",
           "e_[Fe/H]Phot"
         ]
-      },
-      "e_dist": {
-        "edkpc": "e_RGC"
       }
     }
   },
