@@ -178,19 +178,6 @@ def get_C_txt(C_N, C_dens, C_C3, C_lit, plx, Z_GC):
         ],
     )
 
-    # duplicate, dup_warn = level(
-    #     C_dup,
-    #     [0.95, 0.75, 0.5, 0.25, 0.1],
-    #     [
-    #         ("a unique", ""),
-    #         ("very likely a unique", ""),
-    #         ("likely a unique", ""),
-    #         ("possibly a duplicate", HTML_WARN),
-    #         ("<u>likely a duplicate</u>", HTML_WARN),
-    #         ("<u>very likely a duplicate</u>", HTML_WARN),
-    #     ],
-    # )
-
     return (
         members,
         density,
@@ -617,10 +604,12 @@ def dupl_summary(shared_members_p, C_dup, C_dup_info):
     # only when members are shared across different catalogues
     if C_dup >= 0.95:
         duplicate = "a unique"
-    elif C_dup >= 0.75:
+    elif C_dup >= 0.85:
         duplicate = "very likely a unique"
-    elif C_dup >= 0.5:
+    elif C_dup >= 0.7:
         duplicate = "likely a unique"
+    elif C_dup >= 0.5:
+        duplicate = "possibly a unique"
     elif C_dup >= 0.25:
         duplicate = "possibly a duplicate"
     elif C_dup >= 0.1:
