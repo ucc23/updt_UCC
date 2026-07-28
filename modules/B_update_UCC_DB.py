@@ -129,7 +129,7 @@ def main():
 
         # Check uniqueness of fnames (fnames in new DB vs fnames in UCC so far)
         fnames_check_UCC_new_DB(
-            logging, df_UCC_B_new, all_names_dict, new_DB_fnames, df_new
+            logging, df_UCC_B_new, all_names_dict, newDB_json, new_DB_fnames, df_new
         )
 
         # Match the new DB with the UCC
@@ -942,6 +942,7 @@ def fnames_check_UCC_new_DB(
     logging,
     df_UCC_B: pd.DataFrame,
     all_names_dict: dict,
+    newDB_json: dict,
     new_DB_fnames: list[list[str]],
     df_new: pd.DataFrame,
     sep: str = ";",
@@ -965,7 +966,7 @@ def fnames_check_UCC_new_DB(
         txt = "y" if N == 1 else "ies"
         logging.info(f"\nFound {N} entr{txt} with multiple fnames in 'all_names':")
         for k in new_fnames_dup:
-            logging.info(f"{df_new.iloc[k]['Name']}")
+            logging.info(f"{df_new.iloc[k][newDB_json["names"]]}")
         breakpoint()
         sys.exit(1)
 
