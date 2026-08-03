@@ -6,7 +6,6 @@ HUNT23_membs_path = "members_process/HUNT23_members.parquet"
 UCC_membs_path = "../data/zenodo/UCC_members.parquet"
 all_names_path = "../data/all_names.csv"
 
-#
 h23_name_changes = {
     "ESO_429-429": "ESO_429-02",
     "AH03_J0748+26.9": "AH03_J0748-26.9",
@@ -26,6 +25,195 @@ h23_name_changes = {
 
 use_ratio = "HUNT23"
 # use_ratio = "OLD UCC"
+
+# Prefixed of low quality OCs (generally)
+skip_prefixes = ("cwnu", "hsc", "theia", "oc0")
+
+# Entries already checked manually
+ucc_vs_h23_no_issues = (
+    "trumpler10",
+    "ngc6404",
+    "collinder69",
+    "hyades",
+    "stock2",
+    "ngc2327",
+    "ngc6475",
+    "ic2395",
+    "ngc869",
+    "pismis3",
+    "ngc6494",
+    "pozzo1",
+    "collinder463",
+    "ngc7419",
+    "teutsch268",
+    "ngc2548",
+    "berkeley17",
+    "ubc106",
+    "ngc6405",
+    "ngc2437",
+    "ngc3496",
+    "fof2117",
+    "berkeley32",
+    "ryu519",
+    "ubc600",
+    "mamajek4",
+    "alessi37",
+    "fsr0717",
+    "ngc2175",
+    "ascc65",
+    "berkeley93",
+    "dbsb11",
+    "trumpler15",
+    "fsr1419",
+    "ruprecht139",
+    "ascc19",
+    "ngc6604",
+    "eso42905",
+    "ngc1333",
+    "ivanov8",
+    "ngc3324",
+    "fsr0261",
+    "berkeley83",
+    "fsr0358",
+    "pismis27",
+    "berkeley29",
+    "fsr1088",
+    "fsr0416",
+    "fsr0031",
+    "ic2944",
+    "pfleiderer4",
+    "fsr1424",
+    "ufmg54",
+    "teutsch127",
+    "ic2948",
+    "mcm58",
+    "vdbh67",
+    "berkeley36",
+    "czernik21",
+    "berkeley18",
+    "berkeley54",
+    "berkeley56",
+    "collinder197",
+    "eso09205",
+    "ubc634",
+    "ocsn88",
+    "ubc261",
+    "lisciii3668",
+    "upk214",
+    "cwwdl14602",
+    "ubc553",
+    "pismis8",
+    "vdbh205",
+    "ubc1099",
+    "bica631",
+    "iras01546p6319",
+    "sai90",
+    "ufmg16",
+    "feigelson1",
+    "negueruela1",
+    "sai50",
+    "kronberger1",
+    "fsr0777",
+    "stock8",
+    "haffner19",
+    "haffner18",
+    "cwwdl13389",
+    "ubc482",
+    "fsr0591",
+    "ubc1264ubc517",
+    "czernik44",
+    "sai106",
+    "monob1d",
+    "ocsn178",
+    "collinder338",
+    "kronberger83",
+    "czernik10",
+    "casado9",
+    "vdbh144",
+    "berkeley86",
+    "berkeley34",
+    "riddle6",
+    "trumpler14",
+    "kronberger73",
+    "vdbh222",
+    "alessiteutsch7",
+    "hxhwl26",
+    "rsg4",
+    "ubc26",
+    "dias1",
+    "fsr0219",
+    "ascc125",
+    "eso09218",
+    "ocsn65",
+    "ocsn41",
+    "ngc6716",
+    "collinder394",
+    "dbsb19",
+    "ubc1264",
+    "ubc1330",
+    "afgl5085",
+    "upk303",
+    "ngc2220",
+    "ubc1306",
+    "mayer3",
+    "teutsch23",
+    "alessij06016p3531",
+    "alessi34",
+    "roslund7",
+    "collinder419",
+    "teutsch157",
+    "alessi9",
+    "ascc108",
+    "ubc279",
+    "harvard10",
+    "pismis4",
+    "coingaia13",
+    "ngc2183",
+    "mamajek2",
+    "fof2059",
+    "ngc225",
+    "fof282",
+    "ngc7429",
+    "gulliver10",
+    "ascc16",
+    "czernik20",
+    "l1641s",
+    "teutsch39",
+    "eso37017",
+    "czernik3",
+    "ocsn3",
+    "fof288",
+    "fsr0238",
+    "ocsn6",
+    "ubc1577",
+    "alessi59",
+    "ubc281",
+    "ubc1455",
+    "upk627",
+    "ubc343",
+    "ubc1569",
+    "ubc413",
+    "lp34",
+    "fsr0321",
+    "vvv100",
+    "hxhwl42",
+    "ascc90",
+    "db20017",
+    "ubc1263",
+    "fof2036",
+    "collinder135",
+    "bochum6",
+    "teutsch7",
+    "saurer3",
+    "ocsn28",
+    "fsr0498",
+    "ocsn68",
+    "juchert7",
+    "pfleiderer3",
+    "teutsch62",
+    "ufmg87",
+    "fsr1173",
+)
 
 
 def main() -> None:
@@ -80,10 +268,12 @@ def main() -> None:
         for alias in fnames.split(";"):
             alias_to_fnames[alias] = fnames
 
-    skip_prefixes = ()  # ("cwnu", "hsc", "theia", "oc0")
     for i, h23_fname in enumerate(unique_h23_fnames):
         fname0 = fnames_dict.get(h23_fname)
         if fname0 is None or fname0.startswith(skip_prefixes):
+            continue
+
+        if fname0 in ucc_vs_h23_no_issues:
             continue
 
         N_clust_ucc = ucc_counts[fname0]
@@ -109,21 +299,21 @@ def main() -> None:
         # )
 
         if N_clust_ucc <= 25:
-            thresh = 0.90
+            thresh = 4
             target_list = low_ucc
         elif N_clust_ucc <= 100:
-            thresh = 0.75
+            thresh = 2
             target_list = mid_ucc
         elif N_clust_ucc <= 500:
-            thresh = 0.5
+            thresh = 1
             target_list = high_ucc
         else:
-            thresh = 0.25
+            thresh = 0.5
             target_list = highest_ucc
 
         if use_ratio == "HUNT23":
             # Ratio against HUNT23
-            ratio = abs(N_clust_h23 - N_clust_ucc) / N_clust_ucc
+            ratio = abs(N_clust_h23 - N_clust_ucc) / min(N_clust_h23, N_clust_ucc)
         # elif use_ratio == "OLD UCC":
         #     # Ratio against old version
         #     ratio = abs(N_clust_ucc_old - N_clust_ucc) / N_clust_ucc
@@ -131,6 +321,9 @@ def main() -> None:
             raise ValueError(f"Unknown ratio type: {use_ratio}")
 
         if ratio > thresh:
+            sign = 1
+            if N_clust_h23 < N_clust_ucc:
+                sign = -1
             target_list.append(
                 {
                     "i": i,
@@ -138,7 +331,7 @@ def main() -> None:
                     # "N_clust_ucc_old": N_clust_ucc_old,
                     "N_clust_ucc": N_clust_ucc,
                     "N_clust_h23": N_clust_h23,
-                    "ratio": ratio,
+                    "ratio": sign * ratio,
                 }
             )
 
