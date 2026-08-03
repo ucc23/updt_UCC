@@ -103,7 +103,7 @@ def make(
 
     more_names = ""
     if len(cl_names) > 1:
-        more_names = "; ".join(cl_names[1:])
+        more_names = " • ".join(cl_names[1:])
 
     members_file = members_files_mapping[fname0]
 
@@ -300,7 +300,9 @@ def make(
 
 
 def positions_in_lit(DBs_json, DBs_full_data, row_UCC, tsp):
-    """ """
+    """
+    Generate a markdown table with positional data (RA, DEC, Plx, pmRA, pmDE, Rv) from
+    """
     DBs_sort = row_UCC["DB"].split(";")[::-1]
     DBs_i_sort = row_UCC["DB_i"].split(";")[::-1]
 
@@ -328,7 +330,7 @@ def positions_in_lit(DBs_json, DBs_full_data, row_UCC, tsp):
         for c in ("RA", "DEC", "plx", "pmra", "pmde", "Rv"):
             # for c in DBs_json[db]["pos"].split(","):
             # if c != "None":
-            if c in DBs_json[db]["pos"].keys():
+            if c in DBs_json[db]["pos"]:
                 df_col_name = DBs_json[db]["pos"][c]
                 # Read position as string
                 pos_v = str(df[df_col_name][int(DBs_i_sort[i])])
@@ -443,7 +445,10 @@ def fpars_in_lit(
 
 
 def color_C3(abcd):
-    """ """
+    """
+    Return a string with HTML span elements for each letter in 'abcd', colored
+    according to a predefined mapping.
+    """
     abcd_c = ""
     line = r"""<span style="color: {}; font-weight: bold;">{}</span>"""
     cc = {"A": "green", "B": "#FFC300", "C": "red", "D": "purple"}
@@ -453,7 +458,9 @@ def color_C3(abcd):
 
 
 def table_shared_members(df_UCC, fnames_all, row, tsp):
-    """ """
+    """
+    Generate a markdown table with OCs that share members with the given OC.
+    """
     shared_members_tab = ""
 
     if str(row["shared_members"]) == "nan":

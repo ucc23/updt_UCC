@@ -43,7 +43,9 @@ from .variables import (
 
 
 def main():
-    """ """
+    """
+    Main function to update the UCC site with new data and visualizations.
+    """
     logging = logger()
 
     # Read paths
@@ -51,7 +53,6 @@ def main():
         ucc_B_file,
         ucc_C_file,
         zenodo_members_file,
-        ucc_C_file,
         temp_C_path,
         temp_entries_path,
         ucc_entries_path,
@@ -82,27 +83,30 @@ def main():
     ###########################################
     # Update clusters .webp files
     N_plots_updt = (df_C["plot_used"] == "n").sum()
-    if N_plots_updt > 0:
-        if input(f"\nUpdate {N_plots_updt} cluster plots? (y/n): ").lower() == "y":
-            # Returns df_C dataframe with 'plot_used' column updated
-            df_C_updated, N_total = updt_ucc_cluster_plots(
-                logging,
-                df_C,
-                df_members,
-            )
-            if N_total == 0:
-                logging.info("No plots were generated/updated")
-            # Check that all entries in df_UCC_C have plot_used='y'
-            if any(df_C_updated["plot_used"] == "n"):
-                raise ValueError("Some entries in C dataframe still have plot_used='n'")
-            # Drop added columns from B
-            df_C_updated.to_csv(
-                temp_C_path,
-                na_rep="nan",
-                index=False,
-                quoting=csv.QUOTE_NONNUMERIC,
-            )
-            logging.info(f"\nFile '{temp_C_path}' updated")
+    if (
+        N_plots_updt > 0
+        and input(f"\nUpdate {N_plots_updt} cluster plots? (y/n): ").strip().lower()
+        == "y"
+    ):
+        # Returns df_C dataframe with 'plot_used' column updated
+        df_C_updated, N_total = updt_ucc_cluster_plots(
+            logging,
+            df_C,
+            df_members,
+        )
+        if N_total == 0:
+            logging.info("No plots were generated/updated")
+        # Check that all entries in df_UCC_C have plot_used='y'
+        if any(df_C_updated["plot_used"] == "n"):
+            raise ValueError("Some entries in C dataframe still have plot_used='n'")
+        # Drop added columns from B
+        df_C_updated.to_csv(
+            temp_C_path,
+            na_rep="nan",
+            index=False,
+            quoting=csv.QUOTE_NONNUMERIC,
+        )
+        logging.info(f"\nFile '{temp_C_path}' updated")
     ###########################################
 
     ###########################################
@@ -180,10 +184,10 @@ def main():
 
 def load_paths(
     logging,
-) -> tuple[
-    Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, str
-]:
-    """ """
+) -> tuple[Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, str]:
+    """
+    Load paths for input and output files
+    """
     data_folder_p = Path(data_folder)
     temp_folder_p = Path(temp_folder)
     root_ucc_path_p = Path(root_ucc_path)
@@ -254,7 +258,6 @@ def load_paths(
         ucc_B_file,
         ucc_C_file,
         zenodo_members_file,
-        ucc_C_file,
         temp_C_path,
         temp_entries_path,
         ucc_entries_path,
@@ -285,7 +288,9 @@ def load_data(
     str,
     pd.DataFrame,
 ]:
-    """ """
+    """
+    Load required data files and return them as a tuple
+    """
 
     # Load current members file
     df_members = pd.read_parquet(zenodo_members_file)
@@ -396,7 +401,10 @@ def load_data(
 def updt_ucc_cluster_plots(
     logging, df_UCC, df_members, min_UTI=0.5
 ) -> tuple[pd.DataFrame, int]:
-    """ """
+    """
+    Generate plots for each cluster in the UCC database and update the 'plot_used'
+    column in the dataframe.
+    """
     logging.info("\nGenerating plot files")
 
     # Velocities used for GC plot
@@ -529,7 +537,9 @@ def updt_ucc_cluster_files(
     DBs_JSON,
     cmmts_JSONS_lst,
 ):
-    """ """
+    """
+    Generate/update markdown files for each cluster in the UCC database.
+    """
     logging.info("\nGenerating md files")
 
     fname_all = df_BC["fname"].to_list()
@@ -540,7 +550,7 @@ def updt_ucc_cluster_files(
         fname: bin_label for fname, bin_label in df_BC[["fname", "bin"]].values
     }
 
-    current_year = datetime.datetime.now().year
+    current_year = datetime.datetime.now(tz=datetime.UTC).year
 
     # ran_i = np.random.randint(0, len(df_BC), size=50)
 
@@ -627,7 +637,9 @@ def write_bin(args):
 
 
 def updt_members_files(df_ucc, df_membs, temp_members_files_folder):
-    """ """
+    """
+    Split the large members file into smaller files based on GLON bins for each cluster.
+    """
     # Map members to bins
     cluster_to_bin = df_ucc.set_index("fname")["bin"].map(
         lambda _bin: temp_members_files_folder / f"membs_{_bin}.csv.gz"
@@ -688,8 +700,8 @@ def updt_cls_CSV(
                 "P_dup",
                 "UTI",
                 "bad_oc",
-                "dist_plx_pc",  # radec_scatter, mapPlotter
-                "r_50",  # radec_scatter
+                "dist_plx_pc",  # clreg_plot, mapPlotter
+                "r_50",  # clreg_plot
             ]
         ]
     )
@@ -736,7 +748,9 @@ def updt_cls_CSV(
 
 
 def make_site_plots(logging, temp_image_path, df_BC):
-    """ """
+    """
+    Generate site-wide plots for the UCC database.
+    """
     ucc_plots.make_N_vs_year_plot(temp_image_path / "catalogued_ocs.webp", df_BC)
     logging.info("Plot generated: number of OCs vs years")
 
@@ -752,7 +766,9 @@ def make_site_plots(logging, temp_image_path, df_BC):
 
 
 def count_fpars(df):
-    """ """
+    """
+    Count the number of non-empty fundamental parameters in the UCC database.
+    """
 
     def is_number(x):
         try:
@@ -764,9 +780,7 @@ def count_fpars(df):
     N_pars = {_: 0 for _ in fpars_order}
     for col in fpars_order:
         count = 0
-        rows = 0
         for row in df[col].values:
-            rows += 1
             if str(row) != "nan":
                 if ";" in str(row):
                     count += sum(
@@ -789,7 +803,10 @@ def updt_indiv_tables(
     df_BC,
     cmmts_JSONS_lst: dict,
 ):
-    """ """
+    """
+    Update tables for individual databases and comments, and save them to temporary
+    paths.
+    """
     # New columns used to display in tables
     df_BC["Name"] = [_.split(";")[0] for _ in df_BC["Names"]]
     names_url = []
@@ -801,7 +818,6 @@ def updt_indiv_tables(
         clname = rf'<a href="{url}" target="_blank" style="color: {color};">{name}</a>'
         # names_url.append(f"[{name}]({url})")
         names_url.append(clname)
-    #
     df_BC["ID_url"] = names_url
     df_BC["RA_ICRS"] = np.round(df_BC["RA_ICRS_m"], 2)
     df_BC["DE_ICRS"] = np.round(df_BC["DE_ICRS_m"], 2)
@@ -1013,7 +1029,7 @@ def file_checker(logging) -> None:
     # Check the 'fname' columns in df_UCC_B and df_UCC_C_final dataframes are equal
     df_UCC_B = pd.read_csv(data_folder + merged_dbs_file, usecols=["fname"])
     df_UCC_fname = df_UCC_C["fname"].to_list()
-    if not df_UCC_B["fname"].to_list() == df_UCC_fname:
+    if df_UCC_B["fname"].to_list() != df_UCC_fname:
         flag_error = True
         logging.warning("The 'fname' columns in B and final C dataframes differ\n")
 
