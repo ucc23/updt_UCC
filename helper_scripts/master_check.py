@@ -4,42 +4,80 @@ check_ucc.py  –  UCC catalogue consistency checks
 
 Available checks
 ----------------
-  1. B_DBs_coords      – cross-DB coordinate consistency within catalogue B
+  1. B_DBs_check       – cross-DB consistency within catalogue B for
+                         position, proper motion, or parallax
   2. B_vs_membs_coords – compare B center coords with member-file medians
   3. B_DBs_params      – cross-DB parameter consistency within catalogue B
   4. B_vs_C_pos        – compare B vs C catalogue positions / proper-motions
 
 """
 
-import numpy as np
-import pandas as pd
 import json
 from collections import Counter
 from pathlib import Path
+
+import numpy as np
+import pandas as pd
 
 # ---------------------------------------------------------------------------
 # Manual exclusions based on previous checks and known issues
 
 # Families to skip in all checks
-skip_pfx = ()  # ("hsc", "theia", "dutrabica", "mwsc", "cwnu", "ocsn", "lp")
-skip_pfx = ("hsc", "theia", "cwnu")
+# skip_pfx = ("hsc", "theia", "dutrabica", "mwsc", "cwnu", "ocsn", "lp")
+skip_pfx = ("hsc", "theia", "cwnu", "ocsn")
 
 # OCs to skip (also the DB where the error is, is listed if known)
 known_bad_oc = {
-    "ascc123": ["ALFONSO2024"], # stock_12 in frame
-    "ngc1981": ["HE2022_1"], # bad RA in DB
-    "pismis24": ["VDBH1975"], # bad RA in DB
-    "platais6": ["CAVALLO2024"], # frame is large, center moves inside
-    "ngc6618": ["CAVALLO2024"], # frame is large, center moves inside
+    "ascc123": ["ALFONSO2024"],  # stock_12 in frame
+    "ngc1981": ["HE2022_1"],  # bad RA in DB
+    "pismis24": ["VDBH1975"],  # bad RA in DB
+    "platais6": ["CAVALLO2024"],  # frame is large, center moves inside
+    "ngc6618": ["CAVALLO2024"],  # frame is large, center moves inside
+    "loden1378": ["BICA2019"],
+    "hogg12": [
+        "BUKOWIECKI2011",
+        "DIAS2014",
+        "DIAS2016",
+        "SAMPEDRO2017",
+        "RICHER2021",
+        "SANCHEZ2020",
+    ],  # coords point to NGC 3590
+    "collinder104": ["DIAS2021"],
     "collinder65": [""],  # latitude value shows ~1 deg dispersion
-    "upk287": [""], # frame is large, all centers show dispersion
-    "upk64": [""], # frame is large, all centers show dispersion
-    "feigelson1": [""], # UCC includes member stars that move the center a little bit
-    "eso48901": [""], # UCC inherits He 2022 coords, cluster is disperse
-    "bdsb122": [""], # object is very disperse
+    "upk287": [""],  # frame is large, all centers show dispersion
+    "upk64": [""],  # frame is large, all centers show dispersion
+    "feigelson1": [""],  # UCC includes member stars that move the center a little bit
+    "eso48901": [""],  # UCC inherits He 2022 coords, cluster is disperse
+    "bdsb122": [""],  # object is very disperse
 }
 # ---------------------------------------------------------------------------
 
+
+# Per-check-type config for run_B_DBs_check. `cat_cols` are the keys expected
+# under databases_info.json[<db>][<check_type>], e.g. "pos": {"RA": ..., "DEC": ...}.
+_CHECK_CONFIG = {
+    "pos": {
+        "label": "position",
+        "unit": "deg",
+        "default_thr": 0.5,
+        "default_norm_thr": 0.25,
+        "cat_cols": ("RA", "DEC"),
+    },
+    "pm": {
+        "label": "proper motion",
+        "unit": "mas/yr",
+        "default_thr": 1.0,
+        "default_norm_thr": 0.25,
+        "cat_cols": ("pmra", "pmde"),
+    },
+    "plx": {
+        "label": "parallax",
+        "unit": "mas",
+        "default_thr": 0.1,
+        "default_norm_thr": 0.1,
+        "cat_cols": ("plx",),
+    },
+}
 
 B_cat_path = "../data/UCC_cat_B.csv"
 C_cat_path = "../data/UCC_cat_C.csv"
@@ -54,9 +92,21 @@ def main():
         choice = input("Select check [1-4]: ").strip()
 
         if choice == "1":
-            pos_thr = _prompt_float("position threshold (deg)", 1)
-            drad_thr = _prompt_float("normalized separation", 0.25)
-            run_B_DBs_coords(pos_thr, drad_thr)
+            types_str = ", ".join(_CHECK_CONFIG)
+            while True:
+                check_type = (
+                    input(f"  check type [{types_str}] (pos): ").strip().lower()
+                    or "pos"
+                )
+                if check_type in _CHECK_CONFIG:
+                    break
+                print(f"  Invalid check type. Choose from: {types_str}")
+            cfg = _CHECK_CONFIG[check_type]
+            thr = _prompt_float(
+                f"{cfg['label']} threshold ({cfg['unit']})", cfg["default_thr"]
+            )
+            drad_thr = _prompt_float("normalized separation", cfg["default_norm_thr"])
+            run_B_DBs_check(check_type, thr, drad_thr)
             break
 
         elif choice == "2":
@@ -97,6 +147,7 @@ def _prompt_float(label, default):
 
 def run_B_vs_C_pos(pos_thr, pm_thr, uti_min):
     import webbrowser
+
     import matplotlib.pyplot as plt
 
     print(
@@ -218,10 +269,23 @@ def run_B_vs_C_pos(pos_thr, pm_thr, uti_min):
     plt.show()
 
 
-def run_B_DBs_coords(pos_thr, drad_thr):
-    """ """
+def run_B_DBs_check(check_type, thr, drad_thr):
+    """Cross-DB consistency check within catalogue B.
+
+    `check_type` selects the quantity compared pairwise across the
+    source DBs contributing to each cluster: "pos" (RA/DEC, with RA
+    wraparound), "pm" (pmRA/pmDE), or "plx" (Plx). Expects
+    databases_info.json[<db>][check_type] to map to the corresponding
+    column name(s) in that DB's CSV, mirroring the existing "pos" entries,
+    e.g. "pm": {"pmRA": ..., "pmDE": ...}, "plx": {"Plx": ...}.
+    """
+    cfg = _CHECK_CONFIG[check_type]
+    cat_cols = cfg["cat_cols"]
+    wrap_ra = check_type == "pos"  # RA needs 360° wraparound; other cols don't
+
     print(
-        f"\nChecking cross-DB coordinate consistency within catalogue B (Δ>{pos_thr}°)\n"
+        f"\nChecking cross-DB {cfg['label']} consistency within catalogue B "
+        f"(Δ>{thr} {cfg['unit']})\n"
     )
 
     df_B = pd.read_csv(B_cat_path)
@@ -234,23 +298,22 @@ def run_B_DBs_coords(pos_thr, drad_thr):
     all_dbs = {}
     for db in Path("../data/databases/").glob("*.csv"):
         db_df = pd.read_csv(db)
-        pos = databases_info[db.stem]["pos"]
-        if "RA" in pos and "DEC" in pos:
+        db_cols = databases_info[db.stem].get("pos")
+        if db_cols and all(c in db_cols for c in cat_cols):
             all_dbs[db.stem] = {
-                "RA": db_df[pos["RA"]].values.round(4),
-                "DEC": db_df[pos["DEC"]].values.round(4),
+                col: db_df[db_cols[col]].values.round(4) for col in cat_cols
             }
         else:
-            print(f"[skip] {db.stem}: no position info")
+            print(f"[skip] {db.stem}: no {cfg['label']} info")
 
     results = []
     for _, row in df_B.iterrows():
         fname = row["fname"]
-        if fname.startswith(skip_pfx):
-            continue
-        if fname in known_bad_oc:
-            continue
-        if row.dist_rad < drad_thr:
+        if (
+            fname.startswith(skip_pfx)
+            or fname in known_bad_oc
+            or row.dist_rad < drad_thr
+        ):
             continue
 
         cl_dbs = row["DB"].split(";")
@@ -260,19 +323,26 @@ def run_B_DBs_coords(pos_thr, drad_thr):
             continue
         cl_dbs, cl_db_i = map(list, zip(*pairs))
 
-        ras = [all_dbs[db]["RA"][i] for db, i in zip(cl_dbs, cl_db_i)]
-        decs = [all_dbs[db]["DEC"][i] for db, i in zip(cl_dbs, cl_db_i)]
+        vals = {
+            col: [all_dbs[db][col][i] for db, i in zip(cl_dbs, cl_db_i)]
+            for col in cat_cols
+        }
 
         conflicts = Counter()
         pair_list = []
         max_diff = 0
-        for i in range(len(ras)):
-            for j in range(i + 1, len(ras)):
-                d_ra = abs(ras[i] - ras[j])
-                d_ra = min(d_ra, 360 - d_ra)
-                d_dec = abs(decs[i] - decs[j])
-                max_diff = max(max_diff, d_ra, d_dec)
-                if d_ra > pos_thr or d_dec > pos_thr:
+        n_db = len(cl_dbs)
+        for i in range(n_db):
+            for j in range(i + 1, n_db):
+                diffs = []
+                for col in cat_cols:
+                    d = abs(vals[col][i] - vals[col][j])
+                    if wrap_ra and col == "RA":
+                        d = min(d, 360 - d)
+                    diffs.append(d)
+                pair_max = max(diffs)
+                max_diff = max(max_diff, pair_max)
+                if pair_max > thr:
                     conflicts[i] += 1
                     conflicts[j] += 1
                     pair_list.append((i, j))
@@ -280,18 +350,18 @@ def run_B_DBs_coords(pos_thr, drad_thr):
         if conflicts:
             if len(conflicts) == 2 and all(v == 1 for v in conflicts.values()):
                 ii, jj = pair_list[0]
-                msg = f"{fname:<15} (Δ={max_diff:.2f}°, {row.dist_rad:.2f}): {cl_dbs[ii]} vs {cl_dbs[jj]}"
+                msg = f"{fname:<15} (Δ={max_diff:.2f} {cfg['unit']}, {row.dist_rad:.2f}): {cl_dbs[ii]} vs {cl_dbs[jj]}"
             else:
                 # The DB that appears most often in conflicts is the most likely offender
                 offender = conflicts.most_common(1)[0][0]
                 msg = (
-                    f"{fname:<15} (Δ={max_diff:.2f}°, {row.dist_rad:.2f}): "
+                    f"{fname:<15} (Δ={max_diff:.2f} {cfg['unit']}, {row.dist_rad:.2f}): "
                     f"suspect {cl_dbs[offender]} [{conflicts[offender]} conflicts]"
                 )
             results.append((max_diff, msg))
 
-    print(f"\n{len(results)} clusters with coordinate conflicts\n")
-    print(f"{"Name":<15} (Δ=diff°, dist_rad): suspects (...)")
+    print(f"\n{len(results)} clusters with {cfg['label']} conflicts\n")
+    print(f"{'Name':<15} (Δ=diff {cfg['unit']}, dist_rad): suspects (...)")
     print("---------------------------------------------------")
     for _, msg in sorted(results, key=lambda x: x[0], reverse=True):
         print(msg)
@@ -431,7 +501,6 @@ def get_norm_dist_rad(df_B):
     df["dist_rad"] = df["dist"] / df["rad"]
 
     return df
-
 
 
 def circular_span(x):

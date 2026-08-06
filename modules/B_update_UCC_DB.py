@@ -197,7 +197,6 @@ def main():
         df_UCC_B_final,
     )
 
-    #
     move_files(
         logging,
         df_UCC_B_path,
@@ -213,7 +212,9 @@ def main():
 def get_paths_check_paths(
     logging,
 ) -> tuple[str, str, str, str]:
-    """ """
+    """
+    Generate paths for temporary files and check for required folders and files.
+    """
     # Path to the temporary all_OC_names file
     temp_all_OC_names = temp_folder + all_OC_names
 
@@ -259,7 +260,9 @@ def load_data(
     pd.DataFrame,
     dict,
 ]:
-    """ """
+    """
+    Load necessary data for updating the UCC.
+    """
     df_UCC_B_old = load_BC_cats("B", df_UCC_B_path)
 
     logging.info(f"\nUCC version {df_UCC_B_path} loaded (N={len(df_UCC_B_old)})")
