@@ -2,3 +2,4 @@ fname,ra,dec,plx,pmra,pmde,cmmt
 "ubc602","","",0.34,-1.22,-0.524,"Bad plx+pms in CANTAT2020, use HUNT2023"
 "dolidze50",241.403,-20.485,"","","","Listed as remnant in Kharchenko articles with these coords"
 "collinder107",99.622,4.635,0.649,-2.43,-0.202,"CANTAT20 points to Cr 104, use HUNT23"
+"alessi44",295.792,1.563,1.327,0.81,-2.493,,"CANTAT20 bad coords, use HUNT23"
