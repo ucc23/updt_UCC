@@ -965,7 +965,10 @@ def move_files(
     else:
         for action, src, dst in plot_actions:
             logging.info(f"  MOVE     {src} -> {dst}")
-    logging.info(f"  MOVE     {len(members_actions)} 'members/*' files will be updated")
+    if len(members_actions) > 0:
+        logging.info(
+            f"  MOVE     {len(members_actions)} 'members/*' files will be updated"
+        )
 
     # --- Ask for confirmation ---
     resp = input("\nProceed with these actions? [y/N]: ").strip().lower()
