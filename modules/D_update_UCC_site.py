@@ -405,6 +405,11 @@ def updt_ucc_cluster_plots(
     Generate plots for each cluster in the UCC database and update the 'plot_used'
     column in the dataframe.
     """
+    # Ask if the Aladin plots should be generated if the file already exists
+    overwrite_aladin = (
+        input("\nOverwrite existing Aladin plots? (y/n): ").strip().lower() == "y"
+    )
+
     logging.info("\nGenerating plot files")
 
     # Velocities used for GC plot
@@ -441,11 +446,17 @@ def updt_ucc_cluster_plots(
         temp_aladin_path = (
             f"{temp_folder}{plots_folder}plots_{fname0[0]}/aladin/{fname0}.webp"
         )
-        # If no 'orig' image exists, or if cluster is marked for update and a temp
-        # image does not already exist, generate the Aladin plot
-        if (Path(orig_aladin_path).is_file() is False) or (
-            UCC_cl["plot_used"] == "n" and Path(temp_aladin_path).is_file() is False
-        ):
+        # Generate the plot if the original image does not exist.
+        # Otherwise, generate it only if
+        #     overwriting is enabled,
+        #     the cluster is flagged for update, and
+        #     the temporary image has not already been generated.
+        generate_aladin = Path(orig_aladin_path).is_file() is False or (
+            overwrite_aladin
+            and UCC_cl["plot_used"] == "n"
+            and Path(temp_aladin_path).is_file() is False
+        )
+        if generate_aladin:
             ucc_plots.plot_aladin(
                 logging,
                 UCC_cl["RA_ICRS_m"],
@@ -985,11 +996,14 @@ def move_files(
         )
 
     clusters_plots_actions = []
+    members_actions = 0
     for action, src, dst in planned_actions:
         if action == "move":
             os.rename(src, dst)
             if "_clusters" in str(dst) or "plots" in str(dst):
                 clusters_plots_actions.append(f"{src} -> {dst}")
+            elif "members" in str(dst):
+                members_actions += 1
             else:
                 logging.info(f"{src} -> {dst}")
         elif action == "replace":
@@ -998,6 +1012,9 @@ def move_files(
         elif action == "delete":
             os.remove(src)
             logging.info(f"Deleted: {src}")
+
+    if len(members_actions) > 0:
+        logging.info(f"{members_actions} 'members/*' files updated")
 
     if len(clusters_plots_actions) > 100:
         logging.info(
