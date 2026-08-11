@@ -3,3 +3,4 @@ fname,ra,dec,plx,pmra,pmde,cmmt
 "dolidze50",241.403,-20.485,"","","","Listed as remnant in Kharchenko articles with these coords"
 "collinder107",99.622,4.635,0.649,-2.43,-0.202,"CANTAT20 points to Cr 104, use HUNT23"
 "alessi44",295.792,1.563,1.327,0.81,-2.493,"CANTAT20 bad coords, use HUNT23"
+"bica3",276.517,-13.06,0.332,-0.177,-1.681,"CANTAT20 bad plx, use HUNT23"
