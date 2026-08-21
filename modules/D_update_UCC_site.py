@@ -1013,7 +1013,7 @@ def move_files(
             os.remove(src)
             logging.info(f"Deleted: {src}")
 
-    if len(members_actions) > 0:
+    if members_actions > 0:
         logging.info(f"{members_actions} 'members/*' files updated")
 
     if len(clusters_plots_actions) > 100:
