@@ -191,6 +191,7 @@ The `UCC_cat_C.csv` file contains columns that represent the following informati
 - process: (y/n) manual flag that indicates whether to (re)process this entry
 - N_clust: Fixed number of cluster members (has precedence over N_clust_max)
 - N_clust_max: Maximum number of cluster members
+- rad_arcmin: Radius of the cluster (in arcmin), used by the members selection
 - box_size: Size of the box to query (in degrees)
 - frame_limit: A string in the format "x_111.1" where "x" is one of the characters:
 
