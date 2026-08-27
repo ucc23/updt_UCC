@@ -2,7 +2,6 @@ import json
 import os
 import re
 import sys
-from collections import defaultdict
 
 import numpy as np
 import pandas as pd
@@ -32,11 +31,11 @@ from .variables import (
     data_folder,
     dbs_folder,
     fpars_order,
+    manual_centers,
     merged_dbs_file,
     name_DBs_json,
     naming_order,
     naming_order_exceptions,
-    selected_centers_f,
     temp_folder,
 )
 
@@ -88,7 +87,7 @@ def main():
                 flag_check_stop = "no_check"
 
         # Add inner columns with galactic coordinates if possible
-        if "RA" in newDB_json["pos"].keys():
+        if "RA" in newDB_json["pos"]:
             ra_col = newDB_json["pos"]["RA"]
             dec_col = newDB_json["pos"]["DEC"]
             # Wrap negative RA values to [0, 360)
@@ -286,7 +285,7 @@ def load_data(
 
     # Load selected centers coordinates
     selected_center_coords = (
-        pd.read_csv(selected_centers_f)  # , keep_default_na=False)
+        pd.read_csv(manual_centers)  # , keep_default_na=False)
         .set_index("fname")
         .apply(lambda r: r.tolist(), axis=1)
         .to_dict()
@@ -358,7 +357,7 @@ def load_data(
             raise ValueError(f"Missing columns in {DB}: {missing}")
 
         logging.info(f"{DB} loaded (N={len(df_new)}) {new_db_flag}")
-        all_dbs_data[DB] = [df_new, new_JSON[DB]]
+        all_dbs_data[DB] = [df_new, vals]
 
     all_names, all_names_dict = handle_all_names(logging)
 
@@ -378,8 +377,15 @@ def load_data(
 
 
 def handle_all_names(logging, sep=";") -> tuple[pd.DataFrame, dict]:
-    """ """
-    # Create a dictionary with all names and their canonical fnames and Names
+    """
+    Handle the all_OC_names file:
+        - Load the all_OC_names file
+        - Check for invalid characters in fnames
+        - Check if sorted
+        - Create a dictionary mapping each alias to its canonical fname and Names
+        - Check for duplicates
+        - Check that all fnames are equivalent to the normalized names
+    """
     all_names = pd.read_csv(data_folder + all_OC_names)
 
     # Check for invalid characters in fnames (anything other than letters, numbers, and ';')
@@ -466,15 +472,15 @@ def basic_new_DB_checks(
     """
     # Extract required columns
     read_cols = [newDB_json["names"]]
-    for _, v in newDB_json["pos"].items():
+    for v in newDB_json["pos"].values():
         if isinstance(v, list):
             read_cols += v
         else:
             read_cols.append(v)
     # Parameters (and their uncertainties are dictionaries)
     for entry in ("pars", "e_pars"):
-        for _, pdict in newDB_json[entry].items():
-            for _, v in pdict.items():
+        for pdict in newDB_json[entry].values():
+            for v in pdict.values():
                 if isinstance(v, list):
                     read_cols += v
                 else:
@@ -496,23 +502,26 @@ def basic_new_DB_checks(
         for new_cl in all_bad_names:
             logging.info(f"  {new_cl}")  # bad char found
         if flag_check_stop == "check_stop":
-            breakpoint()
+            breakpoint()  # noqa: T100
 
     # Check for 'vdBergh-Hagen', 'vdBergh' OCs
-    if vdberg_check(logging, newDB_json, df_new):
-        if flag_check_stop == "check_stop":
-            breakpoint()
+    if vdberg_check(logging, newDB_json, df_new) and flag_check_stop == "check_stop":
+        breakpoint()  # noqa: T100
 
-    if "RA" in newDB_json["pos"].keys():
-        # Check for OCs very close to each other in the new DB
-        if close_OC_inner_check(logging, newDB_json, df_new, flag_check_stop):
-            if flag_check_stop == "check_stop":
-                breakpoint()
+    # Check for OCs very close to each other in the new DB
+    if (
+        "RA" in newDB_json["pos"]
+        and close_OC_inner_check(logging, newDB_json, df_new, flag_check_stop)
+        and flag_check_stop == "check_stop"
+    ):
+        breakpoint()  # noqa: T100
 
     # Check for close GCs
-    if GCs_check(logging, df_GCs, gcs_fnames, newDB_json, df_new, new_DB_fnames):
-        if flag_check_stop == "check_stop":
-            breakpoint()
+    if (
+        GCs_check(logging, df_GCs, gcs_fnames, newDB_json, df_new, new_DB_fnames)
+        and flag_check_stop == "check_stop"
+    ):
+        breakpoint()  # noqa: T100
 
 
 def vdberg_check(logging, newDB_json: dict, df_new: pd.DataFrame) -> bool:
@@ -556,7 +565,7 @@ def vdberg_check(logging, newDB_json: dict, df_new: pd.DataFrame) -> bool:
         results = [
             process.extractOne(q, bad_names, scorer=fuzz.ratio) for q in all_names
         ]
-        best_match, score, index = max(results, key=lambda x: x[1])
+        best_match, score, _ = max(results, key=lambda x: x[1])
         if score > 50:
             vds_found.append([i, new_cl, best_match, score])
 
@@ -642,7 +651,10 @@ def close_OC_check(
     rad_dup: float = 10,
     N_max: int = 50,
 ):
-    """ """
+    """
+    Check for close OCs in the new DB (or between new DB and UCC) whose names are
+    somewhat similar (Levenshtein distance).
+    """
     idxs = np.arange(0, len(col_1))
     all_dups, dups_list = [], []
     for i, cl_d in enumerate(cls_dist):
@@ -659,10 +671,9 @@ def close_OC_check(
         if cl_name in dups_list:
             continue
 
-        if ID_call == "UCC":
-            # If cl_name is present in the UCC (df_UCC['fnames'][db_matches[i]])
-            if db_matches[i] is not None:
-                continue
+        # If cl_name is present in the UCC (df_UCC['fnames'][db_matches[i]])
+        if ID_call == "UCC" and db_matches[i] is not None:
+            continue
 
         # For each OC within the rad_dup region
         N_inner_dups, dups, dist, L_ratios = 0, [], [], []
@@ -778,7 +789,7 @@ def GCs_check(
                 ]
                 break
 
-    if "GLON_" in df_new.keys():
+    if "GLON_" in df_new:
         # Extract arrays once
         glon = np.array(df_new["GLON_"])
         glat = np.array(df_new["GLAT_"])
@@ -937,8 +948,104 @@ def check_new_DB_fnames(
             for idx_s in idxs_s:
                 dnames = str(df_new.loc[idx_s, newDB_json["names"]]).split(",")
                 logging.info(f" -{', '.join(dnames[1:])} --> {dnames[0]} ({idx_s})")
-        breakpoint()
+        breakpoint()  # noqa: T100
         sys.exit(1)
+
+
+# def fnames_check_UCC_new_DB(
+#     logging,
+#     df_UCC_B: pd.DataFrame,
+#     all_names_dict: dict,
+#     newDB_json: dict,
+#     new_DB_fnames: list[list[str]],
+#     df_new: pd.DataFrame,
+#     sep: str = ";",
+# ) -> None:
+#     """
+#     Check that no fname associated to each entry in the new DB is listed in more than
+#     one entry in the UCC.
+#     """
+
+#     new_fnames_dup = []
+#     for i, new_fnames in enumerate(new_DB_fnames):
+#         c_fname = []
+#         for new_fname in set(new_fnames):
+#             if new_fname in all_names_dict:
+#                 c_fname.append(all_names_dict[new_fname]["fnames"])
+#         if len(set(c_fname)) > 1:
+#             new_fnames_dup.append(i)
+
+#     if new_fnames_dup:
+#         N = len(new_fnames_dup)
+#         txt = "y" if N == 1 else "ies"
+#         logging.info(f"\nFound {N} entr{txt} with multiple fnames in 'all_names':")
+#         for k in new_fnames_dup:
+#             logging.info(f"{df_new.iloc[k][newDB_json['names']]}")
+#         breakpoint()
+#         sys.exit(1)
+
+#     return
+
+#     # Assign an index to each fname in the UCC for O(1) lookup
+#     fname_ucc_map = {
+#         fname: i
+#         for i, fnames in enumerate(df_UCC_B["fnames"])
+#         for fname in fnames.split(sep)
+#     }
+
+#     # Index matching: Set comprehensions ensure uniqueness at extraction time O(1)
+#     fnames_ucc_idxs = {}
+#     for k, fnames in enumerate(new_DB_fnames):
+#         matched_idxs = {fname_ucc_map[f] for f in fnames if f in fname_ucc_map}
+#         if matched_idxs:
+#             fnames_ucc_idxs[k] = matched_idxs
+
+#     # Detect bad entries
+#     bad_entries = {k: list(v) for k, v in fnames_ucc_idxs.items() if len(v) > 1}
+
+#     # Duplicates: Invert mapping efficiently
+#     locations = defaultdict(list)
+#     for k, matched_idxs in fnames_ucc_idxs.items():
+#         for idx in matched_idxs:
+#             locations[idx].append(k)
+#     duplicates = {item: keys for item, keys in locations.items() if len(keys) > 1}
+
+#     dup_flag = bool(bad_entries or duplicates)
+
+#     # Logging: Extract raw numpy arrays to bypass extreme pd.DataFrame.iloc latency
+#     if dup_flag:
+#         dbs_arr = df_UCC_B["DB"].values
+#         fnames_arr = df_UCC_B["fnames"].values
+
+#         if bad_entries:
+#             logging.info(
+#                 f"\nFound {len(bad_entries)} entries in new_DB with duplicated "
+#                 "fnames in the combined DB:"
+#             )
+#             for k, v in bad_entries.items():
+#                 new_db_entries = f"({k}) {', '.join(new_DB_fnames[k])}"
+#                 ucc_entries = ", ".join(
+#                     [f"({_}, {dbs_arr[_]}) {fnames_arr[_]}" for _ in v]
+#                 )
+#                 logging.info(f"{new_db_entries} --> {ucc_entries}")
+
+#         if duplicates:
+#             logging.info(
+#                 f"\nFound {len(duplicates) * 2} entries in new_DB with combined "
+#                 "fnames in the combined DB:"
+#             )
+#             for k, v in duplicates.items():
+#                 new_db_entries = "; ".join([", ".join(new_DB_fnames[_]) for _ in v])
+#                 u_dbs = ",".join(set(str(dbs_arr[k]).split(";")))
+#                 u_fnames = ",".join(set(str(fnames_arr[k]).split(";")))
+#                 logging.info(
+#                     f"{tuple(v)} {new_db_entries} --> ({k}) {u_dbs}: {u_fnames}"
+#                 )
+
+#     if dup_flag:
+#         logging.info("\nResolve the above issues before moving on")
+#         breakpoint()
+#         sys.exit(1)
 
 
 def fnames_check_UCC_new_DB(
@@ -951,90 +1058,97 @@ def fnames_check_UCC_new_DB(
     sep: str = ";",
 ) -> None:
     """
-    Check that no fname associated to each entry in the new DB is listed in more than
-    one entry in the UCC.
+    Check consistency of fnames between the new DB, all_names, and the UCC.
+
+    Checks that:
+    - Each new-DB entry refers to at most one canonical fname in all_names.
+    - Each new-DB entry matches at most one existing UCC entry.
+    - Multiple new-DB entries do not match the same existing UCC entry.
     """
 
-    new_fnames_dup = []
-    for i, new_fnames in enumerate(new_DB_fnames):
-        c_fname = []
-        for new_fname in set(new_fnames):
-            if new_fname in all_names_dict:
-                c_fname.append(all_names_dict[new_fname]["fnames"])
-        if len(set(c_fname)) > 1:
-            new_fnames_dup.append(i)
+    # Check that the fnames associated with each new-DB entry do not point to
+    # multiple canonical entries in all_names
+    bad_all_names = []
+    for i, fnames in enumerate(new_DB_fnames):
+        canonical = {
+            all_names_dict[fname]["fnames"]
+            for fname in set(fnames)
+            if fname in all_names_dict
+        }
+        if len(canonical) > 1:
+            bad_all_names.append(i)
 
-    if new_fnames_dup:
-        N = len(new_fnames_dup)
+    if bad_all_names:
+        N = len(bad_all_names)
         txt = "y" if N == 1 else "ies"
         logging.info(f"\nFound {N} entr{txt} with multiple fnames in 'all_names':")
-        for k in new_fnames_dup:
-            logging.info(f"{df_new.iloc[k][newDB_json["names"]]}")
-        breakpoint()
+        for i in bad_all_names:
+            logging.info(f"{df_new.iloc[i][newDB_json['names']]}")
+        breakpoint()  # noqa: T100
         sys.exit(1)
 
-    return
-
-    # Assign an index to each fname in the UCC for O(1) lookup
+    # Map each fname currently in the UCC to its row index
     fname_ucc_map = {
         fname: i
         for i, fnames in enumerate(df_UCC_B["fnames"])
         for fname in fnames.split(sep)
     }
 
-    # Index matching: Set comprehensions ensure uniqueness at extraction time O(1)
-    fnames_ucc_idxs = {}
-    for k, fnames in enumerate(new_DB_fnames):
-        matched_idxs = {fname_ucc_map[f] for f in fnames if f in fname_ucc_map}
-        if matched_idxs:
-            fnames_ucc_idxs[k] = matched_idxs
+    # Match each new-DB entry against existing UCC entries
+    ucc_matches = {}
+    for i, fnames in enumerate(new_DB_fnames):
+        matched = {fname_ucc_map[f] for f in fnames if f in fname_ucc_map}
+        if matched:
+            ucc_matches[i] = matched
 
-    # Detect bad entries
-    bad_entries = {k: list(v) for k, v in fnames_ucc_idxs.items() if len(v) > 1}
+    # One new-DB entry matching multiple UCC entries
+    bad_entries = {i: idxs for i, idxs in ucc_matches.items() if len(idxs) > 1}
 
-    # Duplicates: Invert mapping efficiently
-    locations = defaultdict(list)
-    for k, matched_idxs in fnames_ucc_idxs.items():
-        for idx in matched_idxs:
-            locations[idx].append(k)
-    duplicates = {item: keys for item, keys in locations.items() if len(keys) > 1}
+    # Multiple new-DB entries matching the same UCC entry
+    ucc_to_new = {}
+    for new_idx, ucc_idxs in ucc_matches.items():
+        for ucc_idx in ucc_idxs:
+            ucc_to_new.setdefault(ucc_idx, []).append(new_idx)
 
-    dup_flag = bool(bad_entries or duplicates)
+    duplicates = {
+        ucc_idx: new_idxs
+        for ucc_idx, new_idxs in ucc_to_new.items()
+        if len(new_idxs) > 1
+    }
 
-    # Logging: Extract raw numpy arrays to bypass extreme pd.DataFrame.iloc latency
-    if dup_flag:
-        dbs_arr = df_UCC_B["DB"].values
-        fnames_arr = df_UCC_B["fnames"].values
+    if not (bad_entries or duplicates):
+        return
 
-        if bad_entries:
-            logging.info(
-                f"\nFound {len(bad_entries)} entries in new_DB with duplicated "
-                "fnames in the combined DB:"
+    dbs_arr = df_UCC_B["DB"].to_numpy()
+    fnames_arr = df_UCC_B["fnames"].to_numpy()
+
+    if bad_entries:
+        logging.info(
+            f"\nFound {len(bad_entries)} entries in new_DB matching multiple "
+            "entries in the combined DB:"
+        )
+        for i, ucc_idxs in bad_entries.items():
+            new_entry = f"({i}) {', '.join(new_DB_fnames[i])}"
+            ucc_entries = ", ".join(
+                f"({j}, {dbs_arr[j]}) {fnames_arr[j]}" for j in ucc_idxs
             )
-            for k, v in bad_entries.items():
-                new_db_entries = f"({k}) {', '.join(new_DB_fnames[k])}"
-                ucc_entries = ", ".join(
-                    [f"({_}, {dbs_arr[_]}) {fnames_arr[_]}" for _ in v]
-                )
-                logging.info(f"{new_db_entries} --> {ucc_entries}")
+            logging.info(f"{new_entry} --> {ucc_entries}")
 
-        if duplicates:
+    if duplicates:
+        logging.info(
+            f"\nFound {len(duplicates)} UCC entries matched by multiple "
+            "entries in new_DB:"
+        )
+        for ucc_idx, new_idxs in duplicates.items():
+            new_entries = "; ".join(", ".join(new_DB_fnames[i]) for i in new_idxs)
             logging.info(
-                f"\nFound {len(duplicates) * 2} entries in new_DB with combined "
-                "fnames in the combined DB:"
+                f"{tuple(new_idxs)} {new_entries} --> "
+                f"({ucc_idx}) {dbs_arr[ucc_idx]}: {fnames_arr[ucc_idx]}"
             )
-            for k, v in duplicates.items():
-                new_db_entries = "; ".join([", ".join(new_DB_fnames[_]) for _ in v])
-                u_dbs = ",".join(set(str(dbs_arr[k]).split(";")))
-                u_fnames = ",".join(set(str(fnames_arr[k]).split(";")))
-                logging.info(
-                    f"{tuple(v)} {new_db_entries} --> ({k}) {u_dbs}: {u_fnames}"
-                )
 
-    if dup_flag:
-        logging.info("\nResolve the above issues before moving on")
-        breakpoint()
-        sys.exit(1)
+    logging.info("\nResolve the above issues before moving on")
+    breakpoint()  # noqa: T100
+    sys.exit(1)
 
 
 def get_matches_new_DB(
@@ -1074,7 +1188,9 @@ def get_matches_new_DB(
 
 
 def check_new_entries(logging, new_DB_fnames, db_matches, flag_check_stop: str):
-    """ """
+    """
+    Check for new entries in the new DB that are not present in the UCC.
+    """
     N_new = db_matches.count(None)
     if N_new > 0:
         logging.info(f"\nFound {N_new} new entries")
@@ -1094,7 +1210,7 @@ def check_new_entries(logging, new_DB_fnames, db_matches, flag_check_stop: str):
         if count % N_max != 0:
             logging.info(f"... (shown {count} entries in total)")
         if flag_check_stop == "check_stop":
-            breakpoint()
+            breakpoint()  # noqa: T100
     else:
         logging.info("\nNo new entries found")
 
@@ -1111,24 +1227,28 @@ def check_positions(
     - Checks for OCs very close to each other between the new database and the UCC.
     - Checks positions and flags for attention if required.
     """
-    if "GLON_" in df_new.keys():
-        # Check for OCs very close to other OCs in the UCC
-        if check_new_DB_UCC_positions(
+    # Check for OCs very close to other OCs in the UCC
+    if (
+        "GLON_" in df_new
+        and check_new_DB_UCC_positions(
             logging, df_UCC_B, new_DB_fnames, db_matches, df_new, flag_check_stop
-        ):
-            if flag_check_stop == "check_stop":
-                breakpoint()
+        )
+        and flag_check_stop == "check_stop"
+    ):
+        breakpoint()  # noqa: T100
 
     # Check positions for matched entries and flag for attention if required
-    if check_matched_entries(
-        logging,
-        df_UCC_B,
-        df_new,
-        new_DB_fnames,
-        db_matches,
+    if (
+        check_matched_entries(
+            logging,
+            df_UCC_B,
+            df_new,
+            new_DB_fnames,
+            db_matches,
+        )
+        and flag_check_stop == "check_stop"
     ):
-        if flag_check_stop == "check_stop":
-            breakpoint()
+        breakpoint()  # noqa: T100
 
 
 def check_new_DB_UCC_positions(
@@ -1236,7 +1356,7 @@ def check_matched_entries(
         Boolean flag indicating if OCs were flagged for attention.
     """
     df_new_glon, df_new_glat = [np.array([np.nan] * len(df_new))] * 2
-    if "GLON_" in df_new.keys():
+    if "GLON_" in df_new:
         df_new_glon, df_new_glat = (
             df_new["GLON_"].to_numpy(),
             df_new["GLAT_"].to_numpy(),
@@ -1281,7 +1401,9 @@ def check_matched_entries(
 
 
 def add_fpars_col(newDB_json, df_new, max_chars=7):
-    """ """
+    """
+    Add columns for the fundamental parameters (fpars) to the new DB DataFrame.
+    """
     all_pars = {}
     N_rows = len(df_new)
 
@@ -1321,7 +1443,6 @@ def add_fpars_col(newDB_json, df_new, max_chars=7):
                 if mask.any():
                     # Number of extra values = number of delimiters
                     n_extra = s.str.count(r"[;,]")
-                    #
                     flag_mult = np.array(flag_mult, dtype=object)
                     flag_mult[mask] = n_extra[mask].apply(
                         lambda n: "*" * int(n) if n > 0 else ""
@@ -1348,8 +1469,8 @@ def add_fpars_col(newDB_json, df_new, max_chars=7):
 
         all_pars[par_general] = final_v
 
-    for col in all_pars.keys():
-        df_new[col] = all_pars[col]
+    for col, val in all_pars.items():
+        df_new[col] = val
 
     return df_new
 
@@ -1513,12 +1634,17 @@ def extract_new_DB_coords(
     selected_center_coords: dict,
     cols=("RA_ICRS", "DE_ICRS", "GLON", "GLAT", "Plx", "pmRA", "pmDE"),
 ) -> tuple[float, float, float, float, float, float, float, str]:
-    """ """
+    """
+    Extracts the coordinates from the new database, prioritizing manually fixed values
+    over database values, and considering existing UCC values if present.
+    """
     # Extract manually fixed centers (if any)
     ra_f, dec_f, lon_f, lat_f, plx_f, pmra_f, pmde_f = _NANS_7
+    manual_cents_used = False
     for fname in fnames_new_cl:
         if fname in selected_center_coords:
             ra_f, dec_f, plx_f, pmra_f, pmde_f, _ = selected_center_coords[fname]
+            manual_cents_used = True
             if not np.isnan(ra_f):
                 lon_f, lat_f = radec2lonlat(ra_f, dec_f)
             break
@@ -1574,6 +1700,9 @@ def extract_new_DB_coords(
                     new_DB_vals, ucc_vals
                 )
 
+    if manual_cents_used:
+        DB_used = "MANUAL"
+
     return ra_n, dec_n, lon_n, lat_n, plx_n, pmra_n, pmde_n, DB_used
 
 
@@ -1595,7 +1724,9 @@ def updt_new_DB(
     DB_used,
     sep: str = ";",
 ):
-    """ """
+    """
+    Update the new database dictionary with the information from the new DB and the UCC.
+    """
     N = len(fnames_new_cl)
     fnames_joined = sep.join(fnames_new_cl)
 
@@ -1864,14 +1995,17 @@ def ra_dec_check(logging, df_UCC_B):
 
 
 def sanity_check(logging, all_names_old, df_UCC_B, N_max=50):
-    """ """
+    """
+    Perform sanity checks on the updated UCC DataFrame after merging with a new
+    database.
+    """
     # Check every individual fname for duplicates
     exit_flag = duplicates_fnames_check(logging, df_UCC_B)
     if exit_flag:
         logging.info(
             "\nERROR: duplicated entries found in B cat 'fnames' column. Fix this!"
         )
-        breakpoint()
+        breakpoint()  # noqa: T100
         sys.exit(1)
 
     # Check that (RA, DEC) ranges are valid
@@ -1880,7 +2014,7 @@ def sanity_check(logging, all_names_old, df_UCC_B, N_max=50):
         logging.info(
             "\nERROR: entries were found with missing (RA, DEC) values in B cat. Fix this!"
         )
-        breakpoint()
+        breakpoint()  # noqa: T100
         sys.exit(1)
 
     # Check fnames consistency between old 'all_names' and new 'df_UCC_B'
@@ -2059,7 +2193,9 @@ def move_files(
     temp_all_OC_names: str,
     temp_database_folder: str,
 ) -> None:
-    """ """
+    """
+    Move the updated files from temporary locations to their final paths.
+    """
     if input("\nMove files to their final paths? (y/n): ").lower() != "y":
         logging.info("\nFiles not moved.")
         return
@@ -2073,7 +2209,7 @@ def move_files(
         os.rename(temp_JSON_path, name_DBs_json)
         logging.info(temp_JSON_path + " --> " + name_DBs_json)
 
-    for new_DB in all_dbs_data.keys():
+    for new_DB in all_dbs_data:
         # Move new DB file
         new_DB_file = new_DB + ".csv"
         db_temp = temp_database_folder + new_DB_file
