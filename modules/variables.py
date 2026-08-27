@@ -127,7 +127,7 @@ DB_coords_hierarchy = {
     "HE2022_1": 1000,
 }
 # Exceptions to the rule above
-selected_centers_f = data_folder + "manual_centers.csv"
+manual_centers = data_folder + "manual_centers.csv"
 
 # Folder that contains the files with per-article comments
 UCC_cmmts_folder = dbs_folder + "cmmts/"
@@ -182,7 +182,6 @@ coeffs = {
     "c_BP": 1.002,  # Gaia BP
     "c_RP": 0.589,  # Gaia RP
 }
-#
 c_Ebv = 1 / (coeffs["c_B"] - coeffs["c_V"])
 c_Evi = 1 / (coeffs["c_V"] - coeffs["c_I"])
 c_Ag = 1 / coeffs["c_G"]
@@ -220,6 +219,11 @@ gaia_max_mag = 20
 # Path to local ASteCA version
 local_asteca_path = "/home/gabriel/Github/ASteCA/ASteCA/asteca"
 # local_asteca_path = "/home/gperren.ifir/asteca"
+
+# Fixed probability value (minimum) used to identify members
+prob_cut = 0.5
+# Minimum number of stars to use for center estimation and members selection
+N_membs_min = 25
 
 # Order used for the C3 classes
 class_order = [
@@ -293,7 +297,6 @@ table_sort_js = (
 )
 
 
-#
 HTML_WARN = '⚠️ <span style="color: #99180f; font-weight: bold;">Warning: </span>'
 HTML_UTI = """<a href="/faq#what-is-the-uti-parameter" title="UTI parameter" target="_blank"><b>UTI</b></a>"""
 HTML_C3 = """<a href="/faq#what-is-the-c3-parameter" title="C3 classification" target="_blank">C3 quality</a>"""

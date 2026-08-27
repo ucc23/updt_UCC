@@ -430,7 +430,7 @@ def plot_aladin(
     t = plt.text(
         0.015, 0.02, f"FoV: {fov}", fontsize=14, color="blue", transform=ax.transAxes
     )
-    t.set_bbox(dict(facecolor="grey", alpha=0.75, linewidth=0))
+    t.set_bbox({"facecolor": "grey", "alpha": 0.75, "linewidth": 0})
 
     t = plt.text(
         0.56,
@@ -441,76 +441,12 @@ def plot_aladin(
         weight="bold",
         transform=ax.transAxes,
     )
-    t.set_bbox(dict(facecolor="white", alpha=0.75, linewidth=0))
+    t.set_bbox({"facecolor": "white", "alpha": 0.75, "linewidth": 0})
 
     ax.scatter(0.5, 0.5, marker="+", s=400, color="#B232B2", transform=ax.transAxes)
 
     plt.savefig(plot_aladin_fpath, dpi=dpi, bbox_inches="tight", pad_inches=0.0)
     plt.close(fig)
-
-
-# def plot_aladin(
-#     ra,
-#     dec,
-#     r_50,
-#     plot_aladin_fpath,
-#     dpi=100,
-#     survey="DSS2 IR",
-#     timeout=15,
-# ):
-#     """ """
-#     plt.style.use("default")
-#     rad_deg = round(2 * (r_50 / 60.0), 3)
-
-#     params = {
-#         "Position": f"{ra},{dec}",
-#         "Coordinates": "J2000",
-#         "Survey": survey,
-#         "Pixels": "350,245",
-#         "Size": rad_deg,
-#         "Return": "FITS",
-#     }
-#     url = "https://skyview.gsfc.nasa.gov/current/cgi/runquery.pl"
-
-#     try:
-#         resp = requests.get(url, params=params, timeout=timeout)
-#         resp.raise_for_status()
-#         with fits.open(io.BytesIO(resp.content)) as hdul:
-#             img_data = hdul[0].data.copy()
-#     except Exception as e:
-#         raise ValueError(
-#             f"Error generating SkyView plot for {plot_aladin_fpath}: {e}"
-#         ) from e
-
-#     rotated_img = ndimage.rotate(img_data.T, 90)
-
-#     fig, ax = plt.subplots()
-#     ax.imshow(rotated_img, cmap="gray", origin="lower")
-#     ax.axis("off")
-
-#     if rad_deg >= 1:
-#         fov = str(round(rad_deg, 1)) + "º"
-#     else:
-#         fov = str(round(rad_deg * 60, 1)) + "'"
-
-#     t = ax.text(
-#         0.015, 0.02, f"FoV: {fov}", fontsize=14, color="blue", transform=ax.transAxes
-#     )
-#     t.set_bbox(dict(facecolor="grey", alpha=0.75, linewidth=0))
-#     t = ax.text(
-#         0.56,
-#         0.02,
-#         "Click to load Aladin",
-#         fontsize=14,
-#         color="red",
-#         weight="bold",
-#         transform=ax.transAxes,
-#     )
-#     t.set_bbox(dict(facecolor="white", alpha=0.75, linewidth=0))
-#     ax.scatter(0.5, 0.5, marker="+", s=400, color="#B232B2", transform=ax.transAxes)
-
-#     fig.savefig(plot_aladin_fpath, dpi=dpi, bbox_inches="tight", pad_inches=0.0)
-#     plt.close(fig)
 
 
 def make_N_vs_year_plot(file_out_name, df_UCC, fontsize=7, dpi=300):
@@ -676,10 +612,9 @@ def make_UTI_plot(path, UTI_vals, dpi=300):
     my_cmap = plt.get_cmap("RdYlGn")
 
     fig, ax = plt.subplots(1, figsize=(6, 3))
-
-    Y, X = np.histogram(UTI_vals, 25)
+    Y, X = np.histogram(UTI_vals, 10)
     x_span = X.max() - X.min()
-    C = [my_cmap(((x - X.min()) / x_span)) for x in X]
+    C = [my_cmap((x - X.min()) / x_span) for x in X]
     width = X[1] - X[0]
     plt.bar(0.5 * width + X[:-1], Y, color=C, width=width)
 
