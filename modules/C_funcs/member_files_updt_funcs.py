@@ -8,9 +8,11 @@ from astropy.coordinates import Galactocentric, SkyCoord
 
 from ..utils import plx_to_pc, radec2lonlat
 from ..variables import (
+    N_membs_min,
     gaia_max_mag,
     local_asteca_path,
     path_gaia_frames,
+    prob_cut,
     temp_members_folder,
 )
 from .gaia_query_frames import query_run
@@ -39,8 +41,12 @@ def get_fastMP_membs(
     N_clust_max,
     box_size,
     frame_limit,
+    rad_arcmin: float | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """ """
+    """
+    Retrieves Gaia data for a specified cluster and processes it using the fastMP
+    algorithm
+    """
     # Obtain the full Gaia frame
     gaia_frame = get_gaia_frame(
         logging, gaia_frames_data, fname0, ra_c, dec_c, plx_c, box_size, frame_limit
@@ -81,7 +87,13 @@ def get_fastMP_membs(
 
     # Split into members and field stars according to the probability values
     # assigned
-    df_field, df_membs = extract_members(gaia_frame, probs_fastmp)
+    df_field, df_membs = extract_members(
+        gaia_frame,
+        probs_fastmp,
+        radec_cent=my_field.radec_c,
+        N_membs=my_field.N_cluster,
+        rad_arcmin=rad_arcmin,
+    )
 
     return df_field, df_membs
 
@@ -98,7 +110,9 @@ def get_gaia_frame(
     N_min_stars: int = 100,
     box_length_add: float = 0.5,
 ) -> pd.DataFrame:
-    """ """
+    """
+    Retrieves a Gaia frame for a specified cluster, ensuring a minimum number of stars
+    """
     # Extract possible manual frame limits
     frame_lims = []
     if frame_limit != "":
@@ -481,7 +495,6 @@ def center_check(
     glat_c: float,
     my_field: asteca.Cluster,
     probs_all: np.ndarray,
-    N_membs_min: int = 25,
     prob_cut: float = 0.5,
     rad_max: float = 15,
 ) -> None:
@@ -495,8 +508,6 @@ def center_check(
         DataFrame containing cluster data.
     probs_all : np.ndarray
         Array of membership probabilities.
-    N_membs_min : int, optional
-        Minimum number of members to use for center estimation. Default is 25.
     prob_cut : float, optional
         Probability value to select members. Default is 0.5.
 
@@ -540,63 +551,161 @@ def center_check(
     # return lonlat_c_m, vpd_c_m, plx_c_m  # pyright: ignore
 
 
+def dist_cent_arcmin(data, radec_cent):
+    """
+    Compute the angular distance in arcminutes between each star in the DataFrame
+    """
+    ra_cent, dec_cent = radec_cent
+
+    ra = np.deg2rad(data["RA_ICRS"].to_numpy(dtype=float))
+    dec = np.deg2rad(data["DE_ICRS"].to_numpy(dtype=float))
+    ra_cent = np.deg2rad(ra_cent)
+    dec_cent = np.deg2rad(dec_cent)
+
+    # Angular separation using the haversine formula
+    dra = ra - ra_cent
+    ddec = dec - dec_cent
+    a = (
+        np.sin(ddec / 2.0) ** 2
+        + np.cos(dec_cent) * np.cos(dec) * np.sin(dra / 2.0) ** 2
+    )
+    sep_rad = 2.0 * np.arcsin(np.sqrt(np.clip(a, 0.0, 1.0)))
+    sep_arcmin = np.rad2deg(sep_rad) * 60.0
+
+    return sep_arcmin
+
+
 def extract_members(
     data: pd.DataFrame,
     probs_all: np.ndarray,
-    prob_cut: float = 0.5,
-    N_membs_min: int = 25,
-    # perc_cut: int = 95,
-    # N_perc: int = 2,
+    radec_cent: tuple[float, float],
+    N_membs: int,
+    rad_arcmin: None | float = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
-    Splits the data into member and field star DataFrames based on membership
-    probabilities.
+    Split the data into field and member-star DataFrames.
+
+    Select cluster members using a radius-constrained probability ranking when
+    `rad_arcmin` is provided; otherwise, use a probability-threshold selection with
+    fallbacks to the highest non-zero probabilities or the stars closest to the
+    cluster center.
+
+    if rad_arcmin is provided
+    │
+    ├── N_inside >= N_membs
+    │   └── select N_membs stars with highest P inside radius
+    │
+    ├── N_inside >= N_membs_min
+    │   └── select all stars inside radius
+    │
+    └── N_inside < N_membs_min
+        └── select N_membs_min stars closest to center
+    else
+    │
+    ├── N(P >= prob_cut) >= N_membs_min
+    │   └── select all stars with P >= prob_cut
+    │
+    ├── N(P > 0) >= N_membs_min
+    │   └── select N_membs_min stars with highest P > 0
+    │
+    ├── N(P > 0) > 0
+    │   └── select all stars with P > 0
+    │
+    └── no stars with P > 0
+        └── select N_membs_min stars closest to center
 
     Parameters
     ----------
     data : pd.DataFrame
         DataFrame containing cluster data.
     probs_all : np.ndarray
-        Array of membership probabilities.
-    prob_cut : float, optional
-        Probability threshold for considering a star a member. Default is 0.5.
-    N_membs_min : int, optional
-        Minimum number of members to use for filtering. Default is 25.
-    perc_cut : int, optional
-        Percentile to use for distance-based filtering. Default is 95.
-    N_perc : int, optional
-        Number of times the percentile distance to use for filtering. Default is 2.
+        Membership probabilities.
+    radec_cent : tuple[float, float]
+        Cluster center as (RA, DEC), in degrees.
+    N_membs : int
+        Number of members to select within `rad_arcmin`.
+    rad_arcmin : float or None, optional
+        Maximum angular distance from the center, in arcminutes.
 
     Returns
     -------
     tuple[pd.DataFrame, pd.DataFrame]
-        DataFrames of field stars and cluster members
+        Field stars and cluster members.
     """
-    # Stars with probabilities greater than zero
-    N_p_g_0 = (probs_all > 0.0).sum()
-
-    # This should never happen but check anyhow
-    if N_p_g_0 == 0:
-        raise ValueError(
-            "No stars with P>0.0, cannot select members. "
-            + "Check the input data and parameters."
-        )
-
     # Add probabilities to dataframe
     data["probs"] = np.round(probs_all, 3)
 
-    if (probs_all >= prob_cut).sum() >= N_membs_min:
-        # Apply prob_cut
-        msk_membs = probs_all >= prob_cut
-    else:
-        # Select 'N_membs_min' maximum number of stars with P>0
-        N_membs_min = min(N_membs_min, N_p_g_0)
-        idx = np.argsort(probs_all)[::-1][:N_membs_min]
-        # Select indexes
-        msk_membs = np.full(len(probs_all), False)
-        msk_membs[idx] = True
+    # Initialize membership mask (all False)
+    msk_membs = np.zeros(len(probs_all), dtype=bool)
 
-    return pd.DataFrame(data[~msk_membs]), pd.DataFrame(data[msk_membs])
+    if rad_arcmin is not None:
+        # The cluster's radius was given, use it to select members
+        sep_arcmin = dist_cent_arcmin(data, radec_cent)
+
+        # Candidate stars inside requested radius
+        idx_inside = np.flatnonzero(sep_arcmin <= rad_arcmin)
+        N_in_rad = len(idx_inside)
+
+        if N_in_rad >= N_membs:
+            # Select N_membs stars inside the radius with the  largest probabilities
+            idx_sorted = idx_inside[np.argsort(probs_all[idx_inside])[::-1]]
+            idx_selected = idx_sorted[:N_membs]
+        else:
+            if N_in_rad >= N_membs_min:
+                warnings.warn(
+                    f"Not enough stars inside radius ({N_in_rad} < {N_membs}), "
+                    + "using all stars inside radius"
+                )
+                idx_selected = idx_inside
+            else:
+                # Select N_membs_min closest stars to center
+                warnings.warn(
+                    f"Not enough stars inside radius ({N_in_rad} < {N_membs_min}), "
+                    + f"using {N_membs_min} closest stars to center"
+                )
+                idx_sorted = np.argsort(sep_arcmin)
+                idx_selected = idx_sorted[:N_membs_min]
+
+    else:
+        # If no radius is given, use the standard probability-cut method
+
+        if (probs_all >= prob_cut).sum() >= N_membs_min:
+            # Use default probability threshold for membership
+            idx_selected = np.flatnonzero(probs_all >= prob_cut)
+        else:
+            # Stars with membership probabilities larger than 0
+            msk_probs_g_0 = probs_all > 0.0
+            N_p_g_0 = msk_probs_g_0.sum()
+
+            if N_p_g_0 >= N_membs_min:
+                warnings.warn(
+                    f"Not enough stars with P>{prob_cut}, using the {N_membs_min} "
+                    + "stars with the largest P>0"
+                )
+                # Select N_membs_min stars with largest P>0
+                idx_p_g_0 = np.flatnonzero(msk_probs_g_0)
+                idx_sorted = idx_p_g_0[np.argsort(probs_all[idx_p_g_0])[::-1]]
+                idx_selected = idx_sorted[:N_membs_min]
+            elif N_p_g_0 > 0:
+                warnings.warn(
+                    f"Not enough stars with P>{prob_cut}, using all {N_p_g_0} "
+                    + "stars with P>0"
+                )
+                idx_selected = np.flatnonzero(msk_probs_g_0)
+            else:
+                # If no stars have P>0, select the N_membs_min stars closest to the center
+                warnings.warn(
+                    f"No stars with P>0, using the {N_membs_min} closest "
+                    + "stars to the center"
+                )
+                sep_arcmin = dist_cent_arcmin(data, radec_cent)
+                idx_sorted = np.argsort(sep_arcmin)
+                idx_selected = idx_sorted[:N_membs_min]
+
+    msk_membs[idx_selected] = True
+
+    # Return field stars and cluster members
+    return data[~msk_membs], data[msk_membs]
 
 
 def get_new_cl_data(
@@ -752,6 +861,9 @@ def updt_UCC_new_cl_data(
     r_core,
     dens_core,
 ) -> pd.DataFrame:
+    """
+    Updates the UCC DataFrame with new cluster data.
+    """
     # Temp dict used to update the UCC
     dict_updt = {
         "plot_used": "n",  # 'n' indicates that a new plot is required. Used by D script
@@ -790,7 +902,9 @@ def updt_UCC_new_cl_data(
 
 
 def core_values(df_membs):
-    """ """
+    """
+    Estimates the core radius and core density of a cluster based on its members.
+    """
     x, y = df_membs["GLON"].values, df_membs["GLAT"].values
     # Center estimation
     if len(df_membs) < 100:

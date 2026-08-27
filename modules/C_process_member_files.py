@@ -69,12 +69,10 @@ def main():
 
     load_file = False
     temp_UCC_updt_file = temp_folder + "df_UCC_C_updt.csv"
-    if os.path.isfile(temp_UCC_updt_file):
-        if (
-            input(f"\nLoad existing '{temp_UCC_updt_file}' file? (y/n): ").lower()
-            == "y"
-        ):
-            load_file = True
+    if os.path.isfile(temp_UCC_updt_file) and (
+        input(f"\nLoad existing '{temp_UCC_updt_file}' file? (y/n): ").lower() == "y"
+    ):
+        load_file = True
 
     if load_file:
         # Load file if it already exists and the .parquet files were generated
@@ -99,6 +97,13 @@ def main():
     flag_membs_changed, df_members_new = update_membs_file(
         rename_C_fname, C_not_in_B, df_members, df_comb
     )
+    # Check that the final objects match
+    if len(set(df_members_new["name"]) - set(df_UCC_C["fname"])) != 0:
+        raise ValueError(
+            "Some entries in the members file do not match 'fname' in C:\n"
+            f"{set(df_members_new['name']) - set(df_UCC_C['fname'])}"
+        )
+
     if flag_membs_changed is True:
         logging.info(
             f"Zenodo '{UCC_members_file}' file updated "
@@ -160,7 +165,9 @@ def main():
 
 
 def get_paths_check_paths(logging) -> tuple[str, str, str]:
-    """ """
+    """
+    Generate paths for required files and check for their existence.
+    """
     txt = ""
     # Check for Gaia files
     if not os.path.isfile(path_gaia_frames_ranges):
@@ -216,7 +223,9 @@ def load_data(
     pd.DataFrame,
     pd.DataFrame,
 ]:
-    """ """
+    """
+    Load required data files for processing the UCC (Unified Cluster Catalogue).
+    """
     # Load file with Gaia frames ranges
     gaia_frames_data = pd.DataFrame([])
     if os.path.isfile(path_gaia_frames_ranges):
@@ -327,8 +336,14 @@ def detect_entries_to_process(
         # Find the canonical name for this fname in C that is not in B
         canonical = alias_to_canonical.get(C_fname)
         if canonical is None:
-            # This means that a fname was completely removed which should never happen
-            raise ValueError(f"Name {C_fname} in C not found in all 'fnames'")
+            # This means that a fname was completely removed which should (almost)
+            # never happen
+            raise ValueError(
+                f"Name {C_fname} in C not found in all 'fnames'\n"
+                "This means that an object was completely removed which should (almost)\n"
+                "never happen. If it does, manual editing of this database is required\n"
+                "and also the members file"
+            )
         else:
             if C_fname != canonical:
                 if canonical in df_UCC_C["fname"].values:
@@ -432,7 +447,9 @@ def process_entries(
     B_not_in_C: pd.DataFrame,
     C_reprocess: pd.DataFrame,
 ) -> pd.DataFrame:
-    """ """
+    """
+    Process entries to be added or reprocessed in the UCC
+    """
     # Rows to reprocess. Merge with df_UCC_B to recover B columns
     part_C = C_reprocess.merge(
         df_UCC_B,  # .drop(columns=["fnames"]),
@@ -500,9 +517,13 @@ def member_files_updt(
         logging.info(f"\n{idx + 1}/{N_tot} Processing {fname0}")
 
         # Extract manual parameters if any
-        N_clust, N_clust_max, box_size, frame_limit = cl_row[
-            ["N_clust", "N_clust_max", "box_size", "frame_limit"]
+        N_clust, N_clust_max, rad_arcmin, box_size, frame_limit = cl_row[
+            ["N_clust", "N_clust_max", "rad_arcmin", "box_size", "frame_limit"]
         ]
+        if isinstance(rad_arcmin, str) or np.isnan(rad_arcmin):
+            rad_arcmin = None
+        else:
+            rad_arcmin = float(rad_arcmin)
         if isinstance(frame_limit, float) or frame_limit == "nan":
             frame_limit = ""
 
@@ -523,6 +544,7 @@ def member_files_updt(
             N_clust_max,
             box_size,
             frame_limit,
+            rad_arcmin,
         )
 
         # Write selected member stars to file
@@ -782,7 +804,9 @@ def update_membs_file(
 def find_shared_members(
     logging, df_UCC_C_new: pd.DataFrame, df_members_new: pd.DataFrame
 ) -> pd.DataFrame:
-    """ """
+    """
+    Find shared members between OCs and update df_UCC_C_new dataframe.
+    """
     logging.info("Finding shared members...")
 
     # Find OCs that intersect. This helps to speed up the process
@@ -1140,7 +1164,7 @@ def check_N_clust(
             logging.warning(
                 f"Not all {n_small} entries with N_membs<25 have 25 members\n"
             )
-            breakpoint()
+            breakpoint()  # noqa: T100
             sys.exit(1)
 
         mismatches = mismatches[mismatches["N_membs"] >= 25]
@@ -1180,7 +1204,9 @@ def update_zenodo_files(
     df_members_new: pd.DataFrame,
     flag_membs_changed: bool,
 ):
-    """ """
+    """
+    Update the Zenodo files with the latest catalogue and members data.
+    """
     # Generate updated full UCC catalogue
     logging.info("Update Zenodo files:")
 
@@ -1523,10 +1549,7 @@ def move_files(
         return
 
     for action_type, src, dst in post_actions:
-        if action_type == "move":
-            os.rename(src, dst)
-            logging.info(f"{src} --> {dst}")
-        elif action_type == "archive_parquet":
+        if action_type == "move" or action_type == "archive_parquet":
             os.rename(src, dst)
             logging.info(f"{src} --> {dst}")
         elif action_type == "archive_csv":
