@@ -4,3 +4,6 @@ fname,ra,dec,plx,pmra,pmde,cmmt
 "collinder107",99.622,4.635,0.649,-2.43,-0.202,"CANTAT20 points to Cr 104, use HUNT23"
 "alessi44",295.792,1.563,1.327,0.81,-2.493,"CANTAT20 bad coords, use HUNT23"
 "bica3",276.517,-13.06,0.332,-0.177,-1.681,"CANTAT20 bad plx, use HUNT23"
+"collinder302",246.533,-26.25,"","","","HUNT23 points to GC NGC 6121"
+"kronberger39",163.55,-61.74,0.1,-4.42,1.89,"Use PERREN2022 coords+pms and set Plx to reasonable value"
+"saurer1",110.225,1.8,0.08,-0.29,-0.25,"Use PERREN2022 coords+pms and set Plx to reasonable value"

@@ -2386,7 +2386,7 @@
         ]
       },
       "age": {
-        "agyr": "Ageref"
+        "loga": "Ageref"
       },
       "met": {
         "feh": "[Fe/H]"
@@ -3578,7 +3578,9 @@
     "names": "Cluster",
     "pos": {
       "RA": "RA_ICRS",
-      "DEC": "DE_ICRS"
+      "DEC": "DE_ICRS",
+      "pmra": "pmra",
+      "pmde": "pmde"
     },
     "pars": {
       "av": {
