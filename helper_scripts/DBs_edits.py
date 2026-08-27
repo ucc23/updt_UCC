@@ -9,6 +9,20 @@ from astropy.coordinates import SkyCoord
 
 
 
+df = pd.read_csv("/home/gabriel/Descargas/scweers2026.csv")
+df.to_csv(
+    "/home/gabriel/Descargas/SCHWEERS2026.csv",
+    na_rep="nan",
+    index=False,
+    quoting=csv.QUOTE_NONNUMERIC,
+)
+
+breakpoint()
+
+
+
+
+
 df = pd.read_csv("../temp_updt/data/databases/ALTER1970.csv")
 
 # # Convert GLON,GLAT columns to RA,DEC using astropy

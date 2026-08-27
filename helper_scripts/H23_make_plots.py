@@ -9,7 +9,6 @@ style_path = "../modules/D_funcs/science2.mplstyle"
 title = r"Hunt & Reffert (2023)"
 GCs_cat = "../data/globulars.csv"
 
-#
 h23_name_changes = {
     "ESO_429-429": "ESO_429-02",
     "AH03_J0748+26.9": "AH03_J0748-26.9",
@@ -27,19 +26,16 @@ h23_name_changes = {
     "vdBergh_92": "VDB_92",
 }
 
+# Entries to process (from Hunt & Reffert 2023)
+cl_process = [
+    "oc0473",
+]
 
 def main() -> None:
     """
-    Generate plots for a group of OCs from Hunt & Reffert (2023) whose GLON
-    wrapped around the 0/360 boundary
+    Generate plots for a group of OCs from Hunt & Reffert (2023). If GLON
+    wraps around the 0/360 boundary, fix it.
     """
-    all_names = pd.read_csv("../data/all_names.csv")
-    fnames_dict = {}
-    for fnames in all_names["fnames"]:
-        fname_s = fnames.split(";")
-        for fname in fname_s:
-            fnames_dict[fname] = fname_s[0]
-
     print("Reading HUNT23 members...\n")
     hunt23_membs = pd.read_parquet("members_process/HUNT23_members.parquet")
     hunt23_membs["Name"] = hunt23_membs["Name"].str.strip()
@@ -51,59 +47,49 @@ def main() -> None:
     unique_h23_fnames = get_fnames(unique_h23_names)
     unique_h23_fnames = [x for sublist in unique_h23_fnames for x in sublist]
 
-    cl_process = (
-        # "Theia_70",
-        # "NGC_6405",
-        # "OC_0704",
-        # "NGC_6723",
-        # "NGC_6475",
-        # "HSC_95",
-        # "HSC_2846",
-        # "FoF_1624",
-        # "Theia_67",
-        # "HSC_2973",
-        # "HSC_1",
-        # "HSC_52",
-        # "HSC_3",
-        # "HSC_759",
-        # "Collinder_347",
-        # "NGC_288",
-        # "HSC_2976",
-        # "OCSN_99",
-        # "Palomar_5",
-        # "Blanco_1",
-        # "HSC_2971",
-        # "Ferrero_1",
-        # "HSC_2986",
-        # "Melotte_111",
-        # "UBC_600"
-        # "OCSN_88",
-        # "OCSN_6"
-        "UBC_1577"
-    )
+    # Get canonical names (fnames) for the clusters to process
+    cl_process_f = [x for subl in get_fnames(cl_process) for x in subl]
 
-    for i, clname in enumerate(unique_h23_names):
-        if clname not in cl_process:
+    for i, fname in enumerate(unique_h23_fnames):
+        if fname not in cl_process_f:
             continue
+
+        clname = unique_h23_names[i]
 
         msk = hunt23_membs["Name"] == clname
         df_members = hunt23_membs[msk].copy()
 
-        # Fix GLON coordinates that wrap around the 0/360 boundary
-        # if np.ptp(df_members["GLON"]) > 180:
-        #     print(clname)
-
         print(f"Making CMD plot for {clname}...")
-        glon = df_members["GLON"].to_numpy(copy=True, dtype=float)
-        glon[glon > 180.0] -= 360
-        df_members["GLON"] = glon
 
-        fname0 = unique_h23_fnames[i]
+        # Fix GLON coordinates that wrap around the 0/360 boundary
+        glon_wrap_fix(df_members)
+
+        fname0 = fname
         plot_fpath = f"{fname0}.webp"
         ucc_plots.plot_CMD(
             plot_fpath, df_members, probs_col="Prob", title=title, style_path=style_path
         )
 
+
+def glon_wrap_fix(df_members):
+    """
+    Fix GLON coordinates that wrap around the 0/360 boundary
+    """
+    glon = df_members["GLON"].to_numpy(copy=True, dtype=float)
+
+    span = glon.max() - glon.min()
+
+    glon_wrapped = glon.copy()
+    glon_wrapped[glon_wrapped > 180.0] -= 360.0
+    span_wrapped = glon_wrapped.max() - glon_wrapped.min()
+
+    # Apply the fix only if it produces a significantly smaller span
+    if span_wrapped < span:
+        glon = glon_wrapped
+
+    df_members["GLON"] = glon
+
+    return df_members
 
 def get_fnames(names_all, sep: str = ",") -> list[list[str]]:
     """ """

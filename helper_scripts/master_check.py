@@ -29,6 +29,7 @@ skip_pfx = ("hsc", "theia", "cwnu", "ocsn")
 # OCs to skip (also the DB where the error is, is listed if known)
 known_bad_oc = {
     "ascc123": ["ALFONSO2024"],  # stock_12 in frame
+    "alessi44": ["ALFONSO2024"],  # not sure
     "ngc1981": ["HE2022_1"],  # bad RA in DB
     "pismis24": ["VDBH1975"],  # bad RA in DB
     "platais6": ["CAVALLO2024"],  # frame is large, center moves inside
@@ -112,7 +113,7 @@ def main():
         elif choice == "2":
             print("Parameters (press Enter to keep default):")
             # cat_select = input("  catalog [B/C]: ").strip().upper()
-            pos_thr = _prompt_float("angular separation (deg)", 1)
+            pos_thr = _prompt_float("angular separation (deg)", 0.5)
             drad_thr = _prompt_float("normalized separation", 0.25)
             run_B_vs_membs_coords(pos_thr=pos_thr, drad_thr=drad_thr)
             break
@@ -124,7 +125,10 @@ def main():
                 if param in _PARAMS:
                     break
                 print(f"  Invalid parameter. Choose from: {_PARAMS_str}")
-            thr = _prompt_float("fractional deviation threshold", 0.25)
+            def_thresh = 1
+            if param == "age":
+                def_thresh = 0.25
+            thr = _prompt_float("fractional deviation threshold", def_thresh)
             run_B_DBs_params(param_col=param, median_perc=thr)
             break
 
@@ -236,8 +240,8 @@ def run_B_vs_C_pos(pos_thr, pm_thr, uti_min):
         xy=(0, 0),
         xytext=(10, 10),
         textcoords="offset points",
-        bbox=dict(boxstyle="round", fc="w"),
-        arrowprops=dict(arrowstyle="->"),
+        bbox={"boxstyle": "round", "fc": "w"},
+        arrowprops={"arrowstyle": "->"},
     )
     annot.set_visible(False)
 
@@ -371,16 +375,22 @@ def run_B_DBs_params(param_col, median_perc, res_max=500):
     import numpy as np
     import pandas as pd
 
+    txt = "'"+param_col+"'"
+    if param_col == "age":
+        txt = "'age' (log)"
+    if param_col == "dist":
+        txt = "'dist' (dm)"
+
     print(
-        f"\nChecking cross-DB consistency for '{param_col}' within catalogue B "
-        f"(threshold={100 * median_perc:.0f}% of median, showing top {res_max})\n"
+        f"\nChecking cross-DB consistency for {txt} within catalogue B "
+        f"(threshold={100 * median_perc:.0f}% of median, showing top {res_max})"
     )
 
     df_B = pd.read_csv(B_cat_path)
 
     results = []
     for row in df_B.itertuples(index=False):
-        name = str(row.fnames).split(";")[0]
+        name = str(row.fname).split(";")[0]
         if name.startswith(skip_pfx):
             continue
         if ";" not in str(row.DB):
@@ -404,6 +414,15 @@ def run_B_DBs_params(param_col, median_perc, res_max=500):
             continue
 
         vals = np.asarray(vals)
+
+        # Transform parameters before comparison
+        if param_col == "age":
+            # Myr -> log10(age/yr) (add 1 Myr to avoid errors)
+            vals = np.log10((1+vals) * 1e6)
+        elif param_col == "dist":
+            # pc -> distance modulus (add 11 pc to avoid errors)
+            vals = 5 * np.log10(11+vals) - 5
+
         med_val = np.median(vals)
         thr = median_perc * abs(med_val)
         diffs = np.abs(vals - med_val)
@@ -421,12 +440,15 @@ def run_B_DBs_params(param_col, median_perc, res_max=500):
             results.append((bad.size, max_diff, msg))
 
     results.sort(key=lambda x: (x[1], x[0]), reverse=True)
+
     print(
         f"\n{len(results)} clusters with '{param_col}' conflicts "
         f"(threshold={100 * median_perc:.0f}% of median)\n"
     )
+
     for _, _, msg in results[:res_max]:
         print(msg)
+
     if len(results) > res_max:
         print(f"\n... and {len(results) - res_max} more")
 
