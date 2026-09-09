@@ -98,10 +98,11 @@ def main():
         rename_C_fname, C_not_in_B, df_members, df_comb
     )
     # Check that the final objects match
-    if len(set(df_members_new["name"]) - set(df_UCC_C["fname"])) != 0:
+    unmatched_names = sorted(set(df_members_new["name"]) - set(df_UCC_C_new["fname"]))
+    if unmatched_names:
         raise ValueError(
-            "Some entries in the members file do not match 'fname' in C:\n"
-            f"{set(df_members_new['name']) - set(df_UCC_C['fname'])}"
+            "Some entries in the members file are not present in 'fname' in C:\n"
+            + "\n".join(f"  - {name}" for name in unmatched_names)
         )
 
     if flag_membs_changed is True:
