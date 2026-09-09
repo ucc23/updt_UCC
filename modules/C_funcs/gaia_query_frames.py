@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
-
-from ..utils import radec2lonlat
+from astropy import units as u
+from astropy.coordinates import SkyCoord
 
 # Gaia EDR3 zero points. Sigmas are already squared here.
 Zp_G, sigma_ZG_2 = 25.6873668671, 0.00000759
@@ -262,6 +262,29 @@ def doOverlap(
     if min_y1 > max_y2 or min_y2 > max_y1:
         return False
     return True
+
+
+def radec2lonlat(
+    ra: float | list | np.ndarray, dec: float | list | np.ndarray
+) -> tuple[float | np.ndarray, float | np.ndarray]:
+    """
+    Converts equatorial coordinates (RA, Dec) to galactic coordinates (lon, lat).
+
+    Parameters
+    ----------
+    ra : float or list
+        Right ascension in degrees.
+    dec : float or list
+        Declination in degrees.
+
+    Returns
+    -------
+    tuple
+        A tuple containing the galactic longitude and latitude in degrees.
+    """
+    gc = SkyCoord(ra=ra * u.degree, dec=dec * u.degree)  # pyright: ignore
+    lb = gc.transform_to("galactic")
+    return lb.l.value, lb.b.value  # pyright: ignore
 
 
 def query(
