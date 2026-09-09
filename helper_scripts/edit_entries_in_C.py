@@ -11,9 +11,7 @@ C_path = "../data/UCC_cat_C.csv"
 # Format: ("fname", "column1=value1;column2=value2;...")
 # E.g: ("feigelson1", "N_clust_max=125;frame_limit=plxl_9;box_size=15")
 edit_lst = [
-    ("saurer1", "N_clust=75"),
-    ("fsr1212", "N_clust=80"),
-    ("vdbh37", "N_clust_max=175"),
+    ("ngc1976", "N_clust_max=150;frame_limit=plxl_2.2"),
 ]
 
 # Check for duplicate fnames in edit_lst before processing
