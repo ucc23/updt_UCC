@@ -73,6 +73,7 @@ naming_order = (
     "hyades",  # Common name
     "pleiades",  # Common name
     "trifid",  # Common name
+    "orionnebulacluster", # Common name
     "ngc",  # 1888
     "ic",  # 1895
     "melotte",  # 1915
