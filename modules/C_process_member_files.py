@@ -1439,7 +1439,7 @@ def check_N_clust(
             for row in bad.itertuples():
                 logging.warning(
                     f"  Cluster '{row.fname}': "
-                    f"N_membs={row.N_membs} vs {row.N_clust_actual}"
+                    f"N_membs={row.N_membs} vs stars in members file={row.N_clust_actual}"
                 )
             raise ValueError(
                 "Member counts do not match between C and the members file"
