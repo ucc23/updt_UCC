@@ -2458,6 +2458,9 @@
       "Rv": "HRV"
     },
     "pars": {
+      "age": {
+        "agyr": "Age"
+      },
       "met": {
         "feh": "Fe/H"
       }
