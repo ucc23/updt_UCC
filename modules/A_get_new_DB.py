@@ -17,6 +17,7 @@ from .variables import (
     NASA_API_TOKEN_file,
     dbs_folder,
     name_DBs_json,
+    pars_formats,
     temp_folder,
 )
 
@@ -99,14 +100,33 @@ def main():
             )
             sys.exit(0)
 
-    # Print info to screen
+    # Check parameters in the current JSON file against the model JSON structure
     pars_vals_all = dict(JSON_struct["SMITH2500"]["pars"])
-    for _, v in current_JSON.items():
-        for k, par in v["pars"].items():
-            pars_vals_all[k] += list(set(list(par.keys())))
-    logging.info("Available parameter keys in current JSON file:")
-    for k, v in pars_vals_all.items():
+    # Internal consistency check, If this fails, there's something wrong in the
+    # 'variables' file
+    if pars_vals_all.keys() != pars_formats.keys():
+        raise ValueError(
+            "Mismatch between 'pars_formats' keys and 'JSON_struct[pars]' keys."
+            "Check the 'variables.py' file."
+        )
+    # Print info to screen
+    logging.info("\nAvailable parameter formats:")
+    for k, v in pars_formats.items():
         logging.info(f"{k:<10} : {', '.join(list(set(v)))}")
+    # Check that all parameters in the current JSON file are valid according to the
+    # model JSON structure
+    for db_name, v in current_JSON.items():
+        for params_general, pars_dict in v["pars"].items():
+            if params_general not in pars_formats:
+                raise ValueError(
+                    f"Parameter {params_general} in {db_name} is not in the model JSON structure"
+                )
+            for par_gen in pars_dict:
+                if par_gen not in pars_formats[params_general]:
+                    raise ValueError(
+                        f"Parameter {pars_formats[params_general]}/{par_gen} in "
+                        f"{db_name} is not valid"
+                    )
     logging.info("")
 
     # Request user for bibcode
@@ -194,7 +214,9 @@ def main():
 
 
 def get_citations_year(current_year, year, citations):
-    """ """
+    """
+    Calculate the citations per year for a given publication.
+    """
     # Add 'citation_count/year'
     cyear_gap = current_year - int(year)
     if cyear_gap == 0:
@@ -228,7 +250,9 @@ def get_ads_bibcode() -> str:
 
 
 def get_ADS_data(ADS_bibcode: str) -> tuple[str, str, str, str]:
-    """ """
+    """
+    Fetch publication metadata from NASA/ADS using the provided bibcode.
+    """
     # ADS API endpoint for searching
     api_url = "https://api.adsabs.harvard.edu/v1/search/query"
     # Read token from file
@@ -316,7 +340,9 @@ def get_CDS_table(logging, ADS_bibcode: str) -> list:
         logging.info(f"Could not extract data from {ADS_bibcode}")
         if input("Supply manual Vizier ID(s) instead? (y/n): ") == "y":
             vizier_ID = input("Input Vizier ID (e.g.: J/PAZh/38/571): ").strip()
-            vizier_ID = vizier_ID.replace("https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=", "")
+            vizier_ID = vizier_ID.replace(
+                "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=", ""
+            )
             cat = viz.get_catalogs(vizier_ID)  # pyright: ignore
             if len(cat) == 0:
                 logging.info(f"Could not extract data from {vizier_ID}")
@@ -377,7 +403,7 @@ def get_DB_from_Vizier(logging, table_url: list) -> list | None:
                 # Convert to pandas before storing
                 df_all.append(cat.values()[0].to_pandas())
             except Exception as e:
-                logging.info(f"Could not extract the data from {turl}\n{str(e)}")
+                logging.info(f"Could not extract the data from {turl}\n{e!s}")
 
     return df_all
 
@@ -419,10 +445,13 @@ def save_DB_CSV(temp_CSV_file, df_all):
 
 
 def current_JSON_vals(current_JSON):
-    """ """
+    """
+    Extract unique names, positions, parameters, and uncertainties from the current
+    JSON structure.
+    """
     # Extract unique names from the 'current_JSON' file
     names_lst = []
-    for key in current_JSON.keys():
+    for key in current_JSON:
         names_lst.append(current_JSON[key]["names"])
     names_lst = list(set(names_lst))
     names_dict = {"names": names_lst}
@@ -441,26 +470,26 @@ def current_JSON_vals(current_JSON):
         pdict = dict(JSON_struct["SMITH2500"][_id])
 
         # For each key in this entry of the model JSON object
-        for key in pdict.keys():
+        for key, pdict_val in pdict.items():
             # For each dict associated to this _id in the current JSON file
             for obj_id in dicts_id:
                 # If this object from the current JSON file contains the key, extract
                 # its value
-                if key in obj_id.keys():
+                if key in obj_id:
                     if isinstance(obj_id[key], str):  # _id='pos'
-                        pdict[key].append(obj_id[key])
+                        pdict_val.append(obj_id[key])
                     elif isinstance(obj_id[key], dict):  # _id='pars','e_pars'
-                        for _, v in obj_id[key].items():
+                        for v in obj_id[key].values():
                             if isinstance(v, list):
-                                pdict[key] += v
+                                pdict_val += v
                             else:
-                                pdict[key].append(v)
+                                pdict_val.append(v)
                     else:
                         raise ValueError(
                             f"Unknown type {type(obj_id[key])} for key {key}"
                         )
 
-            pdict[key] = list(set(pdict[key]))
+            pdict[key] = list(set(pdict_val))
         all_dicts.append(pdict)
 
     return names_dict, *all_dicts
@@ -469,7 +498,9 @@ def current_JSON_vals(current_JSON):
 def new_DB_columns_match(
     logging, names_dict, pos_dict, pars_dict, e_pars_dict, df_all, ratio_min_fix=0.5
 ):
-    """ """
+    """
+    Match columns in the new database with the current JSON structure.
+    """
     # Combine into a single dictionary
     merged_dict = {**names_dict, **pos_dict, **pars_dict, **e_pars_dict}
 
@@ -489,7 +520,7 @@ def new_DB_columns_match(
         df = df_all[tab_idx]
 
     df_col_id = {}
-    for col in df.keys():
+    for col in df:
         id_match, ratio_min = None, ratio_min_fix
         for key, vals in merged_dict.items():
             vals_ratios = []
@@ -516,7 +547,7 @@ def new_DB_columns_match(
     df_col_id = {k: v[1] for k, v in df_col_id.items()}
 
     no_match_cols = []
-    for key in df.keys():
+    for key in df:
         if key not in df_col_id.values():
             no_match_cols.append(key)
     logging.info(f"Columns in new DB with no match:\n  {no_match_cols}")
@@ -536,7 +567,7 @@ def proper_json_struct(df_col_id):
 
     # Positions
     posdict = {}
-    for val in JSON_struct["SMITH2500"]["pos"].keys():
+    for val in JSON_struct["SMITH2500"]["pos"]:
         if val in df_col_id:
             posdict[val] = df_col_id[val]
     all_dicts = [posdict]
@@ -544,18 +575,18 @@ def proper_json_struct(df_col_id):
     # Parameters and their uncertainties. We use default values here, these need
     # manual checking once the JSON file is updated
     def_pars = {
-        "av": "Av",
-        "diff_ext": "dAv",
+        "av": "av",
+        "diff_ext": "dav",
         "dist": "dm",
         "age": "loga",
         "met": "feh",
         "mass": "mass",
         "bi_frac": "bf",
-        "blue_str": "bs",
+        "blue_str": "bs_f",
     }
     for _id in ("pars", "e_pars"):
         pdict = {}
-        for val in JSON_struct["SMITH2500"][_id].keys():
+        for val in JSON_struct["SMITH2500"][_id]:
             if val in df_col_id:
                 if _id == "pars":
                     pdict[val] = {def_pars[val]: df_col_id[val]}
@@ -584,10 +615,13 @@ def add_DB_to_JSON(
     pars_dict: dict,
     e_pars_dict: dict,
 ) -> dict:
-    """ """
+    """
+    Add a new database entry to the current JSON structure and save it to a temporary
+    JSON file.
+    """
     # Extract years in current JSON file
     years = []
-    for db in current_JSON.keys():
+    for db in current_JSON:
         years.append(int(current_JSON[db]["year"]))
 
     # Index into a sorted list of integers, maintaining the sorted order
