@@ -1498,7 +1498,7 @@ def updt_zenodo_csv(
 
     # Check that the df_UCC_C["fname"] column matches the first string of the
     # all_names["fnames"] column (strings separated by ';') before moving on
-    fnames_from_all_names = all_names["fnames"].str.split(";").str[0]
+    fnames_from_all_names = all_names["fnames"].str.split(";").str[0].astype("string")
     if not df_UCC_C["fname"].equals(fnames_from_all_names):
         raise ValueError(
             "The 'fname' column in df_UCC_C does not match the canonical fname in "
