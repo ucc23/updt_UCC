@@ -7,6 +7,151 @@ import numpy as np
 import pandas as pd
 from astropy.coordinates import SkyCoord
 
+df = pd.read_csv("../temp_updt/data/databases/CAMARGO2015.csv")
+
+# # Remove 'type'=="EGr" entries
+# df = df[df["Type"] != "OCC"]
+# df = df[df["Type"] != "ECC"]
+# df = df[df["Type"] != "EGr"]
+
+# # Convert GLON,GLAT columns to RA,DEC using astropy
+# coords = SkyCoord(
+#     l=df["GLON"].values * u.deg, b=df["GLAT"].values * u.deg, frame="galactic"
+# ).icrs
+# df["RA"] = coords.ra.deg.round(5)
+# df["DEC"] = coords.dec.deg.round(5)
+
+# Add columns with nan values
+for col in ("Av", "e_Av", "Age_Myr", "e_Age_Myr", "d_kpc", "e_d_kpc"):
+    df[col] = np.nan
+
+pars_dict = {
+    "Camargo 14": {
+        "Av": 3.57,
+        "e_Av": 0.2,
+        "Age_Myr": 3,
+        "e_Age_Myr": 2,
+        "d_kpc": 2.8,
+        "e_d_kpc": 0.26,
+    },
+    "Camargo 18": {
+        "Av": 2.28,
+        "e_Av": 0.2,
+        "Age_Myr": 2,
+        "e_Age_Myr": 1,
+        "d_kpc": 5.66,
+        "e_d_kpc": 0.54,
+    },
+    "Camargo 74": {
+        "Av": 4.27,
+        "e_Av": 0.2,
+        "Age_Myr": 3,
+        "e_Age_Myr": 2,
+        "d_kpc": 3.83,
+        "e_d_kpc": 0.27,
+    },
+    "Camargo 133": {
+        "Av": 2.28,
+        "e_Av": 0.2,
+        "Age_Myr": 10,
+        "e_Age_Myr": 5,
+        "d_kpc": 3.26,
+        "e_d_kpc": 0.3,
+    },
+    "Camargo 149": {
+        "Av": 1.49,
+        "e_Av": 0.2,
+        "Age_Myr": 2,
+        "e_Age_Myr": 1,
+        "d_kpc": 9.1,
+        "e_d_kpc": 2,
+    },
+    "Camargo 209": {
+        "Av": 4.46,
+        "e_Av": 0.2,
+        "Age_Myr": 2,
+        "e_Age_Myr": 1,
+        "d_kpc": 4.1,
+        "e_d_kpc": 0.5,
+    },
+    "Camargo 245": {
+        "Av": 3.67,
+        "e_Av": 0.2,
+        "Age_Myr": 1,
+        "e_Age_Myr": 1,
+        "d_kpc": 3.94,
+        "e_d_kpc": 0.4,
+    },
+    "Camargo 260": {
+        "Av": 2.28,
+        "e_Av": 0.2,
+        "Age_Myr": 2,
+        "e_Age_Myr": 1,
+        "d_kpc": 4.5,
+        "e_d_kpc": 0.43,
+    },
+    "Camargo 292": {
+        "Av": 3.47,
+        "e_Av": 0.2,
+        "Age_Myr": 1,
+        "e_Age_Myr": 1,
+        "d_kpc": 3.86,
+        "e_d_kpc": 0.37,
+    },
+    "Camargo 353": {
+        "Av": 3.47,
+        "e_Av": 0.2,
+        "Age_Myr": 1,
+        "e_Age_Myr": 1,
+        "d_kpc": 4.23,
+        "e_d_kpc": 0.4,
+    },
+    "Camargo 394": {
+        "Av": 1.98,
+        "e_Av": 0.2,
+        "Age_Myr": 1,
+        "e_Age_Myr": 1,
+        "d_kpc": 5.12,
+        "e_d_kpc": 0.5,
+    },
+    "Camargo 399": {
+        "Av": 5.46,
+        "e_Av": 0.2,
+        "Age_Myr": 1,
+        "e_Age_Myr": 1,
+        "d_kpc": 3.0,
+        "e_d_kpc": 0.3,
+    },
+}
+
+# Find some clusters by name and replace column values
+for cl in (
+    "14",
+    "18",
+    "74",
+    "133",
+    "149",
+    "209",
+    "245",
+    "260",
+    "292",
+    "353",
+    "394",
+    "399",
+):
+    cluster_name = "Camargo " + cl
+    for col in ("Av", "e_Av", "Age_Myr", "e_Age_Myr", "d_kpc", "e_d_kpc"):
+        df.loc[df["Name"] == cluster_name, col] = pars_dict[cluster_name][col]
+
+
+df.to_csv(
+    "../temp_updt/data/databases/CAMARGO2015.csv",
+    na_rep="nan",
+    index=False,
+    quoting=csv.QUOTE_NONNUMERIC,
+)
+
+breakpoint()
 
 
 df = pd.read_csv("/home/gabriel/Descargas/scweers2026.csv")
@@ -18,9 +163,6 @@ df.to_csv(
 )
 
 breakpoint()
-
-
-
 
 
 df = pd.read_csv("../temp_updt/data/databases/ALTER1970.csv")
@@ -49,11 +191,13 @@ df = pd.read_csv("../temp_updt/data/databases/ALTER1970.csv")
 # # df["Name"] = df["Name"].apply(lambda x: add_prefix(x, "TOMB", "Tombaugh"))
 # df["Name"] = df["Name"].apply(lambda x: add_prefix(x, "BIUR", "Biurakan"))
 
+
 def rm_prefix(name, prefix, full_name):
     match = re.match(rf"{prefix}(\d+)", name, re.IGNORECASE)
     if match:
         return f"{full_name}_{match.group(1)}, {name}"
     return name
+
 
 # # df["Name"] = df["Name"].apply(lambda x: add_prefix(x, "RUP", "Ruprecht"))
 # # df["Name"] = df["Name"].apply(lambda x: add_prefix(x, "CR", "Collinder"))
@@ -64,7 +208,6 @@ def rm_prefix(name, prefix, full_name):
 # # df["Name"] = df["Name"].apply(lambda x: add_prefix(x, "WEST", "Westerlund"))
 # # df["Name"] = df["Name"].apply(lambda x: add_prefix(x, "TOMB", "Tombaugh"))
 # df["Name"] = df["Name"].apply(lambda x: add_prefix(x, "BIUR", "Biurakan"))
-
 
 
 # # Add to each entry in the 'Name' column, a new name separated by a comma generated as 'VDBH_'+df['No'][i]
@@ -87,7 +230,11 @@ df = pd.read_csv("../data/databases/VDBH1975.csv")
 
 # Add to each entry in the 'Name' column, a new name separated by a comma generated as 'VDBH_'+df['No'][i]
 df["Name"] = df.apply(
-    lambda row: f"{row['Name']}, VDBH_{int(row['No'])}" if row['Name']!= f"VDBH_{int(row['No'])}" else f"VDBH_{int(row['No'])}",
+    lambda row: (
+        f"{row['Name']}, VDBH_{int(row['No'])}"
+        if row["Name"] != f"VDBH_{int(row['No'])}"
+        else f"VDBH_{int(row['No'])}"
+    ),
     axis=1,
 )
 
@@ -101,7 +248,6 @@ df.to_csv(
 breakpoint()
 
 
-
 def _join_non_null(a, b):
     parts = [v for v in (a, b) if pd.notna(v)]
     return ",".join(str(v) for v in parts) if parts else np.nan
@@ -111,8 +257,8 @@ def combine_dfs(df1: pd.DataFrame, df2: pd.DataFrame) -> pd.DataFrame:
     CONCAT_COLS = {"fdim-all", "fdim-inrt", "fdim-outrt"}
 
     shared = df1.columns.intersection(df2.columns).difference(["Cluster"])
-    only1  = df1.columns.difference(df2.columns)
-    only2  = df2.columns.difference(df1.columns)
+    only1 = df1.columns.difference(df2.columns)
+    only2 = df2.columns.difference(df1.columns)
 
     merged = pd.merge(df1, df2, on="Cluster", how="outer", suffixes=("_1", "_2"))
 
@@ -121,7 +267,8 @@ def combine_dfs(df1: pd.DataFrame, df2: pd.DataFrame) -> pd.DataFrame:
     for col in shared:
         s1, s2 = merged[f"{col}_1"], merged[f"{col}_2"]
         result[col] = (
-            s1.combine(s2, _join_non_null) if col in CONCAT_COLS
+            s1.combine(s2, _join_non_null)
+            if col in CONCAT_COLS
             else s2.combine_first(s1)
         )
 
@@ -142,9 +289,9 @@ df2 = pd.read_csv("../temp_updt/data/databases/QIN2025_1.csv")
 # df1["logAge"] = df1["logAge"].apply(lambda x: np.log10(x * 1e6) if pd.notna(x) else x)
 
 # Round these columns tp 5 decimal places
-float_cols = ["Age", "fdim-all","fdim-inrt","fdim-outrt"]
+float_cols = ["Age", "fdim-all", "fdim-inrt", "fdim-outrt"]
 df1[float_cols] = df1[float_cols].round(4)
-float_cols = ["logAge", "fdim-all","fdim-inrt","fdim-outrt"]
+float_cols = ["logAge", "fdim-all", "fdim-inrt", "fdim-outrt"]
 df2[float_cols] = df2[float_cols].round(4)
 
 # Combine both dataframes. If repeated values in columns ("logAge", "fdim-all","fdim-inrt","fdim-outrt"), combine with a ','. For _RA and _DE columns prefer the df2 value
@@ -167,10 +314,6 @@ df.to_csv(
 breakpoint()
 
 
-
-
-
-
 df = pd.read_csv("../temp_updt/data/databases/FU2022.csv")
 
 # Round these columns tp 5 decimal places "RVmed","e_RVmed" "[Fe/H]med","e_[Fe/H]med"
@@ -185,11 +328,6 @@ df.to_csv(
 )
 
 breakpoint()
-
-
-
-
-
 
 
 df = pd.read_csv("../temp_updt/data/databases/SCHWEERS2026.csv")

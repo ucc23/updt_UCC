@@ -172,6 +172,14 @@ final destination:
 - `data/NEW_DB.csv`: New database in CSV format
 
 
+### Handling embedded clusters
+
+After running the B script, we must manually add all possible objects classified
+as embedded (sometimes called infrared) to the `embedded.csv` file. Mind the naming,
+if any names were edited during the B script, make sure to use the new names in the
+`embedded.csv` file.
+
+
 
 
 

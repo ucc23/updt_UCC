@@ -3,6 +3,133 @@ import csv
 import numpy as np
 import pandas as pd
 
+df = pd.read_csv("/home/gabriel/Github/UCC/updt_UCC/temp_updt/todo/BICA2019_1.csv")
+
+# cmmt_dict = {
+#     "REF250": "Present study",
+#     "REF039": "2MASS website",
+#     "REF1622": "Discoveries by our group members and communicated in the present work (2002 to 2017)",
+#     "REF298": "Web updates in DAML02, some were later removed (2003 to 2010)",
+#     "REF913": "The Preliminary Amateur Open Cluster Catalog, Version 08/03/2003",
+#     "REF947": "Analysis of Dolidze objects by M. Kronberger reported in DAML02",
+#     "REF949": "Spitzer website",
+#     "REF526": "Private communication by S. Ortolani to E. Bica",
+#     "REF891": "List of clusters and alike reported by B. Alessi",
+#     "REF1051": "Original NGC and IC catalogues at Vizier: NGC 2000.0, Sky Publishing, ed. Sinnott 1988 (1997yCat.7118....0S)",
+#     "REF1070": "Asterisms and cluster alikes by B. Alessi reported in DAML02",
+#     "REF963": "Asterisms reported by amateur astronomers in the web",
+#     "REF1023": "Particular objects in SIMBAD",
+#     "REF7000": "Asterisms and clusters by L. Ferrero",
+# }
+
+refs_csv = pd.read_csv("/home/gabriel/Descargas/bica2019_refs.csv")
+# Remove final ; from Code column
+refs_csv["Code"] = refs_csv["Code"].str.rstrip(";")
+# Remove initial ; from Code Bibcode
+refs_csv["Bibcode"] = refs_csv["Bibcode"].str.lstrip(";")
+# strip columns "Code","Ref"
+refs_csv["Code"] = refs_csv["Code"].str.strip()
+refs_csv["Ref"] = refs_csv["Ref"].str.strip()
+# Turn into dictionary using Code as key and Ref and Bibcode as values of a tuple
+refs_csv = dict(zip(refs_csv["Code"], zip(refs_csv["Ref"], refs_csv["Bibcode"])))
+# refs_csv = dict(zip(refs_csv["Code"], refs_csv["Ref"]))
+
+class_dict = {
+    "Assoc": "Association",
+    "EC": "Embedded Cluster",
+    "ECC": "Embedded Cluster Candidate",
+    "OC": "Open Cluster",
+    "OCC": "Open Cluster Candidate",
+    "EGr": "Embedded Group",
+    "Ast": "Asterism",
+    "DGAL": "Local Group Dwarf Galaxiy",
+    "NGAL": "Local Group Normal Galaxy",
+    "GC": "Globular Cluster",
+    "GCC": "Globular Cluster Candidate",
+    "OVD": "Overdenstiy",
+    "KAs": "Kinematical Association",
+    "KGr": "Kinematical Group",
+    "MHC": "Magellanic Halos's Cluster",
+    "MGr": "Moving Group",
+    "MC clusts": "Magellanic Cloud cluster",
+    "POCR": "Open Cluster Remnant Candidate",
+    "lPOCR": "loose Open Cluster Remnant Candidate",
+    "cPOCR": "compact Open Cluster Remnant Candidate",
+    "UltrF": "Ultra-faint",
+}
+
+# Strip 'Name' column
+df["Name"] = df["Name"].str.strip()
+
+cmmts = {"Cluster": [], "Comment": []}
+for i, row in df.iterrows():
+    txt = ""
+    c1 = row['Class1']
+    c2 = row['Class2']
+    txt = ""
+    if str(c2) != "nan":
+        txt += f"Classified as {class_dict[c1]} and {class_dict[c2]}."
+    else:
+        txt += f"Classified as {class_dict[c1]}."
+
+    if str(row["Code"]) != "nan":
+        refs = [_.strip() for _ in row["Code"].split(",")]
+        if len(refs) > 1:
+            txt += " References: "
+            for ref in refs:
+                if ref in refs_csv:
+                    if refs_csv[ref][1].startswith("--"):
+                        txt += refs_csv[ref][0] + ", "
+                    else:
+                        txt += refs_csv[ref][1] + ", "
+            txt = txt[:-2] +  "."
+        else:
+            txt += " Reference: "
+            if refs[0] in refs_csv:
+                if refs_csv[refs[0]][1].startswith("--"):
+                    txt += refs_csv[refs[0]][0] + "."
+                else:
+                    txt += refs_csv[refs[0]][1] + "."
+
+
+
+    if txt != "":
+        cmmts["Cluster"].append(row["Name"])
+        cmmts["Comment"].append(txt.strip())
+
+cluster_df = pd.DataFrame(cmmts)
+cluster_df.to_csv(
+    "/home/gabriel/Github/UCC/updt_UCC/temp_updt/todo/BICA2019_2.csv",
+    index=False,
+    quoting=csv.QUOTE_ALL,
+)
+breakpoint()
+
+
+df = pd.read_csv("../temp_updt/data/databases/CAMARGO2015.csv")
+
+types = {
+    "OC": "Open cluster",
+    "OCC": "Open cluster candidate",
+    "EC": " Embedded cluster",
+    "ECC": "Embedded cluster candidate",
+}
+
+aved_txt = "Cross-identified with Avedisova (2002ARep...46..193A, Cat. V/112) SFRs or candidates within 5' of the central coordinates."
+
+cmmts = {"Cluster": [], "Comment": []}
+for i, row in df.iterrows():
+    txt = f"{types[row['Type']]}; {row['Com']}"
+    cmmts["Cluster"].append(row["Name"])
+    cmmts["Comment"].append(txt)
+
+cluster_df = pd.DataFrame(cmmts)
+cluster_df.to_csv(
+    "../data/databases/cmmts/CAMARGO2015.csv", index=False, quoting=csv.QUOTE_ALL
+)
+breakpoint()
+
+
 df = pd.read_csv("/home/gabriel/Descargas/KRONBERGER2006.csv")
 
 # Find duplicated entries in 'Cluster' column of df and merge them into a single entry,
@@ -25,9 +152,8 @@ for col in df.columns:
 df_merged = df_dup.groupby("Cluster", as_index=False).agg(agg_dict)
 
 # Capitalize the first letter of each merged comment
-df_merged["Comment"] = (
-    df_merged["Comment"]
-    .str.replace(r"^([a-z])", lambda m: m.group(1).upper(), regex=True)
+df_merged["Comment"] = df_merged["Comment"].str.replace(
+    r"^([a-z])", lambda m: m.group(1).upper(), regex=True
 )
 
 df_merged.to_csv(
@@ -362,7 +488,6 @@ mflag = {
     "few*": "one or a few submm emission within the cluster area, but the submm emission is likely associated to the cluster",
     "exp": "exposed cluster, without submm emission",
     "exp*": "exposed cluster, with submm emission not associated with the cluster",
-    #
     "bub-cen": "presence of an IR bubble",
     "bub-cen-trig": "presence of an IR bubble and possible YSOs",
     "bub-edge": "the cluster appears at the edge of an IR bubble",
