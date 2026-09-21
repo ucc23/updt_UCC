@@ -81,6 +81,8 @@ name_DBs_json = data_folder + "databases_info.json"
 GCs_cat = data_folder + "globulars.csv"
 # Path to the file with manual OC parameters
 manual_pars_file = data_folder + "manual_params.csv"
+# Path to objects classified as embedded
+embedded_file = data_folder + "embedded.csv"
 
 # Preferred order in which the OCs are assigned their primary name
 naming_order = (
