@@ -76,9 +76,11 @@ def count_dups_bad_OCs(dbs_used, df_ucc):
 def count_OCs_in_tables(
     df_UCC, current_JSON, temp_cmmts_tables_path
 ) -> tuple[dict, dict]:
-    """ """
+    """
+    Count the number of occurrences of each database in the UCC and the number of
+    """
     # Count DB occurrences in UCC
-    N_in_DB = {_: 0 for _ in current_JSON.keys()}
+    N_in_DB = {_: 0 for _ in current_JSON}
     for _ in df_UCC["DB"].values:
         for DB in _.split(";"):
             N_in_DB[DB] += 1
@@ -86,7 +88,7 @@ def count_OCs_in_tables(
     # Count comments in tables (read from temp folder if updated/generated, otherwise
     # read from original folder)
     N_cmmts_dict = {}
-    for DB in current_JSON.keys():
+    for DB in current_JSON:
         if "comments" in current_JSON[DB]["data_cmmts"]:
             # Read from temp folder if the table was updated/generated, otherwise read
             # from the original folder
@@ -173,6 +175,19 @@ def updt_DBs_tables(dbs_used, df_updt, cmmts_JSONS_lst, DBs_dups_badOCs) -> dict
 
     fnames_vec = df_updt["fnames"].values
 
+    def has_shared_fname(fnames: str, master_set: set) -> bool:
+        return any(f in master_set for f in fnames.split(";"))
+
+    def get_first_comment(fnames: str, fname_to_cmmt: dict) -> str | None:
+        """
+        Return the comment for the first fname (in ';'-separated list) found
+        in fname_to_cmmt.
+        """
+        for f in fnames.split(";"):
+            if f in fname_to_cmmt:
+                return fname_to_cmmt[f]
+        return None
+
     new_tables_dict = {"data": {}, "comments": {}}
     for DB_id, vals in dbs_used.items():
         ref_url = f"[{vals['authors']} ({vals['year']})]({vals['SCIX_url']})"
@@ -180,37 +195,18 @@ def updt_DBs_tables(dbs_used, df_updt, cmmts_JSONS_lst, DBs_dups_badOCs) -> dict
         if "comments" in vals["data_cmmts"]:
             # Original dictionary
             clusters_dict = cmmts_JSONS_lst[DB_id]["clusters"]
+            # Build flat lookup: individual fname -> comment
+            fname_to_cmmt = {k: v[0] for k, v in clusters_dict.items()}
 
             # Find clusters in comments list that are in UCC
             # Flatten all cluster sets into a single master set for O(1) lookups
-            master_set = set().union(
-                *[set(fname.split(";")) for fname in clusters_dict.keys()]
-            )
-            # Use a list comprehension with .isdisjoint()
-            # (faster as it short-circuits on the first match)
-            msk = [not set(val.split(";")).isdisjoint(master_set) for val in fnames_vec]
-
-            # Extract 'Name, fname' columns with mask applied
-            names_cols = df_updt[np.array(msk)][["ID_url", "fname", "fnames"]]
-
-            # Filter fnames not in comments
-            names_cols = names_cols[
-                names_cols["fnames"].apply(
-                    lambda val: not set(val.split(";")).isdisjoint(master_set)
-                )
-            ].reset_index(drop=True)
-
-            # Build flat lookup: individual fname -> comment
-            fname_to_cmmt = {}
-            for fname, cmmt in clusters_dict.items():
-                fname_to_cmmt[fname] = cmmt
-
+            master_set = set().union(*(fname.split(";") for fname in clusters_dict))
+            msk = [has_shared_fname(val, master_set) for val in fnames_vec]
+            # Extract columns with mask applied
+            names_cols = df_updt[msk][["ID_url", "fname", "fnames"]]
             # Add 'cmmt' column
             names_cols["cmmt"] = names_cols["fnames"].apply(
-                lambda val: next(
-                    (fname_to_cmmt[f] for f in val.split(";") if f in fname_to_cmmt),
-                    None,
-                )
+                get_first_comment, fname_to_cmmt=fname_to_cmmt
             )
 
             new_table = generate_table(header_cmmt, DB_id, ref_url, names_cols, "")
@@ -253,7 +249,9 @@ def updt_DBs_tables(dbs_used, df_updt, cmmts_JSONS_lst, DBs_dups_badOCs) -> dict
 
 
 def generate_table(header, DB_id, ref_url, table_rows, table_note):
-    """ """
+    """
+    Generate a markdown table for a given database ID, reference URL, and table rows.
+    """
     parts = [
         header.replace("DB_link", DB_id),
         "&nbsp;\n" + f"# {ref_url}" + "\n\n",

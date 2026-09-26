@@ -1,7 +1,7 @@
-import csv
 import datetime
 import json
 import os
+from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
@@ -12,6 +12,9 @@ import pandas as pd
 from .D_funcs import ucc_entry, ucc_plots, ucc_summ_cmmts, ucc_updt_tables
 from .utils import comments_check, get_fnames, load_BC_cats, logger
 from .variables import (
+    UCC_cat_B_out,
+    UCC_cat_C_out,
+    UCC_cat_D_in,
     UCC_cmmts_folder,
     UCC_members_file,
     all_OC_names,
@@ -29,14 +32,12 @@ from .variables import (
     images_folder,
     md_folder,
     members_files_folder,
-    merged_dbs_file,
     name_DBs_json,
     pages_folder,
     plots_folder,
     plots_sub_folders,
     root_ucc_path,
     temp_folder,
-    ucc_cat_file,
     ucc_path,
     zenodo_folder,
 )
@@ -50,10 +51,11 @@ def main():
 
     # Read paths
     (
-        ucc_B_file,
-        ucc_C_file,
+        ucc_B_file_out,
+        ucc_C_file_out,
+        ucc_D_file_in,
+        temp_D_path,
         zenodo_members_file,
-        temp_C_path,
         temp_entries_path,
         ucc_entries_path,
         temp_members_files_folder,
@@ -68,45 +70,55 @@ def main():
     # Load required files
     (
         df_members,
-        df_C,
         df_BC,
+        df_D_in,
         DBs_JSON,
         DBs_full_data,
         cmmts_JSONS_lst,
         database_md,
         articles_md,
         df_clusters_CSV_current,
-    ) = load_data(logging, ucc_B_file, ucc_C_file, zenodo_members_file, old_gz_CSV_path)
+    ) = load_data(
+        logging,
+        ucc_B_file_out,
+        ucc_C_file_out,
+        ucc_D_file_in,
+        zenodo_members_file,
+        old_gz_CSV_path,
+    )
 
     comments_check(DBs_JSON)
 
     ###########################################
     # Update clusters .webp files
-    N_plots_updt = (df_C["plot_used"] == "n").sum()
+    N_plots_updt = len(df_D_in)
     if (
         N_plots_updt > 0
         and input(f"\nUpdate {N_plots_updt} cluster plots? (y/n): ").strip().lower()
         == "y"
     ):
+        fnames_d_in = df_D_in["fname"].values
         # Returns df_C dataframe with 'plot_used' column updated
-        df_C_updated, N_total = updt_ucc_cluster_plots(
+        fnames_processed = updt_ucc_cluster_plots(
             logging,
-            df_C,
+            df_BC,
+            fnames_d_in,
             df_members,
         )
-        if N_total == 0:
+        N_total = len(fnames_processed)
+        if N_total > 0:
+            logging.info(f"\n{N_total} OCs processed")
+        else:
             logging.info("No plots were generated/updated")
-        # Check that all entries in df_UCC_C have plot_used='y'
-        if any(df_C_updated["plot_used"] == "n"):
-            raise ValueError("Some entries in C dataframe still have plot_used='n'")
-        # Drop added columns from B
-        df_C_updated.to_csv(
-            temp_C_path,
-            na_rep="nan",
-            index=False,
-            quoting=csv.QUOTE_NONNUMERIC,
-        )
-        logging.info(f"\nFile '{temp_C_path}' updated")
+        if set(fnames_processed) != set(fnames_d_in):
+            logging.info(
+                f"\nWARNING: {len(set(fnames_d_in) - set(fnames_processed))} OCs "
+                "were not processed in the plot update/generate step."
+            )
+        # Empty D file
+        df_D = pd.DataFrame()
+        df_D.to_csv(temp_D_path)
+        logging.info(f"\nFile '{temp_D_path}' updated")
     ###########################################
 
     ###########################################
@@ -171,8 +183,8 @@ def main():
     if input("\nMove files to their final destination? (y/n): ").lower() == "y":
         move_files(
             logging,
-            ucc_C_file,
-            temp_C_path,
+            ucc_D_file_in,
+            temp_D_path,
             old_gz_CSV_path,
             new_clusters_csv_path,
         )
@@ -184,7 +196,9 @@ def main():
 
 def load_paths(
     logging,
-) -> tuple[Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, str]:
+) -> tuple[
+    Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, str
+]:
     """
     Load paths for input and output files
     """
@@ -193,12 +207,13 @@ def load_paths(
     root_ucc_path_p = Path(root_ucc_path)
 
     # Path to main data files
-    ucc_B_file = data_folder_p / merged_dbs_file
-    ucc_C_file = data_folder_p / ucc_cat_file
-    # Temp df_C path
-    temp_C_path = temp_folder_p / ucc_C_file
+    ucc_B_file_out = data_folder_p / UCC_cat_B_out
+    ucc_C_file_out = data_folder_p / UCC_cat_C_out
+    ucc_D_file_in = data_folder_p / UCC_cat_D_in
+    # Temp D path
+    temp_D_path = temp_folder_p / UCC_cat_D_in
 
-    # Path to large members file uploaded to Zenodo
+    # Path to members file uploaded to Zenodo
     zenodo_members_file = Path(zenodo_folder) / UCC_members_file
 
     # Create temp folders for storing plots
@@ -255,10 +270,11 @@ def load_paths(
         raise ValueError(f"No file matching '{clusters_csv_path}' found")
 
     return (
-        ucc_B_file,
-        ucc_C_file,
+        ucc_B_file_out,
+        ucc_C_file_out,
+        ucc_D_file_in,
+        temp_D_path,
         zenodo_members_file,
-        temp_C_path,
         temp_entries_path,
         ucc_entries_path,
         temp_members_files_folder,
@@ -273,8 +289,9 @@ def load_paths(
 
 def load_data(
     logging,
-    ucc_B_file,
-    ucc_C_file,
+    ucc_B_file_out,
+    ucc_C_file_out,
+    ucc_D_file_in,
     zenodo_members_file,
     old_gz_CSV_path,
 ) -> tuple[
@@ -297,22 +314,25 @@ def load_data(
 
     # Load current CSV data files
     all_names = pd.read_csv(data_folder + all_OC_names)
-    df_UCC_B = load_BC_cats("B", ucc_B_file)
+    df_UCC_B = load_BC_cats("B", ucc_B_file_out)
     # Add columns to B cat
     df_UCC_B[["fnames", "Names"]] = all_names[["fnames", "Names"]]
 
-    logging.info(f"\nFile {ucc_B_file} loaded ({len(df_UCC_B)} entries)")
-    df_UCC_C = load_BC_cats("C", ucc_C_file)
-    logging.info(f"File {ucc_C_file} loaded ({len(df_UCC_C)} entries)")
+    logging.info(f"\nFile {ucc_B_file_out} loaded ({len(df_UCC_B)} entries)")
+    df_UCC_C = load_BC_cats("C", ucc_C_file_out)
+    logging.info(f"File {ucc_C_file_out} loaded ({len(df_UCC_C)} entries)")
 
     # Check B and C alignment
     if df_UCC_B["fname"].to_list() == df_UCC_C["fname"].to_list() is False:
         raise ValueError("The 'fname' columns in B and C dataframes differ")
     # Drop fname from B to avoid duplicate column
     df_UCC_B = df_UCC_B.drop(columns=["fname"])
-
     # Merge df_UCC_B and df_UCC_C dataframes
     df_BC = pd.concat([df_UCC_B, df_UCC_C], axis=1)
+
+    df_D_in = pd.DataFrame()
+    if os.path.exists(ucc_D_file_in):
+        df_D_in = pd.read_csv(ucc_D_file_in)
 
     # Load clusters data in JSON file
     with open(name_DBs_json) as f:
@@ -326,33 +346,85 @@ def load_data(
         if v["data_cmmts"] != "comments":
             DBs_full_data[k] = pd.read_csv(dbs_folder + k + ".csv")
 
-    # Load (and check) all comments JSON files
+    # Build a dictionary mapping each fname to its canonical fname
+    all_fnames_dict = {}
+    for fnames_lst in df_BC["fnames"]:
+        fnames = fnames_lst.split(";")
+        fname0 = fnames[0]
+        for fname in fnames:
+            all_fnames_dict[fname] = fname0
+
+    # # Load (and check) all comments JSON files
+    # cmmts_JSONS_lst = {}
+    # for fpath_csv in os.listdir(UCC_cmmts_folder):
+    #     DB_id = fpath_csv.replace(".csv", "")
+
+    #     cluster_dict = {
+    #         "art_name": DBs_JSON[DB_id]["authors"],
+    #         "art_year": DBs_JSON[DB_id]["year"],
+    #         "art_url": DBs_JSON[DB_id]["SCIX_url"],
+    #     }
+
+    #     df = pd.read_csv(UCC_cmmts_folder + fpath_csv)
+    #     if "Cluster" not in df.columns or "Comment" not in df.columns:
+    #         raise ValueError(
+    #             f"File {fpath_csv} must contain 'Cluster' and 'Comment' columns"
+    #         )
+
+    #     cluster_names = [_.replace("_", " ").replace(",", ", ") for _ in df["Cluster"].values]
+    #     cluster_fnames = get_fnames(cluster_names)
+
+    #     # For each cluster in this DB
+    #     fnames_cmmts = {_:[] for _ in all_fnames_dict}
+    #     fnames_orig_names = {_:[] for _ in all_fnames_dict}
+    #     for i, fname in enumerate(cluster_fnames):
+    #         if fname[0] in all_fnames_dict:
+    #             fname0 = all_fnames_dict[fname[0]]
+    #             fnames_cmmts[fname0].append(df["Comment"].values[i])
+    #             fnames_orig_names[fname0].append(cluster_names[i])
+    #         else:
+    #             # This fname is not in the UCC database, so we skip it
+    #             pass
+    #     # Remove keys associated to empty lists in fnames_cmmts & fnames_orig_names
+    #     fnames_cmmts = {k: v for k, v in fnames_cmmts.items() if v}
+    #     fnames_orig_names = {k: v for k, v in fnames_orig_names.items() if v}
+
+    #     cluster_dict["clusters"] = fnames_cmmts
+    #     cluster_dict["cl_orig_names"] = fnames_orig_names
+
+    #     cmmts_JSONS_lst[DB_id] = cluster_dict
+
     cmmts_JSONS_lst = {}
-    for fpath_csv in os.listdir(UCC_cmmts_folder):
-        DB_id = fpath_csv.replace(".csv", "")
+    for fname_csv in os.listdir(UCC_cmmts_folder):
+        DB_id = fname_csv.replace(".csv", "")
+        df = pd.read_csv(os.path.join(UCC_cmmts_folder, fname_csv))
 
-        art_name = DBs_JSON[DB_id]["authors"]
-        art_year = DBs_JSON[DB_id]["year"]
-        art_url = DBs_JSON[DB_id]["SCIX_url"]
-        cluster_dict = {
-            "art_name": art_name,
-            "art_year": art_year,
-            "art_url": art_url,
-            "clusters": {},
-        }
-
-        df = pd.read_csv(UCC_cmmts_folder + fpath_csv)
         if "Cluster" not in df.columns or "Comment" not in df.columns:
             raise ValueError(
-                f"File {fpath_csv} must contain 'Cluster' and 'Comment' columns"
+                f"File {fname_csv} must contain 'Cluster' and 'Comment' columns"
             )
-        cluster_fnames = get_fnames(df["Cluster"].values)
-        fnames_cmmts = {}
-        for i, fname in enumerate(cluster_fnames):
-            fnames_cmmts[fname[0]] = df["Comment"].values[i]
-        # cluster_dict = df.set_index("Cluster")["Comment"].to_dict()
-        cluster_dict["clusters"] = fnames_cmmts
-        cmmts_JSONS_lst[DB_id] = cluster_dict
+
+        cluster_names = [c.replace("_", " ").replace(",", ", ") for c in df["Cluster"]]
+        cluster_fnames = get_fnames(cluster_names)
+
+        fnames_cmmts = defaultdict(list)
+        fnames_orig_names = defaultdict(list)
+        # For each cluster in this DB
+        for fname, comment, orig_name in zip(
+            cluster_fnames, df["Comment"], cluster_names
+        ):
+            fname0 = all_fnames_dict.get(fname[0])
+            if fname0 is not None:
+                fnames_cmmts[fname0].append(comment)
+                fnames_orig_names[fname0].append(orig_name)
+
+        cmmts_JSONS_lst[DB_id] = {
+            "art_name": DBs_JSON[DB_id]["authors"],
+            "art_year": DBs_JSON[DB_id]["year"],
+            "art_url": DBs_JSON[DB_id]["SCIX_url"],
+            "clusters": dict(fnames_cmmts),
+            "cl_orig_names": dict(fnames_orig_names),
+        }
 
     # --- sort by year (descending) ---
     cmmts_JSONS_lst = dict(
@@ -387,8 +459,8 @@ def load_data(
 
     return (
         df_members,
-        df_UCC_C,
         df_BC,
+        df_D_in,
         DBs_JSON,
         DBs_full_data,
         cmmts_JSONS_lst,
@@ -399,41 +471,44 @@ def load_data(
 
 
 def updt_ucc_cluster_plots(
-    logging, df_UCC, df_members, min_UTI=0.5
-) -> tuple[pd.DataFrame, int]:
+    logging, df_BC, fnames_d_in, df_members, min_UTI=0.5
+) -> list:
     """
     Generate plots for each cluster in the UCC database and update the 'plot_used'
     column in the dataframe.
     """
     # Ask if the Aladin plots should be generated if the file already exists
     overwrite_aladin = (
-        input("\nOverwrite existing Aladin plots? (y/n): ").strip().lower() == "y"
+        input("\nRe-generate existing Aladin plots? (y/n): ").strip().lower() == "y"
     )
-
+    overwrite_temp = (
+        input("\nOverwrite stored temp plots? (y/n): ").strip().lower() == "y"
+    )
     logging.info("\nGenerating plot files")
 
     # Velocities used for GC plot
     vx, vy, vz, vR = ucc_plots.velocity(
-        df_UCC["RA_ICRS_m"].values,
-        df_UCC["DE_ICRS_m"].values,
-        df_UCC["Plx_m"].values,
-        df_UCC["pmRA_m"].values,
-        df_UCC["pmDE_m"].values,
-        df_UCC["Rv_m"].values,
-        df_UCC["X_GC"].values,
-        df_UCC["Y_GC"].values,
-        df_UCC["Z_GC"].values,
-        df_UCC["R_GC"].values,
+        df_BC["RA_ICRS_m"].values,
+        df_BC["DE_ICRS_m"].values,
+        df_BC["Plx_m"].values,
+        df_BC["pmRA_m"].values,
+        df_BC["pmDE_m"].values,
+        df_BC["Rv_m"].values,
+        df_BC["X_GC"].values,
+        df_BC["Y_GC"].values,
+        df_BC["Z_GC"].values,
+        df_BC["R_GC"].values,
     )
 
     # Good OCs used for GC plot
-    msk = df_UCC["UTI"] > min_UTI
-    Z_uti = df_UCC["Z_GC"][msk]
-    R_uti = df_UCC["R_GC"][msk]
+    msk = df_BC["UTI"] > min_UTI
+    Z_uti = df_BC["Z_GC"][msk]
+    R_uti = df_BC["R_GC"][msk]
 
-    N_total = 0
+    # plots_generated = {"aladin": [], "GC": [], "CMD": []}
+    fnames_processed = []
     # Iterate trough each entry in the UCC database
-    for i_ucc, UCC_cl in df_UCC.iterrows():
+    for i_ucc, UCC_cl in df_BC.iterrows():
         fname0 = str(UCC_cl["fname"])
         txt = ""
 
@@ -446,16 +521,19 @@ def updt_ucc_cluster_plots(
         temp_aladin_path = (
             f"{temp_folder}{plots_folder}plots_{fname0[0]}/aladin/{fname0}.webp"
         )
-        # Generate the plot if the original image does not exist.
-        # Otherwise, generate it only if
-        #     overwriting is enabled,
-        #     the cluster is flagged for update, and
-        #     the temporary image has not already been generated.
-        generate_aladin = Path(orig_aladin_path).is_file() is False or (
-            overwrite_aladin
-            and UCC_cl["plot_used"] == "n"
-            and Path(temp_aladin_path).is_file() is False
-        )
+        generate_aladin = False
+        if Path(orig_aladin_path).is_file() is False:
+            # Always generate the plot if the original image does not exist
+            generate_aladin = True
+        else:  # the original image exists
+            # If file is flagged for update and overwriting is enabled
+            if fname0 in fnames_d_in and overwrite_aladin is True:
+                # If the temporary image does not exist
+                if Path(temp_aladin_path).is_file() is False:
+                    generate_aladin = True
+                else:
+                    if overwrite_temp == "y":
+                        generate_aladin = True
         if generate_aladin:
             ucc_plots.plot_aladin(
                 logging,
@@ -468,7 +546,7 @@ def updt_ucc_cluster_plots(
 
         # Make GC and CMD plots
         # Check if this OC's plot should be generated/updated
-        if UCC_cl["plot_used"] == "n":
+        if fname0 in fnames_d_in:
             # Read members
             df_membs = df_members[df_members["name"] == fname0]
 
@@ -476,7 +554,8 @@ def updt_ucc_cluster_plots(
             temp_gc_path = (
                 f"{temp_folder}{plots_folder}plots_{fname0[0]}/gcpos/{fname0}.webp"
             )
-            if Path(temp_gc_path).is_file() is False:
+            # Generate the GC plot if the temporary image does not exist
+            if Path(temp_gc_path).is_file() is False or overwrite_temp == "y":
                 ucc_plots.plot_gcpos(
                     temp_gc_path,
                     Z_uti,
@@ -496,20 +575,16 @@ def updt_ucc_cluster_plots(
             temp_cmd_path = (
                 f"{temp_folder}{plots_folder}plots_{fname0[0]}/UCC/{fname0}.webp"
             )
-            if Path(temp_cmd_path).is_file() is False:
+            # Generate the CMD plot if the temporary image does not exist
+            if Path(temp_cmd_path).is_file() is False or overwrite_temp == "y":
                 ucc_plots.plot_CMD(temp_cmd_path, df_membs)
                 txt += " CMD plot generated |"
 
-            # Update value indicating that the plots were generated
-            df_UCC.loc[i_ucc, "plot_used"] = "y"
-
         if txt != "":
-            N_total += 1
-            logging.info(f"{N_total} -> {fname0}" + txt + f" ({i_ucc})")
+            logging.info(f"{fname0} -->" + txt + f" ({i_ucc})")
+            fnames_processed.append(fname0)
 
-    logging.info(f"\nN={N_total} OCs processed")
-
-    return df_UCC.copy(), N_total
+    return fnames_processed
 
 
 def UTI_to_hex(df_UCC):
@@ -572,7 +647,7 @@ def updt_ucc_cluster_files(
         UCC_cl = dict(zip(cols, UCC_cl))
         fname0 = str(UCC_cl["fname"])
 
-        # if fname0 not in ("teutsch124",):
+        # if fname0 not in ("ic1442",):
         #     continue
         # if "melotte" not in fname0:
         #     continue
@@ -685,6 +760,9 @@ def updt_cls_CSV(
     df_BC["GLAT"] = np.round(df_BC["GLAT_m"], 2)
     df_BC["N_membs"] = df_BC["N_membs"].astype(int)
 
+    # Replace "OC": "O", "EC": "E", "EC;OC": "EO"
+    df_BC["Type"] = df_BC["Type"].replace({"OC": "O", "EC": "E", "EC;OC": "EO"})
+
     # Compute parallax-based distances in parsecs
     dist_pc = 1000 / np.clip(np.array(df_BC["Plx_m"]), a_min=0.0000001, a_max=np.inf)
     dist_pc = np.clip(dist_pc, a_min=10, a_max=50000)
@@ -694,6 +772,7 @@ def updt_cls_CSV(
         df_BC[
             [
                 "Name",
+                "Type",
                 "fnames",
                 "RA_ICRS",
                 "DE_ICRS",
@@ -869,6 +948,7 @@ def update_main_pages(
 ):
     """Update main .md files"""
     logging.info("\nUpdating main .md files")
+    N_updt = 0
 
     # Update DATABASE
     N_db_UCC, N_cl_UCC = len(current_JSON), len(df_UCC)
@@ -880,8 +960,7 @@ def update_main_pages(
         with open(temp_folder + databases_md_path, "w") as file:
             file.write(database_md_updt)
         logging.info("DATABASE.md updated")
-    else:
-        logging.info("DATABASE.md not updated (no changes)")
+        N_updt += 1
 
     N_in_DB, N_cmmts_dict = ucc_updt_tables.count_OCs_in_tables(
         df_UCC, current_JSON, temp_cmmts_tables_path
@@ -895,14 +974,16 @@ def update_main_pages(
         with open(temp_folder + articles_md_path, "w") as file:
             file.write(articles_md_updt)
         logging.info("ARTICLES.md updated")
-    else:
-        logging.info("ARTICLES.md not updated (no changes)")
+        N_updt += 1
+
+    if N_updt == 0:
+        logging.info("No tables updated (DATABASE, ARTICLES)")
 
 
 def move_files(
     logging,
-    ucc_C_file: Path,
-    temp_C_path: Path,
+    ucc_D_file_in: Path,
+    temp_D_path: Path,
     old_gz_CSV_path: str,
     new_clusters_csv_path: str,
 ) -> None:
@@ -922,9 +1003,9 @@ def move_files(
                     planned_actions.append(("move", temp_fpath + file, fpath + file))
                     all_plot_folds.append(fpath)
 
-    # --- Updated C file ---
-    if os.path.exists(temp_C_path):
-        planned_actions.append(("move", temp_C_path, ucc_C_file))
+    # --- Updated D file ---
+    if os.path.exists(temp_D_path):
+        planned_actions.append(("move", temp_D_path, ucc_D_file_in))
 
     # --- Delete old clusters CSV file ---
     if new_clusters_csv_path != "":
@@ -1038,20 +1119,10 @@ def file_checker(logging) -> None:
     """
     logging.info("\nChecking files")
     # Read stored final version
-    df_UCC_C = pd.read_csv(data_folder + ucc_cat_file, usecols=["fname", "plot_used"])
+    df_UCC_C = pd.read_csv(data_folder + UCC_cat_C_out, usecols=["fname"])
     flag_error = False
 
-    # Check that all entries in df_UCC_C have plot_used='y'
-    if any(df_UCC_C["plot_used"] == "n"):
-        flag_error = True
-        logging.warning("Some entries in final C dataframe still have plot_used='n'\n")
-
-    # Check the 'fname' columns in df_UCC_B and df_UCC_C_final dataframes are equal
-    df_UCC_B = pd.read_csv(data_folder + merged_dbs_file, usecols=["fname"])
     df_UCC_fname = df_UCC_C["fname"].to_list()
-    if df_UCC_B["fname"].to_list() != df_UCC_fname:
-        flag_error = True
-        logging.warning("The 'fname' columns in B and final C dataframes differ\n")
 
     # Check that all md_files match the elements in df_UCC_fname
     md_files = os.listdir(root_ucc_path + md_folder)

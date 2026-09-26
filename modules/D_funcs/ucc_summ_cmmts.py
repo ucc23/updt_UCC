@@ -12,7 +12,9 @@ from ..variables import (
 
 
 def run(current_year, UCC_cl, DBs_JSON, cmmts_JSONS_lst: dict):
-    """ """
+    """
+    Generate a summary and comments for a cluster.
+    """
     # logging.info("\nGenerate all summaries")
     summary, descriptors, fpars_badges, badges_url = get_summary(
         current_year, DBs_JSON, UCC_cl
@@ -20,8 +22,9 @@ def run(current_year, UCC_cl, DBs_JSON, cmmts_JSONS_lst: dict):
 
     fnames0 = UCC_cl["fnames"].split(";")
 
+    # Generate comments list for the cluster
     comments_lst = []
-    for _, cmmt_json_dict in cmmts_JSONS_lst.items():
+    for cmmt_json_dict in cmmts_JSONS_lst.values():
         for fname0 in fnames0:
             if fname0 in cmmt_json_dict["clusters"]:
                 art_name = cmmt_json_dict["art_name"]
@@ -34,6 +37,7 @@ def run(current_year, UCC_cl, DBs_JSON, cmmts_JSONS_lst: dict):
                         "url": art_url,
                         "year": art_year,
                         "comment": cmmt_json_dict["clusters"][fname0],
+                        "orig_name": cmmt_json_dict["cl_orig_names"][fname0]
                     }
                 )
                 break
@@ -84,23 +88,47 @@ def get_summary(current_year, DBs_JSON, UCC_cl):
     )
 
     cl_name0 = UCC_cl["Names"].split(";")[0]
-    summary = f"{tsp}<b>{cl_name0}</b> is a {members}, {density} object of {quality} {HTML_C3}."
+    summary = (
+        f"{tsp}<b>{cl_name0}</b> is a {members}, {density} object "
+        f"of {quality} {HTML_C3}."
+    )
 
     summary += " " + fpars_summ
     summary += " " + lit_summary(current_year, UCC_cl["DB"], literature)
 
+    embedded_note = ""
+    if "EC" in UCC_cl["Type"]:
+        embedded_note = '<p class="note"><strong>Note:</strong> '
+        if UCC_cl["Type"] == "EC":
+            embedded_note += (
+                "This object is classified as an embedded (or infrared) cluster.</p>"
+            )
+        else:
+            embedded_note += (
+                "This object is classified as both an open cluster and "
+                "as an embedded (or infrared) cluster.</p>"
+            )
+
     duplicate, dup_note = dupl_summary(
         UCC_cl["shared_members_p"], UCC_cl["C_dup"], UCC_cl["C_dup_info"]
     )
-    summary += f" {fpars_note}{dup_note}"
+    summary += f" {embedded_note}{fpars_note}{dup_note}"
 
     # Bad OC warning
     if UCC_cl["bad_oc"] == "y":
-        summary += (
-            f"<p>{HTML_WARN}the low {HTML_UTI} value and no obvious signs of "
-            f"duplication (<i>C<sub>dup</sub>={UCC_cl['C_dup']}</i>) indicate that this "
-            f"is quite probably an asterism, moving group, or artifact, and {HTML_BAD_OC}.</p>"
-        )
+        if embedded_note == "":
+            summary += (
+                f"<p>{HTML_WARN}the low {HTML_UTI} value and no obvious signs of "
+                f"duplication (<i>C<sub>dup</sub>={UCC_cl['C_dup']}</i>) indicate that "
+                "this is quite probably an asterism, moving group, or artifact, "
+                f"and {HTML_BAD_OC}.</p>"
+            )
+        else:
+            summary += (
+                f"<p>{HTML_WARN}the low {HTML_UTI} value could be due to the embedded "
+                "nature of the cluster, but it could also indicate that this is "
+                f"an asterism, moving group, or artifact, and {HTML_BAD_OC}.</p>"
+            )
 
     # Descriptors, for back of summary card
     UTI_C_N_desc = members.capitalize()
@@ -164,7 +192,10 @@ def get_C_txt(C_N, C_dens, C_C3, C_lit, plx, Z_GC):
         ],
     )
     # Add click event that takes you to the tab with the plot
-    z_position = f"""<a href="#tab_gcpos" onclick="activateTabById(event, 'tab_gcpos', 'gcpos')">{z_position}</a>"""
+    z_position = (
+        f"""<a href="#tab_gcpos" """
+        f"""onclick="activateTabById(event, 'tab_gcpos', 'gcpos')">{z_position}</a>"""
+    )
 
     literature = level(
         C_lit,

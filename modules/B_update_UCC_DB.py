@@ -2,6 +2,7 @@ import json
 import os
 import re
 import sys
+from datetime import datetime
 
 import numpy as np
 import pandas as pd
@@ -21,6 +22,8 @@ from .utils import (
 from .variables import (
     DB_coords_hierarchy,
     GCs_cat,
+    UCC_cat_B_in,
+    UCC_cat_B_out,
     all_OC_names,
     c_Ag,
     c_Ebprp,
@@ -30,9 +33,8 @@ from .variables import (
     c_z_sun,
     data_folder,
     dbs_folder,
+    embedded_file,
     fpars_order,
-    manual_centers,
-    merged_dbs_file,
     name_DBs_json,
     naming_order,
     naming_order_exceptions,
@@ -62,6 +64,7 @@ def main():
     (
         new_JSON,
         df_GCs,
+        df_embedded,
         gcs_fnames,
         selected_center_coords,
         all_dbs_data,
@@ -94,7 +97,8 @@ def main():
             msk = df_new[ra_col] < 0
             if msk.any():
                 logging.info(
-                    f"\nFound {msk.sum()} entries with negative RA values. Wrapping to [0, 360)"
+                    f"\nFound {msk.sum()} entries with negative RA values. "
+                    "Wrapping to [0, 360)"
                 )
                 df_new.loc[msk, ra_col] = df_new.loc[msk, ra_col] + 360
             df_new["GLON_"], df_new["GLAT_"] = radec2lonlat(
@@ -151,6 +155,9 @@ def main():
         # Add fundamental parameters column
         df_new = add_fpars_col(newDB_json, df_new)
 
+        # Compute the F-score for the new DB entries
+        db_fscore = get_db_fscore(new_JSON, new_DB, df_new)
+
         # Combine the new DB with the UCC
         df_UCC_B_new = combine_UCC_new_DB(
             logging,
@@ -161,6 +168,7 @@ def main():
             df_new,
             new_DB_fnames,
             db_matches,
+            db_fscore,
         )
 
     logging.info("\n\n\n===================================================")
@@ -173,13 +181,17 @@ def main():
     # Add medians and STDDEVs of fundamental parameters
     df_UCC_B_new = add_fpars_stats(logging, df_UCC_B_new)
 
+    # Add Type column
+    df_UCC_B_new = add_types(df_embedded, df_UCC_B_new)
+
     # Sanity check
     sanity_check(logging, all_names_old, df_UCC_B_new)
 
     # Generate new all_names and final df_UCC_B dataframes
     all_names_new, df_UCC_B_final = generate_dfs(df_UCC_B_new)
 
-    # Add any missing fnames to all_names_new (if any), using all_names_dict as reference
+    # Add any missing fnames to all_names_new (if any), using all_names_dict as
+    # reference
     all_names_final = add_lost_fnames(all_names_dict, all_names_new)
 
     # Compare final 'fnames' column with the old one to check for unexpected changes
@@ -218,11 +230,11 @@ def get_paths_check_paths(
     temp_all_OC_names = temp_folder + all_OC_names
 
     # Path to the current DBs merged file
-    df_UCC_B_path = data_folder + merged_dbs_file
+    df_UCC_B_path = data_folder + UCC_cat_B_out
 
     # If file exists, read and return it
     # last_version = get_last_version_UCC(data_folder)
-    temp_merged_f = temp_folder + merged_dbs_file
+    temp_merged_f = temp_folder + UCC_cat_B_out
     if os.path.isfile(temp_merged_f):
         logging.warning(
             f"WARNING: file {temp_merged_f} exists. Moving on will re-write it"
@@ -249,6 +261,7 @@ def load_data(
     temp_database_folder: str,
 ) -> tuple[
     dict,
+    pd.DataFrame,
     pd.DataFrame,
     dict,
     dict,
@@ -280,12 +293,18 @@ def load_data(
     df_UCC_B_new["fnames"] = ""
     df_UCC_B_new["Names"] = ""
 
+    # Load all_names and all_names_dict
+    all_names, all_names_dict = handle_all_names(logging)
+
     # Load GCs data
     df_GCs = pd.read_csv(GCs_cat)
 
+    # Load embedded objects
+    df_embedded = pd.read_csv(embedded_file)
+
     # Load selected centers coordinates
     selected_center_coords = (
-        pd.read_csv(manual_centers)  # , keep_default_na=False)
+        pd.read_csv(UCC_cat_B_in)  # , keep_default_na=False)
         .set_index("fname")
         .apply(lambda r: r.tolist(), axis=1)
         .to_dict()
@@ -359,12 +378,11 @@ def load_data(
         logging.info(f"{DB} loaded (N={len(df_new)}) {new_db_flag}")
         all_dbs_data[DB] = [df_new, vals]
 
-    all_names, all_names_dict = handle_all_names(logging)
-
     # flag_interactive == new_DBs
     return (
         new_JSON,
         df_GCs,
+        df_embedded,
         gcs_fnames,
         selected_center_coords,
         all_dbs_data,
@@ -388,7 +406,8 @@ def handle_all_names(logging, sep=";") -> tuple[pd.DataFrame, dict]:
     """
     all_names = pd.read_csv(data_folder + all_OC_names)
 
-    # Check for invalid characters in fnames (anything other than letters, numbers, and ';')
+    # Check for invalid characters in fnames (anything other than letters,
+    # numbers, and ';')
     bad_idx = all_names.index[
         all_names["fnames"].str.contains(r"[^A-Za-z0-9;]", regex=True, na=False)
     ]
@@ -938,7 +957,8 @@ def check_new_DB_fnames(
                 duplicates_clean[fname] = list(idxs)[1:]
 
         logging.info(
-            f"\nFound {len(duplicates_clean)} groups of duplicated fnames within the DB:"
+            f"\nFound {len(duplicates_clean)} groups of duplicated fnames within "
+            "the DB:"
         )
         N_g = 1
         for fname, idxs in duplicates_clean.items():
@@ -1527,6 +1547,7 @@ def combine_UCC_new_DB(
     df_new: pd.DataFrame,
     new_DB_fnames: list[list[str]],
     db_matches: list[int | None],
+    db_fscore: str,
 ) -> pd.DataFrame:
     """
     Combines a new database with the UCC, handling new and existing entries.
@@ -1605,6 +1626,7 @@ def combine_UCC_new_DB(
             pmra_n,
             pmde_n,
             DB_used,
+            db_fscore,
         )
 
     N_new = db_matches.count(None)
@@ -1722,10 +1744,15 @@ def updt_new_DB(
     pmra_n,
     pmde_n,
     DB_used,
+    db_fscore: str,
     sep: str = ";",
+    oc_type="OC",
 ):
     """
-    Update the new database dictionary with the information from the new DB and the UCC.
+    Update the new database dictionary with the information from the new DB and the
+    UCC.
+
+    By default all entries are OC, will be updated later
     """
     N = len(fnames_new_cl)
     fnames_joined = sep.join(fnames_new_cl)
@@ -1748,20 +1775,26 @@ def updt_new_DB(
         DB_i = i_new_cl_exp
         names = oc_names
         fnames = fnames_joined
+        type = oc_type
+        F_score = db_fscore
     else:
         # OC already present in UCC
+        fnames = row_ucc["fnames"] + sep + fnames_joined
         DB_ID = row_ucc["DB"] + sep + new_DB_exp
         DB_i = row_ucc["DB_i"] + sep + i_new_cl_exp
+        F_score = row_ucc["F_score"] + sep + db_fscore
         names = row_ucc["Names"] + sep + oc_names
-        fnames = row_ucc["fnames"] + sep + fnames_joined
+        type = row_ucc["Type"] + sep + oc_type
         for par in fpars_order:
             fund_pars[par] = row_ucc[par] + sep + fund_pars_exp[par]
 
     # Append to output dictionary
+    new_db_dict["fnames"].append(fnames)
+    new_db_dict["Type"].append(type)
     new_db_dict["DB"].append(DB_ID)
     new_db_dict["DB_i"].append(DB_i)
+    new_db_dict["F_score"].append(F_score)
     new_db_dict["Names"].append(names)
-    new_db_dict["fnames"].append(fnames)
     new_db_dict["RA_ICRS"].append(ra_n)
     new_db_dict["DE_ICRS"].append(dec_n)
     new_db_dict["GLON"].append(lon_n)
@@ -1774,6 +1807,35 @@ def updt_new_DB(
         new_db_dict[par].append(fund_pars[par])
 
     return new_db_dict
+
+
+def get_db_fscore(
+    new_JSON: dict,
+    new_DB: pd.DataFrame,
+    df_new: pd.DataFrame,
+    focus_decay_per_year: float = 0.01,
+    focus_log_ref: float = 500.0,
+    focus_min: float = 0.1,
+) -> str:
+    """
+    F_score: per-article focus score combining recency and specificity
+
+    focus_decay_per_year : float
+        Drop per decade at N_row=1
+    focus_log_ref : float
+        N_row at which S reaches 0.5
+    focus_min : float
+        Absolute F_score floor
+    """
+
+    db_year = int(new_JSON[new_DB]["year"])
+    db_N_rows = len(df_new)
+    y_now = datetime.now().year  # noqa: DTZ005
+    R = 1 - focus_decay_per_year * (y_now - db_year)
+    S = 1 - 0.5 * np.log(db_N_rows) / np.log(focus_log_ref)
+    db_fscore = f"{np.maximum(focus_min, R * S):.2f}"
+
+    return db_fscore
 
 
 def sort_year_importance(new_JSON: dict, df_UCC_B: pd.DataFrame) -> pd.DataFrame:
@@ -1881,13 +1943,14 @@ def sort_year_importance(new_JSON: dict, df_UCC_B: pd.DataFrame) -> pd.DataFrame
     return df_UCC_B
 
 
-def add_fpars_stats(logging, df):
-    """For each column in 'fpars_order', calculate the median and stddev"""
-
+def add_fpars_stats(logging, df_UCC_B_new: pd.DataFrame) -> pd.DataFrame:
+    """
+    For each column in 'fpars_order', calculate the median and stddev.
+    """
     for par in fpars_order:
         # String cleaning and splitting
         temp_df = (
-            df[par]
+            df_UCC_B_new[par]
             .str.replace("*", "", regex=False)
             .str.split(";", expand=True)
             .apply(pd.to_numeric, errors="coerce")
@@ -1899,7 +1962,8 @@ def add_fpars_stats(logging, df):
             all_frac = ((temp_df > 0) & (temp_df < 1)).all(axis=1)
             if all_frac.sum() > 0:
                 logging.info(
-                    f"\nFound {all_frac.sum()} entries with all BSS values in (0, 1) range"
+                    f"\nFound {all_frac.sum()} entries with all BSS values in "
+                    "(0, 1) range"
                 )
             # Condition to keep non-fractional values
             cond = (temp_df == 0) | (temp_df >= 1)
@@ -1911,10 +1975,124 @@ def add_fpars_stats(logging, df):
         std = temp_df.std(axis=1)
 
         dec = 0 if par in {"age", "mass", "blue_str"} else 4
-        df[f"{par}_median"] = med.round(dec)
-        df[f"{par}_stddev"] = std.round(dec)
+        df_UCC_B_new[f"{par}_median"] = med.round(dec)
+        df_UCC_B_new[f"{par}_stddev"] = std.round(dec)
 
-    return df
+    return df_UCC_B_new
+
+# def add_fpars_stats_new(
+#     logging, df_UCC_B_new: pd.DataFrame, mad_k: float = 3.0
+# ) -> pd.DataFrame:
+#     """
+#     For each column in 'fpars_order', reject outliers (row-wise MAD clipping)
+#     and calculate the F_Score-weighted mean and weighted stddev.
+#     """
+#     weights_df = (
+#         df_UCC_B_new["F_score"]
+#         .str.split(";", expand=True)
+#         .apply(pd.to_numeric, errors="coerce")
+#     )
+
+#     for par in fpars_order:
+#         temp_df = (
+#             df_UCC_B_new[par]
+#             .str.replace("*", "", regex=False)
+#             .str.split(";", expand=True)
+#             .apply(pd.to_numeric, errors="coerce")
+#         )
+
+#         if par == "blue_str":
+#             all_frac = ((temp_df > 0) & (temp_df < 1)).all(axis=1)
+#             if all_frac.sum() > 0:
+#                 logging.info(
+#                     f"\nFound {all_frac.sum()} entries with all BSS values in "
+#                     "(0, 1) range"
+#                 )
+#             cond = (temp_df == 0) | (temp_df >= 1)
+#             temp_df = temp_df.where(cond | all_frac.to_frame().reindex_like(temp_df))
+
+#         # --- Outlier rejection: row-wise MAD clipping ---
+#         n_valid = temp_df.notna().sum(axis=1)
+#         row_med = temp_df.median(axis=1)
+#         abs_dev = temp_df.sub(row_med, axis=0).abs()
+#         mad = abs_dev.median(axis=1)
+#         # Consistency constant so MAD approximates stddev under normality
+#         mad_scaled = mad * 1.4826
+
+#         # Rows where MAD collapses to 0 (e.g. duplicate values): fall back to
+#         # no rejection rather than nuking everything that differs at all
+#         threshold = mad_scaled.where(mad_scaled > 0, np.inf)
+#         is_outlier = abs_dev.gt(mad_k * threshold, axis=0)
+#         # Only apply rejection where there are enough points to judge (n >= 3)
+#         is_outlier = is_outlier.where(n_valid.ge(3), other=False)
+
+#         n_rejected = is_outlier.sum(axis=1)
+#         if n_rejected.sum() > 0:
+#             logging.info(
+#                 f"\n{par}: rejected {int(n_rejected.sum())} outlier value(s) "
+#                 f"across {int((n_rejected > 0).sum())} row(s)"
+#             )
+
+#         temp_df = temp_df.mask(is_outlier)
+
+#         # --- Weighted stats on cleaned values ---
+#         w = weights_df.reindex(columns=temp_df.columns, index=temp_df.index)
+#         w = w.where(temp_df.notna())
+
+#         w_sum = w.sum(axis=1, min_count=1)
+#         wmean = (temp_df * w).sum(axis=1, min_count=1) / w_sum
+
+#         n_clean = temp_df.notna().sum(axis=1)
+#         wvar = (temp_df.sub(wmean, axis=0) ** 2 * w).sum(axis=1, min_count=1) / w_sum
+#         wstd = wvar.pow(0.5).where(n_clean >= 2)
+
+#         dec = 0 if par in {"age", "mass", "blue_str"} else 4
+#         df_UCC_B_new[f"{par}_median"] = wmean.round(dec)
+#         df_UCC_B_new[f"{par}_stddev"] = wstd.round(dec)
+
+#     return df_UCC_B_new
+
+
+def add_types(df_embedded: pd.DataFrame, df_UCC_B_new: pd.DataFrame):
+    """
+    Add the 'Type' column.
+    """
+    # Obtain embedded fnames
+    emb_fnames = get_fnames(df_embedded["name"])
+
+    # Dictionary mapping each fname to the set of databases where it is catalogued as
+    # an EC
+    embedded_db = {}
+    for fnames, db in zip(emb_fnames, df_embedded["database"]):
+        for fname in fnames:
+            embedded_db.setdefault(fname, set()).add(db)
+
+    type_col = []
+    for fnames, dbs in zip(df_UCC_B_new["fnames"], df_UCC_B_new["DB"]):
+        obj_ec_in_dbs = {
+            db
+            for fname in fnames.split(";")
+            if fname in embedded_db
+            for db in embedded_db[fname]
+        }
+
+        if not obj_ec_in_dbs:
+            # Objects is never catalogued as an EC
+            type_col.append("OC")
+            continue
+
+        dbs_not_ec = sum(db not in obj_ec_in_dbs for db in dbs.split(";"))
+        if dbs_not_ec == 0:
+            # Object is catalogued as an EC in all DBs
+            type_col.append("EC")
+        else:
+            # Object is catalogued as an EC in some DBs, but not in all DBs
+            type_col.append("EC;OC")
+
+    # Add the 'Type' column
+    df_UCC_B_new["Type"] = type_col
+
+    return df_UCC_B_new
 
 
 def duplicates_fnames_check(logging, df_UCC_B: pd.DataFrame, sep: str = ";") -> bool:
@@ -2012,7 +2190,8 @@ def sanity_check(logging, all_names_old, df_UCC_B, N_max=50):
     exit_flag = ra_dec_check(logging, df_UCC_B)
     if exit_flag:
         logging.info(
-            "\nERROR: entries were found with missing (RA, DEC) values in B cat. Fix this!"
+            "\nERROR: entries were found with missing (RA, DEC) values in B cat. "
+            "Fix this!"
         )
         breakpoint()  # noqa: T100
         sys.exit(1)
@@ -2041,8 +2220,8 @@ def sanity_check(logging, all_names_old, df_UCC_B, N_max=50):
                 diffs_1.append(f"{fname0_old} --> {';'.join(full)}")
             else:
                 raise ValueError(
-                    f"Canonical fname '{fname0_old}' from old 'all_names' not found in "
-                    + "new 'df_UCC_B', neither as canonical nor as secondary fname"
+                    f"Canonical fname '{fname0_old}' from old 'all_names' not found in"
+                    + " new 'df_UCC_B', neither as canonical nor as secondary fname"
                 )
 
     N_diff = len(diffs_1)
@@ -2196,50 +2375,68 @@ def move_files(
     """
     Move the updated files from temporary locations to their final paths.
     """
+    files_to_move = []
+
+    if os.path.isfile(temp_JSON_path):
+        files_to_move.append(temp_JSON_path)
+
+    for new_DB in all_dbs_data:
+        db_temp = temp_database_folder + new_DB + ".csv"
+        if os.path.isfile(db_temp):
+            files_to_move.append(db_temp)
+
+    ucc_temp = temp_folder + UCC_cat_B_out
+    if os.path.isfile(ucc_temp):
+        files_to_move.append(ucc_temp)
+
+    if os.path.isfile(temp_all_OC_names):
+        files_to_move.append(temp_all_OC_names)
+
+    if not files_to_move:
+        logging.info("No files to move.")
+        return
+
+    logging.info(f"{len(files_to_move)} file(s) ready to move")
     if input("\nMove files to their final paths? (y/n): ").lower() != "y":
-        logging.info("\nFiles not moved.")
+        logging.info("Files not moved.")
         return
 
     # Update JSON file with all the DBs and store the new DB in place
     if os.path.isfile(temp_JSON_path):
-        # Save to (temp) JSON file
         with open(temp_JSON_path, "w") as f:
             json.dump(new_json_dict, f, indent=2)
-        # Move JSON file from temp folder to final folder
+
         os.rename(temp_JSON_path, name_DBs_json)
         logging.info(temp_JSON_path + " --> " + name_DBs_json)
 
     for new_DB in all_dbs_data:
-        # Move new DB file
         new_DB_file = new_DB + ".csv"
         db_temp = temp_database_folder + new_DB_file
+
         if os.path.isfile(db_temp):
             db_stored = dbs_folder + new_DB_file
             os.rename(db_temp, db_stored)
             logging.info(db_temp + " --> " + db_stored)
 
-    ucc_temp = temp_folder + merged_dbs_file
     if os.path.isfile(ucc_temp):
-        # Generate '.gz' compressed file for the old B file and archive it
         now_time = pd.Timestamp.now().strftime("%y%m%d%H")
         archived_B_file = (
             data_folder
             + "ucc_archived_nogit/"
-            + merged_dbs_file.replace(".csv", f"_{now_time}.csv.gz")
+            + UCC_cat_B_out.replace(".csv", f"_{now_time}.csv.gz")
         )
         save_df_UCC(logging, df_UCC_B_old, archived_B_file, compression="gzip")
-        # Remove old B csv file
+
         os.remove(df_UCC_B_path)
         logging.info(df_UCC_B_path + " --> " + archived_B_file)
 
-        # Move new B file into place
         os.rename(ucc_temp, df_UCC_B_path)
         logging.info(ucc_temp + " --> " + df_UCC_B_path)
 
-    # Move new all_OC_names
     if os.path.isfile(temp_all_OC_names):
-        os.rename(temp_all_OC_names, data_folder + all_OC_names)
-        logging.info(temp_all_OC_names + " --> " + data_folder + all_OC_names)
+        final_all_OC_names = data_folder + all_OC_names
+        os.rename(temp_all_OC_names, final_all_OC_names)
+        logging.info(temp_all_OC_names + " --> " + final_all_OC_names)
 
 
 if __name__ == "__main__":

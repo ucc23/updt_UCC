@@ -67,21 +67,34 @@ temp_folder = "temp_updt/"
 # updt_ucc paths
 # Path to the file that contains the NASA API token
 NASA_API_TOKEN_file = data_folder + "NASA_API_TOKEN"
+
 # Main CSV file with all OCs names
 all_OC_names = "all_names.csv"
-# CSV file with merged DBs
-merged_dbs_file = "UCC_cat_B.csv"
+
+# File that contains manual center coordinates. These are treated as exceptions to
+# the 'DB_coords_hierarchy' rule shown below
+UCC_cat_B_in = data_folder + "UCC_cat_B_in.csv"
+# File with merged DBs
+UCC_cat_B_out = "UCC_cat_B_out.csv"
+
 # CSV file with final UCC catalogue
-ucc_cat_file = "UCC_cat_C.csv"
+UCC_cat_C_in = "UCC_cat_C_in.csv"
+UCC_cat_C_out = "UCC_cat_C_out.csv"
+
+# CSV file that indicated which plots to (re)make
+UCC_cat_D_in = "UCC_cat_D_in.csv"
+
 # Path to the DBs
 dbs_folder = data_folder + "databases/"
 # Path to the JSON file with DBs data
 name_DBs_json = data_folder + "databases_info.json"
+
+# Folder that contains the files with per-article comments
+UCC_cmmts_folder = dbs_folder + "cmmts/"
+
 # Path to the database of GCs
 GCs_cat = data_folder + "globulars.csv"
-# Path to the file with manual OC parameters
-manual_pars_file = data_folder + "manual_params.csv"
-# Path to objects classified as embedded
+# Path to the database of ECs
 embedded_file = data_folder + "embedded.csv"
 
 # Preferred order in which the OCs are assigned their primary name
@@ -143,17 +156,11 @@ DB_coords_hierarchy = {
     "HE2022": 1000,
     "HE2022_1": 1000,
 }
-# Exceptions to the rule above
-manual_centers = data_folder + "manual_centers.csv"
-
-# Folder that contains the files with per-article comments
-UCC_cmmts_folder = dbs_folder + "cmmts/"
 
 # Bad OCs parameters
 UTI_max = 0.25
 P_dup_max = 0.25
 C_lit_max = 0.3
-
 
 # Order used to store the fundamental parameters in the B database
 fpars_order = (

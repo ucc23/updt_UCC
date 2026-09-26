@@ -58,7 +58,9 @@ def logger():
 
 
 def load_BC_cats(cat_ID: str, path: str):
-    """ """
+    """
+    Load the B or C catalogue from a CSV file based on the provided category ID.
+    """
 
     if cat_ID == "B":
         df = pd.read_csv(
@@ -74,17 +76,17 @@ def load_BC_cats(cat_ID: str, path: str):
             path,
             dtype={
                 "fname": "string",
-                "plot_used": "string",
+                # "plot_used": "string",
                 "process": "string",
                 "frame_limit": "string",
                 "shared_members": "string",
                 "shared_members_p": "string",
                 "bad_oc": "string",
             },
-            # converters={c: lambda x: "nan" if pd.isna(x) else str(x) for c in selected}
         )
         for col in selected:
-            df[col] = df[col].replace(pd.NA, "nan")
+            if col in df.columns:
+                df[col] = df[col].replace(pd.NA, "nan")
     else:
         raise ValueError(f"Invalid cat_ID: {cat_ID}. Expected 'B' or 'C'.")
 
@@ -115,7 +117,10 @@ def radec2lonlat(
 
 
 def get_fnames(names_all, sep: str = ",") -> list[list[str]]:
-    """ """
+    """
+    Given a list of comma-separated names, split each name, standardizes it
+    using `rename_standard`, and normalizes it using `normalize_name`.
+    """
     fnames = []
     for names in names_all:
         names_l = []
@@ -166,24 +171,25 @@ def rename_standard(all_names: str, sep_in: str = ",", sep_out: str = ";") -> st
     for name in oc_names:
         name = name.strip()
 
-        if name.startswith("FSR"):
-            if " " in name or "_" in name:
-                if "_" in name:
-                    n2 = name.split("_")[1]
-                else:
-                    n2 = name.split(" ")[1]
-                n2 = int(n2)
-                if n2 < 10:
-                    n2 = "000" + str(n2)
-                elif n2 < 100:
-                    n2 = "00" + str(n2)
-                elif n2 < 1000:
-                    n2 = "0" + str(n2)
-                else:
-                    n2 = str(n2)
-                name = "FSR_" + n2
+        if name.startswith("FSR") and (" " in name or "_" in name):
+            if "_" in name:
+                n2 = name.split("_")[1]
+            else:
+                n2 = name.split(" ")[1]
+            n2 = int(n2)
+            if n2 < 10:
+                n2 = "000" + str(n2)
+            elif n2 < 100:
+                n2 = "00" + str(n2)
+            elif n2 < 1000:
+                n2 = "0" + str(n2)
+            else:
+                n2 = str(n2)
+            name = "FSR_" + n2
 
         if name.startswith("ESO"):
+            # if name[:4] == "ESO-":
+            name = name.replace("ESO-", "ESO_")
             if name[:4] not in ("ESO_", "ESO "):
                 # E.g.: LOKTIN17, BOSSINI19
                 name = "ESO_" + name[3:]
@@ -195,7 +201,7 @@ def rename_standard(all_names: str, sep_in: str = ",", sep_out: str = ";") -> st
             elif "-" in name[4:]:
                 n1, n2 = name[4:].split("-")
             else:
-                # This assumes that all ESo clusters are names as: 'ESO XXX YY'
+                # This assumes that all ESO clusters are names as: 'ESO XXX YY'
                 n1, n2 = name[4 : 4 + 3], name[4 + 3 :]
 
             n1 = int(n1)
@@ -290,10 +296,12 @@ def plx_to_pc(plx, PZPO=-0.02, min_plx=0.035, max_plx=200):
 
 
 def round_columns(df: pd.DataFrame) -> pd.DataFrame:
-    """ """
+    """
+    Round specific columns in the DataFrame to a defined number of decimal places.
+    """
     # Detect available columns to round
     f_id = ""
-    if "GLON_m" in df.keys():
+    if "GLON_m" in df:
         f_id = "_m"
     df = df.round(
         {
@@ -437,7 +445,9 @@ def save_df_UCC(
     compression: str = "",
     order_col: str = "fname",
 ) -> None:
-    """ """
+    """
+    Save a DataFrame to a CSV file with optional compression and ordering.
+    """
     df = round_columns(df)
 
     if order_col == "fnames":

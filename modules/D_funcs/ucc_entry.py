@@ -144,9 +144,10 @@ def make(
         b == ""
         for b in [badge_dist, badge_av, badge_mass, badge_feh, badge_age, badge_bss]
     ):
-        vmin = "1e6"
-        badge_nofpars_url = f"dav_min={vmin}&bf_min={vmin}&"
-        badge_nofpars_url += "&".join([f"{k}_min={vmin}" for k in badges_names])
+        # vmin = "1e6"
+        vmax = "-99"
+        badge_nofpars_url = f"dav_max={vmax}&bf_max={vmax}&"
+        badge_nofpars_url += "&".join([f"{k}_max={vmax}" for k in badges_names])
         badge_nofpars_url += "&nofpars=true"
 
     # Comments
@@ -155,10 +156,17 @@ def make(
         N_comments = 0
         for cmmt in comments_lst:
             comments += (
-                f"{tsp}<p><u><a href='{cmmt['url']}' target='_blank'>{cmmt['name']} ({cmmt['year']})</a></u>"
-                + f"<br>{cmmt['comment']}</p>"
-                + "\n"
+                f"{tsp}<p><u><a href='{cmmt['url']}' target='_blank'>"
+                f"{cmmt['name']} ({cmmt['year']})</a></u>"
             )
+
+            for i, comment in enumerate(cmmt["comment"]):
+                name_used_db = ""
+                if len(cl_names) > 1 and cmmt['orig_name'][i] != cl_names[0]:
+                    name_used_db = f"<b>[{cmmt['orig_name'][i]}]</b> "
+                comments += f"<br>{name_used_db}{comment}"
+
+            comments += "</p>\n"
             N_comments += 1
 
     # Get colors used by the 'CX' classification

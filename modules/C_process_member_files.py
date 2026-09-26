@@ -4,7 +4,6 @@ import os
 import shutil
 import sys
 from collections import Counter
-from datetime import datetime
 
 import numpy as np
 import pandas as pd
@@ -28,19 +27,21 @@ from .variables import (
     C_lit_max,
     GCs_cat,
     P_dup_max,
+    UCC_cat_B_out,
+    UCC_cat_C_in,
+    UCC_cat_C_out,
+    UCC_cat_D_in,
     UCC_members_file,
     UTI_max,
     all_OC_names,
     data_folder,
     md_folder,
-    merged_dbs_file,
     name_DBs_json,
     path_gaia_frames_ranges,
     plots_folder,
     root_ucc_path,
     temp_folder,
     temp_members_folder,
-    ucc_cat_file,
     zenodo_cat_fname,
     zenodo_folder,
 )
@@ -56,7 +57,9 @@ def main():
     logging = logger()
 
     # Generate paths and check for required folders and files
-    ucc_B_file, ucc_C_file, temp_zenodo_fold = get_paths_check_paths(logging)
+    ucc_B_file_out, ucc_C_file_in, ucc_C_file_out, temp_zenodo_fold = (
+        get_paths_check_paths(logging)
+    )
 
     (
         gaia_frames_data,
@@ -65,17 +68,18 @@ def main():
         df_GCs,
         df_members,
         all_names,
-        df_UCC_B,
+        df_UCC_B_out,
         df_UCC_C,
         old_zenodo_cat,
-    ) = load_data(logging, ucc_B_file, ucc_C_file)
+    ) = load_data(logging, ucc_B_file_out, ucc_C_file_in, ucc_C_file_out)
 
-    # Initial check that the names in the members file match those in the UCC C dataframe
+    # Initial check that the names in the members file match those in the UCC C
+    # dataframe
     check_sorted_names(logging, df_UCC_C, df_members)
 
     # Detect entries to be processed
     rename_C_fname, C_not_in_B, B_not_in_C, C_reprocess = detect_entries_to_process(
-        logging, all_names, df_UCC_B, df_UCC_C
+        logging, all_names, df_UCC_B_out, df_UCC_C
     )
 
     load_file = False
@@ -93,7 +97,7 @@ def main():
     else:
         # Generate dataframe to store data extracted from the OCs to be processed
         df_UCC_C_updt = process_entries(
-            df_UCC_B, new_ocs_manual_pars, B_not_in_C, C_reprocess
+            df_UCC_B_out, new_ocs_manual_pars, B_not_in_C, C_reprocess
         )
         # Generate member files for new OCs and obtain their data
         df_UCC_C_updt = member_files_updt(
@@ -130,7 +134,7 @@ def main():
         df_UCC_C_final = df_UCC_C_new.copy()
 
     # Sort df_UCC_B by fname column to match 'df_UCC_C_final'
-    df_UCC_B = df_UCC_B.sort_values("fname").reset_index(drop=True)
+    df_UCC_B = df_UCC_B_out.sort_values("fname").reset_index(drop=True)
 
     # Check the 'fnames' columns in df_UCC_B and df_UCC_C_final dataframes are equal
     if not df_UCC_B["fname"].to_list() == df_UCC_C_final["fname"].to_list():
@@ -152,11 +156,40 @@ def main():
     # df_members_new matched the N_clust column in df_UCC_C_final
     check_N_clust(logging, df_UCC_C_final, df_members_new)
 
+    # Split C database into in and out dataframes
+    cols_in = [
+        "fname",
+        "process",
+        "N_clust",
+        "N_clust_max",
+        "rad_arcmin",
+        "box_size",
+        "frame_limit",
+    ]
+    cols_out = ["fname"] + [col for col in df_UCC_C_final.columns if col not in cols_in]
+    df_UCC_C_in = df_UCC_C_final[cols_in].copy()
+    df_UCC_C_out = df_UCC_C_final[cols_out].copy()
+
     # Check differences between the original and final C dataframes
-    diff_found = diff_between_dfs(logging, "C cat", df_UCC_C, df_UCC_C_final)
-    if diff_found:
-        # Save updated UCC to temporary CSV file
-        save_df_UCC(logging, df_UCC_C_final, temp_folder + ucc_cat_file)
+    c_dict = {
+        "in": (UCC_cat_C_in, cols_in, df_UCC_C_in),
+        "out": (UCC_cat_C_out, cols_out, df_UCC_C_out),
+    }
+    for c_id, c_tuple in c_dict.items():
+        file_c, cols_c, df_C = c_tuple
+        diff_found = diff_between_dfs(
+            logging, f"C_{c_id} cat", df_C, df_UCC_C_final[cols_c]
+        )
+        if diff_found:
+            # Save updated UCC to temporary CSV file
+            save_df_UCC(logging, df_UCC_C_final, temp_folder + file_c)
+
+    # Generate input file for D script indicating which plots to (re)make
+    if "make_plots" in df_UCC_C_final.columns:
+        msk = df_UCC_C_final["make_plots"] == "y"
+        if msk.any():
+            df_UCC_D_in = df_UCC_C_final.loc[msk, ["fname"]].copy()
+            save_df_UCC(logging, df_UCC_D_in, temp_folder + UCC_cat_D_in)
 
     # Save the generated data to temporary files before moving them
     update_zenodo_files(
@@ -172,19 +205,23 @@ def main():
 
     if input("\nMove files to their final paths? (y/n): ").lower() == "y":
         files_moved = move_files(
-            logging, temp_zenodo_fold, rename_C_fname, C_not_in_B, df_UCC_C_final
+            logging,
+            temp_zenodo_fold,
+            rename_C_fname,
+            C_not_in_B,
+            list(df_UCC_C_final["fname"]),
         )
         # Final check that the names in the members file match those in the UCC
         # C dataframe after moving files, and that the number of members per cluster
         # matches the N_clust column
         if files_moved:
-            df_C_check = load_BC_cats("C", data_folder + ucc_cat_file)
+            df_C_out_check = load_BC_cats("C", data_folder + UCC_cat_C_out)
             df_M_check = pd.read_parquet(zenodo_folder + UCC_members_file)
-            check_sorted_names(logging, df_C_check, df_M_check)
-            check_N_clust(logging, df_C_check, df_M_check)
+            check_sorted_names(logging, df_C_out_check, df_M_check)
+            check_N_clust(logging, df_C_out_check, df_M_check)
 
 
-def get_paths_check_paths(logging) -> tuple[str, str, str]:
+def get_paths_check_paths(logging) -> tuple[str, str, str, str]:
     """
     Generate paths for required files and check for their existence.
     """
@@ -199,12 +236,20 @@ def get_paths_check_paths(logging) -> tuple[str, str, str]:
             sys.exit(1)
 
     # If temp file exists, warn
-    temp_f = temp_folder + ucc_cat_file
-    if os.path.isfile(temp_f):
-        logging.warning(f"WARNING: file {temp_f} exists. Moving on will DELETE it")
+    c_temp_files = []
+    for UCC_cat_C in (UCC_cat_C_in, UCC_cat_C_out):
+        temp_f = temp_folder + UCC_cat_C
+        if os.path.isfile(temp_f):
+            c_temp_files.append(temp_f)
+    if c_temp_files:
+        logging.warning(
+            f"WARNING: file(s) {c_temp_files} exists. Moving on will DELETE it"
+        )
         if input("Move on? (y/n): ").lower() == "y":
             # Delete file
-            os.remove(temp_f)
+            for temp_f in c_temp_files:
+                logging.warning(f"Removing stale temporary file: {temp_f}")
+                os.remove(temp_f)
         else:
             sys.exit(1)
 
@@ -216,8 +261,9 @@ def get_paths_check_paths(logging) -> tuple[str, str, str]:
         # processed, hence the user is asked how to proceed
         if len(os.listdir(temp_members_folder)) > 0:
             logging.warning(
-                f"WARNING: There are .parquet files in '{temp_members_folder}'. If left "
-                + "there,\nthey will be used when the script combines the final members data"
+                f"WARNING: There are .parquet files in '{temp_members_folder}'. If "
+                "left there,\nthey will be used when the script combines the final "
+                "members data"
             )
             if input("Move on? (y/n): ").lower() != "y":
                 sys.exit(1)
@@ -235,16 +281,18 @@ def get_paths_check_paths(logging) -> tuple[str, str, str]:
             os.remove(fpath)
 
     # Path to the current UCC csv files
-    ucc_B_file = data_folder + merged_dbs_file
-    ucc_C_file = data_folder + ucc_cat_file
+    ucc_B_file_out = data_folder + UCC_cat_B_out
+    ucc_C_file_in = data_folder + UCC_cat_C_in
+    ucc_C_file_out = data_folder + UCC_cat_C_out
 
-    return ucc_B_file, ucc_C_file, temp_zenodo_fold
+    return ucc_B_file_out, ucc_C_file_in, ucc_C_file_out, temp_zenodo_fold
 
 
 def load_data(
     logging,
-    ucc_B_file: str,
-    ucc_C_file: str,
+    ucc_B_file_out: str,
+    ucc_C_file_in: str,
+    ucc_C_file_out: str,
     sep: str = ";",
 ) -> tuple[
     pd.DataFrame,
@@ -290,10 +338,12 @@ def load_data(
 
     # Load current CSV data files
     all_names = pd.read_csv(data_folder + all_OC_names)
-    df_UCC_B = load_BC_cats("B", ucc_B_file)
-    logging.info(f"\nFile {ucc_B_file} loaded ({len(df_UCC_B)} entries)")
-    df_UCC_C = load_BC_cats("C", ucc_C_file)
-    logging.info(f"File {ucc_C_file} loaded ({len(df_UCC_C)} entries)")
+    df_UCC_B_out = load_BC_cats("B", ucc_B_file_out)
+    logging.info(f"\nFile {ucc_B_file_out} loaded ({len(df_UCC_B_out)} entries)")
+    df_UCC_C_in = load_BC_cats("C", ucc_C_file_in)
+    logging.info(f"File {ucc_C_file_in}  loaded ({len(df_UCC_C_in)} entries)")
+    df_UCC_C_out = load_BC_cats("C", ucc_C_file_out)
+    logging.info(f"File {ucc_C_file_out} loaded ({len(df_UCC_C_out)} entries)")
 
     # Check that every alias in all_names["fnames"] occurs only once
     all_aliases = [
@@ -308,10 +358,21 @@ def load_data(
             f"Duplicate aliases found in all_names['fnames']: {duplicates}"
         )
     # Validate that df_UCC_B["fname"] and df_UCC_C["fname"] are unique
-    if df_UCC_B["fname"].duplicated().any():
-        raise ValueError("Duplicate 'fname' values found in df_UCC_B")
-    if df_UCC_C["fname"].duplicated().any():
-        raise ValueError("Duplicate 'fname' values found in df_UCC_C")
+    if df_UCC_B_out["fname"].duplicated().any():
+        raise ValueError("Duplicate 'fname' values found in df_UCC_B_out")
+    if df_UCC_C_in["fname"].duplicated().any():
+        raise ValueError("Duplicate 'fname' values found in df_UCC_C_in")
+    if df_UCC_C_out["fname"].duplicated().any():
+        raise ValueError("Duplicate 'fname' values found in df_UCC_C_out")
+    if not (df_UCC_C_in["fname"] == df_UCC_C_out["fname"]).all():
+        raise ValueError("Mismatch between df_UCC_C_in/out 'fname' values")
+    else:
+        # Merge the two C dataframes df_UCC_C_in,df_UCC_C_out using the fname column
+        df_UCC_C = pd.merge(
+            df_UCC_C_in,
+            df_UCC_C_out,
+            on="fname",
+        )
 
     old_zenodo_cat = pd.read_csv(
         zenodo_folder + zenodo_cat_fname,
@@ -325,7 +386,7 @@ def load_data(
         df_GCs,
         df_members,
         all_names,
-        df_UCC_B,
+        df_UCC_B_out,
         df_UCC_C,
         old_zenodo_cat,
     )
@@ -359,7 +420,8 @@ def detect_entries_to_process(
                     if the canonical name is in C:
                         This means that the fname in C is a merge and should be removed
                     else:
-                        This means that the fname in C is a rename to the canonical name
+                        This means that the fname in C is a rename to the canonical
+                        name
                 else:
                     raise an error (this should never happen)
 
@@ -393,19 +455,20 @@ def detect_entries_to_process(
             # never happen
             raise ValueError(
                 f"Name {C_fname} in C not found in all 'fnames'\n"
-                "This means that an object was completely removed which should (almost)\n"
-                "never happen. If it does, manual editing of this database and also\n"
-                "the members file is required"
+                "This means that an object was completely removed which should\n"
+                "(almost) never happen. If it does, manual editing of this database\n"
+                "and also the members file is required"
             )
         else:
             if C_fname != canonical:
                 if canonical in df_UCC_C["fname"].values:
                     # The canonical of C_fname is present in C fnames. This means that
-                    # this is a merge 'C_fname --> canonical' and C_fname must be removed
+                    # this is a merge 'C_fname --> canonical' and C_fname must be
+                    # removed
                     C_not_in_B[C_fname] = canonical
                 else:
-                    # The canonical of C_fname is not present in C fnames. This means that
-                    # C_fname was renamed to canonical
+                    # The canonical of C_fname is not present in C fnames. This means
+                    # that C_fname was renamed to canonical
                     rename_C_fname[C_fname] = canonical
             else:
                 # C_fname was not found in B fnames but matches a canonical fname.
@@ -523,7 +586,7 @@ def load_temp_C_updt_file(
     C_reprocess: pd.DataFrame,
 ) -> pd.DataFrame:
     """
-    Load and validate the temporary update file for the Unified Cluster Catalogue (UCC).
+    Load and validate the temporary update file for the Unified Cluster Catalogue (UCC)
     """
     # Load previously generated update file
     df_UCC_C_updt = pd.read_csv(temp_UCC_updt_file)
@@ -935,7 +998,7 @@ def update_membs_file(
     #     # Identify names in df_updated not in df_comb
     #     extra_names = names_df1 - names_df2
     #     # Filter df_updated for those extra groups
-    #     df1_extra = df_updated[df_updated["name"].isin(extra_names)]  # pyright: ignore
+    #     df1_extra = df_updated[df_updated["name"].isin(extra_names)]
     #     # Concatenate df_comb with the extra df_members groups
     #     df_members_new = pd.concat([df_comb, df1_extra], ignore_index=True)
     #     df_members_new = pd.DataFrame(df_members_new).sort_values("name")
@@ -1129,8 +1192,6 @@ def add_info_to_C(
     max_dens: float = 5.0,
     N_lit_min: int = 2,
     C_lit_perc_max: float = 0.5,
-    focus_tau: float = 12.0,
-    focus_gamma: float = 0.5,
 ) -> pd.DataFrame:
     """
     Compute quality metrics and the Unified Trust Index (UTI) for all catalogue
@@ -1144,11 +1205,6 @@ def add_info_to_C(
     - C_lit: confidence based on literature coverage.
     - C_dup: confidence that the entry is *not* a duplicate.
     - UTI: overall quality score combining the previous metrics.
-    - F_focus: per-article focus score combining recency and specificity,
-      F(y, n) = exp(-(y_now - y) / focus_tau) * n**(-focus_gamma), where y is
-      the article's publication year and n is the number of clusters it
-      addresses catalogue-wide. One value per DB associated to each entry,
-      merged into a ';'-separated string (same order as the 'DB' column).
 
     Duplicate confidence is estimated by comparing publication dates and member
     overlap with other catalogue entries.
@@ -1170,12 +1226,6 @@ def add_info_to_C(
         Number of literature references below which C_lit is zero.
     C_lit_perc_max : float, default=0.5
         Fraction of the maximum literature coverage corresponding to C_lit = 1.
-    focus_tau : float, default=12.0
-        Recency decay timescale (yr). An article focus_tau years old gets a
-        recency factor of ~0.37.
-    focus_gamma : float, default=0.5
-        Specificity exponent; S(n) = n**-focus_gamma. Controls how fast the
-        score drops as the number of clusters an article addresses (n) grows.
 
     Returns
     -------
@@ -1230,26 +1280,6 @@ def add_info_to_C(
         normalize(N_lit, C_lit, Nvals[i - 1], Nvals[i], bounds[i - 1], bounds[i])
 
     #
-    # F_focus
-    # Year is parsed from each DB name using the same convention as 'f_year'
-    # below (last 4 chars of the token preceding the first '_').
-    def _db_year(db_name: str) -> int:
-        return int(db_name.split("_")[0][-4:])
-
-    # n: number of clusters (rows) each article (DB) addresses, catalogue-wide
-    N_articles = Counter(db for dbs_str in df_UCC_B["DB"] for db in dbs_str.split(";"))
-    y_now = datetime.now().year
-
-    F_focus = []
-    for dbs_str in df_UCC_B["DB"]:
-        scores = []
-        for db in dbs_str.split(";"):
-            R = np.exp(-(y_now - _db_year(db)) / focus_tau)
-            S = N_articles[db] ** (-focus_gamma)
-            scores.append(f"{R * S:.2f}")
-        F_focus.append(";".join(scores))
-
-    #
     # C_dup
     # Estimate duplication probability by comparing each cluster with all
     # clusters sharing members. Older publications take precedence over newer
@@ -1264,7 +1294,6 @@ def add_info_to_C(
     f_year = [int(_.split("_")[0][-4:]) for _ in dbs]
     fnames = df_UCC_B["fname"]
     # Map years and dbs to canonical fnames
-    # fname_db_to_year = {name: [year, db] for name, year, db in zip(fnames, f_year, dbs)}
     fname_to_db_info = {
         name: {"year": year, "db": db} for name, year, db in zip(fnames, f_year, dbs)
     }
@@ -1329,11 +1358,11 @@ def add_info_to_C(
                     else:
                         # This should never happen
                         raise ValueError(
-                            f"({idx}) {cl['fname']} & {shared_members[j]} share members "
-                            f"and a publication date ({date_received_cl}), but are "
-                            f"mentioned in different DBs ({db_cl, dbs_shared[j]}). "
-                            "This makes it impossible to disambiguate which one is the "
-                            "duplicate of the other."
+                            f"({idx}) {cl['fname']} & {shared_members[j]} share members"
+                            f" and a publication date ({date_received_cl}), but are "
+                            f"mentioned in different DBs ({db_cl, dbs_shared[j]})."
+                            " This makes it impossible to disambiguate which one is the"
+                            " duplicate of the other."
                         )
             # else:
             #     # If 'cl' is older than this entry,
@@ -1376,7 +1405,6 @@ def add_info_to_C(
     df_UCC_C["C_dup"] = np.round(C_dup, 2)
     df_UCC_C["P_dup"] = np.round(1 - df_UCC_C["C_dup"], 2)
     df_UCC_C["UTI"] = np.round(UTI, 2)
-    # df_UCC_C["F_focus"] = F_focus  # TODO: check before adding
 
     # All entries are by default "good" entries
     df_UCC_C["bad_oc"] = "n"
@@ -1400,7 +1428,8 @@ def check_N_clust(
     """Check that the number of elements per unique 'name' group in df_members_new
     matched the N_clust column in df_UCC_C_final"""
     logging.info(
-        "Checking that the number of members per cluster matches the N_membs column...\n"
+        "Checking that the number of members per cluster "
+        "matches the N_membs column...\n"
     )
 
     # Check for duplicated (name, Source) pairs in df_members_new
@@ -1439,7 +1468,8 @@ def check_N_clust(
             for row in bad.itertuples():
                 logging.warning(
                     f"  Cluster '{row.fname}': "
-                    f"N_membs={row.N_membs} vs stars in members file={row.N_clust_actual}"
+                    f"N_membs={row.N_membs} vs stars in members "
+                    f"file={row.N_clust_actual}"
                 )
             raise ValueError(
                 "Member counts do not match between C and the members file"
@@ -1526,11 +1556,11 @@ def updt_zenodo_csv(
         "bi_frac_stddev",
         "blue_str_median",
         "blue_str_stddev",
+        "Type",
     ):
         df_UCC_C[col] = df_UCC_B[col]
 
     # Round columns
-    # df_UCC_C["P_dup"] = np.round(1 - df_UCC_C["C_dup"], 2)
     cols = [
         "age_median",
         "age_stddev",
@@ -1581,6 +1611,7 @@ def updt_zenodo_csv(
             [
                 "Name(s)",
                 "name",
+                "Type",
                 "N_membs",
                 "r_50",
                 "r_core",
@@ -1647,7 +1678,10 @@ def updt_readme(
     YYYY = str(N_clusters)
     ZZZZ = str(N_members)
     txt = [
-        f"These files correspond to the {XXXX} version of the UCC database (https://ucc.ar),\n",
+        (
+            f"These files correspond to the {XXXX} version of the UCC "
+            "database (https://ucc.ar),\n"
+        ),
         f"composed of {YYYY} clusters with a combined {ZZZZ} members.\n",
     ]
 
@@ -1671,7 +1705,7 @@ def move_files(
     temp_zenodo_fold: str,
     rename_C_fname: dict,
     C_not_in_B: dict,
-    df_UCC_C_final: pd.DataFrame,
+    C_fnames: list,
 ) -> bool:
     """Move files to the appropriate folders"""
     post_actions = []
@@ -1703,19 +1737,27 @@ def move_files(
         # Replace current members file with new one
         post_actions.append(("replace", file_path_temp, file_path))
 
-    ucc_temp = temp_folder + ucc_cat_file
-    if os.path.isfile(ucc_temp):
-        # Archive old C catalogue
-        ucc_stored = data_folder + ucc_cat_file
-        now_time = pd.Timestamp.now().strftime("%y%m%d%H")
-        archived_C_file = (
-            data_folder
-            + "ucc_archived_nogit/"
-            + ucc_cat_file.replace(".csv", f"_{now_time}.csv.gz")
-        )
-        post_actions.append(("archive_csv", ucc_stored, archived_C_file))
-        # Move new C file into place
-        post_actions.append(("move", ucc_temp, ucc_stored))
+    # Move C catalogue files (in / out)
+    for UCC_cat_C in [UCC_cat_C_in, UCC_cat_C_out]:
+        ucc_temp = temp_folder + UCC_cat_C
+        if os.path.isfile(ucc_temp):
+            # Archive old C catalogue
+            ucc_stored = data_folder + UCC_cat_C
+            now_time = pd.Timestamp.now().strftime("%y%m%d%H")
+            archived_C_file = (
+                data_folder
+                + "ucc_archived_nogit/"
+                + UCC_cat_C.replace(".csv", f"_{now_time}.csv.gz")
+            )
+            post_actions.append(("archive_csv", ucc_stored, archived_C_file))
+            # Move new C file into place
+            post_actions.append(("move", ucc_temp, ucc_stored))
+
+    # Move D in file indicating which plots to (re)make
+    ucc_D_temp = temp_folder + UCC_cat_D_in
+    if os.path.isfile(ucc_D_temp):
+        ucc_D_stored = data_folder + UCC_cat_D_in
+        post_actions.append(("move", ucc_D_temp, ucc_D_stored))
 
     # Collect rename operations
     md_root = root_ucc_path + md_folder
@@ -1743,7 +1785,7 @@ def move_files(
                 post_actions.append(("rename", old_fpath, new_fpath))
 
     # Collect removal operations
-    fname_C = set(df_UCC_C_final["fname"].tolist())
+    fname_C = set(C_fnames)
     # MD removals
     for name in os.listdir(root_ucc_path + md_folder):
         mdname = name.rsplit(".", 1)[0]
@@ -1780,7 +1822,7 @@ def move_files(
                             )
                         else:
                             # logging.warning(
-                            #     f"File '{new_fname}.webp' does not exist in '{root}'. "
+                            #     f"File '{new_fname}.webp' does not exist in {root}"
                             #     f"Rename '{webpname}.webp' --> '{new_fname}.webp'"
                             # )
                             post_actions.append(("rename", old_fpath, new_fpath))
