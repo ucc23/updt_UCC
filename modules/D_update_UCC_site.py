@@ -647,7 +647,7 @@ def updt_ucc_cluster_files(
         UCC_cl = dict(zip(cols, UCC_cl))
         fname0 = str(UCC_cl["fname"])
 
-        # if fname0 not in ("ic1442",):
+        # if fname0 not in ("ngc2516",):
         #     continue
         # if "melotte" not in fname0:
         #     continue

@@ -1811,7 +1811,7 @@ def updt_new_DB(
 
 def get_db_fscore(
     new_JSON: dict,
-    new_DB: pd.DataFrame,
+    new_DB: str,
     df_new: pd.DataFrame,
     focus_decay_per_year: float = 0.01,
     focus_log_ref: float = 500.0,
@@ -1831,8 +1831,8 @@ def get_db_fscore(
     db_year = int(new_JSON[new_DB]["year"])
     db_N_rows = len(df_new)
     y_now = datetime.now().year  # noqa: DTZ005
-    R = 1 - focus_decay_per_year * (y_now - db_year)
-    S = 1 - 0.5 * np.log(db_N_rows) / np.log(focus_log_ref)
+    R = np.clip(1 - focus_decay_per_year * (y_now - db_year), 0.0, 1.0)
+    S = np.clip(1 - 0.5 * np.log(db_N_rows) / np.log(focus_log_ref), 0.0, 1.0)
     db_fscore = f"{np.maximum(focus_min, R * S):.2f}"
 
     return db_fscore
@@ -1979,6 +1979,7 @@ def add_fpars_stats(logging, df_UCC_B_new: pd.DataFrame) -> pd.DataFrame:
         df_UCC_B_new[f"{par}_stddev"] = std.round(dec)
 
     return df_UCC_B_new
+
 
 # def add_fpars_stats_new(
 #     logging, df_UCC_B_new: pd.DataFrame, mad_k: float = 3.0

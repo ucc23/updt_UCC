@@ -174,10 +174,11 @@ fpars_order = (
     "blue_str",
 )
 # Used to generate the per OC fundamental parameters tables
-# MUST MATCH the 'fpars_order' order beyond the second column
+# The parameters MUST MATCH the 'fpars_order' order beyond the second column
 fpars_headers = (
     "Reference",
     "Year",
+    "F<sub>s</sub>",
     "Dist [kpc]",
     "Av [mag]",
     "DAv [mag]",
