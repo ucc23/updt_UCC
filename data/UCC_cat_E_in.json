@@ -1,0 +1,631 @@
+{
+"fsr0416": {
+    "N_membs": "HUNT23 not enough members"
+},
+"fsr0031": {
+    "N_membs": "HUNT23 not enough members"
+},
+"pismis27": {
+    "N_membs": "HUNT23 not enough members"
+},
+"ubc517": {
+    "N_membs": "HUNT23 too many members, could be tail"
+},
+"alessiteutsch7": {
+    "N_membs": "HUNT23 too many low prob members"
+},
+"berkeley59": {
+    "N_membs": "HUNT23 too many members, could be tail"
+},
+"ngc2327": {
+    "N_membs": "HUNT23 "
+},
+"dbsb19": {
+    "N_membs": "HUNT23 "
+},
+"vdbh144": {
+    "N_membs": "HUNT23 "
+},
+"ruprecht91": {
+    "N_membs": "HUNT23 "
+},
+"ascc108": {
+    "N_membs": "HUNT23 "
+},
+"ufmg54": {
+    "N_membs": "HUNT23 "
+},
+"ubc26": {
+    "N_membs": "HUNT23 "
+},
+"collinder135": {
+    "N_membs": "HUNT23 "
+},
+"berkeley83": {
+    "N_membs": "HUNT23 "
+},
+"alessi9": {
+    "N_membs": "HUNT23 "
+},
+
+
+
+    "ads16795": {
+        "pos": "CAVALLO2024 bad RA"
+    },
+    "alessi145": {
+        "pos": "TARRICQ2022 bad DEC"
+    },
+    "alessi33": {
+        "pos": "HAO2022 bad RA"
+    },
+    "alessi34": {
+        "N_membs": "HUNT23 too many low prob members"
+    },
+    "alessiteutsch5": {
+        "pos": "HE2022_1, ALFONSO2024 bad RA"
+    },
+    "ascc100": {
+        "pos": "CAVALLO2024 bad DEC"
+    },
+    "ascc120": {
+        "pos": "BICA2019 bad RA"
+    },
+    "ascc123": {
+        "pos": "ALFONSO2024 bad RA,Plx"
+    },
+    "ascc19": {
+        "N_membs": "HUNT23 not enough members",
+        "pos": "HE2022_1 bad DEC"
+    },
+    "ascc21": {
+        "pos": "ALFONSO2024 & LI2023 bad DEC"
+    },
+    "ascc24": {
+        "pos": "CAVALLO2024 bad RA"
+    },
+    "ascc33": {
+        "pos": "Frame is large"
+    },
+    "ascc79": {
+        "pos": "HAO2022 bad RA"
+    },
+    "ascc93": {
+        "pos": "BICA2019 bad RA,DEC"
+    },
+    "ascc99": {
+        "pos": "Frame is large",
+        "plx": "LIUPANG2019 bad Plx",
+        "pm": "Bad PMs in Kharchenko & Dias",
+        "N_membs": "HUNT23 extra low prob members with smaller plx"
+    },
+    "avenihunter1": {
+        "pos": "HE2022_1, ALFONSO2024, CAVALLO2024 bad DEC"
+    },
+    "bdsb120": {
+        "pos": "BICA2003_1 bad DEC"
+    },
+    "bdsb124": {
+        "pos": "BICA2003_1 bad DEC"
+    },
+    "bdsb125": {
+        "pos": "BICA2003_1 bad DEC"
+    },
+    "bdsb91": {
+        "pos": "ALFONSO2024 bad DEC"
+    },
+    "bochum10": {
+        "pm": "Large range of PMs in older articles"
+    },
+    "chaisouth": {
+        "pos": "He et al 2022_1 and Cavallo 2024 coords between this and Cha I North"
+    },
+    "coingaia9": {
+        "N_membs": "HUNT23 too many members, could be tail"
+    },
+    "collinder104": {
+        "pm": "Kharchenko et al. 2013, Sampedro et al. 2017, Dias et al. 2016 bad PMs"
+    },
+    "collinder132": {
+        "pos": "RICHER2021 bad RA",
+        "N_membs": "HUNT23 a few extra members"
+    },
+    "collinder333": {
+        "pm": "Large range of PMs in articles"
+    },
+    "collinder394": {
+        "N_membs": "HUNT2023 contains NGC 6716"
+    },
+    "collinder419": {
+        "N_membs": "HUNT23 too many members"
+    },
+    "collinder464": {
+        "pos": "Two groups, probably no OC"
+    },
+    "collinder471": {
+        "pos": "Old coords shifted in new articles"
+    },
+    "collinder65": {
+        "pos": "No object probably"
+    },
+    "dbsb88": {
+        "pos": "MERCER2005 & MORALES2013 bad DEC"
+    },
+    "deltacepheicluster": {
+        "pos": "Frame is large"
+    },
+    "eso48901": {
+        "pos": "Frame is large"
+    },
+    "fof2439": {
+        "pos": "CHI2023_2 bad RA"
+    },
+    "fsr0354": {
+        "pm": "Loktin bad PMs"
+    },
+    "fsr0416": {
+        "pos": "DIAS2021 and ALMEIDA2025 bad RA"
+    },
+    "fsr0839": {
+        "pos": "GLUSHKOVA2010 (as Koposov 41) bad RA"
+    },
+    "fsr1017": {
+        "pos": "CAVALLO2024 bad DEC"
+    },
+    "fsr1088": {
+        "N_membs": "HUNT23 not enough members"
+    },
+    "fsr1424": {
+        "N_membs": "HUNT23 not enough members"
+    },
+    "fsr1785": {
+        "pos": "Frame is large"
+    },
+    "graham1": {
+        "pos": "BUKOWIECKI2011 bad DEC"
+    },
+    "gulliver10": {
+        "pos": "ALFONSO2024 bad RA"
+    },
+    "gulliver20": {
+        "pos": "TARRICQ2022 bad DEC"
+    },
+    "harvard10": {
+        "N_membs": "HUNT23 too many members"
+    },
+    "hogg12": {
+        "pm": "KHARCHENKO bad PMs"
+    },
+    "hsc1181": {
+        "N_membs": "HUNT23 excess of members"
+    },
+    "hsc179": {
+        "N_membs": "HUNT23 excess of members"
+    },
+    "hsc2359": {
+        "N_membs": "HUNT23 excess of members"
+    },
+    "hsc2667": {
+        "N_membs": "HUNT23 excess of members"
+    },
+    "hsc287": {
+        "N_membs": "HUNT23 excess of members"
+    },
+    "hsc2878": {
+        "N_membs": "HUNT23 excess of members"
+    },
+    "hsc2879": {
+        "N_membs": "HUNT23 excess of members"
+    },
+    "hsc290": {
+        "N_membs": "HUNT23 excess of members"
+    },
+    "hsc299": {
+        "N_membs": "HUNT23 excess of members"
+    },
+    "hsc31": {
+        "N_membs": "HUNT23 excess of members"
+    },
+    "hsc338": {
+        "N_membs": "HUNT23 excess of members"
+    },
+    "hsc358": {
+        "N_membs": "HUNT23 excess of members"
+    },
+    "hsc38": {
+        "N_membs": "HUNT23 excess of members"
+    },
+    "hsc561": {
+        "N_membs": "HUNT23 excess of members"
+    },
+    "hsc631": {
+        "N_membs": "HUNT23 excess of members"
+    },
+    "hsc639": {
+        "N_membs": "HUNT23 excess of members"
+    },
+    "hsc647": {
+        "N_membs": "HUNT23 excess of members"
+    },
+    "hsc650": {
+        "N_membs": "HUNT23 excess of members"
+    },
+    "hsc655": {
+        "N_membs": "HUNT23 excess of members"
+    },
+    "hsc759": {
+        "N_membs": "HUNT23 excess of members"
+    },
+    "hsc888": {
+        "N_membs": "HUNT23 excess of members"
+    },
+    "hsc955": {
+        "N_membs": "HUNT23 excess of members"
+    },
+    "hyades": {
+        "N_membs": "HUNT23 too many low prob members, could be tail"
+    },
+    "ic2944": {
+        "pos": "VDBH1975 bad coords",
+        "pm": "Large range of PMs in articles",
+        "N_membs": "HUNT23 not enough members"
+    },
+    "ic5146": {
+        "pos": "LADA2003 bad RA"
+    },
+    "ivanov8": {
+        "N_membs": "HUNT23 not enough members"
+    },
+    "kronberger59": {
+        "pos": "TADROSS2014 bad RA"
+    },
+    "l1641s": {
+        "pos": "LADA2003 bad RA",
+        "N_membs": "HUNT23 not enough members"
+    },
+    "lisc3534": {
+        "pos": "Frame is large"
+    },
+    "lisciii3668": {
+        "pos": "Frame is large"
+    },
+    "loden143": {
+        "pos": "RICHER2021 bad RA"
+    },
+    "loden915": {
+        "pos": "CAVALLO2024 bad RA"
+    },
+    "lynga4": {
+        "pos": "VDBH1975 bad RA"
+    },
+    "mamajek2": {
+        "pos": "CAVALLO2024 bad DEC"
+    },
+    "mamajek3": {
+        "pos": "Frame is large"
+    },
+    "mamajek4": {
+        "N_membs": "HUNT23 too many low prob members, could be tail"
+    },
+    "mcm58": {
+        "N_membs": "HUNT23 not enough members"
+    },
+    "melotte111": {
+        "pos": "Very large frame"
+    },
+    "melotte186": {
+        "pos": "DIAS2019 (as Collinder 359) bad RA"
+    },
+    "melotte227": {
+        "pos": "No object probably"
+    },
+    "ngc1981": {
+        "pos": "HE2022_1 bad RA"
+    },
+    "ngc1996": {
+        "pm": "Large range of PMs in articles"
+    },
+    "ngc2039": {
+        "pos": "Two groups of coords, no object probably"
+    },
+    "ngc2184": {
+        "pos": "Theia 1408 mixed up in frame"
+    },
+    "ngc2384": {
+        "pm": "Large range of PMs in older articles"
+    },
+    "ngc5045": {
+        "pos": "Scattered RA and DEC"
+    },
+    "ngc6404": {
+        "N_membs": "HUNT23 not enough members"
+    },
+    "ngc6618": {
+        "pos": "CAVALLO2024 bad DEC"
+    },
+    "ngc6716": {
+        "pos": "ALFONSO2024, LI2026 bad coords",
+        "N_membs": "HUNT23: Collinder_394 in the same frame"
+    },
+    "ngc6775": {
+        "pos": "BUKOWIECKI2011 bad DEC"
+    },
+    "ngc6846": {
+        "pos": "ALTER1970 & SULENTIC1973 bad DEC"
+    },
+    "ngc6858": {
+        "pos": "HE2022_1 bad DEC"
+    },
+    "ngc6882": {
+        "pos": "CAVALLO2024 bad coords",
+        "plx": "DIAS2022 bad plx",
+        "pm": "DIAS related articles have bad pms"
+    },
+    "ngc7023": {
+        "pos": "KOUNKEL2019,HE2022_1,CAVALLO2024 bad RA,DEC",
+        "N_membs": "HUNT23 extra low prob members"
+    },
+    "ngc7438": {
+        "pos": "CAVALLO2024 bad RA"
+    },
+    "ns14": {
+        "pos": "JOSHI2016 (as BIP 14) bad RA"
+    },
+    "oc0185": {
+        "pos": "CAVALLO2024 bad DEC"
+    },
+    "oc0450": {
+        "pos": "CAVALLO2024 bad DEC"
+    },
+    "oc0470": {
+        "pos": "CHI2023 bad DEC"
+    },
+    "oc0622": {
+        "N_membs": "HUNT23 too many low prob members"
+    },
+    "pfleiderer4": {
+        "N_membs": "HUNT23 not enough members"
+    },
+    "pismis22": {
+        "pos": "VDBH1975 bad RA"
+    },
+    "pismis24": {
+        "pos": "VDBH1975 bad RA"
+    },
+    "platais10": {
+        "N_membs": "HUNT23 too many members, could be tail"
+    },
+    "platais3": {
+        "pos": "Frame is large"
+    },
+    "platais4": {
+        "pm": "Large range of PMs in articles"
+    },
+    "platais5": {
+        "pos": "No object probably"
+    },
+    "platais6": {
+        "pos": "CAVALLO2024 bad DEC"
+    },
+    "platais9": {
+        "pos": "Frame is large"
+    },
+    "rsg7": {
+        "pos": "ROSER2016 slightly off DEC"
+    },
+    "rsg8": {
+        "pos": "HE2022_1 bad DEC"
+    },
+    "ruprecht167": {
+        "pos": "Dias, Kharchenko bad RA"
+    },
+    "ruprecht31": {
+        "pos": "QIN2023 bad DEC"
+    },
+    "ruprecht40": {
+        "pos": "ALTER1970 bad RA"
+    },
+    "ruprecht53": {
+        "pos": "DIAS2016 bad DEC"
+    },
+    "ruprecht65": {
+        "pos": "RICHER2021 coords are those of Pismis 4",
+        "plx": "RICHER2021 value is that of Pismis 4",
+        "pm": "RICHER2021 coords are those of Pismis 4"
+    },
+    "taurus": {
+        "pos": "HE2022_1 bad DEC"
+    },
+    "teutsch141": {
+        "pos": "No object probably"
+    },
+    "teutsch181": {
+        "pos": "CAVALLO2024 bad RA"
+    },
+    "teutsch39": {
+        "pos": "HE2022_1 bad DEC"
+    },
+    "theia1654": {
+        "N_membs": "HUNT23 excess of members"
+    },
+    "theia1661": {
+        "N_membs": "HUNT23 excess of members"
+    },
+    "theia1666": {
+        "N_membs": "HUNT23 excess of members"
+    },
+    "theia1756": {
+        "N_membs": "HUNT23 excess of members"
+    },
+    "theia3623": {
+        "N_membs": "HUNT23 excess of members"
+    },
+    "theia38": {
+        "N_membs": "HUNT23 excess of members"
+    },
+    "theia3857": {
+        "N_membs": "HUNT23 excess of members"
+    },
+    "theia4560": {
+        "N_membs": "HUNT23 excess of members"
+    },
+    "theia5150": {
+        "N_membs": "HUNT23 excess of members"
+    },
+    "theia5426": {
+        "N_membs": "HUNT23 excess of members"
+    },
+    "trumpler10": {
+        "pos": "HE2022_1 bad Ra,DEC",
+        "N_membs": "HUNT23 extra low prob members, could be tail"
+    },
+    "trumpler15": {
+        "N_membs": "HUNT23 not enough members"
+    },
+    "ubc10a": {
+        "pos": "Centers are scattered"
+    },
+    "ubc178": {
+        "pos": "HE2022_1 bad DEC"
+    },
+    "ubc17b": {
+        "pos": "HE2022_1 bad RA,DEC",
+        "plx": "KOUNKEL2019,HE2022_1 bad plx",
+        "N_membs": "HUNT23 extra members, no issue"
+    },
+    "ubc21": {
+        "pos": "ALFONSO2024 bad DEC"
+    },
+    "ubc31": {
+        "pos": "Frame is large"
+    },
+    "upk160": {
+        "pos": "HE2022_1 bad RA"
+    },
+    "upk214": {
+        "pos": "Frame is large"
+    },
+    "upk230": {
+        "N_membs": "HUNT23 too many members, could be tail",
+        "pos": "CAVALLO2024 bad DEC"
+    },
+    "upk233": {
+        "pos": "Frame is large"
+    },
+    "upk24": {
+        "pos": "Frame is large"
+    },
+    "upk241": {
+        "pos": "HUNT2023 bad RA"
+    },
+    "upk260": {
+        "pos": "Frame is large"
+    },
+    "upk287": {
+        "pos": "HUNT2023 and YANG2025 slightly off center"
+    },
+    "upk294": {
+        "pos": "Frame is large"
+    },
+    "upk300": {
+        "pos": "Frame is large"
+    },
+    "upk303": {
+        "pos": "Frame is large"
+    },
+    "upk305": {
+        "pos": "Frame is large"
+    },
+    "upk307": {
+        "pos": "Frame is large"
+    },
+    "upk367": {
+        "pos": "SIM2019 slightly off center"
+    },
+    "upk378": {
+        "pos": "CAVALLO2024 bad RA"
+    },
+    "upk41": {
+        "pos": "HAO2022 bad DEC"
+    },
+    "upk422": {
+        "pos": "CAVALLO2024 bad DEC"
+    },
+    "upk438": {
+        "pos": "Frame is large"
+    },
+    "upk442": {
+        "pos": "Frame is large"
+    },
+    "upk452": {
+        "pos": "TARRICQ2022 bad RA"
+    },
+    "upk494": {
+        "pos": "Frame is large"
+    },
+    "upk524": {
+        "pos": "Frame is large"
+    },
+    "upk526": {
+        "pos": "CAVALLO2024 bad RA"
+    },
+    "upk533": {
+        "pos": "Frame is large"
+    },
+    "upk535": {
+        "pos": "Frame is large"
+    },
+    "upk537": {
+        "pos": "Frame is large"
+    },
+    "upk545": {
+        "pos": "CAVALLO2024 bad DEC",
+        "N_membs": "HUNT23 excess of members"
+    },
+    "upk560": {
+        "pos": "Frame is large"
+    },
+    "upk569": {
+        "pos": "Frame is large"
+    },
+    "upk585": {
+        "pos": "Centers are scattered"
+    },
+    "upk612": {
+        "pos": "Frame is large"
+    },
+    "upk64": {
+        "pos": "QIN2023 bad RA"
+    },
+    "upk655": {
+        "pos": "CHI2023_2 & CAVALLO2024 bad RA",
+        "N_membs": "HUNT23: fsr 1785 in frame"
+    },
+    "upk70": {
+        "pos": "HE2022_1 bad RA"
+    },
+    "upk71": {
+        "pos": "HE2022_1 bad DEC"
+    },
+    "upk72": {
+        "pos": "Frame is large"
+    },
+    "upk78": {
+        "pos": "Frame is large"
+    },
+    "upk88": {
+        "pos": "Frame is large"
+    },
+    "vdbh164": {
+        "N_membs": "HUNT23 too many members, could be tail"
+    },
+    "vdbh34": {
+        "pos": "No object probably"
+    },
+    "vdbh56": {
+        "pos": "RICHER2021 bad RA,DEC"
+    },
+    "vdbh67": {
+        "N_membs": "HUNT23 not enough members"
+    }
+}

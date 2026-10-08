@@ -210,7 +210,7 @@ The `UCC_cat_C.csv` file contains columns that represent the following informati
    - 'plxl' (left), 'plxr' (right) for parallax
 
 and the numbers are the limiting values for each. A single limit can be provided (eg,
-"x_111.1") or several separated by a ',' (eg, "x_111.1,y_222.2,...").
+"x_111.1") or several separated by a ';' (eg, "x_111.1;y_222.2,...").
 ```
 The rest of the columns are generated using information taken from the estimated members
 for each entry. This script perform the following main operations:
@@ -322,12 +322,146 @@ UCC catalogue and searches for modifications that need to be applied to update t
 
 
 
+## 5. Checking the UCC
 
-## 5. Building the site
+The `E_master_check.py` script runs a set of consistency checks on the UCC catalogues.
+It is **optional** and does not modify any UCC file; it is meant to flag entries that
+need to be manually inspected.
+
+The script runs all the checks below with no user input, using the default
+parameters stored at the top of the script (`_CHECK_CONFIG`, `_MEMBS_COORDS_CONFIG`,
+`_PARAMS_CONFIG`, `_B_VS_C_CONFIG`, `_DUP_CONFIG`, `_H23_MEMBS_CONFIG`):
+
+1. **Cross-DB consistency**: compares the position (angular separation), proper
+   motion, and parallax values of each entry across the DBs listed in the B file. The
+   `conflicts` mode reports the DBs most likely responsible for the discrepancies; the
+   `groups` mode reports entries whose DB values split into two or more distinct
+   groups. The parallax threshold grows with the parallax of the entry (5% of the
+   median of its DB values, if larger than the absolute threshold), since the
+   differences between DBs are larger for nearby clusters. Positions are only
+   checked for entries whose B center is offset from the members' median center by
+   at least `dist_norm` (the offset over the members' r50 radius).
+2. **B center vs members**: compares the center coordinates in the B file with the
+   median coordinates of the estimated members (absolute and `dist_norm`
+   thresholds).
+3. **Cross-DB parameters**: compares the fundamental parameters (dist, av, diff_ext,
+   age, met, mass, bi_frac, blue_str) of each entry across the DBs listed in the B
+   file, against their median. Distances are compared as distance moduli and ages as
+   log10(age/yr); the threshold is relative to the median for `mass` and absolute for
+   the rest.
+4. **B vs C**: compares the proper motions in the B file with those derived from the
+   members in the C file.
+5. **Duplicates**: uses the shared members in the C file to identify candidate
+   duplicates.
+6. **Members vs HUNT2023**: compares the number of members of each entry (rows in the
+   members file) with the `N` column of the HUNT2023 DB. An entry is flagged if
+   `max(N)/min(N) > 1 + thr * factor`, with `factor` decreasing with `max(N)`, so
+   that differences in larger clusters are flagged and scored more strongly.
+
+Entries from the `hsc, theia, cwnu, ocsn` families are skipped in all checks except
+the duplicates one (`skip_pfx`).
+
+Entire DBs can be excluded from the checks that compare per-DB values
+(`DBs_<type>_conflicts`, `DBs_<type>_groups`, `params_<param>`) with the
+`exclude_DBs` dictionary at the top of the script, eg:
+`exclude_DBs = {"DBs_pos_conflicts": ("VDBH1975",)}`. The `params` key excludes its
+DBs from all the `params_<param>` checks. The values of an excluded DB
+are ignored only in the checks listed for it, and the exclusions are listed in the
+output file. The script stops if a check does not accept exclusions or a DB is not
+in `databases_info.json`.
+
+Every failed check gives the entry a score of
+`weight * min(1 + log2(ratio), sev_max) * (uti_floor + (1 - uti_floor) * UTI)`,
+where `ratio` is the measured value over the check's threshold, so larger
+discrepancies score higher, and entries with larger UTI values score higher (entries
+without a UTI value use a factor of 1). The duplicates check has the largest weight.
+An entry's total score is the sum over its failed checks; since the `conflicts` and
+`groups` checks of the same quantity measure the same discrepancy, only the highest
+of the two counts. The weights and other factors are set in `_SCORE_CONFIG`.
+
+The output file lists, right below its `## Clusters` section, all the candidate
+duplicates (entries that failed the duplicates check, as either the duplicate or the
+original of a pair) in their own sub-section, followed by the `N_max_clusters` other
+entries with the highest scores.
+
+### Manual comments
+
+The `UCC_cat_E_in.json` file stores the manual comments for entries that were
+already inspected, as `{fname: {key: comment}}`:
+
+```json
+{
+    "graham1": {
+        "pos": "BUKOWIECKI2011 bad DEC"
+    },
+    "ic2944": {
+        "pos": "VDBH1975 bad coords",
+        "N_membs": "HUNT2023 recovers only the cluster core"
+    }
+}
+```
+
+An entry can have several keys. The checks matching each key are down-weighted (by
+the `cmmt_factor` in `_SCORE_CONFIG`), and all the comments are listed with the entry
+in the output file.
+
+| Key | Checks down-weighted |
+|---|---|
+| `pos` | `DBs_pos_conflicts`, `DBs_pos_groups`, `membs_coords` |
+| `pm` | `DBs_pm_conflicts`, `DBs_pm_groups`, `B_vs_C_pm` |
+| `plx` | `DBs_plx_conflicts`, `DBs_plx_groups` |
+| `params` | `params_<param>` for every parameter (`dist`, `av`, `diff_ext`, `age`, `met`, `mass`, `bi_frac`, `blue_str`) |
+| `dup` | `dup` (as either the duplicate or the original of a pair) |
+| `N_membs` | `H23_membs` |
+
+The file is validated before the checks run, and the script stops with a list of the
+problems if it is not valid JSON (eg: a trailing comma), if an entry or key is
+repeated, if a key is not in the table above, or if a comment is empty. Entries that
+are not in the B file only produce a warning, since their comments never apply.
+
+#### Stale comments
+
+A comment may no longer apply once its entry changes. The
+`data/UCC_cat_E_hashes.csv` file (generated and updated by the script) stores, for
+every commented entry, a hash of its comments, and of its B row, C row, and members
+when the comments were stored:
+
+- New or edited comments take the current hashes of their entry.
+- If the comments did not change but the B row, C row, or members of the entry did,
+  the comments are **stale**: the script prints a warning listing what changed, the
+  comments no longer down-weight the entry's checks, and they are marked as `STALE`
+  in the output file.
+- A stale comment keeps being flagged until it is reviewed, and either edited, or
+  confirmed by removing its entry's row from `UCC_cat_E_hashes.csv`.
+
+### Input
+
+- `data/UCC_cat_B_out.csv`: Current UCC B catalogue
+- `data/UCC_cat_C_out.csv`: Current UCC C catalogue
+- `data/UCC_cat_E_in.json`: Manual comments for already inspected entries
+- `data/UCC_cat_E_hashes.csv`: Hashes of the commented entries when their comments
+  were stored
+- `data/databases_info.json`: Current UCC database JSON file
+- `data/databases/*.csv`: Original DBs
+- `data/zenodo/UCC_members.parquet`: File with estimated members for all the clusters
+
+### Output
+
+- `master_check.md`: Warnings issued during the run (also printed to screen),
+  summary of the checks performed, and the highest scoring entries with their
+  scores, failures, and manual comments, stored in the working folder
+- `data/UCC_cat_E_hashes.csv`: Updated with the hashes of new or edited comments
+
+
+
+
+
+
+## 6. Building the site
 
 The Jekyll theme used by the site is a modified [Reverie](https://jekyllthemes.io/theme/reverie) theme.
 
-### 5.1 Local build
+### 6.1 Local build
 
 Before updating the live site, generate a local site build and check the results
 **carefully**. To build a local copy of the site we use Jekyll, see [Jekyll docs](https://jekyllrb.com/docs/).
@@ -378,7 +512,7 @@ $ ./test_build.sh 0 melotte55 ngc2682
 **Check the local version in both Chrome and Firefox**.
 
 
-### 5.2 Live build
+### 6.2 Live build
 
 1. Create a 'New version' in the [Zenodo repository](https://zenodo.org/doi/10.5281/zenodo.8250523) 
 

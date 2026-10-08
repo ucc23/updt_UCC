@@ -85,7 +85,7 @@ archive_folder_path = data_folder + "ucc_archived_nogit/"
 N_archive_versions = 5
 # CSV file with the hashes of the members used to generate the plots in the site
 # (generated and used by the D script)
-plots_record_file = "UCC_plotted_hashes.csv"
+UCC_cat_D_in = "UCC_cat_D_in.csv"
 
 
 # JSON file with manual per-cluster comments used by the E_master_check checks

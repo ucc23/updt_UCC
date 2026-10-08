@@ -16,6 +16,7 @@ from .utils import comments_check, get_fnames, load_BC_cats, logger, members_has
 from .variables import (
     UCC_cat_B_out,
     UCC_cat_C_out,
+    UCC_cat_D_in,
     UCC_cmmts_folder,
     UCC_members_file,
     all_OC_names,
@@ -38,7 +39,6 @@ from .variables import (
     name_DBs_json,
     pages_folder,
     plots_folder,
-    plots_record_file,
     plots_sub_folders,
     root_ucc_path,
     temp_folder,
@@ -229,8 +229,8 @@ def load_paths(
     zenodo_members_file = Path(zenodo_folder) / UCC_members_file
 
     # Record of the members used to generate the plots in the site
-    plots_record_path = data_folder_p / plots_record_file
-    temp_plots_record_path = temp_folder_p / data_folder / plots_record_file
+    plots_record_path = data_folder_p / UCC_cat_D_in
+    temp_plots_record_path = temp_folder_p / data_folder / UCC_cat_D_in
 
     # Create temp folders for storing plots
     plots_fold_exist = False
