@@ -7,17 +7,18 @@ import pandas as pd
 
 sys.path.append("../")
 
+style_path = "../modules/D_funcs/science2.mplstyle"
+
 GCs_cat = "../data/globulars.csv"
 C20_membs_path = "members_process/CANTAT20_members.parquet"
 # bckp_plots_path = "/media/kingston/new_UCC/UCC_260616/plots"
 
-#
 c20_name_changes = {
     "LP_282": "FoF_282",
 }
 
 
-def main(style_path="../modules/D_funcs/science2.mplstyle") -> None:
+def main() -> None:
     """ """
     all_names = pd.read_csv("../data/all_names.csv")
     fnames_dict = {}

@@ -1,6 +1,8 @@
 import csv
 import datetime
 import logging
+import os
+import re
 from os.path import join
 from pathlib import Path
 
@@ -9,7 +11,7 @@ import pandas as pd
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from modules.variables import UCC_cmmts_folder, temp_folder
+from modules.variables import N_archive_versions, UCC_cmmts_folder, temp_folder
 
 
 def logger():
@@ -475,3 +477,39 @@ def save_df_UCC(
             quoting=csv.QUOTE_NONNUMERIC,
         )
     logging.info(f"UCC file (N={len(df)}): '{file_path}'\n")
+
+
+def prune_archive(logging, archived_file: str) -> None:
+    """Keep only the N_archive_versions most recent archived versions of a file.
+
+    Archived files are named '<stem>_<yymmddHH><ext>', so sorting the versions
+    of the same '<stem>' and '<ext>' by name also sorts them by date.
+    """
+    folder, fname = os.path.split(archived_file)
+    stem, ext = re.fullmatch(r"(.+)_\d{8}(\..+)", fname).groups()
+    pattern = re.compile(re.escape(stem) + r"_\d{8}" + re.escape(ext))
+    versions = sorted(f for f in os.listdir(folder) if pattern.fullmatch(f))
+    for old_fname in versions[:-N_archive_versions]:
+        os.remove(os.path.join(folder, old_fname))
+        logging.info(f"Removed old archived version: {old_fname}")
+
+
+def members_hashes(df_members: pd.DataFrame) -> pd.DataFrame:
+    """
+    Return the number of members and a hash of the members of each entry. The
+    hash is the sum (mod 2**64) of the hashes of every member row, using all
+    the columns, so it changes if any member is added, removed or has a
+    changed value, and does not depend on the order of the rows.
+    """
+    row_hash = pd.util.hash_pandas_object(df_members, index=False).to_numpy()
+    names = df_members["name"].to_numpy()
+    order = np.argsort(names, kind="stable")
+    names, row_hash = names[order], row_hash[order]
+    first = np.flatnonzero(np.r_[True, names[1:] != names[:-1]])
+    return pd.DataFrame(
+        {
+            "name": names[first],
+            "N_membs": np.diff(np.r_[first, len(names)]),
+            "hash": [f"{h:016x}" for h in np.add.reduceat(row_hash, first)],
+        }
+    )

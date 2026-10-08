@@ -18,15 +18,11 @@ def query_run(
     max_mag: float,
     c_ra: float,
     c_dec: float,
-    frame_lims: list,
+    frame_limit_dict: dict,
 ) -> pd.DataFrame:
     """
     Queries Gaia data frames based on specified parameters and returns a combined
     DataFrame.
-
-    ******** IMPORTANT ********
-    Clusters that wrap around the edges of the (ra, dec) coordinates are not
-    still properly process; e.g.: Blanco 1
 
     Parameters
     ----------
@@ -46,10 +42,8 @@ def query_run(
         Central right ascension for the query.
     c_dec : float
         Central declination for the query.
-    frame_lims : list
-        List of tuples specifying manual frame limits in the format (limit_type, value),
-        where limit_type can be 'b', 't', 'l', 'r', 'plxl', 'plxr', 'pmb', 'pmt',
-        'pml', or 'pmr'.
+    frame_limit_dict : dict
+        Dictionary specifying manual frame limits in the format 'limit_type: value'.
 
     Returns
     -------
@@ -57,29 +51,49 @@ def query_run(
         DataFrame containing the combined Gaia data.
     """
     txt_flim = ""
-    if frame_lims:
+    if frame_limit_dict:
         txt_flim = "; "
-        for fl, v in frame_lims:
+        for fl, v in frame_limit_dict.items():
             txt_flim += f"{fl}: {v}, "
         txt_flim = txt_flim[:-2]
-
     logging.info(
         f"  cent=({c_ra:.3f}, {c_dec:.3f}); Box size: {box_s_eq:.2f}, "
         + f"Plx min: {plx_min:.2f}{txt_flim}"
     )
 
-    c_ra_l = [c_ra]
+    # Check for presence of a manual plx_min value
+    if "plxl" in frame_limit_dict:
+        plx_min = frame_limit_dict["plxl"]
+        logging.info(f"  Using manual plx_min={plx_min:.2f}")
+
+    # Check if box size should be modified
+    max_lon_lat_length = np.nan
+    if "l" in frame_limit_dict and "r" in frame_limit_dict:
+        lon_range = abs(frame_limit_dict["r"] - frame_limit_dict["l"]) % 360
+        lon_range = min(lon_range, 360 - lon_range)
+        max_lon_lat_length = np.fmax(max_lon_lat_length, lon_range)
+    if "b" in frame_limit_dict and "t" in frame_limit_dict:
+        lat_range = abs(frame_limit_dict["t"] - frame_limit_dict["b"])
+        max_lon_lat_length = np.fmax(max_lon_lat_length, lat_range)
+    if not np.isnan(max_lon_lat_length) and (max_lon_lat_length > box_s_eq):
+        # WARNING: this compares length in lon/lat with box size in equatorial
+        # coordinates, which is not strictly correct
+        box_s_eq = max_lon_lat_length
+        logging.info(f"  Box size modified to {box_s_eq:.2f} due to frame limits")
+
+    # Check if the cluster region wraps around the RA=0/360 boundary
+    c_ra_wrapped = [c_ra]
     if c_ra - box_s_eq < 0:
         logging.info("  Split frame, c_ra + 360")
-        c_ra_l.append(c_ra + 360)
+        c_ra_wrapped.append(c_ra + 360)
     if c_ra > box_s_eq > 360:
         logging.info("  Split frame, c_ra - 360")
-        c_ra_l.append(c_ra - 360)
+        c_ra_wrapped.append(c_ra - 360)
 
     dicts = []
-    for c_ra in c_ra_l:
+    for c_ra_w in c_ra_wrapped:
         data_in_files, xmin_cl, xmax_cl, ymin_cl, ymax_cl = findFrames(
-            c_ra, c_dec, box_s_eq, fdata
+            c_ra_w, c_dec, box_s_eq, fdata
         )
 
         if len(data_in_files) == 0:
@@ -112,43 +126,42 @@ def query_run(
         all_frames = dicts[0]
 
     # Apply manual frame limits if any
-    if frame_lims:
-        for fm in frame_lims:
-            if fm[0] == "b":
-                msk = all_frames["GLAT"] > fm[1]
+    if frame_limit_dict:
+        for fk, val in frame_limit_dict.items():
+            if fk == "b":
+                msk = all_frames["GLAT"] > val
                 all_frames = all_frames[msk]
-            elif fm[0] == "t":
-                msk = all_frames["GLAT"] < fm[1]
+            elif fk == "t":
+                msk = all_frames["GLAT"] < val
                 all_frames = all_frames[msk]
-            elif fm[0] == "l":
-                msk = all_frames["GLON"] > fm[1]
+            elif fk == "l":
+                msk = all_frames["GLON"] > val
                 all_frames = all_frames[msk]
-            elif fm[0] == "r":
-                msk = all_frames["GLON"] < fm[1]
-                all_frames = all_frames[msk]
-
-            elif fm[0] == "plxl":
-                msk = all_frames["Plx"] > fm[1]
-                all_frames = all_frames[msk]
-            elif fm[0] == "plxr":
-                msk = all_frames["Plx"] < fm[1]
+            elif fk == "r":
+                msk = all_frames["GLON"] < val
                 all_frames = all_frames[msk]
 
-            elif fm[0] == "pmb":
-                msk = all_frames["pmDE"] > fm[1]
+            elif fk == "plxl":
+                msk = all_frames["Plx"] > val
                 all_frames = all_frames[msk]
-            elif fm[0] == "pmt":
-                msk = all_frames["pmDE"] < fm[1]
-                all_frames = all_frames[msk]
-            elif fm[0] == "pml":
-                msk = all_frames["pmRA"] > fm[1]
-                all_frames = all_frames[msk]
-            elif fm[0] == "pmr":
-                msk = all_frames["pmRA"] < fm[1]
+            elif fk == "plxr":
+                msk = all_frames["Plx"] < val
                 all_frames = all_frames[msk]
 
+            elif fk == "pmb":
+                msk = all_frames["pmDE"] > val
+                all_frames = all_frames[msk]
+            elif fk == "pmt":
+                msk = all_frames["pmDE"] < val
+                all_frames = all_frames[msk]
+            elif fk == "pml":
+                msk = all_frames["pmRA"] > val
+                all_frames = all_frames[msk]
+            elif fk == "pmr":
+                msk = all_frames["pmRA"] < val
+                all_frames = all_frames[msk]
             else:
-                raise ValueError("Unknown frame limit: " + str(fm[0]))
+                raise ValueError("Unknown frame limit: " + str(fk))
 
         all_frames = pd.DataFrame(all_frames)
 
@@ -359,7 +372,7 @@ def query(
         all_frames.append(data[msk])
     all_frames = pd.concat(all_frames)
 
-    c_ra, c_dec = c_ra, c_dec
+    # c_ra, c_dec = c_ra, c_dec
     box_s_h = box_s_eq * 0.5
     gal_cent = radec2lonlat(c_ra, c_dec)
 
@@ -373,6 +386,7 @@ def query(
             lon[lon > 180] -= 360
         all_frames["l"] = lon
 
+    # Filter the stars in the cluster box (in galactic coordinates)
     xmin_cl, xmax_cl = gal_cent[0] - box_s_h, gal_cent[0] + box_s_h
     ymin_cl, ymax_cl = gal_cent[1] - box_s_h, gal_cent[1] + box_s_h
     mx = (all_frames["l"] >= xmin_cl) & (all_frames["l"] <= xmax_cl)

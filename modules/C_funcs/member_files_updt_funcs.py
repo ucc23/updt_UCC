@@ -24,80 +24,6 @@ import asteca
 print(f"ASteCA version: {asteca.__version__}")
 
 
-def get_fastMP_membs(
-    logging,
-    df_GCs: pd.DataFrame,
-    gaia_frames_data,
-    df_UCC_m: pd.DataFrame,
-    fname0,
-    ra_c,
-    dec_c,
-    glon_c,
-    glat_c,
-    pmra_c,
-    pmde_c,
-    plx_c,
-    N_clust,
-    N_clust_max,
-    box_size,
-    frame_limit,
-    rad_arcmin: float | None = None,
-) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """
-    Retrieves Gaia data for a specified cluster and processes it using the fastMP
-    algorithm
-    """
-    # Obtain the full Gaia frame
-    gaia_frame = get_gaia_frame(
-        logging, gaia_frames_data, fname0, ra_c, dec_c, plx_c, box_size, frame_limit
-    )
-    # gaia_frame.to_csv("temp_clust.csv", index=False)
-    # breakpoint()
-
-    my_field = set_centers(gaia_frame, ra_c, dec_c, pmra_c, pmde_c, plx_c)
-    logging.info(
-        f"  Center used: ({my_field.radec_c[0]:.4f}, {my_field.radec_c[1]:.4f}), "
-        + f"({my_field.pms_c[0]:.4f}, {my_field.pms_c[1]:.4f}), {my_field.plx_c:.4f}"
-    )
-
-    get_Nmembs(logging, N_clust, N_clust_max, my_field)
-
-    # Only check if the number of members is larger than the minimum value
-    if my_field.N_cluster > my_field.N_clust_min:
-        check_close_cls(
-            logging,
-            df_UCC_m,
-            gaia_frame,
-            fname0,
-            glon_c,
-            glat_c,
-            pmra_c,
-            pmde_c,
-            plx_c,
-            df_GCs,
-        )
-
-    # Run fastMP
-    my_field.membership.fastmp()
-    probs_fastmp = my_field.probs
-    logging.info(f"probs_all>=0.5={(probs_fastmp >= 0.5).sum()}")
-
-    # Check initial versus members centers
-    center_check(glon_c, glat_c, my_field, probs_fastmp)
-
-    # Split into members and field stars according to the probability values
-    # assigned
-    df_field, df_membs = extract_members(
-        gaia_frame,
-        probs_fastmp,
-        radec_cent=my_field.radec_c,
-        N_membs=my_field.N_cluster,
-        rad_arcmin=rad_arcmin,
-    )
-
-    return df_field, df_membs
-
-
 def get_gaia_frame(
     logging,
     gaia_frames_data,
@@ -105,41 +31,18 @@ def get_gaia_frame(
     ra_c,
     dec_c,
     plx_c,
-    box_size: float = np.nan,
-    frame_limit: str = "",
+    frame_limit_dict: dict,
     N_min_stars: int = 100,
     box_length_add: float = 0.5,
 ) -> pd.DataFrame:
     """
     Retrieves a Gaia frame for a specified cluster, ensuring a minimum number of stars
     """
-    # Extract possible manual frame limits
-    frame_lims = []
-    if frame_limit != "":
-        for fm in frame_limit.split(","):
-            vals = fm.split("_")
-            if vals[0] not in (
-                "b",
-                "t",
-                "l",
-                "r",
-                "plxl",
-                "plxr",
-                "pmb",
-                "pmt",
-                "pml",
-                "pmr",
-            ):
-                raise ValueError(f"Unknown frame limit '{vals[0]}'")
-            frame_lims.append([vals[0], float(vals[1])])
-
     # Make sure a minimum number of stars is present in the frame
     extra_length = 0.0
     while True:
         # Get frame limits
         box_s, plx_min = get_frame_limits(fname0, plx_c, extra_length)
-        if not np.isnan(box_size):
-            box_s = box_size
 
         # Request Gaia frame
         gaia_frame = query_run(
@@ -151,7 +54,7 @@ def get_gaia_frame(
             gaia_max_mag,
             ra_c,
             dec_c,
-            frame_lims,
+            frame_limit_dict,
         )
 
         if len(gaia_frame) < N_min_stars:
@@ -243,7 +146,7 @@ def get_frame_limits(
 
 
 def set_centers(
-    gaia_frame: pd.DataFrame,
+    my_field,
     ra_c: float,
     de_c: float,
     pmra_c_in: float,
@@ -267,18 +170,6 @@ def set_centers(
     plx_c : float
         Center parallax for fastMP.
     """
-    my_field = asteca.Cluster(
-        ra=np.array(gaia_frame["RA_ICRS"]),
-        dec=np.array(gaia_frame["DE_ICRS"]),
-        pmra=np.array(gaia_frame["pmRA"]),
-        pmde=np.array(gaia_frame["pmDE"]),
-        plx=np.array(gaia_frame["Plx"]),
-        e_pmra=np.array(gaia_frame["e_pmRA"]),
-        e_pmde=np.array(gaia_frame["e_pmDE"]),
-        e_plx=np.array(gaia_frame["e_Plx"]),
-        verbose=0,
-    )
-
     radec_c = (ra_c, de_c)
 
     pms_c, plx_c = None, None
@@ -338,6 +229,93 @@ def get_Nmembs(
     # Use default ASteCA method
     my_field.get_nmembers()
     logging.info(f"  Using N_clust={int(my_field.N_cluster)}")
+
+
+
+def get_fastMP_membs(
+    logging,
+    df_GCs: pd.DataFrame,
+    df_UCC_m: pd.DataFrame,
+    fname0,
+    ra_c,
+    dec_c,
+    glon_c,
+    glat_c,
+    pmra_c,
+    pmde_c,
+    plx_c,
+    N_clust,
+    N_clust_max,
+    use_mag_fastmp: str,
+    gaia_frame: pd.DataFrame
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Retrieves Gaia data for a specified cluster and processes it using the fastMP
+    algorithm
+    """
+    # Create an ASteCA Cluster object with the Gaia data
+    my_field = asteca.Cluster(
+        ra=np.array(gaia_frame["RA_ICRS"]),
+        dec=np.array(gaia_frame["DE_ICRS"]),
+        pmra=np.array(gaia_frame["pmRA"]),
+        pmde=np.array(gaia_frame["pmDE"]),
+        plx=np.array(gaia_frame["Plx"]),
+        e_pmra=np.array(gaia_frame["e_pmRA"]),
+        e_pmde=np.array(gaia_frame["e_pmDE"]),
+        e_plx=np.array(gaia_frame["e_Plx"]),
+        mag=gaia_frame["Gmag"] if use_mag_fastmp == "y" else None,
+        e_mag=gaia_frame["e_Gmag"] if use_mag_fastmp == "y" else None,
+        verbose=0,
+    )
+
+    # Estimate the cluster's center coordinates using the provided values
+    my_field = set_centers(my_field, ra_c, dec_c, pmra_c, pmde_c, plx_c)
+    logging.info(
+        f"  Center used: ({my_field.radec_c[0]:.4f}, {my_field.radec_c[1]:.4f}), "
+        + f"({my_field.pms_c[0]:.4f}, {my_field.pms_c[1]:.4f}), {my_field.plx_c:.4f}"
+    )
+
+    # Estimate the number of cluster members using the provided values or default
+    # ASteCA method
+    get_Nmembs(logging, N_clust, N_clust_max, my_field)
+
+    # Only check if the number of members is larger than the minimum value
+    if my_field.N_cluster > my_field.N_clust_min:
+        check_close_cls(
+            logging,
+            df_UCC_m,
+            gaia_frame,
+            fname0,
+            glon_c,
+            glat_c,
+            pmra_c,
+            pmde_c,
+            plx_c,
+            df_GCs,
+        )
+
+    # Run fastMP
+    if use_mag_fastmp == "y":
+        my_field.membership.fastmp(mag_correct=True)
+    else:
+        my_field.membership.fastmp()
+    probs_fastmp = my_field.probs
+    logging.info(f"[probs_all>=0.5]: {(probs_fastmp >= 0.5).sum()}")
+
+    # Check initial versus members centers
+    center_check(glon_c, glat_c, my_field, probs_fastmp)
+
+    # Split into members and field stars according to the probability values
+    # assigned
+    df_field, df_membs = extract_members(
+        gaia_frame,
+        probs_fastmp,
+        radec_cent=my_field.radec_c,
+        N_membs=my_field.N_cluster,
+        # rad_arcmin=rad_arcmin,
+    )
+
+    return df_field, df_membs
 
 
 def check_close_cls(
@@ -580,7 +558,7 @@ def extract_members(
     probs_all: np.ndarray,
     radec_cent: tuple[float, float],
     N_membs: int,
-    rad_arcmin: None | float = None,
+    # rad_arcmin: None | float = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Split the data into field and member-star DataFrames.
@@ -638,69 +616,69 @@ def extract_members(
     # Initialize membership mask (all False)
     msk_membs = np.zeros(len(probs_all), dtype=bool)
 
-    if rad_arcmin is not None:
-        # The cluster's radius was given, use it to select members
-        sep_arcmin = dist_cent_arcmin(data, radec_cent)
+    # if rad_arcmin is not None:
+    #     # The cluster's radius was given, use it to select members
+    #     sep_arcmin = dist_cent_arcmin(data, radec_cent)
 
-        # Candidate stars inside requested radius
-        idx_inside = np.flatnonzero(sep_arcmin <= rad_arcmin)
-        N_in_rad = len(idx_inside)
+    #     # Candidate stars inside requested radius
+    #     idx_inside = np.flatnonzero(sep_arcmin <= rad_arcmin)
+    #     N_in_rad = len(idx_inside)
 
-        if N_in_rad >= N_membs:
-            # Select N_membs stars inside the radius with the  largest probabilities
-            idx_sorted = idx_inside[np.argsort(probs_all[idx_inside])[::-1]]
-            idx_selected = idx_sorted[:N_membs]
-        else:
-            if N_in_rad >= N_membs_min:
-                warnings.warn(
-                    f"Not enough stars inside radius ({N_in_rad} < {N_membs}), "
-                    + "using all stars inside radius"
-                )
-                idx_selected = idx_inside
-            else:
-                # Select N_membs_min closest stars to center
-                warnings.warn(
-                    f"Not enough stars inside radius ({N_in_rad} < {N_membs_min}), "
-                    + f"using {N_membs_min} closest stars to center"
-                )
-                idx_sorted = np.argsort(sep_arcmin)
-                idx_selected = idx_sorted[:N_membs_min]
+    #     if N_in_rad >= N_membs:
+    #         # Select N_membs stars inside the radius with the  largest probabilities
+    #         idx_sorted = idx_inside[np.argsort(probs_all[idx_inside])[::-1]]
+    #         idx_selected = idx_sorted[:N_membs]
+    #     else:
+    #         if N_in_rad >= N_membs_min:
+    #             warnings.warn(
+    #                 f"Not enough stars inside radius ({N_in_rad} < {N_membs}), "
+    #                 + "using all stars inside radius"
+    #             )
+    #             idx_selected = idx_inside
+    #         else:
+    #             # Select N_membs_min closest stars to center
+    #             warnings.warn(
+    #                 f"Not enough stars inside radius ({N_in_rad} < {N_membs_min}), "
+    #                 + f"using {N_membs_min} closest stars to center"
+    #             )
+    #             idx_sorted = np.argsort(sep_arcmin)
+    #             idx_selected = idx_sorted[:N_membs_min]
 
+    # else:
+    # If no radius is given, use the standard probability-cut method
+
+    if (probs_all >= prob_cut).sum() >= N_membs_min:
+        # Use default probability threshold for membership
+        idx_selected = np.flatnonzero(probs_all >= prob_cut)
     else:
-        # If no radius is given, use the standard probability-cut method
+        # Stars with membership probabilities larger than 0
+        msk_probs_g_0 = probs_all > 0.0
+        N_p_g_0 = msk_probs_g_0.sum()
 
-        if (probs_all >= prob_cut).sum() >= N_membs_min:
-            # Use default probability threshold for membership
-            idx_selected = np.flatnonzero(probs_all >= prob_cut)
+        if N_p_g_0 >= N_membs_min:
+            warnings.warn(
+                f"Not enough stars with P>{prob_cut}, using the {N_membs_min} "
+                + "stars with the largest P>0"
+            )
+            # Select N_membs_min stars with largest P>0
+            idx_p_g_0 = np.flatnonzero(msk_probs_g_0)
+            idx_sorted = idx_p_g_0[np.argsort(probs_all[idx_p_g_0])[::-1]]
+            idx_selected = idx_sorted[:N_membs_min]
+        elif N_p_g_0 > 0:
+            warnings.warn(
+                f"Not enough stars with P>{prob_cut}, using all {N_p_g_0} "
+                + "stars with P>0"
+            )
+            idx_selected = np.flatnonzero(msk_probs_g_0)
         else:
-            # Stars with membership probabilities larger than 0
-            msk_probs_g_0 = probs_all > 0.0
-            N_p_g_0 = msk_probs_g_0.sum()
-
-            if N_p_g_0 >= N_membs_min:
-                warnings.warn(
-                    f"Not enough stars with P>{prob_cut}, using the {N_membs_min} "
-                    + "stars with the largest P>0"
-                )
-                # Select N_membs_min stars with largest P>0
-                idx_p_g_0 = np.flatnonzero(msk_probs_g_0)
-                idx_sorted = idx_p_g_0[np.argsort(probs_all[idx_p_g_0])[::-1]]
-                idx_selected = idx_sorted[:N_membs_min]
-            elif N_p_g_0 > 0:
-                warnings.warn(
-                    f"Not enough stars with P>{prob_cut}, using all {N_p_g_0} "
-                    + "stars with P>0"
-                )
-                idx_selected = np.flatnonzero(msk_probs_g_0)
-            else:
-                # If no stars have P>0, select the N_membs_min stars closest to the center
-                warnings.warn(
-                    f"No stars with P>0, using the {N_membs_min} closest "
-                    + "stars to the center"
-                )
-                sep_arcmin = dist_cent_arcmin(data, radec_cent)
-                idx_sorted = np.argsort(sep_arcmin)
-                idx_selected = idx_sorted[:N_membs_min]
+            # If no stars have P>0, select the N_membs_min stars closest to the center
+            warnings.warn(
+                f"No stars with P>0, using the {N_membs_min} closest "
+                + "stars to the center"
+            )
+            sep_arcmin = dist_cent_arcmin(data, radec_cent)
+            idx_sorted = np.argsort(sep_arcmin)
+            idx_selected = idx_sorted[:N_membs_min]
 
     msk_membs[idx_selected] = True
 
@@ -866,7 +844,6 @@ def updt_UCC_new_cl_data(
     """
     # Temp dict used to update the UCC
     dict_updt = {
-        "make_plots": "y",  # plots are required for this entry. Used by D script
         "process": "n",  # 'n' indicates this entry was processed
         "bad_oc": "n",  # Default value, will be updated later
         "C1": C1,

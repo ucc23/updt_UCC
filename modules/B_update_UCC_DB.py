@@ -15,6 +15,7 @@ from .utils import (
     load_BC_cats,
     logger,
     normalize_name,
+    prune_archive,
     radec2lonlat,
     rename_standard,
     save_df_UCC,
@@ -25,6 +26,7 @@ from .variables import (
     UCC_cat_B_in,
     UCC_cat_B_out,
     all_OC_names,
+    archive_folder_path,
     c_Ag,
     c_Ebprp,
     c_Ebv,
@@ -2421,12 +2423,11 @@ def move_files(
 
     if os.path.isfile(ucc_temp):
         now_time = pd.Timestamp.now().strftime("%y%m%d%H")
-        archived_B_file = (
-            data_folder
-            + "ucc_archived_nogit/"
-            + UCC_cat_B_out.replace(".csv", f"_{now_time}.csv.gz")
+        archived_B_file = archive_folder_path + UCC_cat_B_out.replace(
+            ".csv", f"_{now_time}.csv.gz"
         )
         save_df_UCC(logging, df_UCC_B_old, archived_B_file, compression="gzip")
+        prune_archive(logging, archived_B_file)
 
         os.remove(df_UCC_B_path)
         logging.info(df_UCC_B_path + " --> " + archived_B_file)

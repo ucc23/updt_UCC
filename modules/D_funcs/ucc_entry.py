@@ -168,7 +168,7 @@ def make(
 
             for i, comment in enumerate(cmmt["comment"]):
                 name_used_db = ""
-                if len(cl_names) > 1 and cmmt["orig_name"][i] != cl_names[0]:
+                if len(cl_names) > 1:  # and cmmt["orig_name"][i] != cl_names[0]:
                     name_used_db = f"<b>[{cmmt['orig_name'][i]}]</b> "
                 comments += f"<br>{name_used_db}{comment}"
 
@@ -351,6 +351,34 @@ def positions_in_lit(DBs_json, DBs_full_data, UCC_cl, tsp):
     return table, N_rows
 
 
+def eq_positions_in_lit(DBs_json, DBs_full_data, UCC_cl) -> list:
+    """
+    Return the (reference, RA, DEC) values for each DB that lists this cluster,
+    in the same order used by the 'Astrometry' table (see 'positions_in_lit').
+    """
+    DBs_sort = UCC_cl["DB"].split(";")[::-1]
+    DBs_i_sort = UCC_cl["DB_i"].split(";")[::-1]
+
+    refs = []
+    for i, db in enumerate(DBs_sort):
+        db_pos = DBs_json[db]["pos"]
+        if "RA" not in db_pos or "DEC" not in db_pos:
+            continue
+        df = DBs_full_data[db]
+
+        radec = []
+        for c in ("RA", "DEC"):
+            pos_v = str(df[db_pos[c]][int(DBs_i_sort[i])]).replace(" ", "")
+            if pos_v == "" or pos_v == "nan":
+                break
+            radec.append(round(float(pos_v), 3))
+        else:
+            ref = f"{DBs_json[db]['authors']} {DBs_json[db]['year']}"
+            refs.append([ref, radec[0], radec[1]])
+
+    return refs
+
+
 def fpars_in_lit(
     DBs_json: dict,
     UCC_cl: dict,
@@ -386,8 +414,8 @@ def fpars_in_lit(
                 mult_vals_note_flag = "true"
                 par_v = re.sub(r"\*+", f"<sup>({par_v.count('*')})</sup>", par_v)
             row.append(par_v)
-        # Filter rows where all columns after the year are '--'
-        if not all(v == "--" for v in row[2:]):
+        # Filter rows where all columns after the F_score are '--'
+        if not all(v == "--" for v in row[3:]):
             rows.append(row)
             N_rows_pars += 1
 

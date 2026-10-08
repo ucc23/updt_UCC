@@ -11,6 +11,7 @@ import pandas as pd
 from .C_funcs.classification import get_classif
 from .C_funcs.member_files_updt_funcs import (
     get_fastMP_membs,
+    get_gaia_frame,
     get_new_cl_data,
     save_cl_datafile,
     updt_UCC_new_cl_data,
@@ -20,21 +21,24 @@ from .utils import (
     load_BC_cats,
     logger,
     normalize_name,
+    prune_archive,
     round_columns,
     save_df_UCC,
 )
 from .variables import (
     C_lit_max,
     GCs_cat,
+    N_archive_versions,
     P_dup_max,
     UCC_cat_B_out,
     UCC_cat_C_in,
     UCC_cat_C_out,
-    UCC_cat_D_in,
     UCC_members_file,
     UTI_max,
     all_OC_names,
+    archive_folder_path,
     data_folder,
+    frame_limits_cols,
     md_folder,
     name_DBs_json,
     path_gaia_frames_ranges,
@@ -96,12 +100,12 @@ def main():
         )
     else:
         # Generate dataframe to store data extracted from the OCs to be processed
-        df_UCC_C_updt = process_entries(
+        df_add_reprocess = process_entries(
             df_UCC_B_out, new_ocs_manual_pars, B_not_in_C, C_reprocess
         )
         # Generate member files for new OCs and obtain their data
         df_UCC_C_updt = member_files_updt(
-            logging, gaia_frames_data, df_GCs, df_UCC_C, df_UCC_C_updt
+            logging, gaia_frames_data, df_GCs, df_UCC_C, df_add_reprocess
         )
 
     df_UCC_C_new = update_C_cat(C_not_in_B, rename_C_fname, df_UCC_C, df_UCC_C_updt)
@@ -135,7 +139,6 @@ def main():
 
     # Sort df_UCC_B by fname column to match 'df_UCC_C_final'
     df_UCC_B = df_UCC_B_out.sort_values("fname").reset_index(drop=True)
-
     # Check the 'fnames' columns in df_UCC_B and df_UCC_C_final dataframes are equal
     if not df_UCC_B["fname"].to_list() == df_UCC_C_final["fname"].to_list():
         raise ValueError("The 'fname' columns in B and final C dataframes differ")
@@ -160,11 +163,10 @@ def main():
     cols_in = [
         "fname",
         "process",
+        "frame_limit",
         "N_clust",
         "N_clust_max",
-        "rad_arcmin",
-        "box_size",
-        "frame_limit",
+        "use_mag_fastmp",
     ]
     cols_out = ["fname"] + [col for col in df_UCC_C_final.columns if col not in cols_in]
     df_UCC_C_in = df_UCC_C_final[cols_in].copy()
@@ -172,24 +174,15 @@ def main():
 
     # Check differences between the original and final C dataframes
     c_dict = {
-        "in": (UCC_cat_C_in, cols_in, df_UCC_C_in),
-        "out": (UCC_cat_C_out, cols_out, df_UCC_C_out),
+        "in": (UCC_cat_C_in, df_UCC_C[cols_in], df_UCC_C_in),
+        "out": (UCC_cat_C_out, df_UCC_C[cols_out], df_UCC_C_out),
     }
     for c_id, c_tuple in c_dict.items():
-        file_c, cols_c, df_C = c_tuple
-        diff_found = diff_between_dfs(
-            logging, f"C_{c_id} cat", df_C, df_UCC_C_final[cols_c]
-        )
+        file_c, df_C_old, df_C_new = c_tuple
+        diff_found = diff_between_dfs(logging, f"C_{c_id} cat", df_C_old, df_C_new)
         if diff_found:
             # Save updated UCC to temporary CSV file
-            save_df_UCC(logging, df_UCC_C_final, temp_folder + file_c)
-
-    # Generate input file for D script indicating which plots to (re)make
-    if "make_plots" in df_UCC_C_final.columns:
-        msk = df_UCC_C_final["make_plots"] == "y"
-        if msk.any():
-            df_UCC_D_in = df_UCC_C_final.loc[msk, ["fname"]].copy()
-            save_df_UCC(logging, df_UCC_D_in, temp_folder + UCC_cat_D_in)
+            save_df_UCC(logging, df_C_new, temp_folder + file_c)
 
     # Save the generated data to temporary files before moving them
     update_zenodo_files(
@@ -589,8 +582,11 @@ def load_temp_C_updt_file(
     Load and validate the temporary update file for the Unified Cluster Catalogue (UCC)
     """
     # Load previously generated update file
-    df_UCC_C_updt = pd.read_csv(temp_UCC_updt_file)
-
+    str_cols = ["frame_limit", "use_mag_fastmp", "shared_members", "shared_members_p"]
+    df_UCC_C_updt = pd.read_csv(
+        temp_UCC_updt_file, dtype={c: "string" for c in str_cols}
+    )
+    df_UCC_C_updt[str_cols] = df_UCC_C_updt[str_cols].fillna("nan")
     # Clusters that should be present in the update file for this run
     expected_names = set(B_not_in_C["fname"]) | set(C_reprocess["fname"])
 
@@ -633,7 +629,7 @@ def load_temp_C_updt_file(
 
 
 def process_entries(
-    df_UCC_B: pd.DataFrame,
+    df_UCC_B_out: pd.DataFrame,
     new_ocs_manual_pars: pd.DataFrame,
     B_not_in_C: pd.DataFrame,
     C_reprocess: pd.DataFrame,
@@ -643,34 +639,36 @@ def process_entries(
     """
     # Rows to reprocess. Merge with df_UCC_B to recover B columns
     part_C = C_reprocess.merge(
-        df_UCC_B,  # .drop(columns=["fnames"]),
+        df_UCC_B_out,  # .drop(columns=["fnames"]),
         on="fname",
         how="left",
     )
     # Combine both blocks
-    df_UCC_C_updt = pd.concat([B_not_in_C, part_C], ignore_index=True).replace(
+    df_add_reprocess = pd.concat([B_not_in_C, part_C], ignore_index=True).replace(
         {pd.NA: "nan"}
     )
 
-    if not df_UCC_C_updt.empty:
-        if not new_ocs_manual_pars.empty:
-            # index df_UCC_C_updt temporarily on fname
-            df_UCC_C_updt = df_UCC_C_updt.set_index("fname")
-            # replace values for matching entries
-            common = df_UCC_C_updt.index.intersection(new_ocs_manual_pars.index)
-            cols = list(new_ocs_manual_pars.keys())
-            df_UCC_C_updt.loc[common, cols] = new_ocs_manual_pars.loc[
-                common, cols
-            ].values
-            # restore fname as column
-            df_UCC_C_updt = df_UCC_C_updt.reset_index()
-        else:
-            if input("\nSet a general N_clust_max value? (y/n): ").lower() == "y":
-                N_clust_max_general = int(input("Enter N_clust_max value: "))
-                # Update the 'df_UCC_C_updt['N_clust_max']' column with this value
-                df_UCC_C_updt["N_clust_max"] = N_clust_max_general
+    if not df_add_reprocess.empty and not new_ocs_manual_pars.empty:
+        # index df_add_reprocess temporarily on fname
+        df_add_reprocess = df_add_reprocess.set_index("fname")
+        # replace values for matching entries
+        common = df_add_reprocess.index.intersection(new_ocs_manual_pars.index)
+        cols = list(new_ocs_manual_pars.keys())
+        df_add_reprocess.loc[common, cols] = new_ocs_manual_pars.loc[
+            common, cols
+        ].values
+        # restore fname as column
+        df_add_reprocess = df_add_reprocess.reset_index()
 
-    return df_UCC_C_updt
+    if (
+        any(np.isnan(df_add_reprocess["N_clust_max"]))
+        and input("\nSet a general N_clust_max value? (y/n): ").lower() == "y"
+    ):
+        N_clust_max_general = int(input("Enter N_clust_max value: "))
+        # Update the 'df_add_reprocess['N_clust_max']' column with this value
+        df_add_reprocess["N_clust_max"] = N_clust_max_general
+
+    return df_add_reprocess
 
 
 def member_files_updt(
@@ -708,20 +706,30 @@ def member_files_updt(
         logging.info(f"\n{idx + 1}/{N_tot} Processing {fname0}")
 
         # Extract manual parameters if any
-        N_clust, N_clust_max, rad_arcmin, box_size, frame_limit = cl_row[
-            ["N_clust", "N_clust_max", "rad_arcmin", "box_size", "frame_limit"]
+        N_clust, N_clust_max, use_mag_fastmp, frame_limit = cl_row[
+            ["N_clust", "N_clust_max", "use_mag_fastmp", "frame_limit"]
         ]
-        if isinstance(rad_arcmin, str) or np.isnan(rad_arcmin):
-            rad_arcmin = None
-        else:
-            rad_arcmin = float(rad_arcmin)
-        if isinstance(frame_limit, float) or frame_limit == "nan":
-            frame_limit = ""
 
+        # Generate frame_limits dictionary
+        frame_limit_dict = {}
+        if str(frame_limit) != "nan":
+            # Extract possible manual frame limits
+            for fm in frame_limit.split(";"):
+                vals = fm.split("_")
+                if vals[0] not in frame_limits_cols:
+                    raise ValueError(f"Unknown frame limit '{vals[0]}'")
+                frame_limit_dict[vals[0]] = float(vals[1])
+
+        # Obtain the full Gaia frame
+        gaia_frame = get_gaia_frame(
+            logging, gaia_frames_data, fname0, ra_c, dec_c, plx_c, frame_limit_dict
+        )
+        # gaia_frame.to_csv("temp_clust.csv", index=False)
+
+        # Obtain the cluster members (and field stars) using fastMP
         df_field, df_membs = get_fastMP_membs(
             logging,
             df_GCs,
-            gaia_frames_data,
             df_UCC_m,
             fname0,
             ra_c,
@@ -733,9 +741,8 @@ def member_files_updt(
             plx_c,
             N_clust,
             N_clust_max,
-            box_size,
-            frame_limit,
-            rad_arcmin,
+            use_mag_fastmp,
+            gaia_frame,
         )
 
         # This should never happen, check anyway
@@ -1528,8 +1535,15 @@ def updt_zenodo_csv(
 
     # Check that the df_UCC_C["fname"] column matches the first string of the
     # all_names["fnames"] column (strings separated by ';') before moving on
-    fnames_from_all_names = all_names["fnames"].str.split(";").str[0].astype("string")
-    if not df_UCC_C["fname"].equals(fnames_from_all_names):
+    fnames_from_all_names = (
+        all_names["fnames"]
+        .str.split(";")
+        .str[0]
+        .astype("string")
+        .reset_index(drop=True)
+    )
+    fnames_from_C = df_UCC_C["fname"].astype("string").reset_index(drop=True)
+    if not fnames_from_C.equals(fnames_from_all_names):
         raise ValueError(
             "The 'fname' column in df_UCC_C does not match the canonical fname in "
             "the 'fnames' column in all_names."
@@ -1727,10 +1741,8 @@ def move_files(
     if os.path.isfile(file_path_temp):
         file_path = zenodo_folder + UCC_members_file
         date = pd.Timestamp.now().strftime("%y%m%d%H")
-        archived_members = (
-            data_folder
-            + "ucc_archived_nogit/"
-            + UCC_members_file.replace(".parquet", f"_{date}.parquet")
+        archived_members = archive_folder_path + UCC_members_file.replace(
+            ".parquet", f"_{date}.parquet"
         )
         # Copy current members file to archive
         post_actions.append(("archive_parquet", file_path, archived_members))
@@ -1744,20 +1756,13 @@ def move_files(
             # Archive old C catalogue
             ucc_stored = data_folder + UCC_cat_C
             now_time = pd.Timestamp.now().strftime("%y%m%d%H")
-            archived_C_file = (
-                data_folder
-                + "ucc_archived_nogit/"
-                + UCC_cat_C.replace(".csv", f"_{now_time}.csv.gz")
+            archived_C_file = archive_folder_path + UCC_cat_C.replace(
+                ".csv", f"_{now_time}.csv.gz"
             )
             post_actions.append(("archive_csv", ucc_stored, archived_C_file))
             # Move new C file into place
             post_actions.append(("move", ucc_temp, ucc_stored))
 
-    # Move D in file indicating which plots to (re)make
-    ucc_D_temp = temp_folder + UCC_cat_D_in
-    if os.path.isfile(ucc_D_temp):
-        ucc_D_stored = data_folder + UCC_cat_D_in
-        post_actions.append(("move", ucc_D_temp, ucc_D_stored))
 
     # Collect rename operations
     md_root = root_ucc_path + md_folder
@@ -1846,11 +1851,16 @@ def move_files(
         elif action_type == "replace":
             logging.info(f"REPLACE: {src} --> {dst}")
         elif action_type == "archive_parquet":
-            logging.info(f"ARCHIVE: {src} --> {dst}")
+            logging.info(
+                f"ARCHIVE: {src} --> {dst} (keep last {N_archive_versions})"
+            )
         elif action_type == "remove":
             logging.info(f"REMOVE:  {src}")
         elif action_type == "archive_csv":
-            logging.info(f"ARCHIVE + GZIP: {src} --> {dst}")
+            logging.info(
+                f"ARCHIVE + GZIP: {src} --> {dst} "
+                f"(keep last {N_archive_versions})"
+            )
         elif action_type == "rename":
             logging.info(f"RENAME:  {src} --> {dst}")
 
@@ -1865,6 +1875,7 @@ def move_files(
         elif action_type == "archive_parquet":
             shutil.copy2(src, dst)
             logging.info(f"{src} --> {dst} (archived copy)")
+            prune_archive(logging, dst)
         elif action_type == "replace":
             os.replace(src, dst)
             logging.info(f"{src} --> {dst} (replaced)")
@@ -1872,6 +1883,7 @@ def move_files(
             df_OLD_C = pd.read_csv(src)
             save_df_UCC(logging, df_OLD_C, dst, compression="gzip")
             logging.info(f"{src} --> {dst} (archived)")
+            prune_archive(logging, dst)
         elif action_type == "remove":
             if os.path.isfile(src):
                 os.remove(src)

@@ -34,6 +34,10 @@ def display_menu():
     print("   └─ Update the website files")
     print("   └─ Generates website content and visualization files")
 
+    print("\nE) E_master_check.py")
+    print("   └─ Run UCC catalogue consistency checks (optional, standalone)")
+    print("   └─ Cross-DB, member-file, B vs C, and duplicate checks")
+
     print("\nOther options:")
     print("Q) Quit")
     print("\n" + "=" * 60)
@@ -46,6 +50,7 @@ def run_script(script_choice):
         "B": "B_update_UCC_DB",
         "C": "C_process_member_files",
         "D": "D_update_UCC_site",
+        "E": "E_master_check",
     }
 
     module_name = module_names.get(script_choice)
@@ -68,12 +73,12 @@ def run_script(script_choice):
 def get_user_choice():
     """Get and validate user input."""
     while True:
-        choice = input("\nEnter your choice (A/B/C/D/Q): ").strip().upper()
+        choice = input("\nEnter your choice (A/B/C/D/E/Q): ").strip().upper()
 
-        if choice in ["A", "B", "C", "D", "Q"]:
+        if choice in ["A", "B", "C", "D", "E", "Q"]:
             return choice
         else:
-            print("❌ Invalid choice. Please enter A, B, C, D, or Q.")
+            print("❌ Invalid choice. Please enter A, B, C, D, E, or Q.")
 
 
 def main():
@@ -103,6 +108,10 @@ def main():
 
         if choice == "D":
             print("\n👋 Final script completed. Goodbye!")
+            return
+
+        if choice == "E":
+            print("\n👋 Checks completed. Goodbye!")
             return
 
         # Ask if user wants to continue to next script

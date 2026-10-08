@@ -1,3 +1,4 @@
+import argparse
 import sys
 
 import pandas as pd
@@ -6,69 +7,109 @@ sys.path.append("../")
 from modules.D_funcs import ucc_plots
 
 style_path = "../modules/D_funcs/science2.mplstyle"
-title = r"Hunt & Reffert (2023)"
-GCs_cat = "../data/globulars.csv"
 
-h23_name_changes = {
-    "ESO_429-429": "ESO_429-02",
-    "AH03_J0748+26.9": "AH03_J0748-26.9",
-    "Juchert_J0644.8+0925": "Juchert_J0644.8-0925",
-    "Teutsch_J0718.0+1642": "Teutsch_J0718.0-1642",
-    "Teutsch_J0924.3+5313": "Teutsch_J0924.3-5313",
-    "Teutsch_J1037.3+6034": "Teutsch_J1037.3-6034",
-    "Teutsch_J1209.3+6120": "Teutsch_J1209.3-6120",
-    "XDOCC_9": "XDOCC_09",
-    "XDOCC_6": "XDOCC_06",
-    "HSC_134": "Gran 3",
-    "HSC_2890": "Gran 4",
-    "CMa_2": "CMa_02",
-    "BH_90": "VDBH_90",
-    "vdBergh_92": "VDB_92",
+# Per-source configuration
+SOURCES = {
+    "H23": {
+        "title": r"Hunt & Reffert (2023)",
+        "membs_path": "members_process/HUNT23_members.parquet",
+        "name_col": "Name",
+        "probs_col": "Prob",
+        "rename_cols": {},
+        "name_changes": {
+            "ESO_429-429": "ESO_429-02",
+            "AH03_J0748+26.9": "AH03_J0748-26.9",
+            "Juchert_J0644.8+0925": "Juchert_J0644.8-0925",
+            "Teutsch_J0718.0+1642": "Teutsch_J0718.0-1642",
+            "Teutsch_J0924.3+5313": "Teutsch_J0924.3-5313",
+            "Teutsch_J1037.3+6034": "Teutsch_J1037.3-6034",
+            "Teutsch_J1209.3+6120": "Teutsch_J1209.3-6120",
+            "XDOCC_9": "XDOCC_09",
+            "XDOCC_6": "XDOCC_06",
+            "HSC_134": "Gran 3",
+            "HSC_2890": "Gran 4",
+            "CMa_2": "CMa_02",
+            "BH_90": "VDBH_90",
+            "vdBergh_92": "VDB_92",
+        },
+    },
+    "C20": {
+        "title": r"Cantat-Gaudin et al. (2020)",
+        "membs_path": "members_process/CANTAT20_members.parquet",
+        "name_col": "Cluster",
+        "probs_col": "proba",
+        "rename_cols": {"pmRA*": "pmRA"},
+        "name_changes": {
+            "LP_1624": "FoF_1624",
+        },
+    },
 }
 
-# Entries to process (from Hunt & Reffert 2023)
-cl_process = [
-    "oc0473",
-]
+
+# Default entries to process
+cl_process = ["oc0704"]
+source = "H23"  # C20
+cfg = SOURCES[source]
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Generate CMD plots for OCs from a selected members source."
+    )
+    parser.add_argument(
+        "source", choices=SOURCES.keys(), help="Members source to use for plotting"
+    )
+    parser.add_argument(
+        "-c",
+        "--clusters",
+        nargs="+",
+        default=None,
+        help="Cluster names to process (overrides the source's default list)",
+    )
+    return parser.parse_args()
+
 
 def main() -> None:
     """
-    Generate plots for a group of OCs from Hunt & Reffert (2023). If GLON
+    Generate plots for a group of OCs from the selected source. If GLON
     wraps around the 0/360 boundary, fix it.
     """
-    print("Reading HUNT23 members...\n")
-    hunt23_membs = pd.read_parquet("members_process/HUNT23_members.parquet")
-    hunt23_membs["Name"] = hunt23_membs["Name"].str.strip()
-    # Update names with replacements stored in h23_name_changes
-    hunt23_membs["Name"] = hunt23_membs["Name"].replace(h23_name_changes)
+    print(f"Reading {source} members...\n")
+    membs = pd.read_parquet(cfg["membs_path"])
+    if cfg["rename_cols"]:
+        membs.rename(columns=cfg["rename_cols"], inplace=True)
+    membs[cfg["name_col"]] = membs[cfg["name_col"]].str.strip()
+    # Update names with replacements stored in name_changes
+    membs[cfg["name_col"]] = membs[cfg["name_col"]].replace(cfg["name_changes"])
 
-    # Get canonical names (fnames)
-    unique_h23_names = list(set(hunt23_membs["Name"]))
-    unique_h23_fnames = get_fnames(unique_h23_names)
-    unique_h23_fnames = [x for sublist in unique_h23_fnames for x in sublist]
+    # Canonical names (fnames) for the clusters to process
+    cl_process_f = {x for subl in get_fnames(cl_process) for x in subl}
 
-    # Get canonical names (fnames) for the clusters to process
-    cl_process_f = [x for subl in get_fnames(cl_process) for x in subl]
+    # Canonical names (fnames) for each unique cluster name in the source
+    unique_names = list(set(membs[cfg["name_col"]]))
+    unique_fnames = get_fnames(unique_names)
 
-    for i, fname in enumerate(unique_h23_fnames):
-        if fname not in cl_process_f:
-            continue
+    for clname, fnames in zip(unique_names, unique_fnames):
+        for fname in fnames:
+            if fname not in cl_process_f:
+                continue
 
-        clname = unique_h23_names[i]
+            msk = membs[cfg["name_col"]] == clname
+            df_members = membs[msk].copy()
 
-        msk = hunt23_membs["Name"] == clname
-        df_members = hunt23_membs[msk].copy()
+            print(f"Making CMD plot for {clname}...")
 
-        print(f"Making CMD plot for {clname}...")
+            # Fix GLON coordinates that wrap around the 0/360 boundary
+            glon_wrap_fix(df_members)
 
-        # Fix GLON coordinates that wrap around the 0/360 boundary
-        glon_wrap_fix(df_members)
-
-        fname0 = fname
-        plot_fpath = f"{fname0}.webp"
-        ucc_plots.plot_CMD(
-            plot_fpath, df_members, probs_col="Prob", title=title, style_path=style_path
-        )
+            plot_fpath = f"{fname}.webp"
+            ucc_plots.plot_CMD(
+                plot_fpath,
+                df_members,
+                probs_col=cfg["probs_col"],
+                title=cfg["title"],
+                style_path=style_path,
+            )
 
 
 def glon_wrap_fix(df_members):
@@ -83,13 +124,14 @@ def glon_wrap_fix(df_members):
     glon_wrapped[glon_wrapped > 180.0] -= 360.0
     span_wrapped = glon_wrapped.max() - glon_wrapped.min()
 
-    # Apply the fix only if it produces a significantly smaller span
+    # Apply the fix only if it produces a smaller span
     if span_wrapped < span:
         glon = glon_wrapped
 
     df_members["GLON"] = glon
 
     return df_members
+
 
 def get_fnames(names_all, sep: str = ",") -> list[list[str]]:
     """ """
