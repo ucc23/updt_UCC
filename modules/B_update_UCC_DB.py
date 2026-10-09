@@ -35,7 +35,6 @@ from .variables import (
     c_z_sun,
     data_folder,
     dbs_folder,
-    embedded_file,
     fpars_order,
     name_DBs_json,
     naming_order,
@@ -66,7 +65,6 @@ def main():
     (
         new_JSON,
         df_GCs,
-        df_embedded,
         gcs_fnames,
         selected_center_coords,
         all_dbs_data,
@@ -184,7 +182,8 @@ def main():
     df_UCC_B_new = add_fpars_stats(logging, df_UCC_B_new)
 
     # Add Type column
-    df_UCC_B_new = add_types(df_embedded, df_UCC_B_new)
+    dbs_dfs = {DB: df_db for DB, (df_db, _) in all_dbs_data.items()}
+    df_UCC_B_new = add_types(new_JSON, dbs_dfs, df_UCC_B_new)
 
     # Sanity check
     sanity_check(logging, all_names_old, df_UCC_B_new)
@@ -264,7 +263,6 @@ def load_data(
 ) -> tuple[
     dict,
     pd.DataFrame,
-    pd.DataFrame,
     dict,
     dict,
     dict,
@@ -300,9 +298,6 @@ def load_data(
 
     # Load GCs data
     df_GCs = pd.read_csv(GCs_cat)
-
-    # Load embedded objects
-    df_embedded = pd.read_csv(embedded_file)
 
     # Load selected centers coordinates
     selected_center_coords = (
@@ -373,6 +368,8 @@ def load_data(
                 cols.extend(x)
             else:
                 cols.append(x)
+        if vals["types"]["col_name"] not in ("N/A", "ALL"):
+            cols.append(vals["types"]["col_name"])
         missing = [c for c in cols if c not in df_new.columns]
         if missing:
             raise ValueError(f"Missing columns in {DB}: {missing}")
@@ -384,7 +381,6 @@ def load_data(
     return (
         new_JSON,
         df_GCs,
-        df_embedded,
         gcs_fnames,
         selected_center_coords,
         all_dbs_data,
@@ -2056,36 +2052,43 @@ def add_fpars_stats(logging, df_UCC_B_new: pd.DataFrame) -> pd.DataFrame:
 #     return df_UCC_B_new
 
 
-def add_types(df_embedded: pd.DataFrame, df_UCC_B_new: pd.DataFrame):
+def add_types(
+    new_JSON: dict, dbs_dfs: dict[str, pd.DataFrame], df_UCC_B_new: pd.DataFrame
+) -> pd.DataFrame:
     """
     Add the 'Type' column.
-    """
-    # Obtain embedded fnames
-    emb_fnames = get_fnames(df_embedded["name"])
 
-    # Dictionary mapping each fname to the set of databases where it is catalogued as
-    # an EC
-    embedded_db = {}
-    for fnames, db in zip(emb_fnames, df_embedded["database"]):
-        for fname in fnames:
-            embedded_db.setdefault(fname, set()).add(db)
+    Embedded clusters (ECs) are identified in each DB using the 'types' key of its
+    JSON entry: 'col_name' is the column that holds the type information ('ALL' if
+    every entry in the DB is an EC, 'N/A' if the DB does not identify ECs) and
+    'ec_id' lists the values in that column that identify an EC.
+    """
+    # Dictionary mapping each DB to the set of row indexes (as stored in the 'DB_i'
+    # column) catalogued as ECs, or to None if all its entries are ECs
+    embedded_rows = {}
+    for DB, df_db in dbs_dfs.items():
+        col_name = new_JSON[DB]["types"]["col_name"]
+        if col_name == "N/A":
+            continue
+        if col_name == "ALL":
+            embedded_rows[DB] = None
+            continue
+        ec_id = new_JSON[DB]["types"]["ec_id"]
+        msk = df_db[col_name].astype(str).str.strip().isin(ec_id).to_numpy()
+        embedded_rows[DB] = {str(i) for i in np.flatnonzero(msk)}
 
     type_col = []
-    for fnames, dbs in zip(df_UCC_B_new["fnames"], df_UCC_B_new["DB"]):
-        obj_ec_in_dbs = {
-            db
-            for fname in fnames.split(";")
-            if fname in embedded_db
-            for db in embedded_db[fname]
-        }
+    for dbs, dbs_i in zip(df_UCC_B_new["DB"], df_UCC_B_new["DB_i"]):
+        is_ec = [
+            db in embedded_rows
+            and (embedded_rows[db] is None or db_i in embedded_rows[db])
+            for db, db_i in zip(dbs.split(";"), dbs_i.split(";"))
+        ]
 
-        if not obj_ec_in_dbs:
-            # Objects is never catalogued as an EC
+        if not any(is_ec):
+            # Object is never catalogued as an EC
             type_col.append("OC")
-            continue
-
-        dbs_not_ec = sum(db not in obj_ec_in_dbs for db in dbs.split(";"))
-        if dbs_not_ec == 0:
+        elif all(is_ec):
             # Object is catalogued as an EC in all DBs
             type_col.append("EC")
         else:

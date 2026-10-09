@@ -13,6 +13,9 @@ JSON_struct = {
         # Manually add this date
         "received": "DATE_HERE",
         "names": "Name",
+        # Identification of embedded clusters: column name and IDs used. If the
+        # entire database is ECs, use: "col_name": "ALL", "ec_id": [].
+        "types": {"col_name": "N/A", "ec_id": []},
         "pos": {
             "RA": [],
             "DEC": [],
@@ -107,8 +110,6 @@ UCC_cmmts_folder = dbs_folder + "cmmts/"
 
 # Path to the database of GCs
 GCs_cat = data_folder + "globulars.csv"
-# Path to the database of ECs
-embedded_file = data_folder + "embedded.csv"
 
 # Preferred order in which the OCs are assigned their primary name
 naming_order = (

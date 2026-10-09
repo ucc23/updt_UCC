@@ -1,55 +1,4 @@
 {
-"fsr0416": {
-    "N_membs": "HUNT23 not enough members"
-},
-"fsr0031": {
-    "N_membs": "HUNT23 not enough members"
-},
-"pismis27": {
-    "N_membs": "HUNT23 not enough members"
-},
-"ubc517": {
-    "N_membs": "HUNT23 too many members, could be tail"
-},
-"alessiteutsch7": {
-    "N_membs": "HUNT23 too many low prob members"
-},
-"berkeley59": {
-    "N_membs": "HUNT23 too many members, could be tail"
-},
-"ngc2327": {
-    "N_membs": "HUNT23 "
-},
-"dbsb19": {
-    "N_membs": "HUNT23 "
-},
-"vdbh144": {
-    "N_membs": "HUNT23 "
-},
-"ruprecht91": {
-    "N_membs": "HUNT23 "
-},
-"ascc108": {
-    "N_membs": "HUNT23 "
-},
-"ufmg54": {
-    "N_membs": "HUNT23 "
-},
-"ubc26": {
-    "N_membs": "HUNT23 "
-},
-"collinder135": {
-    "N_membs": "HUNT23 "
-},
-"berkeley83": {
-    "N_membs": "HUNT23 "
-},
-"alessi9": {
-    "N_membs": "HUNT23 "
-},
-
-
-
     "ads16795": {
         "pos": "CAVALLO2024 bad RA"
     },
@@ -62,8 +11,14 @@
     "alessi34": {
         "N_membs": "HUNT23 too many low prob members"
     },
+    "alessi9": {
+        "N_membs": "HUNT23 too many members, could be tail"
+    },
     "alessiteutsch5": {
         "pos": "HE2022_1, ALFONSO2024 bad RA"
+    },
+    "alessiteutsch7": {
+        "N_membs": "HUNT23 too many low prob members"
     },
     "ascc100": {
         "pos": "CAVALLO2024 bad DEC"
@@ -114,6 +69,12 @@
     "bdsb91": {
         "pos": "ALFONSO2024 bad DEC"
     },
+    "berkeley59": {
+        "N_membs": "HUNT23 too many members, could be tail"
+    },
+    "berkeley83": {
+        "N_membs": "HUNT23 not enough members"
+    },
     "bochum10": {
         "pm": "Large range of PMs in older articles"
     },
@@ -160,10 +121,14 @@
     "fof2439": {
         "pos": "CHI2023_2 bad RA"
     },
+    "fsr0031": {
+        "N_membs": "HUNT23 not enough members"
+    },
     "fsr0354": {
         "pm": "Loktin bad PMs"
     },
     "fsr0416": {
+        "N_membs": "HUNT23 not enough members",
         "pos": "DIAS2021 and ALMEIDA2025 bad RA"
     },
     "fsr0839": {
@@ -392,6 +357,9 @@
     "pismis24": {
         "pos": "VDBH1975 bad RA"
     },
+    "pismis27": {
+        "N_membs": "HUNT23 not enough members"
+    },
     "platais10": {
         "N_membs": "HUNT23 too many members, could be tail"
     },
@@ -432,6 +400,9 @@
         "pos": "RICHER2021 coords are those of Pismis 4",
         "plx": "RICHER2021 value is that of Pismis 4",
         "pm": "RICHER2021 coords are those of Pismis 4"
+    },
+    "ruprecht91": {
+        "N_membs": "HUNT23 too many low prob members, another object in frame?"
     },
     "taurus": {
         "pos": "HE2022_1 bad DEC"
@@ -496,8 +467,17 @@
     "ubc21": {
         "pos": "ALFONSO2024 bad DEC"
     },
+    "ubc26": {
+        "N_membs": "HUNT23 too many members"
+    },
     "ubc31": {
         "pos": "Frame is large"
+    },
+    "ubc517": {
+        "N_membs": "HUNT23 too many members, could be tail"
+    },
+    "ufmg54": {
+        "N_membs": "HUNT23 not enough members"
     },
     "upk160": {
         "pos": "HE2022_1 bad RA"
@@ -615,6 +595,9 @@
     },
     "upk88": {
         "pos": "Frame is large"
+    },
+    "vdbh144": {
+        "N_membs": "HUNT23 not enough members"
     },
     "vdbh164": {
         "N_membs": "HUNT23 too many members, could be tail"

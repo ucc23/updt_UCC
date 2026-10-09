@@ -13,6 +13,10 @@
     "year": "1970",
     "received": "19700101",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA",
       "DEC": "DEC"
@@ -38,6 +42,10 @@
     "year": "1973",
     "received": "19730101",
     "names": "NGC",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA_deg",
       "DEC": "DEC_deg"
@@ -59,6 +67,10 @@
     "year": "1975",
     "received": "19750101",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA_deg",
       "DEC": "DEC_deg"
@@ -80,6 +92,10 @@
     "year": "1987",
     "received": "19870101",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA",
       "DEC": "DEC",
@@ -115,6 +131,10 @@
     "year": "1999",
     "received": "19970720",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "_RA",
       "DEC": "_DE"
@@ -150,6 +170,10 @@
     "year": "2000",
     "received": "20000529",
     "names": "Object",
+    "types": {
+      "col_name": "ALL",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA",
       "DEC": "DEC"
@@ -171,6 +195,10 @@
     "year": "2001",
     "received": "20010417",
     "names": "Object",
+    "types": {
+      "col_name": "ALL",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA",
       "DEC": "DEC"
@@ -192,6 +220,10 @@
     "year": "2002",
     "received": "20020314",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RAJ2000",
       "DEC": "DEJ2000",
@@ -233,6 +265,10 @@
     "year": "2003",
     "received": "20020605",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA",
       "DEC": "DEC",
@@ -273,6 +309,13 @@
     "year": "2003",
     "received": "20020820",
     "names": "Name",
+    "types": {
+      "col_name": "Class",
+      "ec_id": [
+        "IRC",
+        "IRGr"
+      ]
+    },
     "pos": {
       "RA": "RA",
       "DEC": "DEC"
@@ -294,6 +337,13 @@
     "year": "2003",
     "received": "20021112",
     "names": "Seq",
+    "types": {
+      "col_name": "Type",
+      "ec_id": [
+        "IRC",
+        "IRCC"
+      ]
+    },
     "pos": {
       "RA": "RA",
       "DEC": "DEC"
@@ -315,6 +365,10 @@
     "year": "2003",
     "received": "20021206",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA_ICRS",
       "DEC": "DE_ICRS",
@@ -348,6 +402,10 @@
     "year": "2003",
     "received": "20030101",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RAJ2000",
       "DEC": "DEJ2000",
@@ -378,6 +436,10 @@
     "year": "2003",
     "received": "20030102",
     "names": "Name",
+    "types": {
+      "col_name": "ALL",
+      "ec_id": []
+    },
     "pos": {
       "RA": "ra",
       "DEC": "dec"
@@ -406,6 +468,13 @@
     "year": "2003",
     "received": "20030121",
     "names": "BDS2003",
+    "types": {
+      "col_name": "Class",
+      "ec_id": [
+        "IRC",
+        "IRCC"
+      ]
+    },
     "pos": {
       "RA": "RA",
       "DEC": "DEC"
@@ -427,6 +496,10 @@
     "year": "2005",
     "received": "20041213",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RAdeg",
       "DEC": "DEJ2000",
@@ -461,6 +534,10 @@
     "year": "2005",
     "received": "20050121",
     "names": "ASCC",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RAJ2000",
       "DEC": "DEJ2000",
@@ -495,6 +572,10 @@
     "year": "2005",
     "received": "20050610",
     "names": "MCM2005b",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "_RA.icrs",
       "DEC": "_DE.icrs"
@@ -516,6 +597,10 @@
     "year": "2006",
     "received": "20050804",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "_RA",
       "DEC": "_DE"
@@ -547,6 +632,10 @@
     "year": "2006",
     "received": "20050817",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA_ICRS",
       "DEC": "DE_ICRS"
@@ -588,6 +677,10 @@
     "year": "2007",
     "received": "20051125",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA",
       "DEC": "DEC"
@@ -619,6 +712,10 @@
     "year": "2007",
     "received": "20060917",
     "names": "ID",
+    "types": {
+      "col_name": "ALL",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA_deg",
       "DEC": "DEC_deg"
@@ -639,6 +736,10 @@
     "title": "Towards absolute scales for the radii and masses of open clusters",
     "year": "2007",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "received": "20070110",
     "pos": {
       "RA": "_RA.icrs",
@@ -678,6 +779,10 @@
     "year": "2007",
     "received": "20070125",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RAdeg",
       "DEC": "DEJ2000",
@@ -700,6 +805,10 @@
     "title": "Tidal radii and masses of open clusters",
     "year": "2008",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "received": "20070822",
     "pos": {
       "RA": "_RA.icrs",
@@ -745,6 +854,12 @@
     "year": "2008",
     "received": "20070907",
     "names": "Names",
+    "types": {
+      "col_name": "Type",
+      "ec_id": [
+        "EC"
+      ]
+    },
     "pos": {
       "RA": "RA_deg",
       "DEC": "Dec_deg"
@@ -786,6 +901,10 @@
     "year": "2009",
     "received": "20090303",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "_RA.icrs",
       "DEC": "_DE.icrs"
@@ -819,6 +938,12 @@
     "year": "2010",
     "received": "20090920",
     "names": "Name",
+    "types": {
+      "col_name": "Type",
+      "ec_id": [
+        "EC"
+      ]
+    },
     "pos": {
       "RA": "RAJ2000",
       "DEC": "DEJ2000"
@@ -860,6 +985,10 @@
     "year": "2010",
     "received": "20100125",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {},
     "pars": {
       "met": {
@@ -886,6 +1015,10 @@
     "year": "2011",
     "received": "20100423",
     "names": "None",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {},
     "pars": {},
     "e_pars": {}
@@ -904,6 +1037,10 @@
     "year": "2011",
     "received": "20110206",
     "names": "VVV-CL",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA",
       "DEC": "DEC"
@@ -925,6 +1062,10 @@
     "year": "2011",
     "received": "20110605",
     "names": "Star cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA",
       "DEC": "DEC"
@@ -961,6 +1102,10 @@
     "year": "2012",
     "received": "20111222",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RAJ2000",
       "DEC": "DEJ2000",
@@ -1002,6 +1147,10 @@
     "year": "2012",
     "received": "20120101",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "_RA.icrs",
       "DEC": "_DE.icrs"
@@ -1036,6 +1185,10 @@
     "year": "2012",
     "received": "20120329",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA",
       "DEC": "DEC"
@@ -1077,6 +1230,10 @@
     "year": "2012",
     "received": "20120708",
     "names": "Star cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {},
     "pars": {
       "mass": {
@@ -1103,6 +1260,13 @@
     "year": "2013",
     "received": "20130402",
     "names": "Name",
+    "types": {
+      "col_name": "Mtype",
+      "ec_id": [
+        "EC1",
+        "EC2"
+      ]
+    },
     "pos": {
       "RA": "RA",
       "DEC": "DEC"
@@ -1138,6 +1302,10 @@
     "year": "2013",
     "received": "20130717",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RAJ2000",
       "DEC": "DEJ2000",
@@ -1182,6 +1350,10 @@
     "year": "2014",
     "received": "20130828",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {},
     "pars": {
       "met": {
@@ -1208,6 +1380,10 @@
     "year": "2014",
     "received": "20130920",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RAJ2000",
       "DEC": "DEJ2000",
@@ -1245,6 +1421,10 @@
     "year": "2014",
     "received": "20131210",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RAJ2000",
       "DEC": "DEJ2000",
@@ -1269,6 +1449,10 @@
     "year": "2014",
     "received": "20140303",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA",
       "DEC": "DEC"
@@ -1310,6 +1494,10 @@
     "year": "2015",
     "received": "20140906",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {},
     "pars": {
       "av": {
@@ -1378,6 +1566,10 @@
     "year": "2015",
     "received": "20150414",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RAJ2000",
       "DEC": "DEJ2000",
@@ -1422,6 +1614,10 @@
     "year": "2016",
     "received": "20150421",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "_RA",
       "DEC": "_DE"
@@ -1465,6 +1661,10 @@
     "year": "2016",
     "received": "20150901",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "_RA.icrs",
       "DEC": "_DE.icrs"
@@ -1496,6 +1696,10 @@
     "year": "2016",
     "received": "20160217",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RAJ2000",
       "DEC": "DEJ2000",
@@ -1537,6 +1741,10 @@
     "year": "2016",
     "received": "20160517",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RAJ2000",
       "DEC": "DEJ2000"
@@ -1578,6 +1786,10 @@
     "year": "2016",
     "received": "20160621",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RAJ2000",
       "DEC": "DEJ2000",
@@ -1611,6 +1823,10 @@
     "year": "2017",
     "received": "20161122",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RAJ2000",
       "DEC": "DEJ2000",
@@ -1634,6 +1850,10 @@
     "year": "2017",
     "received": "20170101",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RAJ2000",
       "DEC": "DEJ2000",
@@ -1675,6 +1895,10 @@
     "year": "2018",
     "received": "20170622",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RAJ2000",
       "DEC": "DEJ2000"
@@ -1703,6 +1927,10 @@
     "year": "2018",
     "received": "20170906",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA_deg",
       "DEC": "DE_deg",
@@ -1750,6 +1978,10 @@
     "year": "2018",
     "received": "20171218",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "pmra": "pmRAC",
       "pmde": "pmDEC"
@@ -1771,6 +2003,10 @@
     "year": "2019",
     "received": "20180125",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RAJ2000",
       "DEC": "DEJ2000"
@@ -1812,6 +2048,10 @@
     "year": "2018",
     "received": "20180131",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RAJ2000",
       "DEC": "DEJ2000",
@@ -1848,6 +2088,10 @@
     "year": "2018",
     "received": "20180508",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "_RA.icrs",
       "DEC": "_DE.icrs",
@@ -1873,6 +2117,10 @@
     "year": "2018",
     "received": "20180522",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RAJ2000",
       "DEC": "DEJ2000",
@@ -1908,6 +2156,10 @@
     "year": "2019",
     "received": "20180611",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA_ICRS",
       "DEC": "DE_ICRS",
@@ -1957,6 +2209,10 @@
     "year": "2019",
     "received": "20180718",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA_ICRS",
       "DEC": "DE_ICRS"
@@ -1978,6 +2234,10 @@
     "year": "2018",
     "received": "20180803",
     "names": "ID",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA_ICRS",
       "DEC": "DE_ICRS",
@@ -2004,6 +2264,10 @@
     "year": "2019",
     "received": "20181018",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RAJ2000",
       "DEC": "DEJ2000",
@@ -2032,6 +2296,10 @@
     "year": "2019",
     "received": "20181120",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA_ICRS",
       "DEC": "DE_ICRS"
@@ -2085,6 +2353,10 @@
     "year": "2019",
     "received": "20190110",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "_RA",
       "DEC": "_DE",
@@ -2135,6 +2407,10 @@
     "year": "2019",
     "received": "20190320",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RAJ2000",
       "DEC": "DEJ2000",
@@ -2186,6 +2462,10 @@
     "year": "2019",
     "received": "20190325",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA_ICRS",
       "DEC": "DE_ICRS",
@@ -2210,6 +2490,10 @@
     "year": "2019",
     "received": "20190514",
     "names": "ID",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA_ICRS",
       "DEC": "DE_ICRS",
@@ -2244,6 +2528,10 @@
     "year": "2019",
     "received": "20190608",
     "names": "ID",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "_RA.icrs",
       "DEC": "_DE.icrs",
@@ -2279,6 +2567,10 @@
     "year": "2019",
     "received": "20190626",
     "names": "Theia",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "_RA.icrs",
       "DEC": "_DE.icrs",
@@ -2312,6 +2604,10 @@
     "year": "2019",
     "received": "20190828",
     "names": "name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "ra",
       "DEC": "dec"
@@ -2333,6 +2629,10 @@
     "year": "2020",
     "received": "20190913",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA_ICRS",
       "DEC": "DE_ICRS",
@@ -2368,6 +2668,10 @@
     "year": "2020",
     "received": "20191118",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA_ICRS",
       "DEC": "DE_ICRS",
@@ -2412,6 +2716,10 @@
     "year": "2020",
     "received": "20191125",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "ra",
       "DEC": "dec",
@@ -2450,6 +2758,10 @@
     "year": "2020",
     "received": "20191209",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA",
       "DEC": "DEC",
@@ -2485,6 +2797,10 @@
     "year": "2020",
     "received": "20191220",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA_ICRS",
       "DEC": "DE_ICRS",
@@ -2509,6 +2825,10 @@
     "year": "2020",
     "received": "20200330",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA_ICRS",
       "DEC": "DE_ICRS",
@@ -2553,6 +2873,10 @@
     "year": "2020",
     "received": "20200408",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RAJ2000",
       "DEC": "DEJ2000",
@@ -2576,6 +2900,10 @@
     "year": "2020",
     "received": "20200415",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {},
     "pars": {
       "av": {
@@ -2614,6 +2942,10 @@
     "year": "2020",
     "received": "20200417",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA_ICRS",
       "DEC": "DE_ICRS",
@@ -2648,6 +2980,10 @@
     "year": "2021",
     "received": "20200904",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA_ICRS",
       "DEC": "DE_ICRS",
@@ -2672,6 +3008,10 @@
     "year": "2021",
     "received": "20200911",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA_ICRS",
       "DEC": "DE_ICRS",
@@ -2704,6 +3044,10 @@
     "year": "2021",
     "received": "20200927",
     "names": "OC",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA_ICRS",
       "DEC": "DE_ICRS",
@@ -2741,6 +3085,10 @@
     "year": "2021",
     "received": "20201027",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RAJ2000",
       "DEC": "DEJ2000",
@@ -2826,6 +3174,10 @@
     "year": "2021",
     "received": "20201104",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA_ICRS",
       "DEC": "DE_ICRS",
@@ -2877,6 +3229,10 @@
     "year": "2021",
     "received": "20201205",
     "names": "Cl",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RAdeg",
       "DEC": "DEdeg",
@@ -2915,6 +3271,10 @@
     "year": "2021",
     "received": "20201206",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RAJ2000",
       "DEC": "DEJ2000",
@@ -2952,6 +3312,10 @@
     "year": "2021",
     "received": "20201214",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RAJ2000",
       "DEC": "DEJ2000",
@@ -2996,6 +3360,10 @@
     "year": "2021",
     "received": "20201216",
     "names": "None",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {},
     "pars": {},
     "e_pars": {}
@@ -3014,6 +3382,10 @@
     "year": "2021",
     "received": "20201229",
     "names": "Groups",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA",
       "DEC": "Dec",
@@ -3092,6 +3464,10 @@
     "year": "2021",
     "received": "20210306",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {},
     "pars": {},
     "e_pars": {}
@@ -3110,6 +3486,10 @@
     "year": "2022",
     "received": "20210420",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA",
       "DEC": "DEC",
@@ -3162,6 +3542,10 @@
     "year": "2021",
     "received": "20210526",
     "names": "Cl",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA_ICRS",
       "DEC": "DE_ICRS",
@@ -3211,6 +3595,10 @@
     "year": "2021",
     "received": "20210802",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA_ICRS",
       "DEC": "DE_ICRS"
@@ -3251,6 +3639,10 @@
     "year": "2022",
     "received": "20210805",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "_RA",
       "DEC": "_DE"
@@ -3295,6 +3687,10 @@
     "year": "2022",
     "received": "20210909",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA_ICRS",
       "DEC": "DE_ICRS",
@@ -3326,6 +3722,10 @@
     "year": "2022",
     "received": "20210918",
     "names": "LISC",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RAJ2000",
       "DEC": "DEJ2000",
@@ -3366,6 +3766,10 @@
     "year": "2022",
     "received": "20211102",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA_ICRS",
       "DEC": "DE_ICRS",
@@ -3401,6 +3805,10 @@
     "year": "2022",
     "received": "20211202",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "alpha_deg",
       "DEC": "delta_deg",
@@ -3476,6 +3884,10 @@
     "year": "2022",
     "received": "20211205",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {},
     "pars": {
       "met": {
@@ -3502,6 +3914,10 @@
     "year": "2022",
     "received": "20220112",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA_ICRS",
       "DEC": "DE_ICRS",
@@ -3541,6 +3957,10 @@
     "year": "2022",
     "received": "20220124",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "_RA.icrs",
       "DEC": "_DE.icrs",
@@ -3579,6 +3999,10 @@
     "year": "2022",
     "received": "20220208",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA_ICRS",
       "DEC": "DE_ICRS",
@@ -3658,6 +4082,10 @@
     "year": "2022",
     "received": "20220315",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "_RA",
       "DEC": "_DE",
@@ -3688,6 +4116,10 @@
     "year": "2022",
     "received": "20220328",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "_RA.icrs",
       "DEC": "_DE.icrs",
@@ -3719,6 +4151,10 @@
     "year": "2023",
     "received": "20220707",
     "names": "id",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "ra",
       "DEC": "dec",
@@ -3743,6 +4179,10 @@
     "year": "2023",
     "received": "20220711",
     "names": "CWNU_id",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA_ICRS",
       "DEC": "DE_ICRS",
@@ -3778,6 +4218,10 @@
     "year": "2023",
     "received": "20220809",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "_RA.icrs",
       "DEC": "_DE.icrs"
@@ -3810,6 +4254,10 @@
     "year": "2023",
     "received": "20220912",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {},
     "pars": {
       "age": {
@@ -3854,6 +4302,10 @@
     "year": "2023",
     "received": "20220916",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA_ICRS",
       "DEC": "DE_ICRS",
@@ -3897,6 +4349,10 @@
     "year": "2023",
     "received": "20220917",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA_ICRS",
       "DEC": "DE_ICRS",
@@ -3928,6 +4384,10 @@
     "year": "2023",
     "received": "20221018",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA_ICRS",
       "DEC": "DE_ICRS",
@@ -3963,6 +4423,10 @@
     "year": "2023",
     "received": "20221025",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {},
     "pars": {
       "av": {
@@ -3998,6 +4462,10 @@
     "year": "2023",
     "received": "20221114",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RAJ2000",
       "DEC": "DEJ2000",
@@ -4052,6 +4520,10 @@
     "year": "2023",
     "received": "20221128",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA_deg",
       "DEC": "DEC_deg",
@@ -4113,6 +4585,10 @@
     "year": "2023",
     "received": "20221202",
     "names": "name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA_ICRS",
       "DEC": "DE_ICRS",
@@ -4151,6 +4627,10 @@
     "year": "2023",
     "received": "20221218",
     "names": "ID",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "_RA.icrs",
       "DEC": "_DE.icrs",
@@ -4188,6 +4668,10 @@
     "year": "2023",
     "received": "20221220",
     "names": "Id",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "ra",
       "DEC": "dec",
@@ -4220,6 +4704,10 @@
     "year": "2023",
     "received": "20230220",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA_ICRS",
       "DEC": "DE_ICRS"
@@ -4282,6 +4770,10 @@
     "year": "2023",
     "received": "20230301",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA_ICRS",
       "DEC": "DE_ICRS",
@@ -4345,6 +4837,10 @@
     "year": "2023",
     "received": "20230330",
     "names": "ID",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RAdeg",
       "DEC": "DEdeg",
@@ -4380,6 +4876,10 @@
     "year": "2024",
     "received": "20230718",
     "names": "NAME",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "ra",
       "DEC": "dec",
@@ -4436,6 +4936,10 @@
     "year": "2024",
     "received": "20230803",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA_ICRS",
       "DEC": "DE_ICRS",
@@ -4496,6 +5000,10 @@
     "year": "2024",
     "received": "20231109",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "_RA",
       "DEC": "_DE"
@@ -4524,6 +5032,10 @@
     "year": "2024",
     "received": "20231117",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA_ICRS",
       "DEC": "DE_ICRS",
@@ -4599,6 +5111,10 @@
     "year": "2024",
     "received": "20240101",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA_ICRS",
       "DEC": "DE_ICRS",
@@ -4641,6 +5157,10 @@
     "year": "2024",
     "received": "20240515",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA_ICRS",
       "DEC": "DE_ICRS"
@@ -4676,6 +5196,10 @@
     "year": "2024",
     "received": "20240528",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA_ICRS",
       "DEC": "DE_ICRS",
@@ -4713,6 +5237,10 @@
     "year": "2025",
     "received": "20240809",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA_ICRS",
       "DEC": "DE_ICRS"
@@ -4760,6 +5288,10 @@
     "year": "2025",
     "received": "20240910",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA_ICRS",
       "DEC": "DE_ICRS"
@@ -4805,6 +5337,10 @@
     "year": "2025",
     "received": "20241003",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "_RA",
       "DEC": "_DE"
@@ -4831,6 +5367,10 @@
     "year": "2025",
     "received": "20241010",
     "names": "ID",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RAICRS",
       "DEC": "DEICRS",
@@ -4890,6 +5430,10 @@
     "year": "2025",
     "received": "20241019",
     "names": "None",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {},
     "pars": {},
     "e_pars": {}
@@ -4908,6 +5452,10 @@
     "year": "2025",
     "received": "20241021",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "_RA",
       "DEC": "_DE"
@@ -4950,6 +5498,10 @@
     "year": "2025",
     "received": "20241022",
     "names": "ID",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "ra",
       "DEC": "dec",
@@ -5000,6 +5552,10 @@
     "year": "2025",
     "received": "20241224",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA",
       "DEC": "DEC",
@@ -5037,6 +5593,10 @@
     "year": "2025",
     "received": "20250101",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA",
       "DEC": "DEC",
@@ -5088,6 +5648,10 @@
     "year": "2025",
     "received": "20250325",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA_ICRS",
       "DEC": "DE_ICRS"
@@ -5131,6 +5695,10 @@
     "year": "2025",
     "received": "20250404",
     "names": "OC",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA",
       "DEC": "Dec",
@@ -5167,6 +5735,10 @@
     "year": "2025",
     "received": "20250413",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "ra",
       "DEC": "dec",
@@ -5229,6 +5801,10 @@
     "year": "2026",
     "received": "20250430",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "Radeg",
       "DEC": "DEdeg"
@@ -5261,6 +5837,10 @@
     "year": "2025",
     "received": "20250508",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA_ICRS",
       "DEC": "DE_ICRS"
@@ -5317,6 +5897,10 @@
     "year": "2025",
     "received": "20250708",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA_ICRS",
       "DEC": "DE_ICRS",
@@ -5352,6 +5936,10 @@
     "year": "2026",
     "received": "20250709",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RAdeg",
       "DEC": "DEdeg",
@@ -5421,6 +6009,10 @@
     "year": "2026",
     "received": "20250716",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RAdeg",
       "DEC": "DEdeg",
@@ -5472,6 +6064,10 @@
     "year": "2026",
     "received": "20250909",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA_ICRS",
       "DEC": "DE_ICRS"
@@ -5493,6 +6089,10 @@
     "year": "2025",
     "received": "20250911",
     "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RAJ2000",
       "DEC": "DEJ2000"
@@ -5560,6 +6160,10 @@
     "year": "2026",
     "received": "20251002",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "_RA",
       "DEC": "_DE"
@@ -5594,6 +6198,10 @@
     "year": "2026",
     "received": "20251205",
     "names": "cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {},
     "pars": {
       "age": {
@@ -5623,6 +6231,10 @@
     "year": "2026",
     "received": "20251209",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RAdeg",
       "DEC": "DEdeg",
@@ -5651,6 +6263,10 @@
     "year": "2026",
     "received": "20251222",
     "names": "name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RAJ2000",
       "DEC": "DEJ2000",
@@ -5695,6 +6311,10 @@
     "year": "2026",
     "received": "20251229",
     "names": "Name",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "RA_ICRS",
       "DEC": "DE_ICRS"
@@ -5716,6 +6336,10 @@
     "year": "2026",
     "received": "20260531",
     "names": "ID",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
     "pos": {
       "RA": "alpha",
       "DEC": "delta",
