@@ -69,6 +69,7 @@ def main():
         ucc_dbs_tables_path,
         ucc_cmmts_tables_path,
         old_gz_CSV_path,
+        new_clusters_csv_path,
     ) = load_paths(logging)
 
     # Load required files
@@ -82,8 +83,7 @@ def main():
         DBs_full_data,
         cmmts_JSONS_lst,
         database_md,
-        articles_md,
-        df_clusters_CSV_current,
+        articles_md
     ) = load_data(
         logging,
         ucc_B_file_out,
@@ -132,7 +132,7 @@ def main():
     ###########################################
 
     ###########################################
-    # Update per cluster md files. If no changes are expected, this step can be skipped
+    # Update per cluster md files
     if input("\nUpdate md files ? (y/n): ").lower() == "y":
         updt_ucc_cluster_files(
             logging,
@@ -146,17 +146,7 @@ def main():
     ###########################################
 
     ###########################################
-    if input("\nUpdate equatorial positions JSON file? (y/n): ").lower() == "y":
-        updt_eq_positions(logging, df_BC, DBs_JSON, DBs_full_data)
-    ###########################################
-
-    ###########################################
-    if input("\nUpdate split member files? (y/n): ").lower() == "y":
-        updt_members_files(df_BC, df_members, temp_members_files_folder)
-    ###########################################
-
-    ###########################################
-    # This needs to happen before generating the ARTICLE.md file
+    # This needs to happen before generating the ARTICLES.md file
     if input("\nUpdate per-article tables? (y/n): ").lower() == "y":
         # Update tables files
         updt_indiv_tables(
@@ -189,10 +179,15 @@ def main():
     ###########################################
 
     ###########################################
-    # This function modifies the df_BC dataframe, so it should be run at the end
-    new_clusters_csv_path = ""
+    # Update assets
+    if input("\nUpdate equatorial positions JSON file? (y/n): ").lower() == "y":
+        updt_eq_positions(logging, df_BC, DBs_JSON, DBs_full_data)
+
+    if input("\nUpdate split member files? (y/n): ").lower() == "y":
+        updt_members_files(df_BC, df_members, temp_members_files_folder)
+
     if input("\nUpdate clusters CSV file? (y/n): ").lower() == "y":
-        new_clusters_csv_path = updt_cls_CSV(logging, df_BC, df_clusters_CSV_current)
+        updt_cls_CSV(logging, new_clusters_csv_path, df_BC.copy())
     ###########################################
 
     if input("\nMove files to their final destination? (y/n): ").lower() == "y":
@@ -212,7 +207,21 @@ def main():
 def load_paths(
     logging,
 ) -> tuple[
-    Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, Path, str
+    Path,
+    Path,
+    Path,
+    Path,
+    Path,
+    Path,
+    Path,
+    Path,
+    Path,
+    Path,
+    Path,
+    Path,
+    Path,
+    str,
+    str,
 ]:
     """
     Load paths for input and output files
@@ -285,6 +294,10 @@ def load_paths(
     else:
         raise ValueError(f"No file matching '{clusters_csv_path}' found")
 
+    # Generate a timestamped filename for the new clusters CSV file
+    date = pd.Timestamp.now().strftime("%y%m%d%H")
+    new_clusters_csv_path = clusters_csv_path.replace("*", f"{date}")
+
     return (
         ucc_B_file_out,
         ucc_C_file_out,
@@ -300,6 +313,7 @@ def load_paths(
         ucc_dbs_tables_path,
         ucc_cmmts_tables_path,
         old_gz_CSV_path,
+        new_clusters_csv_path,
     )
 
 
@@ -321,7 +335,6 @@ def load_data(
     dict,
     str,
     str,
-    pd.DataFrame,
 ]:
     """
     Load required data files and return them as a tuple
@@ -371,46 +384,6 @@ def load_data(
         fname0 = fnames[0]
         for fname in fnames:
             all_fnames_dict[fname] = fname0
-
-    # # Load (and check) all comments JSON files
-    # cmmts_JSONS_lst = {}
-    # for fpath_csv in os.listdir(UCC_cmmts_folder):
-    #     DB_id = fpath_csv.replace(".csv", "")
-
-    #     cluster_dict = {
-    #         "art_name": DBs_JSON[DB_id]["authors"],
-    #         "art_year": DBs_JSON[DB_id]["year"],
-    #         "art_url": DBs_JSON[DB_id]["SCIX_url"],
-    #     }
-
-    #     df = pd.read_csv(UCC_cmmts_folder + fpath_csv)
-    #     if "Cluster" not in df.columns or "Comment" not in df.columns:
-    #         raise ValueError(
-    #             f"File {fpath_csv} must contain 'Cluster' and 'Comment' columns"
-    #         )
-
-    #     cluster_names = [_.replace("_", " ").replace(",", ", ") for _ in df["Cluster"].values]
-    #     cluster_fnames = get_fnames(cluster_names)
-
-    #     # For each cluster in this DB
-    #     fnames_cmmts = {_:[] for _ in all_fnames_dict}
-    #     fnames_orig_names = {_:[] for _ in all_fnames_dict}
-    #     for i, fname in enumerate(cluster_fnames):
-    #         if fname[0] in all_fnames_dict:
-    #             fname0 = all_fnames_dict[fname[0]]
-    #             fnames_cmmts[fname0].append(df["Comment"].values[i])
-    #             fnames_orig_names[fname0].append(cluster_names[i])
-    #         else:
-    #             # This fname is not in the UCC database, so we skip it
-    #             pass
-    #     # Remove keys associated to empty lists in fnames_cmmts & fnames_orig_names
-    #     fnames_cmmts = {k: v for k, v in fnames_cmmts.items() if v}
-    #     fnames_orig_names = {k: v for k, v in fnames_orig_names.items() if v}
-
-    #     cluster_dict["clusters"] = fnames_cmmts
-    #     cluster_dict["cl_orig_names"] = fnames_orig_names
-
-    #     cmmts_JSONS_lst[DB_id] = cluster_dict
 
     cmmts_JSONS_lst = {}
     for fname_csv in os.listdir(UCC_cmmts_folder):
@@ -472,8 +445,8 @@ def load_data(
     with open(root_ucc_path + articles_md_path) as file:
         articles_md = file.read()
 
-    # UCC path to compressed CSV file
-    df_clusters_CSV_current = pd.read_csv(old_gz_CSV_path, compression="gzip")
+    # # UCC path to compressed CSV file
+    # df_clusters_CSV_current = pd.read_csv(old_gz_CSV_path, compression="gzip")
 
     return (
         df_members,
@@ -486,7 +459,6 @@ def load_data(
         cmmts_JSONS_lst,
         database_md,
         articles_md,
-        df_clusters_CSV_current,
     )
 
 
@@ -835,27 +807,37 @@ def updt_eq_positions(logging, df_BC, DBs_JSON, DBs_full_data):
     for every cluster in the UCC. Same data used in the 'Astrometry' table.
 
     To reduce its size, each reference is stored once in the 'refs' list and the
-    clusters point to it by its index:
+    clusters point to it by its index. The UCC (RA, DEC) values come right after
+    the cluster's name (null if missing):
 
     {"refs": ["Alfonso et al. 2024", ...],
-     "clusters": {"ngc2516": ["NGC 2516", [ref_idx, RA, DEC], ...], ...}}
+     "clusters": {"ngc2516": ["NGC 2516", RA_UCC, DEC_UCC, [ref_idx, RA, DEC], ...]}}
     """
+
+    def ucc_coord(val):
+        if val == "" or pd.isna(val):
+            return None
+        return round(float(val), 3)
+
     cl_positions = {}
-    for fname, names, DB, DB_i in df_BC[["fname", "Names", "DB", "DB_i"]].values:
+    cols = ["fname", "Names", "DB", "DB_i", "RA_ICRS_m", "DE_ICRS_m"]
+    for fname, names, DB, DB_i, ra, dec in df_BC[cols].values:
         UCC_cl = {"DB": DB, "DB_i": DB_i}
         cl_positions[str(fname)] = (
             str(names).split(";")[0],
+            ucc_coord(ra),
+            ucc_coord(dec),
             ucc_entry.eq_positions_in_lit(DBs_JSON, DBs_full_data, UCC_cl),
         )
 
     # Sorted so that the indexes are stable across runs
-    refs = sorted({r[0] for _, pos in cl_positions.values() for r in pos})
+    refs = sorted({r[0] for *_, pos in cl_positions.values() for r in pos})
     refs_idx = {r: i for i, r in enumerate(refs)}
     eq_positions = {
         "refs": refs,
         "clusters": {
-            fname: [name] + [[refs_idx[r[0]], r[1], r[2]] for r in pos]
-            for fname, (name, pos) in cl_positions.items()
+            fname: [name, ra, dec] + [[refs_idx[r[0]], r[1], r[2]] for r in pos]
+            for fname, (name, ra, dec, pos) in cl_positions.items()
         },
     }
 
@@ -908,9 +890,9 @@ def updt_members_files(df_ucc, df_membs, temp_members_files_folder):
 
 def updt_cls_CSV(
     logging,
+    new_clusters_csv_path: str,
     df_BC: pd.DataFrame,
-    df_clusters_CSV_current: pd.DataFrame,
-) -> str:
+) -> None:
     """
     Update compressed cluster.csv.gz file used by 'ucc.ar' search
     """
@@ -973,30 +955,21 @@ def updt_cls_CSV(
         inplace=True,
     )
 
-    # Update CSV if required
-    new_clusters_csv_path = ""
-    if not df_clusters_CSV_current.equals(df_new):
-        date = pd.Timestamp.now().strftime("%y%m%d%H")
-        new_clusters_csv_path = clusters_csv_path.replace("*", f"{date}")
-        temp_gz_CSV_path = temp_folder + assets_folder + new_clusters_csv_path
-        df_new.to_csv(
-            temp_gz_CSV_path,
-            index=False,
-            compression="gzip",
-        )
-        # Update the 'latest' key in the 'clusters_manifest.json' JSON file
-        csv_manifest_path = root_ucc_path + assets_folder + clusters_manifest_path
-        with open(csv_manifest_path, "r") as f:
-            manifest_data = json.load(f)
-        manifest_data["latest"] = new_clusters_csv_path
-        with open(temp_folder + assets_folder + clusters_manifest_path, "w") as f:
-            json.dump(manifest_data, f, indent=2)
-        logging.info(f"File 'clusters_{date}.csv.gz' updated")
-
-    else:
-        logging.info("File 'clusters_XXXX.csv.gz' not updated (no changes)")
-
-    return new_clusters_csv_path
+    # Update CSV
+    temp_gz_CSV_path = temp_folder + assets_folder + new_clusters_csv_path
+    df_new.to_csv(
+        temp_gz_CSV_path,
+        index=False,
+        compression="gzip",
+    )
+    # Update the 'latest' key in the 'clusters_manifest.json' JSON file
+    csv_manifest_path = root_ucc_path + assets_folder + clusters_manifest_path
+    with open(csv_manifest_path, "r") as f:
+        manifest_data = json.load(f)
+    manifest_data["latest"] = new_clusters_csv_path
+    with open(temp_folder + assets_folder + clusters_manifest_path, "w") as f:
+        json.dump(manifest_data, f, indent=2)
+    logging.info(f"File '{new_clusters_csv_path}' updated")
 
 
 def make_site_plots(logging, temp_image_path, df_BC):
@@ -1170,7 +1143,7 @@ def move_files(
         planned_actions.append(("move", temp_plots_record_path, plots_record_path))
 
     # --- Delete old clusters CSV file ---
-    if new_clusters_csv_path != "":
+    if os.path.exists(new_clusters_csv_path):
         planned_actions.append(("delete", old_gz_CSV_path, ""))
 
     # --- Move files inside temporary ucc/ ---

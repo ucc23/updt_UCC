@@ -113,10 +113,6 @@ GCs_cat = data_folder + "globulars.csv"
 
 # Preferred order in which the OCs are assigned their primary name
 naming_order = (
-    "hyades",  # Common name
-    "pleiades",  # Common name
-    "trifid",  # Common name
-    "orionnebulacluster",  # Common name
     "ngc",  # 1888
     "ic",  # 1895
     "melotte",  # 1915
@@ -136,9 +132,14 @@ naming_order = (
 )
 # Exceptions to the naming order, these should be the canonical fnames
 naming_order_exceptions = {
+    "hyades",  # Common name
+    "pleiades",  # Common name
+    "trifid",  # Common name
+    "orionnebulacluster",  # Common name
     "haffner18",
     "bdsb97",
     "monob1d",
+    "vdb92",  # Over NGC 2327
 }
 
 
