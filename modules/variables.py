@@ -263,7 +263,10 @@ zenodo_cat_fname = "UCC_cat.csv"
 # Path to the folder that contains the raw data
 root = "/media/gabriel/backup/gabriel/GaiaDR3/"
 # root = "/home/gperren.ifir/UCC/GaiaDR3/"
-path_gaia_frames = root + "datafiles_G20/"
+# path_gaia_frames = root + "datafiles_G20/"
+# Same files split into row groups by HEALPix pixels, which allows reading only the
+# required parts of each file (see 'helper_scripts/gaia_files_to_rowgroups.py')
+path_gaia_frames = root + "datafiles_G20_rg/"
 # Path to the file that informs the sky area covered by each raw data file
 path_gaia_frames_ranges = root + "files_G20/frame_ranges.txt"
 # Maximum magnitude to retrieve
