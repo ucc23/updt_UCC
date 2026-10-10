@@ -167,8 +167,11 @@ logs/*
 OLD/*
 data/ucc_archived_nogit/*
 temp_updt/*
+data/B_cache/
 NASA_API_TOKEN
 UCC_members.parquet
 helper_scripts/members_process/old/*
 helper_scripts/members_process/*.parquet
 WARP.md
+master_check.md
+TODO.md
