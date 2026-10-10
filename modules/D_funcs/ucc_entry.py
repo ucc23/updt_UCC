@@ -1,5 +1,5 @@
+import os
 import re
-from pathlib import Path
 
 import numpy as np
 
@@ -82,10 +82,10 @@ def make(
     i_ucc,
     current_JSON,
     members_files_mapping,
-    DBs_full_data,
-    df_BC,
+    DBs_pos,
+    shared_data,
+    plots_existing,
     UCC_cl,
-    fnames_all,
     UTI_colors,
     summary,
     descriptors,
@@ -186,26 +186,17 @@ def make(
     cds_radec = f"{UCC_cl['RA_ICRS_m']},{cds_dec}"
 
     # Generate table with positional data: (ra, dec, plx, pmra, pmde, Rv)
-    posit_table, N_rows_pos = positions_in_lit(current_JSON, DBs_full_data, UCC_cl, tsp)
+    posit_table, N_rows_pos = positions_in_lit(current_JSON, DBs_pos, UCC_cl, tsp)
 
     # Check present plots. The order here determines the order in which plots will be
     # shown: UCC --> HUNT23 --> CANTAT20
     carousel = "UCC"
     for _db in ("HUNT23", "CANTAT20"):
-        plot_fpath = Path(
-            root_ucc_path
-            + plots_folder
-            + f"plots_{fname0[0]}/"
-            + _db
-            + "/"
-            + fname0
-            + ".webp"
-        )
-        if plot_fpath.is_file() is True:
+        if (_db, fname0) in plots_existing:
             carousel += "_" + _db
 
     # Generate table with OCs that share members with this one
-    shared_table, N_rows_shared = table_shared_members(df_BC, fnames_all, UCC_cl, tsp)
+    shared_table, N_rows_shared = table_shared_members(shared_data, UCC_cl, tsp)
 
     # Core radius (in pc)
     val = UCC_cl["r_core_pc"]
@@ -290,7 +281,56 @@ def make(
     return contents
 
 
-def positions_in_lit(DBs_json, DBs_full_data, UCC_cl, tsp):
+def existing_plots(dbs=("HUNT23", "CANTAT20")) -> set:
+    """
+    Return the set of (DB, fname) for which a '.webp' plot exists in the UCC site.
+    Listing the folders once is much faster than checking each file separately.
+    """
+    plots_path = root_ucc_path + plots_folder
+    plots_existing = set()
+    for plots_fold in os.listdir(plots_path):
+        if not plots_fold.startswith("plots_"):
+            continue
+        letter = plots_fold[len("plots_") :]
+        for _db in dbs:
+            try:
+                fnames = os.listdir(plots_path + plots_fold + "/" + _db)
+            except FileNotFoundError:
+                continue
+            for f in fnames:
+                # Same path structure expected by the site: plots_{fname[0]}/{DB}/
+                if f.endswith(".webp") and f[0] == letter:
+                    plots_existing.add((_db, f[: -len(".webp")]))
+    return plots_existing
+
+
+def pos_columns(DBs_json, DBs_full_data) -> dict:
+    """
+    Parse (once) the positional columns of every DB into lists of values rounded to
+    3 decimals (None if missing), indexed as the DB's rows:
+
+    {db: {"RA": [...], "DEC": [...], ...}}
+
+    Accessing pandas DataFrames element by element is very slow, and this data is
+    used for every entry in the UCC.
+    """
+
+    def parse(val):
+        val = str(val).replace(" ", "")
+        if val == "" or val == "nan":
+            return None
+        return round(float(val), 3)
+
+    DBs_pos = {}
+    for db, df in DBs_full_data.items():
+        DBs_pos[db] = {
+            c: [parse(_) for _ in df[col_name].tolist()]
+            for c, col_name in DBs_json[db]["pos"].items()
+        }
+    return DBs_pos
+
+
+def positions_in_lit(DBs_json, DBs_pos, UCC_cl, tsp):
     """
     Generate a markdown table with positional data (RA, DEC, Plx, pmRA, pmDE, Rv) from
     """
@@ -315,22 +355,16 @@ def positions_in_lit(DBs_json, DBs_full_data, UCC_cl, tsp):
 
     N_rows = 0
     for i, db in enumerate(DBs_sort):
-        # Full 'db' database
-        df = DBs_full_data[db]
+        # Parsed positions for the 'db' database
+        db_pos = DBs_pos[db]
+        db_i = int(DBs_i_sort[i])
 
         # Add positions
         row_in = ""
         for c in ("RA", "DEC", "plx", "pmra", "pmde", "Rv"):
-            if c in DBs_json[db]["pos"]:
-                df_col_name = DBs_json[db]["pos"][c]
-                # Read position as string
-                pos_v = str(df[df_col_name][int(DBs_i_sort[i])])
-                # Remove empty spaces if any
-                pos_v = pos_v.replace(" ", "")
-                if pos_v != "" and pos_v != "nan":
-                    row_in += str(round(float(pos_v), 3)) + " | "
-                else:
-                    row_in += "-- | "
+            pos_v = db_pos[c][db_i] if c in db_pos else None
+            if pos_v is not None:
+                row_in += str(pos_v) + " | "
             else:
                 row_in += "-- | "
 
@@ -351,7 +385,7 @@ def positions_in_lit(DBs_json, DBs_full_data, UCC_cl, tsp):
     return table, N_rows
 
 
-def eq_positions_in_lit(DBs_json, DBs_full_data, UCC_cl) -> list:
+def eq_positions_in_lit(DBs_json, DBs_pos, UCC_cl) -> list:
     """
     Return the (reference, RA, DEC) values for each DB that lists this cluster,
     in the same order used by the 'Astrometry' table (see 'positions_in_lit').
@@ -361,20 +395,15 @@ def eq_positions_in_lit(DBs_json, DBs_full_data, UCC_cl) -> list:
 
     refs = []
     for i, db in enumerate(DBs_sort):
-        db_pos = DBs_json[db]["pos"]
+        db_pos = DBs_pos[db]
         if "RA" not in db_pos or "DEC" not in db_pos:
             continue
-        df = DBs_full_data[db]
 
-        radec = []
-        for c in ("RA", "DEC"):
-            pos_v = str(df[db_pos[c]][int(DBs_i_sort[i])]).replace(" ", "")
-            if pos_v == "" or pos_v == "nan":
-                break
-            radec.append(round(float(pos_v), 3))
-        else:
+        db_i = int(DBs_i_sort[i])
+        ra, dec = db_pos["RA"][db_i], db_pos["DEC"][db_i]
+        if ra is not None and dec is not None:
             ref = f"{DBs_json[db]['authors']} {DBs_json[db]['year']}"
-            refs.append([ref, radec[0], radec[1]])
+            refs.append([ref, ra, dec])
 
     return refs
 
@@ -477,7 +506,20 @@ def color_C3(abcd):
     return abcd_c
 
 
-def table_shared_members(df_UCC, fnames_all, row, tsp):
+def shared_members_data(df_UCC) -> dict:
+    """
+    Data used by 'table_shared_members()', extracted once from the UCC DataFrame:
+    index of each fname, first name of each entry, and the columns shown
+    """
+    cols = ("RA_ICRS_m", "DE_ICRS_m", "Plx_m", "pmRA_m", "pmDE_m", "Rv_m", "UTI")
+    return {
+        "fname_idx": {fname: j for j, fname in enumerate(df_UCC["fname"])},
+        "name": [_.split(";")[0] for _ in df_UCC["Names"]],
+        "vals": list(zip(*(df_UCC[col].to_numpy() for col in cols))),
+    }
+
+
+def table_shared_members(shared_data, row, tsp):
     """
     Generate a markdown table with OCs that share members with the given OC.
     """
@@ -500,20 +542,12 @@ def table_shared_members(df_UCC, fnames_all, row, tsp):
 
     for i, fname in enumerate(shared_fnames):
         # Locate OC with shared members in the UCC
-        j = fnames_all.index(fname)
+        j = shared_data["fname_idx"][fname]
 
-        name = df_UCC["Names"][j].split(";")[0]
+        name = shared_data["name"][j]
         vals = []
-        for col in (
-            "RA_ICRS_m",
-            "DE_ICRS_m",
-            "Plx_m",
-            "pmRA_m",
-            "pmDE_m",
-            "Rv_m",
-            "UTI",
-        ):
-            val = round(float(df_UCC[col][j]), 2)
+        for col_val in shared_data["vals"][j]:
+            val = round(float(col_val), 2)
             if np.isnan(val):
                 vals.append("--")
             else:

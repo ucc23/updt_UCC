@@ -81,16 +81,15 @@ def main():
         df_hash_curr,
         DBs_JSON,
         DBs_full_data,
-        cmmts_JSONS_lst,
+        cmmts_JSONS_dict,
         database_md,
-        articles_md
+        articles_md,
     ) = load_data(
         logging,
         ucc_B_file_out,
         ucc_C_file_out,
         zenodo_members_file,
         plots_record_path,
-        old_gz_CSV_path,
     )
 
     comments_check(DBs_JSON)
@@ -141,7 +140,7 @@ def main():
             DBs_full_data,
             df_BC,
             DBs_JSON,
-            cmmts_JSONS_lst,
+            cmmts_JSONS_dict,
         )
     ###########################################
 
@@ -157,7 +156,7 @@ def main():
             ucc_cmmts_tables_path,
             DBs_JSON,
             df_BC,
-            cmmts_JSONS_lst,
+            cmmts_JSONS_dict,
         )
 
     if input("\nUpdate UCC plots, pages & tables? (y/n): ").lower() == "y":
@@ -323,7 +322,6 @@ def load_data(
     ucc_C_file_out,
     zenodo_members_file,
     plots_record_path,
-    old_gz_CSV_path,
 ) -> tuple[
     pd.DataFrame,
     pd.DataFrame,
@@ -385,31 +383,56 @@ def load_data(
         for fname in fnames:
             all_fnames_dict[fname] = fname0
 
-    cmmts_JSONS_lst = {}
+    cmmts_JSONS_dict = {}
+    # For each DB stored in the cmmts/ folder
     for fname_csv in os.listdir(UCC_cmmts_folder):
         DB_id = fname_csv.replace(".csv", "")
+        multiple_names_check = []
         df = pd.read_csv(os.path.join(UCC_cmmts_folder, fname_csv))
 
+        # Sanity check
         if "Cluster" not in df.columns or "Comment" not in df.columns:
             raise ValueError(
                 f"File {fname_csv} must contain 'Cluster' and 'Comment' columns"
             )
 
-        cluster_names = [c.replace("_", " ").replace(",", ", ") for c in df["Cluster"]]
-        cluster_fnames = get_fnames(cluster_names)
+        # Extract the fnames for all objects in this DB's comments file
+        DB_names = [c.replace("_", " ").replace(",", ", ") for c in df["Cluster"]]
+        DB_fnames = get_fnames(DB_names)
 
         fnames_cmmts = defaultdict(list)
         fnames_orig_names = defaultdict(list)
         # For each cluster in this DB
-        for fname, comment, orig_name in zip(
-            cluster_fnames, df["Comment"], cluster_names
-        ):
-            fname0 = all_fnames_dict.get(fname[0])
-            if fname0 is not None:
+        for fnames, comment, orig_name in zip(DB_fnames, df["Comment"], DB_names):
+            # Find any assigned name that exists in the UCC
+            fnames0 = list(
+                dict.fromkeys(
+                    all_fnames_dict[_]
+                    for _ in fnames
+                    if all_fnames_dict.get(_) is not None
+                )
+            )
+
+            # This should not happen
+            if len(fnames0) > 1:
+                multiple_names_check.append((fnames, fnames0))
+                fnames0 = [fnames0[0]]
+
+            if fnames0:
+                fname0 = fnames0[0]
                 fnames_cmmts[fname0].append(comment)
                 fnames_orig_names[fname0].append(orig_name)
 
-        cmmts_JSONS_lst[DB_id] = {
+        if len(multiple_names_check) > 0:
+            logging.warning(
+                f"\nWARNING: Multiple UCC names found for the same cluster in {DB_id}"
+            )
+            logging.warning("[DB cmmt entry] --> [multiple names in all_names]")
+            for names_db, names_all in multiple_names_check:
+                logging.warning(f"{names_db} --> {names_all}")
+            logging.warning("\nUsing the first  canonical fname")
+
+        cmmts_JSONS_dict[DB_id] = {
             "art_name": DBs_JSON[DB_id]["authors"],
             "art_year": DBs_JSON[DB_id]["year"],
             "art_url": DBs_JSON[DB_id]["SCIX_url"],
@@ -418,9 +441,9 @@ def load_data(
         }
 
     # --- sort by year (descending) ---
-    cmmts_JSONS_lst = dict(
+    cmmts_JSONS_dict = dict(
         sorted(
-            cmmts_JSONS_lst.items(),
+            cmmts_JSONS_dict.items(),
             key=lambda x: x[1]["art_year"],
             reverse=True,
         )
@@ -445,9 +468,6 @@ def load_data(
     with open(root_ucc_path + articles_md_path) as file:
         articles_md = file.read()
 
-    # # UCC path to compressed CSV file
-    # df_clusters_CSV_current = pd.read_csv(old_gz_CSV_path, compression="gzip")
-
     return (
         df_members,
         df_BC,
@@ -456,7 +476,7 @@ def load_data(
         df_hash_curr,
         DBs_JSON,
         DBs_full_data,
-        cmmts_JSONS_lst,
+        cmmts_JSONS_dict,
         database_md,
         articles_md,
     )
@@ -707,14 +727,17 @@ def updt_ucc_cluster_files(
     DBs_full_data,
     df_BC,
     DBs_JSON,
-    cmmts_JSONS_lst,
+    cmmts_JSONS_dict,
 ):
     """
     Generate/update markdown files for each cluster in the UCC database.
     """
     logging.info("\nGenerating md files")
 
-    fname_all = df_BC["fname"].to_list()
+    # Pre-process the data used by every entry, to avoid slow per-entry lookups
+    DBs_pos = ucc_entry.pos_columns(DBs_JSON, DBs_full_data)
+    shared_data = ucc_entry.shared_members_data(df_BC)
+    plots_existing = ucc_entry.existing_plots()
 
     UTI_colors = UTI_to_hex(df_BC)
 
@@ -741,7 +764,7 @@ def updt_ucc_cluster_files(
         #     continue
 
         summary, descriptors, fpars_badges, badges_url, comments_lst = (
-            ucc_summ_cmmts.run(current_year, UCC_cl, DBs_JSON, cmmts_JSONS_lst)
+            ucc_summ_cmmts.run(current_year, UCC_cl, DBs_JSON, cmmts_JSONS_dict)
         )
 
         # Generate full entry
@@ -750,10 +773,10 @@ def updt_ucc_cluster_files(
             i_ucc,
             DBs_JSON,
             members_files_mapping,
-            DBs_full_data,
-            df_BC,
+            DBs_pos,
+            shared_data,
+            plots_existing,
             UCC_cl,
-            fname_all,
             UTI_colors,
             summary,
             descriptors,
@@ -819,6 +842,8 @@ def updt_eq_positions(logging, df_BC, DBs_JSON, DBs_full_data):
             return None
         return round(float(val), 3)
 
+    DBs_pos = ucc_entry.pos_columns(DBs_JSON, DBs_full_data)
+
     cl_positions = {}
     cols = ["fname", "Names", "DB", "DB_i", "RA_ICRS_m", "DE_ICRS_m"]
     for fname, names, DB, DB_i, ra, dec in df_BC[cols].values:
@@ -827,7 +852,7 @@ def updt_eq_positions(logging, df_BC, DBs_JSON, DBs_full_data):
             str(names).split(";")[0],
             ucc_coord(ra),
             ucc_coord(dec),
-            ucc_entry.eq_positions_in_lit(DBs_JSON, DBs_full_data, UCC_cl),
+            ucc_entry.eq_positions_in_lit(DBs_JSON, DBs_pos, UCC_cl),
         )
 
     # Sorted so that the indexes are stable across runs
@@ -1026,7 +1051,7 @@ def updt_indiv_tables(
     ucc_cmmts_tables_path,
     current_JSON,
     df_BC,
-    cmmts_JSONS_lst: dict,
+    cmmts_JSONS_dict: dict,
 ):
     """
     Update tables for individual databases and comments, and save them to temporary
@@ -1057,7 +1082,7 @@ def updt_indiv_tables(
 
     # Update pages for individual databases
     new_tables_dict = ucc_updt_tables.updt_DBs_tables(
-        current_JSON, df_BC, cmmts_JSONS_lst, DBs_dups_badOCs
+        current_JSON, df_BC, cmmts_JSONS_dict, DBs_dups_badOCs
     )
 
     # Update/generate files with tables for individual databases
