@@ -196,22 +196,22 @@ def main():
         flag_membs_changed,
     )
 
-    if input("\nMove files to their final paths? (y/n): ").lower() == "y":
-        files_moved = move_files(
-            logging,
-            temp_zenodo_fold,
-            rename_C_fname,
-            C_not_in_B,
-            list(df_UCC_C_final["fname"]),
-        )
-        # Final check that the names in the members file match those in the UCC
-        # C dataframe after moving files, and that the number of members per cluster
-        # matches the N_clust column
-        if files_moved:
-            df_C_out_check = load_BC_cats("C", data_folder + UCC_cat_C_out)
-            df_M_check = pd.read_parquet(zenodo_folder + UCC_members_file)
-            check_sorted_names(logging, df_C_out_check, df_M_check)
-            check_N_clust(logging, df_C_out_check, df_M_check)
+    # Confirmation is asked inside the function, only if there are actions to perform
+    files_moved = move_files(
+        logging,
+        temp_zenodo_fold,
+        rename_C_fname,
+        C_not_in_B,
+        list(df_UCC_C_final["fname"]),
+    )
+    # Final check that the names in the members file match those in the UCC
+    # C dataframe after moving files, and that the number of members per cluster
+    # matches the N_clust column
+    if files_moved:
+        df_C_out_check = load_BC_cats("C", data_folder + UCC_cat_C_out)
+        df_M_check = pd.read_parquet(zenodo_folder + UCC_members_file)
+        check_sorted_names(logging, df_C_out_check, df_M_check)
+        check_N_clust(logging, df_C_out_check, df_M_check)
 
 
 def get_paths_check_paths(logging) -> tuple[str, str, str, str]:
@@ -1835,7 +1835,7 @@ def move_files(
                     post_actions.append(("remove", old_fpath, None))
 
     if not post_actions:
-        logging.info("No changes to make.")
+        logging.info("\nNo files to move.")
         return False
 
     if rename_warnings:
@@ -1864,7 +1864,7 @@ def move_files(
         elif action_type == "rename":
             logging.info(f"RENAME:  {src} --> {dst}")
 
-    if input("\nProceed with these changes? [y/N]: ").strip().lower() != "y":
+    if input("\nMove files to their final paths? (y/n): ").strip().lower() != "y":
         logging.info("Aborted.")
         return False
 
