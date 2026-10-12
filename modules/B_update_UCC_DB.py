@@ -31,6 +31,7 @@ from .variables import (
     c_Ebprp,
     c_Ebv,
     c_Egrp,
+    c_Ejh,
     c_Evi,
     c_z_sun,
     data_folder,
@@ -276,8 +277,8 @@ def load_data(
     Load necessary data for updating the UCC.
     """
     df_UCC_B_old = load_BC_cats("B", df_UCC_B_path)
-
     logging.info(f"\nUCC version {df_UCC_B_path} loaded (N={len(df_UCC_B_old)})")
+
     # Empty dataframe
     df_UCC_B_new = pd.DataFrame(df_UCC_B_old[0:0])
     # Remove _median and _stddev columns from df_UCC_B. Also remove the "fname" column,
@@ -325,10 +326,10 @@ def load_data(
     # Load current JSON file
     with open(name_DBs_json) as f:
         current_JSON = json.load(f)
-    new_DBs = []
+
+    # Load new temp JSON file
     if os.path.isfile(temp_JSON_path):
         logging.info("\n=== Adding new DBs to the UCC ===\n")
-        # Load new temp JSON file
         with open(temp_JSON_path) as f:
             temp_JSON = json.load(f)
         new_JSON = temp_JSON
@@ -337,6 +338,7 @@ def load_data(
     else:
         logging.info("\n=== Rebuilding the UCC ===\n")
         new_JSON = current_JSON
+        new_DBs = []
 
     # Order new_JSON by the values in the 'received' keys
     new_JSON = dict(sorted(new_JSON.items(), key=lambda item: item[1]["received"]))
@@ -1434,17 +1436,18 @@ def add_fpars_col(newDB_json, df_new, max_chars=7):
         if par_general in newDB_json["pars"]:
             par = newDB_json["pars"][par_general]
 
-            flag_mult = [""] * N_rows
-            # err_v = , ""
+            N_par_values = len(par.items())
 
             # If the parameter has more than one value associated in different columns
             # with different formats. I.e: {'dkpc': 'dmode', 'dpc': 'Dist'}
-            if len(par.items()) > 1:
+            flag_mult = [""] * N_rows
+            if N_par_values > 1:
                 # Add '*' indicator for multiple values (total - 1)
-                flag_mult = ["*" * (len(par.items()) - 1)] * N_rows
+                flag_mult = ["*" * (N_par_values - 1)] * N_rows
 
             # Select the first item (in case there are more than one)
-            par_format, par_db_col = [[k, v] for k, v in par.items()][0]
+            # Equivalent to: [[k, v] for k, v in par.items()][0]
+            par_format, par_db_col = next(iter(par.items()))
 
             # If the parameters has more than one value associated in different columns
             # with equivalent formats, i.e: ['[Fe/H]_1', '[Fe/H]_2'], flag and select
@@ -1529,6 +1532,7 @@ def transf_par(par_format, par_v, flag_mult):
         "ag": lambda x: f"{c_Ag * x:.2f}",
         "ebv": lambda x: f"{c_Ebv * x:.2f}",
         "evi": lambda x: f"{c_Evi * x:.2f}",
+        "ejh": lambda x: f"{c_Ejh * x:.2f}",
         "ebprp": lambda x: f"{c_Ebprp * x:.2f}",
         "egrp": lambda x: f"{c_Egrp * x:.2f}",
         "dav": lambda x: f"{x:.2f}",
@@ -1832,7 +1836,7 @@ def get_db_fscore(
 
     db_year = int(new_JSON[new_DB]["year"])
     db_N_rows = len(df_new)
-    y_now = datetime.now().year  # noqa: DTZ005
+    y_now = datetime.now().year
     R = np.clip(1 - focus_decay_per_year * (y_now - db_year), 0.0, 1.0)
     S = np.clip(1 - 0.5 * np.log(db_N_rows) / np.log(focus_log_ref), 0.0, 1.0)
     db_fscore = f"{np.maximum(focus_min, R * S):.2f}"
