@@ -21,6 +21,7 @@ from .variables import (
     dbs_folder,
     master_check_file,
     name_DBs_json,
+    temp_folder,
     zenodo_folder,
 )
 
@@ -115,8 +116,7 @@ E_record_path = _root / data_folder / E_cmmts_record_file
 members_path = _root / zenodo_folder / UCC_members_file
 dbs_json_path = _root / name_DBs_json
 db_path = _root / dbs_folder
-# Written to the working directory
-out_file = master_check_file
+out_file = _root / temp_folder / master_check_file
 
 # Hashed parts of each commented cluster: (column in E_record_path, label)
 _CMMTS_HASH_PARTS = (
@@ -205,11 +205,11 @@ _DUP_RUN_PARS = {
 #   uti_floor: score factor for UTI=0; it grows linearly up to 1 for UTI=1
 _SCORE_CONFIG = {
     "weights": {
-        "dup": 10.0,
-        "H23_membs": 7.0,
-        "dup_prox": 6.0,
-        "DBs_plx_groups": 5.0,
-        "DBs_pos_groups": 5.0,
+        "dup": 20.0,
+        "H23_membs": 10.0,
+        "dup_prox": 8.0,
+        "DBs_plx_groups": 6.0,
+        "DBs_pos_groups": 6.0,
         "DBs_pm_groups": 4.0,
         "DBs_plx_conflicts": 3.0,
         "DBs_pos_conflicts": 3.0,
@@ -995,6 +995,7 @@ def _write_out_file(checks, clusters, oc_cmmts, stale, UTI):
     text = "\n".join(lines).strip("\n")
     while "\n\n\n\n" in text:
         text = text.replace("\n\n\n\n", "\n\n\n")
+    out_file.parent.mkdir(parents=True, exist_ok=True)
     with open(out_file, "w") as f:
         f.write(text + "\n")
 
