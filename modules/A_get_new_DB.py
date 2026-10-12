@@ -21,36 +21,116 @@ from .variables import (
     temp_folder,
 )
 
+SCIX_root = "https://scixplorer.org/abs/"
+citation_count_days_check = 180
+
 
 def main():
     """
     Main function to download and process a database using NASA/ADS and Vizier data.
 
     ADS_bibcode: NASA/ADS bibcode for the new DB, e.g.: 2018MNRAS.481.3902B
-
-    Steps:
-    - Load the current JSON database file.
-    - Check if the URL is already listed in the current database.
-    - Fetch publication authors and year from NASA/ADS
-    - Generate a new database name based on extracted metadata.
-    - Handle temporary database files and check for existing data.
-    - Fetch Vizier data or allow manual input for Vizier IDs.
-    - Match new database columns with current JSON structure.
-    - Update the JSON file and save the database as CSV.
-
-    Raises:
-        ValueError: If URL data fetching or metadata extraction fails.
     """
     logging = logger()
 
-    # Handle temporary database files and check for existing data.
+    temp_database_folder, temp_JSON_file, date_now, current_year, six_months_ago = (
+        get_paths_dates()
+    )
+
+    current_JSON, citations_date = load_data()
+
+    # Check if any citation counts are older than 6 months and offer to update them
+    update_citation_count(
+        logging,
+        temp_JSON_file,
+        date_now,
+        current_year,
+        six_months_ago,
+        current_JSON,
+        citations_date,
+    )
+
+    # Check that all parameters in the current JSON file are valid according to the
+    # model JSON structure
+    check_pars_format(logging, current_JSON)
+
+    # Request user for bibcode
+    ADS_bibcode = get_ads_bibcode(logging, current_JSON)
+
+    # Fetch publication authors and year from NASA/ADS
+    authors, year, title, citations = get_ADS_data(logging, ADS_bibcode)
+
+    # Generate a new database name based on extracted metadata.
+    DB_name = get_DB_name(logging, current_JSON, authors, year)
+
+    # Fetch Vizier data or allow manual input for Vizier IDs.
+    df_all, vizier_url = fetch_vizier_data(
+        logging, temp_database_folder, ADS_bibcode, DB_name
+    )
+
+    # Extract the names, positions, parameters, and uncertainties column names from
+    # the current JSON
+    names_dict, pos_dict, pars_dict, e_pars_dict = current_JSON_vals(current_JSON)
+
+    # Extract the matches for each column in the new DB
+    df_col_id = new_DB_columns_match(
+        logging, names_dict, pos_dict, pars_dict, e_pars_dict, df_all
+    )
+
+    names, pos_dict, pars_dict, e_pars_dict = proper_json_struct(df_col_id)
+
+    # Update the JSON file and save the database as CSV.
+    new_json_dict = add_DB_to_JSON(
+        temp_JSON_file,
+        date_now,
+        current_year,
+        ADS_bibcode,
+        citations,
+        vizier_url,
+        current_JSON,
+        DB_name,
+        authors,
+        title,
+        year,
+        names,
+        pos_dict,
+        pars_dict,
+        e_pars_dict,
+    )
+    logging.info("Temp JSON file generated")
+
+    logging.info("\n********************************************************")
+    logging.info("Check the JSON and CSV files carefully before moving on!")
+    logging.info("********************************************************")
+    comments_check(new_json_dict)
+
+
+def get_paths_dates():
+    """
+    Get paths and dates for temporary files and citation checks.
+    """
     # Temporary databases/ folder
     temp_database_folder = temp_folder + dbs_folder
     # Create folder if it does not exist
     Path(temp_database_folder).mkdir(parents=True, exist_ok=True)
+
     # Path to the new (temp) JSON file
     temp_JSON_file = temp_folder + name_DBs_json
 
+    # Define dates
+    date_now = datetime.datetime.now().strftime("%Y-%m-%d")
+    current_year = datetime.datetime.now().year
+    six_months_ago = datetime.datetime.now() - datetime.timedelta(
+        days=citation_count_days_check
+    )
+
+    return temp_database_folder, temp_JSON_file, date_now, current_year, six_months_ago
+
+
+def load_data():
+    """
+    Load and validate the current JSON file, ensuring no duplicate 'received' values
+    """
     # Load current JSON file
     with open(name_DBs_json) as f:
         current_JSON = json.load(f)
@@ -67,13 +147,22 @@ def main():
         recieved_seen[value] = key
         citations_date[key] = [vals["citations_count"]["date"], vals["SCIX_url"]]
 
-    # Define dates
-    date_now = datetime.datetime.now().strftime("%Y-%m-%d")
-    current_year = datetime.datetime.now().year
-    six_months_ago = datetime.datetime.now() - datetime.timedelta(days=180)
+    return current_JSON, citations_date
 
-    # If any date value in 'citations_date' (format: YYY-MM-DD) is older than 6 months,
-    # offer to update them before moving on
+
+def update_citation_count(
+    logging,
+    temp_JSON_file,
+    date_now,
+    current_year,
+    six_months_ago,
+    current_JSON,
+    citations_date,
+):
+    """
+    If any date value in 'citations_date' (format: YYY-MM-DD) is older than 6 months,
+    offer to update them before moving on
+    """
     outdated_keys = {}
     for key, vals in citations_date.items():
         date_str, scix_url = vals
@@ -82,11 +171,12 @@ def main():
             outdated_keys[key] = scix_url.split("/")[-1]
     if outdated_keys:
         logging.info(
-            f"The following databases have 'citations_count' data older than 6 months:\n  {', '.join(outdated_keys)}"
+            "The following databases have 'citations_count' data older "
+            f"than 6 months:\n  {', '.join(outdated_keys)}"
         )
         if input("Update these data before moving on? (y/n): ").lower() == "y":
             for key, ADS_bibcode in outdated_keys.items():
-                authors, year, title, citations = get_ADS_data(ADS_bibcode)
+                _, year, _, citations = get_ADS_data(logging, ADS_bibcode)
                 citations_year = get_citations_year(current_year, year, citations)
                 current_JSON["citations_count"] = {
                     "date": date_now,
@@ -98,119 +188,7 @@ def main():
             logging.info(
                 "Updated 'citations_count'. Check the JSON file before moving on."
             )
-            sys.exit(0)
-
-    # Check parameters in the current JSON file against the model JSON structure
-    pars_vals_all = dict(JSON_struct["SMITH2500"]["pars"])
-    # Internal consistency check, If this fails, there's something wrong in the
-    # 'variables' file
-    if pars_vals_all.keys() != pars_formats.keys():
-        raise ValueError(
-            "Mismatch between 'pars_formats' keys and 'JSON_struct[pars]' keys."
-            "Check the 'variables.py' file."
-        )
-    # Print info to screen
-    logging.info("\nAvailable parameter formats:")
-    for k, v in pars_formats.items():
-        logging.info(f"{k:<10} : {', '.join(list(set(v)))}")
-    # Check that all parameters in the current JSON file are valid according to the
-    # model JSON structure
-    for db_name, v in current_JSON.items():
-        for params_general, pars_dict in v["pars"].items():
-            if params_general not in pars_formats:
-                raise ValueError(
-                    f"Parameter {params_general} in {db_name} is not in the model JSON structure"
-                )
-            for par_gen in pars_dict:
-                if par_gen not in pars_formats[params_general]:
-                    raise ValueError(
-                        f"Parameter {pars_formats[params_general]}/{par_gen} in "
-                        f"{db_name} is not valid"
-                    )
-    logging.info("")
-
-    # Request user for bibcode
-    ADS_bibcode = get_ads_bibcode()
-
-    # Check if url is already listed in the current JSON file
-    ADS_bibcode = ADS_bibcode.replace("/", "")
-    SCIX_url = "https://scixplorer.org/abs/" + ADS_bibcode
-    for db, vals in current_JSON.items():
-        if SCIX_url == vals["SCIX_url"]:
-            logging.info(f"The URL {SCIX_url}\nis already in the JSON file under: {db}")
-            if input("Move on? (y/n): ").lower() != "y":
-                sys.exit(0)
-
-    # Fetch publication authors and year from NASA/ADS
-    logging.info("Fetching NASA/ADS data...")
-    authors, year, title, citations = get_ADS_data(ADS_bibcode)
-    logging.info(
-        f"Extracted author ({authors}), year ({year}), citations ({citations}), and title:"
-    )
-    logging.info(f"{title}")
-
-    # Generate a new database name based on extracted metadata.
-    DB_name = get_DB_name(current_JSON, authors, year)
-    logging.info(f"New DB name obtained: {DB_name}")
-    # Path to the new (temp) DB file
-    temp_CSV_file = temp_database_folder + DB_name + ".csv"
-
-    # Fetch Vizier data or allow manual input for Vizier IDs.
-    vizier_url, quest = "N/A", "n"
-    if Path(temp_CSV_file).is_file():
-        quest = input("Load Vizier database from file (else download)? (y/n): ").lower()
-    if quest == "y":
-        df_all = [pd.read_csv(temp_CSV_file)]
-        logging.info("Vizier CSV file loaded from file")
-    else:
-        table_url = get_CDS_table(logging, ADS_bibcode)
-        df_all = get_DB_from_Vizier(logging, table_url)
-        if df_all is not None:
-            # Save the database(s) to a CSV file(s)
-            save_DB_CSV(temp_CSV_file, df_all)
-            logging.info(f"New DB csv file(s) stored {temp_CSV_file}\n")
-            vizier_url = (
-                f"https://vizier.cds.unistra.fr/viz-bin/VizieR?-source={ADS_bibcode}"
-            )
-
-    # Extract the names, positions, parameters, and uncertainties column names from
-    # the current JSON
-    names_dict, pos_dict, pars_dict, e_pars_dict = current_JSON_vals(current_JSON)
-    # Extract the matches for each column in the new DB
-    df_col_id = None
-    if df_all is not None:
-        df_col_id = new_DB_columns_match(
-            logging, names_dict, pos_dict, pars_dict, e_pars_dict, df_all
-        )
-        logging.info("Column names for temp JSON file extracted")
-    names, pos_dict, pars_dict, e_pars_dict = proper_json_struct(df_col_id)
-
-    # Update the JSON file and save the database as CSV.
-    new_json_dict = add_DB_to_JSON(
-        JSON_struct,
-        SCIX_url,
-        citations,
-        date_now,
-        current_year,
-        vizier_url,
-        current_JSON,
-        temp_JSON_file,
-        DB_name,
-        authors,
-        title,
-        year,
-        names,
-        pos_dict,
-        pars_dict,
-        e_pars_dict,
-    )
-    logging.info("Temp JSON file generated")
-
-    logging.info("\n********************************************************")
-    logging.info("Check the JSON and CSV files carefully before moving on!")
-    logging.info("********************************************************")
-
-    comments_check(new_json_dict)
+            sys.exit(1)
 
 
 def get_citations_year(current_year, year, citations):
@@ -226,7 +204,66 @@ def get_citations_year(current_year, year, citations):
     return citations_year
 
 
-def get_ads_bibcode() -> str:
+def check_pars_format(logging, current_JSON):
+    """
+    Check that all parameters in the current JSON file are valid according to the
+    model JSON structure
+    """
+    # Extract all parameter values from the model JSON structure
+    pars_general_all = dict(JSON_struct["SMITH2500"]["pars"])
+
+    # Internal consistency check, If this fails, there's something wrong in the
+    # 'variables' file
+    if pars_general_all.keys() != pars_formats.keys():
+        raise ValueError(
+            "Mismatch between 'pars_formats' keys and 'JSON_struct[pars]' keys."
+            "Check the 'variables.py' file."
+        )
+
+    # Print info to screen
+    logging.info("\nAvailable parameter formats:")
+    for k, v in pars_formats.items():
+        logging.info(f"{k:<10} : {', '.join(list(set(v)))}")
+
+    e_pars_formats = {}
+    for k, v in pars_formats.items():
+        if len(v) > 1:
+            e_pars_formats["e_" + k] = ["e" + v for v in v]
+        else:
+            e_pars_formats["e_" + k] = ["e" + v[0]]
+    pars_epars = {"pars": pars_formats, "e_pars": e_pars_formats}
+
+    error_flag = False
+    # Check each DB
+    for db_name, db_vals in current_JSON.items():
+        for col, pars_epars_formats in pars_epars.items():
+            for db_key_par_general, db_dict_par_general in db_vals[col].items():
+                if db_key_par_general not in pars_epars_formats:
+                    logging.info(
+                        f"Parameter {db_key_par_general} in {db_name} is not "
+                        "in the model JSON structure"
+                    )
+                    error_flag = True
+                for db_par_format in db_dict_par_general:
+                    if db_par_format not in pars_epars_formats[db_key_par_general]:
+                        logging.info(
+                            f"Parameter {db_par_format} in {db_name} is not valid --> "
+                            f"{col}"
+                            + "{"
+                            + f"{db_key_par_general}: {pars_epars_formats[db_key_par_general]}"
+                            + "}"
+                        )
+                        error_flag = True
+    if error_flag:
+        raise ValueError(
+            "\nOne or more parameters in the current JSON file are not "
+            "valid according to the model JSON structure. "
+            "Please check the logs for details."
+        )
+    logging.info("")
+
+
+def get_ads_bibcode(logging, current_JSON) -> str:
     """Get ADS bibcode from user input with validation."""
     print("\n📚 NASA/ADS Bibcode Required")
     print("Examples:")
@@ -235,24 +272,40 @@ def get_ads_bibcode() -> str:
     print("  • 2020ApJ...904...15K")
 
     while True:
-        bibcode = input("\n📝 Enter the NASA/ADS bibcode (or 'c' to abort): ").strip()
+        ADS_bibcode = input(
+            "\n📝 Enter the NASA/ADS bibcode (or 'c' to abort): "
+        ).strip()
 
-        if not bibcode:
+        if not ADS_bibcode:
             print("❌ Bibcode cannot be empty. Please try again.")
             continue
 
         # Basic validation - should have year and journal format
-        if len(bibcode) < 10:
+        if len(ADS_bibcode) < 10:
             print("❌ Bibcode seems too short. Please check and try again.")
             continue
 
-        return bibcode
+        # return bibcode
+        break
+
+    # Check if url is already listed in the current JSON file
+    ADS_bibcode = ADS_bibcode.replace("/", "")
+    SCIX_url = SCIX_root + ADS_bibcode
+    for db, vals in current_JSON.items():
+        if SCIX_url == vals["SCIX_url"]:
+            logging.info(f"The URL {SCIX_url}\nis already in the JSON file under: {db}")
+            if input("Move on? (y/n): ").lower() != "y":
+                sys.exit(0)
+
+    return ADS_bibcode
 
 
-def get_ADS_data(ADS_bibcode: str) -> tuple[str, str, str, str]:
+def get_ADS_data(logging, ADS_bibcode: str) -> tuple[str, str, str, str]:
     """
     Fetch publication metadata from NASA/ADS using the provided bibcode.
     """
+    logging.info("Fetching NASA/ADS data...")
+
     # ADS API endpoint for searching
     api_url = "https://api.adsabs.harvard.edu/v1/search/query"
     # Read token from file
@@ -298,20 +351,17 @@ def get_ADS_data(ADS_bibcode: str) -> tuple[str, str, str, str]:
     else:
         raise ValueError(f"Failed to fetch data: {response.status_code}")
 
+    logging.info(
+        f"Extracted author ({authors}), year ({year}), citations ({citations}), and title:"
+    )
+    logging.info(f"{title}")
+
     return authors, year, title, citations
 
 
-def get_DB_name(current_JSON: dict, authors: str, year: str) -> str:
+def get_DB_name(logging, current_JSON: dict, authors: str, year: str) -> str:
     """
     Generate a unique database name based on the author's name and year.
-
-    Parameters:
-    current_JSON (dict): A dictionary containing existing database names.
-    authors (str): A string with the authors name properly formatted.
-    year (str): The year to be included in the database name.
-
-    Returns:
-    str: A unique database name.
     """
     # Create a new database name
     DB_name = authors.split(" ")[0].strip().split("-")[0].upper() + year
@@ -327,6 +377,8 @@ def get_DB_name(current_JSON: dict, authors: str, year: str) -> str:
             else:
                 break
             i += 1
+
+    logging.info(f"New DB name obtained: {DB_name}")
 
     return DB_name
 
@@ -444,6 +496,38 @@ def save_DB_CSV(temp_CSV_file, df_all):
         )
 
 
+def fetch_vizier_data(logging, temp_database_folder, ADS_bibcode, DB_name):
+    """
+    Fetch Vizier data for the given ADS bibcode. If a temporary CSV file exists,
+    prompt the user to load it or download new data. Save the database(s) to CSV
+    files if downloaded.
+    """
+
+    # Path to the new (temp) DB file
+    temp_CSV_file = temp_database_folder + DB_name + ".csv"
+
+    vizier_url, quest = "N/A", "n"
+
+    if Path(temp_CSV_file).is_file():
+        quest = input("Load Vizier database from file (else download)? (y/n): ").lower()
+
+    if quest == "y":
+        df_all = [pd.read_csv(temp_CSV_file)]
+        logging.info("Vizier CSV file loaded from file")
+    else:
+        table_url = get_CDS_table(logging, ADS_bibcode)
+        df_all = get_DB_from_Vizier(logging, table_url)
+        if df_all is not None:
+            # Save the database(s) to a CSV file(s)
+            save_DB_CSV(temp_CSV_file, df_all)
+            logging.info(f"New DB csv file(s) stored {temp_CSV_file}\n")
+            vizier_url = (
+                f"https://vizier.cds.unistra.fr/viz-bin/VizieR?-source={ADS_bibcode}"
+            )
+
+    return df_all, vizier_url
+
+
 def current_JSON_vals(current_JSON):
     """
     Extract unique names, positions, parameters, and uncertainties from the current
@@ -501,6 +585,9 @@ def new_DB_columns_match(
     """
     Match columns in the new database with the current JSON structure.
     """
+    if df_all is None:
+        return None
+
     # Combine into a single dictionary
     merged_dict = {**names_dict, **pos_dict, **pars_dict, **e_pars_dict}
 
@@ -551,6 +638,7 @@ def new_DB_columns_match(
         if key not in df_col_id.values():
             no_match_cols.append(key)
     logging.info(f"Columns in new DB with no match:\n  {no_match_cols}")
+    logging.info("Column names for temp JSON file extracted")
 
     return df_col_id
 
@@ -559,6 +647,7 @@ def proper_json_struct(df_col_id):
     """Generate the proper structure for storing in the JSON file"""
     names = "None"
     all_dicts = [{}, {}, {}]
+
     if df_col_id is None:
         return names, *all_dicts
 
@@ -598,14 +687,13 @@ def proper_json_struct(df_col_id):
 
 
 def add_DB_to_JSON(
-    JSON_struct: dict,
-    SCIX_url: str,
-    citations: str,
+    temp_JSON_file: str,
     date_now: str,
     current_year: int,
+    ADS_bibcode: str,
+    citations: str,
     vizier_url: str,
     current_JSON: dict,
-    temp_JSON_file: str,
     DB_name: str,
     authors: str,
     title: str,
@@ -636,6 +724,7 @@ def add_DB_to_JSON(
     citations_year = get_citations_year(current_year, year, citations)
 
     # Create 'new_db_json' dictionary with the new DB's params
+    SCIX_url = SCIX_root + ADS_bibcode
     new_db_json = {}
     new_db_json["SCIX_url"] = SCIX_url
     new_db_json["data_cmmts"] = JSON_struct["SMITH2500"]["data_cmmts"]
@@ -650,6 +739,7 @@ def add_DB_to_JSON(
     new_db_json["year"] = year
     new_db_json["received"] = JSON_struct["SMITH2500"]["received"]
     new_db_json["names"] = names
+    new_db_json["types"] = JSON_struct["SMITH2500"]["types"]
     new_db_json["pos"] = pos_dict
     new_db_json["pars"] = pars_dict
     new_db_json["e_pars"] = e_pars_dict
