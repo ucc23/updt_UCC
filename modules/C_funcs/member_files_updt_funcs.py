@@ -25,7 +25,6 @@ print(f"ASteCA version: {asteca.__version__}")
 
 
 def get_gaia_frame(
-    logging,
     gaia_frames_data,
     fname0,
     ra_c,
@@ -46,7 +45,6 @@ def get_gaia_frame(
 
         # Request Gaia frame
         gaia_frame = query_run(
-            logging,
             path_gaia_frames,
             gaia_frames_data,
             box_s,
@@ -159,8 +157,6 @@ def set_centers(
 
     Parameters
     ----------
-    logging : logging.Logger
-        Logger object for outputting information.
     my_field : asteca.Cluster
         Cluster object
     radec_c : tuple
@@ -196,7 +192,6 @@ def set_centers(
 
 
 def get_Nmembs(
-    logging,
     N_clust: float,
     N_clust_max: float,
     my_field: asteca.Cluster,
@@ -206,8 +201,6 @@ def get_Nmembs(
 
     Parameters
     ----------
-    logging : logging.Logger
-        Logger object for outputting information
     N_clust: float
         Manual value for the fixed number of members
     N_clust_max: float
@@ -218,22 +211,20 @@ def get_Nmembs(
     # If 'N_clust' was given, use it
     if not np.isnan(N_clust):
         my_field.N_cluster = int(N_clust)
-        logging.info(f"  Using manual N_cluster={int(N_clust)}")
+        print(f"  Using manual N_cluster={int(N_clust)}")
         return
 
     # If 'N_clust_max' was given use it to cap the maximum number of members
     if not np.isnan(N_clust_max):
         my_field.N_clust_max = int(N_clust_max)
-        logging.info(f"  Using manual N_clust_max={int(N_clust_max)}")
+        print(f"  Using manual N_clust_max={int(N_clust_max)}")
 
     # Use default ASteCA method
     my_field.get_nmembers()
-    logging.info(f"  Using N_clust={int(my_field.N_cluster)}")
-
+    print(f"  Using N_clust={int(my_field.N_cluster)}")
 
 
 def get_fastMP_membs(
-    logging,
     df_GCs: pd.DataFrame,
     df_UCC_m: pd.DataFrame,
     fname0,
@@ -247,7 +238,7 @@ def get_fastMP_membs(
     N_clust,
     N_clust_max,
     use_mag_fastmp: str,
-    gaia_frame: pd.DataFrame
+    gaia_frame: pd.DataFrame,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Retrieves Gaia data for a specified cluster and processes it using the fastMP
@@ -270,19 +261,18 @@ def get_fastMP_membs(
 
     # Estimate the cluster's center coordinates using the provided values
     my_field = set_centers(my_field, ra_c, dec_c, pmra_c, pmde_c, plx_c)
-    logging.info(
+    print(
         f"  Center used: ({my_field.radec_c[0]:.4f}, {my_field.radec_c[1]:.4f}), "
         + f"({my_field.pms_c[0]:.4f}, {my_field.pms_c[1]:.4f}), {my_field.plx_c:.4f}"
     )
 
     # Estimate the number of cluster members using the provided values or default
     # ASteCA method
-    get_Nmembs(logging, N_clust, N_clust_max, my_field)
+    get_Nmembs(N_clust, N_clust_max, my_field)
 
     # Only check if the number of members is larger than the minimum value
     if my_field.N_cluster > my_field.N_clust_min:
         check_close_cls(
-            logging,
             df_UCC_m,
             gaia_frame,
             fname0,
@@ -300,7 +290,7 @@ def get_fastMP_membs(
     else:
         my_field.membership.fastmp()
     probs_fastmp = my_field.probs
-    logging.info(f"[probs_all>=0.5]: {(probs_fastmp >= 0.5).sum()}")
+    print(f"[probs_all>=0.5]: {(probs_fastmp >= 0.5).sum()}")
 
     # Check initial versus members centers
     center_check(glon_c, glat_c, my_field, probs_fastmp)
@@ -319,7 +309,6 @@ def get_fastMP_membs(
 
 
 def check_close_cls(
-    logging,
     df_UCC_m,
     gaia_frame,
     fname,
@@ -335,8 +324,6 @@ def check_close_cls(
 
     Parameters
     ----------
-    logging : logging.Logger
-        Logger object for outputting information.
     gaia_frame : pd.DataFrame
         Square frame with Gaia data to process
     fname : str
@@ -458,14 +445,14 @@ def check_close_cls(
         ["Name", "P_d", "GLON", "GLAT", "plx", "pmRA", "pmDE", "Type"]
     ]
     if len(in_frame_all) > 0:
-        logging.info(
+        print(
             f"  WARNING: {len(in_frame_all)} OCs/GCs in frame: "
             + f"[{glon_c:.3f}, {glat_c:.3f}], {plx_c:.3f}"
         )
         for row in in_frame_all.to_string(index=False).split("\n")[:11]:
-            logging.info("  " + row)
+            print("  " + row)
         if len(in_frame_all) > 10:
-            logging.info(f"  ({len(in_frame_all) - 10} more)")
+            print(f"  ({len(in_frame_all) - 10} more)")
 
 
 def center_check(
@@ -973,7 +960,6 @@ def gc_values(ra, dec, plx, max_xyz=20):
 
 
 def save_cl_datafile(
-    logging,
     fname0: str,
     df_membs: pd.DataFrame,
 ) -> None:
@@ -982,8 +968,6 @@ def save_cl_datafile(
 
     Parameters
     ----------
-    logging : logging.Logger
-        Logger object for outputting information.
     fname0 : str
         Main name associated with the cluster file.
     """
@@ -993,7 +977,7 @@ def save_cl_datafile(
 
     out_fname = temp_members_folder + fname0 + ".parquet"
     df_membs.to_parquet(out_fname, index=False)
-    logging.info(f"  Saved file to: {out_fname} (N={len(df_membs)})")
+    print(f"  Saved file to: {out_fname} (N={len(df_membs)})")
 
 
 def dprob(

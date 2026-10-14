@@ -1,9 +1,6 @@
 import csv
-import datetime
-import logging
 import os
 import re
-from os.path import join
 from pathlib import Path
 
 import numpy as np
@@ -12,51 +9,6 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from modules.variables import N_archive_versions, UCC_cmmts_folder, temp_folder
-
-
-def logger():
-    """
-    Sets up a logger that writes log messages to a file named with the current date
-    and also outputs to the console.
-
-    Returns:
-        logging.Logger: Configured logger instance.
-    """
-    mypath = Path().absolute()
-
-    # Name of log file using the date
-    x = datetime.date.today()
-    out_file = "logs/" + str(x).replace("-", "_") + ".log"
-
-    # Set up logging module
-    level = logging.INFO
-    frmt = "%(message)s"
-    handlers = [
-        logging.FileHandler(join(mypath, out_file), mode="a"),
-        logging.StreamHandler(),
-    ]
-    logging.basicConfig(level=level, format=frmt, handlers=handlers)
-
-    # logging.info("\n------------------------------")
-    logging.info(str(datetime.datetime.now()) + "\n")
-
-    return logging
-
-
-# def get_last_version_UCC(UCC_folder: str) -> str:
-#     """Path to the latest version of the UCC catalogue"""
-
-#     pattern = re.compile(r"UCC_cat_\d{8}\.csv")
-#     ucc_file = [f for f in os.listdir(UCC_folder) if pattern.fullmatch(f)]
-
-#     if len(ucc_file) == 0:
-#         raise ValueError(f"UCC file not found in {UCC_folder}")
-#     elif len(ucc_file) > 1:
-#         raise ValueError(f"More than one UCC file found in {UCC_folder}")
-
-#     last_version = ucc_file[0].split("_")[-1].split(".")[0]
-
-#     return last_version
 
 
 def load_BC_cats(cat_ID: str, path: str):
@@ -324,7 +276,6 @@ def round_columns(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def diff_between_dfs(
-    logging,
     cat_name: str,
     df_old: pd.DataFrame,
     df_new: pd.DataFrame,
@@ -394,7 +345,7 @@ def diff_between_dfs(
         non_matching2 = [row for row in rows2 if tuple(row) not in set1]
 
     if len(non_matching1) == 0 and len(non_matching2) == 0:
-        logging.info(f"No differences found for {cat_name}\n")
+        print(f"No differences found for {cat_name}\n")
         # Return boolean indicating if any differences where found
         return False
 
@@ -405,7 +356,7 @@ def diff_between_dfs(
             writer = csv.writer(out)
             for row in non_matching1:
                 writer.writerow(row)
-        logging.info(f"File '{out_f}_diff_old.csv' saved")
+        print(f"File '{out_f}_diff_old.csv' saved")
 
     if len(non_matching2) > 0:
         out_f = cat_name.replace(" ", "_")
@@ -413,9 +364,9 @@ def diff_between_dfs(
             writer = csv.writer(out)
             for row in non_matching2:
                 writer.writerow(row)
-        logging.info(f"File '{out_f}_diff_new.csv' saved")
+        print(f"File '{out_f}_diff_new.csv' saved")
 
-    logging.info("")
+    print()
 
     return True
 
@@ -431,17 +382,16 @@ def comments_check(new_json_dict):
     # JSON -> file
     missing_files = sorted(json_keys_with_cmmts - folder_keys)
     if missing_files:
-        logging.info(f"⚠️ WARNING: missing comments file(s) {';'.join(missing_files)}")
+        print(f"⚠️ WARNING: missing comments file(s) {';'.join(missing_files)}")
     # Folder -> JSON
     extra_files = sorted(folder_keys - set(new_json_dict))
     if extra_files:
-        logging.info(
+        print(
             f"⚠️ WARNING: file(s) in folder not present in JSON {';'.join(extra_files)}"
         )
 
 
 def save_df_UCC(
-    logging,
     df: pd.DataFrame,
     file_path: str,
     compression: str = "",
@@ -476,10 +426,10 @@ def save_df_UCC(
             index=False,
             quoting=csv.QUOTE_NONNUMERIC,
         )
-    logging.info(f"UCC file (N={len(df)}): '{file_path}'\n")
+    print(f"UCC file (N={len(df)}): '{file_path}'\n")
 
 
-def prune_archive(logging, archived_file: str) -> None:
+def prune_archive(archived_file: str) -> None:
     """Keep only the N_archive_versions most recent archived versions of a file.
 
     Archived files are named '<stem>_<yymmddHH><ext>', so sorting the versions
@@ -491,7 +441,7 @@ def prune_archive(logging, archived_file: str) -> None:
     versions = sorted(f for f in os.listdir(folder) if pattern.fullmatch(f))
     for old_fname in versions[:-N_archive_versions]:
         os.remove(os.path.join(folder, old_fname))
-        logging.info(f"Removed old archived version: {old_fname}")
+        print(f"Removed old archived version: {old_fname}")
 
 
 def members_hashes(df_members: pd.DataFrame) -> pd.DataFrame:

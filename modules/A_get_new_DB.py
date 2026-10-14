@@ -11,7 +11,7 @@ import requests
 from astroquery.vizier import Vizier
 from rapidfuzz import fuzz
 
-from .utils import comments_check, logger
+from .utils import comments_check
 from .variables import (
     JSON_struct,
     NASA_API_TOKEN_file,
@@ -39,7 +39,6 @@ def main():
 
     ADS_bibcode: NASA/ADS bibcode for the new DB, e.g.: 2018MNRAS.481.3902B
     """
-    logging = logger()
 
     temp_database_folder, temp_JSON_file, date_now, current_year, six_months_ago = (
         get_paths_dates()
@@ -49,7 +48,6 @@ def main():
 
     # Check if any citation counts are older than 6 months and offer to update them
     update_citation_count(
-        logging,
         temp_JSON_file,
         date_now,
         current_year,
@@ -60,30 +58,26 @@ def main():
 
     # Check that all parameters in the current JSON file are valid according to the
     # model JSON structure
-    check_pars_format(logging, current_JSON)
+    check_pars_format(current_JSON)
 
     # Request user for bibcode
-    ADS_bibcode = get_ads_bibcode(logging, current_JSON)
+    ADS_bibcode = get_ads_bibcode(current_JSON)
 
     # Fetch publication authors and year from NASA/ADS
-    authors, year, title, citations = get_ADS_data(logging, ADS_bibcode)
+    authors, year, title, citations = get_ADS_data(ADS_bibcode)
 
     # Generate a new database name based on extracted metadata.
-    DB_name = get_DB_name(logging, current_JSON, authors, year)
+    DB_name = get_DB_name(current_JSON, authors, year)
 
     # Fetch Vizier data or allow manual input for Vizier IDs.
-    df_all, vizier_url = fetch_vizier_data(
-        logging, temp_database_folder, ADS_bibcode, DB_name
-    )
+    df_all, vizier_url = fetch_vizier_data(temp_database_folder, ADS_bibcode, DB_name)
 
     # Extract the names, positions, parameters, uncertainties and types column names
     # from the current JSON
     known_cols, types_info = current_JSON_vals(current_JSON)
 
     # Extract the matches for each column in the new DB
-    col_match, types = new_DB_columns_match(
-        logging, known_cols, types_info, df_all, title
-    )
+    col_match, types = new_DB_columns_match(known_cols, types_info, df_all, title)
 
     names, pos_dict, pars_dict, e_pars_dict = proper_json_struct(col_match)
 
@@ -106,11 +100,11 @@ def main():
         pars_dict,
         e_pars_dict,
     )
-    logging.info("Temp JSON file generated")
+    print("Temp JSON file generated")
 
-    logging.info("\n********************************************************")
-    logging.info("Check the JSON and CSV files carefully before moving on!")
-    logging.info("********************************************************")
+    print("\n********************************************************")
+    print("Check the JSON and CSV files carefully before moving on!")
+    print("********************************************************")
     comments_check(new_json_dict)
 
 
@@ -160,7 +154,6 @@ def load_data():
 
 
 def update_citation_count(
-    logging,
     temp_JSON_file,
     date_now,
     current_year,
@@ -179,13 +172,13 @@ def update_citation_count(
         if date < six_months_ago:
             outdated_keys[key] = scix_url.split("/")[-1]
     if outdated_keys:
-        logging.info(
+        print(
             "The following databases have 'citations_count' data older "
             f"than 6 months:\n  {', '.join(outdated_keys)}"
         )
         if input("Update these data before moving on? (y/n): ").lower() == "y":
             for key, ADS_bibcode in outdated_keys.items():
-                _, year, _, citations = get_ADS_data(logging, ADS_bibcode)
+                _, year, _, citations = get_ADS_data(ADS_bibcode)
                 citations_year = get_citations_year(current_year, year, citations)
                 current_JSON["citations_count"] = {
                     "date": date_now,
@@ -194,9 +187,7 @@ def update_citation_count(
                 }
             with open(name_DBs_json, "w") as f:
                 json.dump(temp_JSON_file, f, indent=2)
-            logging.info(
-                "Updated 'citations_count'. Check the JSON file before moving on."
-            )
+            print("Updated 'citations_count'. Check the JSON file before moving on.")
             sys.exit(1)
 
 
@@ -213,7 +204,7 @@ def get_citations_year(current_year, year, citations):
     return citations_year
 
 
-def check_pars_format(logging, current_JSON):
+def check_pars_format(current_JSON):
     """
     Check that all parameters in the current JSON file are valid according to the
     model JSON structure
@@ -230,9 +221,9 @@ def check_pars_format(logging, current_JSON):
         )
 
     # Print info to screen
-    logging.info("\nAvailable parameter formats:")
+    print("\nAvailable parameter formats:")
     for k, v in pars_formats.items():
-        logging.info(f"{k:<10} : {', '.join(list(set(v)))}")
+        print(f"{k:<10} : {', '.join(list(set(v)))}")
 
     e_pars_formats = {}
     for k, v in pars_formats.items():
@@ -248,14 +239,14 @@ def check_pars_format(logging, current_JSON):
         for col, pars_epars_formats in pars_epars.items():
             for db_key_par_general, db_dict_par_general in db_vals[col].items():
                 if db_key_par_general not in pars_epars_formats:
-                    logging.info(
+                    print(
                         f"Parameter {db_key_par_general} in {db_name} is not "
                         "in the model JSON structure"
                     )
                     error_flag = True
                 for db_par_format in db_dict_par_general:
                     if db_par_format not in pars_epars_formats[db_key_par_general]:
-                        logging.info(
+                        print(
                             f"Parameter {db_par_format} in {db_name} is not valid --> "
                             f"{col}"
                             + "{"
@@ -269,10 +260,10 @@ def check_pars_format(logging, current_JSON):
             "valid according to the model JSON structure. "
             "Please check the logs for details."
         )
-    logging.info("")
+    print()
 
 
-def get_ads_bibcode(logging, current_JSON) -> str:
+def get_ads_bibcode(current_JSON) -> str:
     """Get ADS bibcode from user input with validation."""
     print("\n📚 NASA/ADS Bibcode Required")
     print("Examples:")
@@ -302,18 +293,18 @@ def get_ads_bibcode(logging, current_JSON) -> str:
     SCIX_url = SCIX_root + ADS_bibcode
     for db, vals in current_JSON.items():
         if SCIX_url == vals["SCIX_url"]:
-            logging.info(f"The URL {SCIX_url}\nis already in the JSON file under: {db}")
+            print(f"The URL {SCIX_url}\nis already in the JSON file under: {db}")
             if input("Move on? (y/n): ").lower() != "y":
                 sys.exit(0)
 
     return ADS_bibcode
 
 
-def get_ADS_data(logging, ADS_bibcode: str) -> tuple[str, str, str, str]:
+def get_ADS_data(ADS_bibcode: str) -> tuple[str, str, str, str]:
     """
     Fetch publication metadata from NASA/ADS using the provided bibcode.
     """
-    logging.info("Fetching NASA/ADS data...")
+    print("Fetching NASA/ADS data...")
 
     # ADS API endpoint for searching
     api_url = "https://api.adsabs.harvard.edu/v1/search/query"
@@ -360,15 +351,15 @@ def get_ADS_data(logging, ADS_bibcode: str) -> tuple[str, str, str, str]:
     else:
         raise ValueError(f"Failed to fetch data: {response.status_code}")
 
-    logging.info(
+    print(
         f"Extracted author ({authors}), year ({year}), citations ({citations}), and title:"
     )
-    logging.info(f"{title}")
+    print(f"{title}")
 
     return authors, year, title, citations
 
 
-def get_DB_name(logging, current_JSON: dict, authors: str, year: str) -> str:
+def get_DB_name(current_JSON: dict, authors: str, year: str) -> str:
     """
     Generate a unique database name based on the author's name and year.
     """
@@ -387,18 +378,18 @@ def get_DB_name(logging, current_JSON: dict, authors: str, year: str) -> str:
                 break
             i += 1
 
-    logging.info(f"New DB name obtained: {DB_name}")
+    print(f"New DB name obtained: {DB_name}")
 
     return DB_name
 
 
-def get_CDS_table(logging, ADS_bibcode: str) -> list:
+def get_CDS_table(ADS_bibcode: str) -> list:
     """Obtain the available tables from 'ADS_bibcode'"""
     # Use row_limit=1 to avoid downloading the entire tables
     viz = Vizier(row_limit=1)
     cat = viz.get_catalogs(ADS_bibcode)  # pyright: ignore
     if len(cat) == 0:
-        logging.info(f"Could not extract data from {ADS_bibcode}")
+        print(f"Could not extract data from {ADS_bibcode}")
         if input("Supply manual Vizier ID(s) instead? (y/n): ") == "y":
             vizier_ID = input("Input Vizier ID (e.g.: J/PAZh/38/571): ").strip()
             vizier_ID = vizier_ID.replace(
@@ -406,19 +397,19 @@ def get_CDS_table(logging, ADS_bibcode: str) -> list:
             )
             cat = viz.get_catalogs(vizier_ID)  # pyright: ignore
             if len(cat) == 0:
-                logging.info(f"Could not extract data from {vizier_ID}")
+                print(f"Could not extract data from {vizier_ID}")
                 return []
         else:
             return []
 
     # Print info to screen
-    logging.info(
+    print(
         f"\nFull url: https://vizier.cds.unistra.fr/viz-bin/VizieR?-source={ADS_bibcode}\n"
     )
     rows = cat.__str__().split("\n")
-    logging.info(rows[0].strip())
+    print(rows[0].strip())
     for i, row in enumerate(rows[1:]):
-        logging.info(
+        print(
             f"{i}: " + cat[i].meta["description"] + " : " + row.split("and")[0].strip()
         )
 
@@ -435,14 +426,14 @@ def get_CDS_table(logging, ADS_bibcode: str) -> list:
                 table_url = [cat.keys()[_] for _ in tab_idx]
                 break
             else:
-                logging.info("Invalid input")
+                print("Invalid input")
         except ValueError:
-            logging.info("Invalid input")
+            print("Invalid input")
 
     return table_url
 
 
-def get_DB_from_Vizier(logging, table_url: list) -> list | None:
+def get_DB_from_Vizier(table_url: list) -> list | None:
     """
     Retrieve a database from Vizier and convert it to a pandas DataFrame.
 
@@ -464,7 +455,7 @@ def get_DB_from_Vizier(logging, table_url: list) -> list | None:
                 # Convert to pandas before storing
                 df_all.append(cat.values()[0].to_pandas())
             except Exception as e:  # noqa: BLE001
-                logging.info(f"Could not extract the data from {turl}\n{e!s}")
+                print(f"Could not extract the data from {turl}\n{e!s}")
 
     return df_all
 
@@ -505,7 +496,7 @@ def save_DB_CSV(temp_CSV_file, df_all):
         )
 
 
-def fetch_vizier_data(logging, temp_database_folder, ADS_bibcode, DB_name):
+def fetch_vizier_data(temp_database_folder, ADS_bibcode, DB_name):
     """
     Fetch Vizier data for the given ADS bibcode. If a temporary CSV file exists,
     prompt the user to load it or download new data. Save the database(s) to CSV
@@ -522,14 +513,14 @@ def fetch_vizier_data(logging, temp_database_folder, ADS_bibcode, DB_name):
 
     if quest == "y":
         df_all = [pd.read_csv(temp_CSV_file)]
-        logging.info("Vizier CSV file loaded from file")
+        print("Vizier CSV file loaded from file")
     else:
-        table_url = get_CDS_table(logging, ADS_bibcode)
-        df_all = get_DB_from_Vizier(logging, table_url)
+        table_url = get_CDS_table(ADS_bibcode)
+        df_all = get_DB_from_Vizier(table_url)
         if df_all is not None:
             # Save the database(s) to a CSV file(s)
             save_DB_CSV(temp_CSV_file, df_all)
-            logging.info(f"New DB csv file(s) stored {temp_CSV_file}\n")
+            print(f"New DB csv file(s) stored {temp_CSV_file}\n")
             vizier_url = (
                 f"https://vizier.cds.unistra.fr/viz-bin/VizieR?-source={ADS_bibcode}"
             )
@@ -686,7 +677,7 @@ def _find_err_cols(col, cols_lower):
     return None
 
 
-def _types_match(logging, df, types_info, title, max_unique=20):
+def _types_match(df, types_info, title, max_unique=20):
     """
     Auto-detect the column (if any) that identifies embedded clusters.
 
@@ -713,16 +704,16 @@ def _types_match(logging, df, types_info, title, max_unique=20):
             if score > best_score:
                 best, best_score = (str(col), sorted(hits)), score
         elif name_score >= 0.99:
-            logging.info(
+            print(
                 f"Column '{col}' may identify embedded clusters, but contains no "
                 + f"known EC ids. Unique values: {sorted(uniq)}"
             )
 
     if best is not None:
         types["col_name"], types["ec_id"] = best
-        logging.info(f"Embedded clusters column detected: {types}")
+        print(f"Embedded clusters column detected: {types}")
     elif "embedded" in title.lower():
-        logging.info(
+        print(
             "No embedded clusters column found but the title mentions 'embedded'. "
             + 'If all entries are ECs use: "types": {"col_name": "ALL", ...}'
         )
@@ -730,9 +721,7 @@ def _types_match(logging, df, types_info, title, max_unique=20):
     return types
 
 
-def new_DB_columns_match(
-    logging, known_cols, types_info, df_all, title="", ratio_min=0.8
-):
+def new_DB_columns_match(known_cols, types_info, df_all, title="", ratio_min=0.8):
     """
     Match columns in the new database with the current JSON structure.
 
@@ -760,7 +749,7 @@ def new_DB_columns_match(
 
     df = df_all[0]
     if len(df_all) > 1:
-        logging.info(f"Tables downloaded: {len(df_all)}")
+        print(f"Tables downloaded: {len(df_all)}")
         while True:
             tab_idx = input("Index of table used to obtain column names: ")
             try:
@@ -768,14 +757,14 @@ def new_DB_columns_match(
                 if tab_idx >= 0 and tab_idx < len(df_all):
                     break
                 else:
-                    logging.info("Invalid input")
+                    print("Invalid input")
             except ValueError:
-                logging.info("Invalid input")
+                print("Invalid input")
         df = df_all[tab_idx]
     df = df.rename(columns=str)
 
     # 1. Embedded clusters column
-    types = _types_match(logging, df, types_info, title)
+    types = _types_match(df, types_info, title)
 
     cols = list(df.columns)
     match_cols = [
@@ -830,14 +819,14 @@ def new_DB_columns_match(
         col_match["e_" + key] = (e_cols, "e" + fmt)
         used_cols.update(e_cols if isinstance(e_cols, list) else [e_cols])
 
-    logging.info("Columns matched (score):")
+    print("Columns matched (score):")
     for key, (col, fmt) in col_match.items():
         fmt_str = f" [{fmt}]" if fmt else ""
-        logging.info(f"  {key:<12} -> {col}{fmt_str} ({scores.get(key, 1.0):.2f})")
+        print(f"  {key:<12} -> {col}{fmt_str} ({scores.get(key, 1.0):.2f})")
 
     no_match_cols = [_ for _ in cols if _ not in used_cols and _ != types["col_name"]]
-    logging.info(f"Columns in new DB with no match:\n  {no_match_cols}")
-    logging.info("Column names for temp JSON file extracted")
+    print(f"Columns in new DB with no match:\n  {no_match_cols}")
+    print("Column names for temp JSON file extracted")
 
     return col_match, types
 

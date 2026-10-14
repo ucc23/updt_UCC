@@ -163,7 +163,6 @@ cython_debug/
 *.code-workspace
 
 *sublime*
-logs/*
 OLD/*
 data/ucc_archived_nogit/*
 data/aladin_tiles_nogit/

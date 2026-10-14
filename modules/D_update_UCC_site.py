@@ -12,13 +12,13 @@ import numpy as np
 import pandas as pd
 
 from .D_funcs import ucc_entry, ucc_plots, ucc_summ_cmmts, ucc_updt_tables
-from .utils import comments_check, get_fnames, load_BC_cats, logger, members_hashes
+from .utils import comments_check, get_fnames, load_BC_cats, members_hashes
 from .variables import (
+    N_plot_workers,
     UCC_cat_B_out,
     UCC_cat_C_out,
     UCC_cat_D_in,
     UCC_cmmts_folder,
-    N_plot_workers,
     UCC_members_file,
     aladin_cols,
     all_OC_names,
@@ -53,7 +53,6 @@ def main():
     """
     Main function to update the UCC site with new data and visualizations.
     """
-    logging = logger()
 
     # Read paths
     (
@@ -71,7 +70,7 @@ def main():
         ucc_dbs_tables_path,
         ucc_cmmts_tables_path,
         new_clusters_csv_path,
-    ) = load_paths(logging)
+    ) = load_paths()
 
     # Load required files
     (
@@ -86,7 +85,6 @@ def main():
         database_md,
         articles_md,
     ) = load_data(
-        logging,
         ucc_B_file_out,
         ucc_C_file_out,
         zenodo_members_file,
@@ -113,7 +111,6 @@ def main():
         == "y"
     ):
         fnames_processed, aladin_generated = updt_ucc_cluster_plots(
-            logging,
             df_BC,
             fnames_plots_updt,
             df_members,
@@ -122,18 +119,17 @@ def main():
         )
         N_total = len(fnames_processed)
         if N_total > 0:
-            logging.info(f"\n{N_total} OCs processed")
+            print(f"\n{N_total} OCs processed")
         else:
-            logging.info("No plots were generated/updated")
+            print("No plots were generated/updated")
         N_missing = len(fnames_plots_updt - set(fnames_processed))
         if N_missing > 0:
-            logging.info(
+            print(
                 f"\nWARNING: {N_missing} OCs "
                 "were not processed in the plot update/generate step."
             )
     # Record the members used for the plots that will be moved to the site
     updt_plots_record(
-        logging,
         fnames_plots_updt,
         df_hash_old,
         df_hash_curr,
@@ -149,7 +145,6 @@ def main():
     # Update per cluster md files
     if input("\nUpdate md files ? (y/n): ").lower() == "y":
         updt_ucc_cluster_files(
-            logging,
             ucc_entries_path,
             temp_entries_path,
             DBs_full_data,
@@ -164,7 +159,6 @@ def main():
     if input("\nUpdate per-article tables? (y/n): ").lower() == "y":
         # Update tables files
         updt_indiv_tables(
-            logging,
             temp_dbs_tables_path,
             temp_cmmts_tables_path,
             ucc_dbs_tables_path,
@@ -176,12 +170,11 @@ def main():
 
     if input("\nUpdate UCC plots, pages & tables? (y/n): ").lower() == "y":
         # Update site-wide plots
-        make_site_plots(logging, temp_image_path, df_BC)
+        make_site_plots(temp_image_path, df_BC)
         # Update main .md files
         N_fpars = count_fpars(df_BC)
         N_members_UCC = len(df_members)
         update_main_pages(
-            logging,
             N_fpars,
             N_members_UCC,
             DBs_JSON,
@@ -195,30 +188,27 @@ def main():
     ###########################################
     # Update assets
     if input("\nUpdate equatorial positions JSON file? (y/n): ").lower() == "y":
-        updt_eq_positions(logging, df_BC, DBs_JSON, DBs_full_data)
+        updt_eq_positions(df_BC, DBs_JSON, DBs_full_data)
 
     if input("\nUpdate split member files? (y/n): ").lower() == "y":
         updt_members_files(df_BC, df_members, temp_members_files_folder)
 
     if input("\nUpdate clusters CSV file? (y/n): ").lower() == "y":
-        updt_cls_CSV(logging, new_clusters_csv_path, df_BC.copy())
+        updt_cls_CSV(new_clusters_csv_path, df_BC.copy())
     ###########################################
 
     if input("\nMove files to their final destination? (y/n): ").lower() == "y":
         move_files(
-            logging,
             plots_record_path,
             temp_plots_record_path,
         )
 
     # Check number of files
-    file_checker(logging, df_BC)
-    logging.info("\nAll done!")
+    file_checker(df_BC)
+    print("\nAll done!")
 
 
-def load_paths(
-    logging,
-) -> tuple[
+def load_paths() -> tuple[
     Path,
     Path,
     Path,
@@ -262,7 +252,7 @@ def load_paths(
             else:
                 plots_fold_exist = True
     if plots_fold_exist:
-        logging.info(
+        print(
             f"At least one folder exists: {temp_folder_p / (plots_folder + 'plots_*/')}"
         )
 
@@ -270,7 +260,7 @@ def load_paths(
         existed = path.exists()
         path.mkdir(parents=True, exist_ok=True)
         if existed:
-            logging.info(f"Folder exists: {path}")
+            print(f"Folder exists: {path}")
 
     temp_data_folder = temp_folder_p / data_folder
     temp_entries_path = temp_folder_p / md_folder
@@ -306,7 +296,7 @@ def load_paths(
             f"File listed in '{clusters_manifest_path}' not found in {ucc_assets}"
         )
     if stale:
-        logging.info(
+        print(
             f"Stale '{clusters_csv_path}' files in {ucc_assets} (will be removed "
             + f"when moving files): {', '.join(stale)}"
         )
@@ -352,7 +342,6 @@ def clusters_csv_files(assets_path: str) -> tuple[str | None, list[str]]:
 
 
 def load_data(
-    logging,
     ucc_B_file_out,
     ucc_C_file_out,
     zenodo_members_file,
@@ -377,7 +366,7 @@ def load_data(
     df_members = pd.read_parquet(zenodo_members_file)
     # Entries whose plots need to be generated/updated
     fnames_plots_updt, df_hash_old, df_hash_curr = get_fnames_plots_updt(
-        logging, df_members, plots_record_path
+        df_members, plots_record_path
     )
 
     # Load current CSV data files
@@ -386,9 +375,9 @@ def load_data(
     # Add columns to B cat
     df_UCC_B[["fnames", "Names"]] = all_names[["fnames", "Names"]]
 
-    logging.info(f"\nFile {ucc_B_file_out} loaded ({len(df_UCC_B)} entries)")
+    print(f"\nFile {ucc_B_file_out} loaded ({len(df_UCC_B)} entries)")
     df_UCC_C = load_BC_cats("C", ucc_C_file_out)
-    logging.info(f"File {ucc_C_file_out} loaded ({len(df_UCC_C)} entries)")
+    print(f"File {ucc_C_file_out} loaded ({len(df_UCC_C)} entries)")
 
     # Check B and C alignment
     if df_UCC_B["fname"].to_list() == df_UCC_C["fname"].to_list() is False:
@@ -461,13 +450,13 @@ def load_data(
                 fnames_orig_names[fname0].append(orig_name)
 
         if len(multiple_names_check) > 0:
-            logging.warning(
+            print(
                 f"\nWARNING: Multiple UCC names found for the same cluster in {DB_id}"
             )
-            logging.warning("[DB cmmt entry] --> [multiple names in all_names]")
+            print("[DB cmmt entry] --> [multiple names in all_names]")
             for names_db, names_all in multiple_names_check:
-                logging.warning(f"{names_db} --> {names_all}")
-            logging.warning("\nUsing the first  canonical fname")
+                print(f"{names_db} --> {names_all}")
+            print("\nUsing the first  canonical fname")
 
         cmmts_JSONS_dict[DB_id] = {
             "art_name": DBs_JSON[DB_id]["authors"],
@@ -520,7 +509,7 @@ def load_data(
 
 
 def get_fnames_plots_updt(
-    logging, df_members: pd.DataFrame, plots_record_file: Path
+    df_members: pd.DataFrame, plots_record_file: Path
 ) -> tuple[set, pd.DataFrame, pd.DataFrame]:
     """
     Compare the hashes of the current members with those stored in
@@ -551,18 +540,14 @@ def get_fnames_plots_updt(
             # Assume all the plots in the site are up to date
             ref_txt = "current members file (no record or archived file found)"
             df_hash_old = members_hashes(df_members)
-        logging.info(
-            f"\nWARNING: file '{plots_record_file}' not found, using '{ref_txt}'"
-        )
+        print(f"\nWARNING: file '{plots_record_file}' not found, using '{ref_txt}'")
 
     df_hash_curr = members_hashes(df_members)
     df_m = df_hash_curr.merge(df_hash_old, on="name", how="left", suffixes=("", "_old"))
     msk = (df_m["N_membs"] != df_m["N_membs_old"]) | (df_m["hash"] != df_m["hash_old"])
     fnames_updt = set(df_m.loc[msk, "name"])
 
-    logging.info(
-        f"\n{len(fnames_updt)} entries with new/changed members vs '{ref_txt}'"
-    )
+    print(f"\n{len(fnames_updt)} entries with new/changed members vs '{ref_txt}'")
     return fnames_updt, df_hash_old, df_hash_curr
 
 
@@ -582,7 +567,6 @@ def aladin_temp_path(fname: str) -> Path:
 
 
 def updt_plots_record(
-    logging,
     fnames_plots_updt: set,
     df_hash_old: pd.DataFrame,
     df_hash_curr: pd.DataFrame,
@@ -644,14 +628,13 @@ def updt_plots_record(
             return
 
     df_hash_new.to_csv(temp_plots_record_file, index=False)
-    logging.info(
+    print(
         f"\nPlots record file '{temp_plots_record_file}' generated "
         f"({len(pending)} flagged entries still without plots)"
     )
 
 
 def updt_ucc_cluster_plots(
-    logging,
     df_BC,
     fnames_plots_updt,
     df_members,
@@ -680,7 +663,7 @@ def updt_ucc_cluster_plots(
     overwrite_temp = (
         input("\nOverwrite stored temp plots? (y/n): ").strip().lower() == "y"
     )
-    logging.info("\nGenerating plot files")
+    print("\nGenerating plot files")
 
     # Velocities used for GC plot
     vx, vy, vz, vR = ucc_plots.velocity(
@@ -746,7 +729,6 @@ def updt_ucc_cluster_plots(
                 generate_aladin = not temp_exists or overwrite_temp is True
         if generate_aladin:
             ucc_plots.plot_aladin(
-                logging,
                 UCC_cl["RA_ICRS_m"],
                 UCC_cl["DE_ICRS_m"],
                 UCC_cl["r_50"],
@@ -793,16 +775,16 @@ def updt_ucc_cluster_plots(
                 futures[fut] = (fname0, i_ucc)
 
         if txt != "":
-            logging.info(f"{fname0} -->" + txt + f" ({i_ucc})")
+            print(f"{fname0} -->" + txt + f" ({i_ucc})")
             fnames_processed.add(fname0)
 
     # Wait for the GC and CMD plots
     if futures:
-        logging.info(f"\nWaiting for {len(futures)} GC/CMD plot jobs")
+        print(f"\nWaiting for {len(futures)} GC/CMD plot jobs")
     try:
         for fut in as_completed(futures):
             fname0, i_ucc = futures[fut]
-            logging.info(f"{fname0} -->" + fut.result() + f" ({i_ucc})")
+            print(f"{fname0} -->" + fut.result() + f" ({i_ucc})")
             fnames_processed.add(fname0)
     finally:
         executor.shutdown(cancel_futures=True)
@@ -853,7 +835,6 @@ def UTI_to_hex(df_UCC):
 
 
 def updt_ucc_cluster_files(
-    logging,
     ucc_entries_path,
     temp_entries_path,
     DBs_full_data,
@@ -864,7 +845,7 @@ def updt_ucc_cluster_files(
     """
     Generate/update markdown files for each cluster in the UCC database.
     """
-    logging.info("\nGenerating md files")
+    print("\nGenerating md files")
 
     # Pre-process the data used by every entry, to avoid slow per-entry lookups
     DBs_pos = ucc_entry.pos_columns(DBs_JSON, DBs_full_data)
@@ -936,27 +917,14 @@ def updt_ucc_cluster_files(
                 f.write(new_md_entry)
             N_total += 1
             if N_total < 1000:
-                logging.info(f"{N_total} -> {fname0}: " + txt + f" ({i_ucc})")
+                print(f"{N_total} -> {fname0}: " + txt + f" ({i_ucc})")
             elif N_total == 1000:
-                logging.info("updating more files...")
+                print("updating more files...")
 
-    logging.info(f"\nN={N_total} OCs processed")
-
-    # # Delete all files in folder2 and move all files from folder1 to folder2
-    # folder1 = "/home/gabriel/Github/UCC/updt_UCC/temp_updt/ucc/_clusters"
-    # folder2 = "/home/gabriel/Github/UCC/ucc/_clusters2"
-    # for file in os.listdir(folder2):
-    #     file_path = os.path.join(folder2, file)
-    #     os.remove(file_path)
-    # for file in os.listdir(folder1):
-    #     file_path = os.path.join(folder1, file)
-    #     new_file_path = os.path.join(folder2, file)
-    #     os.rename(file_path, new_file_path)
-    # print("\nAll files moved")
-    # breakpoint()
+    print(f"\nN={N_total} OCs processed")
 
 
-def updt_eq_positions(logging, df_BC, DBs_JSON, DBs_full_data):
+def updt_eq_positions(df_BC, DBs_JSON, DBs_full_data):
     """
     Generate the gzipped JSON file with the (RA, DEC) positions given by each article
     for every cluster in the UCC. Same data used in the 'Astrometry' table.
@@ -1007,13 +975,13 @@ def updt_eq_positions(logging, df_BC, DBs_JSON, DBs_full_data):
         old_eq_positions = None
 
     if eq_positions == old_eq_positions:
-        logging.info(f"File '{eq_positions_path}' not updated (no changes)")
+        print(f"File '{eq_positions_path}' not updated (no changes)")
         return
 
     data = json.dumps(eq_positions, separators=(",", ":")).encode()
     with open(temp_folder + assets_folder + eq_positions_path, "wb") as f:
         f.write(gzip.compress(data, mtime=0))
-    logging.info(f"File '{eq_positions_path}' updated")
+    print(f"File '{eq_positions_path}' updated")
 
 
 def write_bin(args):
@@ -1046,7 +1014,6 @@ def updt_members_files(df_ucc, df_membs, temp_members_files_folder):
 
 
 def updt_cls_CSV(
-    logging,
     new_clusters_csv_path: str,
     df_BC: pd.DataFrame,
 ) -> None:
@@ -1131,25 +1098,25 @@ def updt_cls_CSV(
     manifest_data["latest"] = new_clusters_csv_path
     with open(temp_folder + assets_folder + clusters_manifest_path, "w") as f:
         json.dump(manifest_data, f, indent=2)
-    logging.info(f"File '{new_clusters_csv_path}' updated")
+    print(f"File '{new_clusters_csv_path}' updated")
 
 
-def make_site_plots(logging, temp_image_path, df_BC):
+def make_site_plots(temp_image_path, df_BC):
     """
     Generate site-wide plots for the UCC database.
     """
     ucc_plots.make_N_vs_year_plot(temp_image_path / "catalogued_ocs.webp", df_BC)
-    logging.info("Plot generated: number of OCs vs years")
+    print("Plot generated: number of OCs vs years")
 
     # Count number of OCs in each class
     OCs_per_class = ucc_updt_tables.count_OCs_classes(df_BC["C3"], class_order)
     ucc_plots.make_classif_plot(
         temp_image_path / "classif_bar.webp", OCs_per_class, class_order
     )
-    logging.info("Plot generated: classification histogram")
+    print("Plot generated: classification histogram")
 
     ucc_plots.make_UTI_plot(temp_image_path / "UTI_values.webp", df_BC["UTI"])
-    logging.info("Plot generated: UTI histogram")
+    print("Plot generated: UTI histogram")
 
 
 def count_fpars(df):
@@ -1181,7 +1148,6 @@ def count_fpars(df):
 
 
 def updt_indiv_tables(
-    logging,
     temp_dbs_tables_path,
     temp_cmmts_tables_path,
     ucc_dbs_tables_path,
@@ -1224,7 +1190,6 @@ def updt_indiv_tables(
 
     # Update/generate files with tables for individual databases
     ucc_updt_tables.general_table_update(
-        logging,
         ucc_dbs_tables_path,
         ucc_cmmts_tables_path,
         temp_dbs_tables_path,
@@ -1234,7 +1199,6 @@ def updt_indiv_tables(
 
 
 def update_main_pages(
-    logging,
     N_fpars,
     N_members_UCC,
     current_JSON,
@@ -1244,19 +1208,19 @@ def update_main_pages(
     temp_cmmts_tables_path,
 ):
     """Update main .md files"""
-    logging.info("\nUpdating main .md files")
+    print("\nUpdating main .md files")
     N_updt = 0
 
     # Update DATABASE
     N_db_UCC, N_cl_UCC = len(current_JSON), len(df_UCC)
     # Update the total number of entries, databases, and members in the UCC
     database_md_updt = ucc_updt_tables.ucc_n_total_updt(
-        logging, N_db_UCC, N_cl_UCC, N_fpars, N_members_UCC, database_md
+        N_db_UCC, N_cl_UCC, N_fpars, N_members_UCC, database_md
     )
     if database_md != database_md_updt:
         with open(temp_folder + databases_md_path, "w") as file:
             file.write(database_md_updt)
-        logging.info("DATABASE.md updated")
+        print("DATABASE.md updated")
         N_updt += 1
 
     N_in_DB, N_cmmts_dict = ucc_updt_tables.count_OCs_in_tables(
@@ -1270,15 +1234,14 @@ def update_main_pages(
     if articles_md != articles_md_updt:
         with open(temp_folder + articles_md_path, "w") as file:
             file.write(articles_md_updt)
-        logging.info("ARTICLES.md updated")
+        print("ARTICLES.md updated")
         N_updt += 1
 
     if N_updt == 0:
-        logging.info("No tables updated (DATABASE, ARTICLES)")
+        print("No tables updated (DATABASE, ARTICLES)")
 
 
 def move_files(
-    logging,
     plots_record_path: Path,
     temp_plots_record_path: Path,
 ) -> None:
@@ -1335,11 +1298,11 @@ def move_files(
             planned_actions.append(("move", src, dst))
 
     if not planned_actions:
-        logging.info("\nNo operations to apply.")
+        print("\nNo operations to apply.")
         return
 
     # --- Show planned actions ---
-    logging.info("\nPlanned actions:")
+    print("\nPlanned actions:")
 
     # Extract actions related to '_clusters', 'plots', and 'members' separately
     cluster_actions = [a for a in planned_actions if "_clusters" in str(a[2])]
@@ -1354,40 +1317,38 @@ def move_files(
     ]
     for action, src, dst in other_actions:
         if action == "move":
-            logging.info(f"  MOVE     {src} -> {dst}")
+            print(f"  MOVE     {src} -> {dst}")
         elif action == "replace":
-            logging.info(f"  REPLACE  {src} -> {dst}")
+            print(f"  REPLACE  {src} -> {dst}")
         elif action == "delete":
-            logging.info(f"  DELETE   {src}")
+            print(f"  DELETE   {src}")
 
     if len(cluster_actions) > 100:
-        logging.info(
+        print(
             f"  MOVE     {len(cluster_actions)} '_clusters/*.md' files will be updated"
         )
     else:
         for action, src, dst in cluster_actions:
-            logging.info(f"  MOVE     {src} -> {dst}")
+            print(f"  MOVE     {src} -> {dst}")
     if len(plot_actions) > 100:
-        logging.info(f"  MOVE     {len(plot_actions)} 'plots/*' files will be updated")
+        print(f"  MOVE     {len(plot_actions)} 'plots/*' files will be updated")
     else:
         for action, src, dst in plot_actions:
-            logging.info(f"  MOVE     {src} -> {dst}")
+            print(f"  MOVE     {src} -> {dst}")
     if len(members_actions) > 0:
-        logging.info(
-            f"  MOVE     {len(members_actions)} 'members/*' files will be updated"
-        )
+        print(f"  MOVE     {len(members_actions)} 'members/*' files will be updated")
 
     # --- Ask for confirmation ---
     resp = input("\nProceed with these actions? [y/N]: ").strip().lower()
     if resp != "y":
-        logging.info("Operation cancelled by user. No changes applied.")
+        print("Operation cancelled by user. No changes applied.")
         return
 
     # --- Apply actions ---
-    logging.info("\nApplying actions:")
+    print("\nApplying actions:")
 
     if cluster_actions:
-        logging.info(
+        print(
             f"_temp_updt/ucc/clusters/*.md -> ucc/_clusters/*.md ({len(cluster_actions)} files)"
         )
 
@@ -1401,33 +1362,32 @@ def move_files(
             elif "members" in str(dst):
                 members_actions += 1
             else:
-                logging.info(f"{src} -> {dst}")
+                print(f"{src} -> {dst}")
         elif action == "replace":
             os.replace(src, dst)
-            logging.info(f"{src} -> {dst}")
+            print(f"{src} -> {dst}")
         elif action == "delete":
             os.remove(src)
-            logging.info(f"Deleted: {src}")
+            print(f"Deleted: {src}")
 
     if members_actions > 0:
-        logging.info(f"{members_actions} 'members/*' files updated")
+        print(f"{members_actions} 'members/*' files updated")
 
     if len(clusters_plots_actions) > 100:
-        logging.info(
+        print(
             f"{len(clusters_plots_actions)} files in '_clusters/*.md' and 'plots/*' updated"
         )
     else:
         for action in clusters_plots_actions:
-            logging.info(action)
+            print(action)
 
-    logging.info("\nAll files moved into place")
+    print("\nAll files moved into place")
 
 
-def file_checker(logging, df_BC: pd.DataFrame) -> None:
+def file_checker(df_BC: pd.DataFrame) -> None:
     """Check the number and types of files in directories for consistency.
 
     Parameters:
-    - logging: Logger instance for recording messages.
 
     Returns:
     - None
@@ -1441,7 +1401,7 @@ def file_checker(logging, df_BC: pd.DataFrame) -> None:
     dbs_plots_folders["HUNT23"] = dbs_plots_folders.pop("HUNT2023")
     dbs_plots_folders["CANTAT20"] = dbs_plots_folders.pop("CANTAT2020")
 
-    logging.info("\nChecking files")
+    print("\nChecking files")
     # Read stored final version
     df_UCC_C = pd.read_csv(data_folder + UCC_cat_C_out, usecols=["fname"])
     flag_error = False
@@ -1454,13 +1414,13 @@ def file_checker(logging, df_BC: pd.DataFrame) -> None:
     # Print to screen which elements are different in both lists
     for f in md_fnames:
         if f not in df_UCC_fname:
-            logging.warning(f"{f} (.md) not in UCC catalog")
+            print(f"{f} (.md) not in UCC catalog")
             flag_error = True
     for f in df_UCC_fname:
         if f not in md_fnames:
-            logging.warning(f"{f} (UCC) not in md files")
+            print(f"{f} (UCC) not in md files")
             flag_error = True
-    logging.info("")
+    print()
 
     # Check that all plots match the elements in df_UCC_fname
     for letter in "abcdefghijklmnopqrstuvwxyz":
@@ -1472,11 +1432,11 @@ def file_checker(logging, df_BC: pd.DataFrame) -> None:
                 subf_webp = [_[:-5] for _ in os.listdir(letter_fold)]
                 for f in subf_webp:
                     if f not in ucc_webp:
-                        logging.warning(f"{fold}/{f}.webp not in UCC catalog")
+                        print(f"{fold}/{f}.webp not in UCC catalog")
                         flag_error = True
                 for f in ucc_webp:
                     if f not in subf_webp:
-                        logging.warning(f"{f}(.webp) not in {fold} folder")
+                        print(f"{f}(.webp) not in {fold} folder")
                         flag_error = True
 
     missing_plots_h23_c20 = []
@@ -1488,31 +1448,25 @@ def file_checker(logging, df_BC: pd.DataFrame) -> None:
                 missing_plots_h23_c20.append(f"{fname_path} not found")
     if missing_plots_h23_c20:
         flag_error = True
-        logging.warning(
-            "WARNING: some plots from the original databases were not found\n"
-        )
+        print("WARNING: some plots from the original databases were not found\n")
         for t in missing_plots_h23_c20:
-            logging.warning(t)
+            print(t)
 
     # Check that the only clusters CSV file is the one listed in the manifest
     ucc_assets = root_ucc_path + assets_folder
     latest, stale = clusters_csv_files(ucc_assets)
     if latest is None:
-        logging.warning(
-            f"File listed in '{clusters_manifest_path}' not found in {ucc_assets}"
-        )
+        print(f"File listed in '{clusters_manifest_path}' not found in {ucc_assets}")
         flag_error = True
     if stale:
-        logging.warning(
-            f"Stale '{clusters_csv_path}' files in {ucc_assets}: {', '.join(stale)}"
-        )
+        print(f"Stale '{clusters_csv_path}' files in {ucc_assets}: {', '.join(stale)}")
         flag_error = True
 
     if flag_error:
         print("\n\n")
         raise ValueError("\nERRORS WERE DETECTED associated to the files")
 
-    logging.warning("All checks passed\n")
+    print("All checks passed\n")
 
 
 if __name__ == "__main__":

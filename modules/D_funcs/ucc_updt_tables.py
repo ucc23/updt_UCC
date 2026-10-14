@@ -292,7 +292,6 @@ def generate_table(header, DB_id, ref_url, table_rows, table_note):
 
 
 def general_table_update(
-    logging,
     root_path_db: Path,
     root_path_cmmts: Path,
     temp_path_db: Path,
@@ -317,9 +316,9 @@ def general_table_update(
 
             if old_table != new_table:
                 dst.write_text(new_table)
-                logging.info(f"Table {DB_id} {'updated' if old_table else 'generated'}")
+                print(f"Table {DB_id} {'updated' if old_table else 'generated'}")
                 N_tot += 1
-    logging.info(f"{N_tot} tables updated/generated")
+    print(f"{N_tot} tables updated/generated")
 
 
 def count_OCs_classes(C3, class_order):
@@ -333,7 +332,7 @@ def count_OCs_classes(C3, class_order):
     return OCs_per_class
 
 
-def ucc_n_total_updt(logging, N_db_UCC, N_cl_UCC, N_fpars, N_members_UCC, database_md):
+def ucc_n_total_updt(N_db_UCC, N_cl_UCC, N_fpars, N_members_UCC, database_md):
     """Update the total number of entries and databases in the UCC"""
     delimiter_a = "<!-- ND1 -->"
     delimiter_b = "<!-- ND2 -->"
@@ -364,6 +363,6 @@ def ucc_n_total_updt(logging, N_db_UCC, N_cl_UCC, N_fpars, N_members_UCC, databa
     )
 
     if database_md_updt != database_md:
-        logging.info("\nNumber of DBS, OCs and members in the UCC updated")
+        print("\nNumber of DBS, OCs and members in the UCC updated")
 
     return database_md_updt

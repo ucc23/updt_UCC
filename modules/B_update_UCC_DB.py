@@ -13,7 +13,6 @@ from .utils import (
     diff_between_dfs,
     get_fnames,
     load_BC_cats,
-    logger,
     normalize_name,
     prune_archive,
     radec2lonlat,
@@ -52,7 +51,6 @@ def main():
     """
     Function to update the UCC (Unified Cluster Catalogue) with a new database.
     """
-    logging = logger()
 
     skip_check_flag = False
     if input("\nSkip check for non new DBs? (y/n): ").lower() == "y":
@@ -60,7 +58,7 @@ def main():
 
     # Generate paths and check for required folders and files
     temp_database_folder, temp_all_OC_names, df_UCC_B_path, temp_JSON_path = (
-        get_paths_check_paths(logging)
+        get_paths_check_paths()
     )
 
     (
@@ -74,10 +72,10 @@ def main():
         flag_interactive,
         all_names_old,
         all_names_dict,
-    ) = load_data(logging, df_UCC_B_path, temp_JSON_path, temp_database_folder)
+    ) = load_data(df_UCC_B_path, temp_JSON_path, temp_database_folder)
 
     for new_DB, (df_new, newDB_json) in all_dbs_data.items():
-        logging.info("\n" + "-" * 40 + f"\nAdding {new_DB} ({len(df_new)}) to the UCC")
+        print("\n" + "-" * 40 + f"\nAdding {new_DB} ({len(df_new)}) to the UCC")
 
         # Determine the level of checking to perform for this DB
         if new_DB in flag_interactive:
@@ -97,7 +95,7 @@ def main():
             # Wrap negative RA values to [0, 360)
             msk = df_new[ra_col] < 0
             if msk.any():
-                logging.info(
+                print(
                     f"\nFound {msk.sum()} entries with negative RA values. "
                     "Wrapping to [0, 360)"
                 )
@@ -113,7 +111,6 @@ def main():
         # Check the DB for basic requirements
         if flag_check_stop != "no_check":
             basic_new_DB_checks(
-                logging,
                 df_GCs,
                 gcs_fnames,
                 new_DB,
@@ -129,11 +126,11 @@ def main():
         )
 
         # Check that no fname is repeated across entries in the new DB
-        check_new_DB_fnames(logging, df_new, newDB_json, new_DB_fnames)
+        check_new_DB_fnames(df_new, newDB_json, new_DB_fnames)
 
         # Check uniqueness of fnames (fnames in new DB vs fnames in UCC so far)
         fnames_check_UCC_new_DB(
-            logging, df_UCC_B_new, all_names_dict, newDB_json, new_DB_fnames, df_new
+            df_UCC_B_new, all_names_dict, newDB_json, new_DB_fnames, df_new
         )
 
         # Match the new DB with the UCC
@@ -141,11 +138,10 @@ def main():
 
         if flag_check_stop != "no_check":
             # Report and check new entries (if any)
-            check_new_entries(logging, new_DB_fnames, db_matches, flag_check_stop)
+            check_new_entries(new_DB_fnames, db_matches, flag_check_stop)
 
             # Check positions in the DB vs the UCC
             check_positions(
-                logging,
                 df_UCC_B_new,
                 df_new,
                 new_DB_fnames,
@@ -161,7 +157,6 @@ def main():
 
         # Combine the new DB with the UCC
         df_UCC_B_new = combine_UCC_new_DB(
-            logging,
             selected_center_coords,
             new_DB,
             newDB_json,
@@ -172,22 +167,22 @@ def main():
             db_fscore,
         )
 
-    logging.info("\n\n\n===================================================")
-    logging.info("Merging of DBs completed\n")
-    logging.info(f"Old B file: {len(df_UCC_B_old)}")
-    logging.info(f"New B file: {len(df_UCC_B_new)}\n")
+    print("\n\n\n===================================================")
+    print("Merging of DBs completed\n")
+    print(f"Old B file: {len(df_UCC_B_old)}")
+    print(f"New B file: {len(df_UCC_B_new)}\n")
 
     df_UCC_B_new = sort_year_importance(new_JSON, df_UCC_B_new)
 
     # Add medians and STDDEVs of fundamental parameters
-    df_UCC_B_new = add_fpars_stats(logging, df_UCC_B_new)
+    df_UCC_B_new = add_fpars_stats(df_UCC_B_new)
 
     # Add Type column
     dbs_dfs = {DB: df_db for DB, (df_db, _) in all_dbs_data.items()}
     df_UCC_B_new = add_types(new_JSON, dbs_dfs, df_UCC_B_new)
 
     # Sanity check
-    sanity_check(logging, all_names_old, df_UCC_B_new)
+    sanity_check(all_names_old, df_UCC_B_new)
 
     # Generate new all_names and final df_UCC_B dataframes
     all_names_new, df_UCC_B_final = generate_dfs(df_UCC_B_new)
@@ -197,11 +192,10 @@ def main():
     all_names_final = add_lost_fnames(all_names_dict, all_names_new)
 
     # Compare final 'fnames' column with the old one to check for unexpected changes
-    final_fnames_compare(logging, all_names_old["fnames"], all_names_final["fnames"])
+    final_fnames_compare(all_names_old["fnames"], all_names_final["fnames"])
 
     # Check for differences between old and final files, update if any are found
     update_final_files(
-        logging,
         temp_all_OC_names,
         df_UCC_B_path,
         all_names_old,
@@ -211,7 +205,6 @@ def main():
     )
 
     move_files(
-        logging,
         df_UCC_B_path,
         df_UCC_B_old,
         new_JSON,
@@ -222,9 +215,7 @@ def main():
     )
 
 
-def get_paths_check_paths(
-    logging,
-) -> tuple[str, str, str, str]:
+def get_paths_check_paths() -> tuple[str, str, str, str]:
     """
     Generate paths for temporary files and check for required folders and files.
     """
@@ -238,9 +229,7 @@ def get_paths_check_paths(
     # last_version = get_last_version_UCC(data_folder)
     temp_merged_f = temp_folder + UCC_cat_B_out
     if os.path.isfile(temp_merged_f):
-        logging.warning(
-            f"WARNING: file {temp_merged_f} exists. Moving on will re-write it"
-        )
+        print(f"WARNING: file {temp_merged_f} exists. Moving on will re-write it")
         if input("Move on? (y/n): ").lower() != "y":
             sys.exit()
 
@@ -257,7 +246,6 @@ def get_paths_check_paths(
 
 
 def load_data(
-    logging,
     df_UCC_B_path: str,
     temp_JSON_path: str,
     temp_database_folder: str,
@@ -277,7 +265,7 @@ def load_data(
     Load necessary data for updating the UCC.
     """
     df_UCC_B_old = load_BC_cats("B", df_UCC_B_path)
-    logging.info(f"\nUCC version {df_UCC_B_path} loaded (N={len(df_UCC_B_old)})")
+    print(f"\nUCC version {df_UCC_B_path} loaded (N={len(df_UCC_B_old)})")
 
     # Empty dataframe
     df_UCC_B_new = pd.DataFrame(df_UCC_B_old[0:0])
@@ -295,7 +283,7 @@ def load_data(
     df_UCC_B_new["Names"] = ""
 
     # Load all_names and all_names_dict
-    all_names, all_names_dict = handle_all_names(logging)
+    all_names, all_names_dict = handle_all_names()
 
     # Load GCs data
     df_GCs = pd.read_csv(GCs_cat)
@@ -329,14 +317,14 @@ def load_data(
 
     # Load new temp JSON file
     if os.path.isfile(temp_JSON_path):
-        logging.info("\n=== Adding new DBs to the UCC ===\n")
+        print("\n=== Adding new DBs to the UCC ===\n")
         with open(temp_JSON_path) as f:
             temp_JSON = json.load(f)
         new_JSON = temp_JSON
         # Extract new DB's name(s)
         new_DBs = list(set(temp_JSON.keys()) - set(current_JSON.keys()))
     else:
-        logging.info("\n=== Rebuilding the UCC ===\n")
+        print("\n=== Rebuilding the UCC ===\n")
         new_JSON = current_JSON
         new_DBs = []
 
@@ -347,7 +335,7 @@ def load_data(
     # Load existing DBs
     for DB, vals in new_JSON.items():
         if vals["data_cmmts"] == "comments":
-            logging.info(f"Skipping {DB} (marked as 'comments' in JSON)")
+            print(f"Skipping {DB} (marked as 'comments' in JSON)")
             continue
         new_db_flag = ""
         if DB in new_DBs:
@@ -376,7 +364,7 @@ def load_data(
         if missing:
             raise ValueError(f"Missing columns in {DB}: {missing}")
 
-        logging.info(f"{DB} loaded (N={len(df_new)}) {new_db_flag}")
+        print(f"{DB} loaded (N={len(df_new)}) {new_db_flag}")
         all_dbs_data[DB] = [df_new, vals]
 
     # flag_interactive == new_DBs
@@ -394,7 +382,7 @@ def load_data(
     )
 
 
-def handle_all_names(logging, sep=";") -> tuple[pd.DataFrame, dict]:
+def handle_all_names(sep=";") -> tuple[pd.DataFrame, dict]:
     """
     Handle the all_OC_names file:
         - Load the all_OC_names file
@@ -412,27 +400,25 @@ def handle_all_names(logging, sep=";") -> tuple[pd.DataFrame, dict]:
         all_names["fnames"].str.contains(r"[^A-Za-z0-9;]", regex=True, na=False)
     ]
     if len(bad_idx) > 0:
-        logging.info(
+        print(
             f"\nFound {len(bad_idx)} entries with invalid characters in"
             + f" 'fnames' (only letters, numbers, and '{sep}' allowed):"
         )
         for idx in bad_idx:
-            logging.info(f"{idx}: {all_names.loc[idx, 'fnames']}")
+            print(f"{idx}: {all_names.loc[idx, 'fnames']}")
         sys.exit(1)
 
     # Check if sorted by the first fname
     all_names["fname0"] = all_names["fnames"].str.split(sep).str[0]
     if not all_names["fname0"].is_monotonic_increasing:
-        logging.info("\n'all_names' file is not sorted by the first fname")
+        print("\n'all_names' file is not sorted by the first fname")
         if input("Sort and store as temp file? (y/n): ").lower() == "y":
             all_names = (
                 all_names.sort_values(by="fname0")
                 .drop(columns="fname0")
                 .reset_index(drop=True)
             )
-            logging.info(
-                "Sorted all_names by the first fname. Manually update the file"
-            )
+            print("Sorted all_names by the first fname. Manually update the file")
             all_names.to_csv(temp_folder + all_OC_names, index=False)
         sys.exit(1)
 
@@ -467,9 +453,9 @@ def handle_all_names(logging, sep=";") -> tuple[pd.DataFrame, dict]:
     # Check for duplicates
     duplicates = check_duplicated_fnames(all_fnames_list)
     if duplicates:
-        logging.info(f"\nFound {len(duplicates)} duplicate fnames in 'all_names':")
+        print(f"\nFound {len(duplicates)} duplicate fnames in 'all_names':")
         for name, idxs in duplicates.items():
-            logging.info(f"{sorted(idxs)} --> '{name}'")
+            print(f"{sorted(idxs)} --> '{name}'")
         sys.exit(1)
 
     # Check that all fnames are equivalent to the normalized names
@@ -481,7 +467,6 @@ def handle_all_names(logging, sep=";") -> tuple[pd.DataFrame, dict]:
 
 
 def basic_new_DB_checks(
-    logging,
     df_GCs: pd.DataFrame,
     gcs_fnames: dict,
     new_DB: str,
@@ -522,35 +507,35 @@ def basic_new_DB_checks(
             all_bad_names.append(new_cl)
     N_bad_names = len(all_bad_names)
     if N_bad_names > 0:
-        logging.info(
+        print(
             f"\nFound {N_bad_names} entries with bad characters in names '(),[],;,*,/'"
         )
         for new_cl in all_bad_names:
-            logging.info(f"  {new_cl}")  # bad char found
+            print(f"  {new_cl}")  # bad char found
         if flag_check_stop == "check_stop":
             breakpoint()  # noqa: T100
 
     # Check for 'vdBergh-Hagen', 'vdBergh' OCs
-    if vdberg_check(logging, newDB_json, df_new) and flag_check_stop == "check_stop":
+    if vdberg_check(newDB_json, df_new) and flag_check_stop == "check_stop":
         breakpoint()  # noqa: T100
 
     # Check for OCs very close to each other in the new DB
     if (
         "RA" in newDB_json["pos"]
-        and close_OC_inner_check(logging, newDB_json, df_new, flag_check_stop)
+        and close_OC_inner_check(newDB_json, df_new, flag_check_stop)
         and flag_check_stop == "check_stop"
     ):
         breakpoint()  # noqa: T100
 
     # Check for close GCs
     if (
-        GCs_check(logging, df_GCs, gcs_fnames, newDB_json, df_new, new_DB_fnames)
+        GCs_check(df_GCs, gcs_fnames, newDB_json, df_new, new_DB_fnames)
         and flag_check_stop == "check_stop"
     ):
         breakpoint()  # noqa: T100
 
 
-def vdberg_check(logging, newDB_json: dict, df_new: pd.DataFrame) -> bool:
+def vdberg_check(newDB_json: dict, df_new: pd.DataFrame) -> bool:
     """
     Check for instances of 'vdBergh-Hagen' and 'vdBergh'
 
@@ -561,8 +546,6 @@ def vdberg_check(logging, newDB_json: dict, df_new: pd.DataFrame) -> bool:
 
     Parameters
     ----------
-    logging : logging.Logger
-        Logger object for outputting information.
     newDB_json : dict
         Dictionary with the parameters of the new database.
     df_new : pd.DataFrame
@@ -598,17 +581,16 @@ def vdberg_check(logging, newDB_json: dict, df_new: pd.DataFrame) -> bool:
     vdb_flag = False
     if len(vds_found) > 0:
         vdb_flag = True
-        logging.info(f"\nFound {len(vds_found)} entries that could need name editing")
-        logging.info("* BH ; vdBergh-Hagen --> VDBH")
-        logging.info("* vdBergh            --> VDB")
+        print(f"\nFound {len(vds_found)} entries that could need name editing")
+        print("* BH ; vdBergh-Hagen --> VDBH")
+        print("* vdBergh            --> VDB")
         for i, new_cl, name_check, sm_ratio in vds_found:
-            logging.info(f"{i}, {new_cl.strip()} --> {name_check} (P={sm_ratio:.2f})")
+            print(f"{i}, {new_cl.strip()} --> {name_check} (P={sm_ratio:.2f})")
 
     return vdb_flag
 
 
 def close_OC_inner_check(
-    logging,
     newDB_json: dict,
     df_new: pd.DataFrame,
     flag_check_stop: str,
@@ -621,8 +603,6 @@ def close_OC_inner_check(
 
     Parameters
     ----------
-    logging : logging.Logger
-        Logger object for outputting information.
     newDB_json : dict
         Dictionary with the parameters of the new database.
     df_new : pd.DataFrame
@@ -652,7 +632,6 @@ def close_OC_inner_check(
     ID_call = "inner"
 
     return close_OC_check(
-        logging,
         dist,
         db_matches,
         col_1,
@@ -665,7 +644,6 @@ def close_OC_inner_check(
 
 
 def close_OC_check(
-    logging,
     cls_dist,
     db_matches,
     col_1,
@@ -734,7 +712,7 @@ def close_OC_check(
             all_dists.append(min([float(_) for _ in dup[-2]]))
         i_sort = np.argsort(all_dists)
 
-        logging.info(f"\nFound {dups_found} probable {ID_call} duplicates")
+        print(f"\nFound {dups_found} probable {ID_call} duplicates")
         start = 0
         total = len(i_sort)
         while start < total:
@@ -749,13 +727,13 @@ def close_OC_check(
                         if item.strip()
                     }
                 )
-                logging.info(
+                print(
                     f"{i:<6} {cl_name.strip():<30} (N={N_inner_dups}) --> "
                     + f"{dups_unq:<30} | d={';'.join(dist)}, L={';'.join(L_ratios)}"
                 )
 
             if flag_check_stop != "check_stop":
-                logging.info(f"... (only first {N_max} entries shown)")
+                print(f"... (only first {N_max} entries shown)")
                 break
 
             start = end
@@ -768,7 +746,6 @@ def close_OC_check(
 
 
 def GCs_check(
-    logging,
     df_GCs: pd.DataFrame,
     gcs_fnames: dict,
     newDB_json: dict,
@@ -781,8 +758,6 @@ def GCs_check(
 
     Parameters
     ----------
-    logging : logging.Logger
-        Logger object for outputting information.
     df_GCs : pd.DataFrame
         GCs database.
     newDB_json : dict
@@ -865,10 +840,10 @@ def GCs_check(
         # Sort by distance
         gc_list.sort(key=lambda x: x[-1])
         gc_flag = True
-        logging.info(f"\nFound {GCs_found} probable GCs:")
+        print(f"\nFound {GCs_found} probable GCs:")
         for idx, row_id, idx_gc, df_gcs_name, d_arcmin in gc_list:
             row_id = row_id.strip()
-            logging.info(
+            print(
                 f"{idx:<6} {row_id:<40} --> {idx_gc:<6} {df_gcs_name.strip():<25}"
                 + f"d={round(d_arcmin, 2)}"
             )
@@ -941,7 +916,7 @@ def check_duplicated_fnames(fnames_list: list[list[str]]) -> dict:
 
 
 def check_new_DB_fnames(
-    logging, df_new: pd.DataFrame, newDB_json: dict, new_DB_fnames: list[list[str]]
+    df_new: pd.DataFrame, newDB_json: dict, new_DB_fnames: list[list[str]]
 ):
     """Check that no fname is repeated across entries in the new DB"""
     duplicates = check_duplicated_fnames(new_DB_fnames)
@@ -963,18 +938,18 @@ def check_new_DB_fnames(
             else:
                 duplicates_clean[fname] = list(idxs)[1:]
 
-        logging.info(
+        print(
             f"\nFound {len(duplicates_clean)} groups of duplicated fnames within "
             "the DB:"
         )
         N_g = 1
         for fname, idxs in duplicates_clean.items():
-            logging.info(f"Group {N_g}: {fname}")
+            print(f"Group {N_g}: {fname}")
             N_g += 1
             idxs_s = sorted(idxs)
             for idx_s in idxs_s:
                 dnames = str(df_new.loc[idx_s, newDB_json["names"]]).split(",")
-                logging.info(f" -{', '.join(dnames[1:])} --> {dnames[0]} ({idx_s})")
+                print(f" -{', '.join(dnames[1:])} --> {dnames[0]} ({idx_s})")
         breakpoint()  # noqa: T100
         sys.exit(1)
 
@@ -1076,7 +1051,6 @@ def check_new_DB_fnames(
 
 
 def fnames_check_UCC_new_DB(
-    logging,
     df_UCC_B: pd.DataFrame,
     all_names_dict: dict,
     newDB_json: dict,
@@ -1108,9 +1082,9 @@ def fnames_check_UCC_new_DB(
     if bad_all_names:
         N = len(bad_all_names)
         txt = "y" if N == 1 else "ies"
-        logging.info(f"\nFound {N} entr{txt} with multiple fnames in 'all_names':")
+        print(f"\nFound {N} entr{txt} with multiple fnames in 'all_names':")
         for i in bad_all_names:
-            logging.info(f"{df_new.iloc[i][newDB_json['names']]}")
+            print(f"{df_new.iloc[i][newDB_json['names']]}")
         breakpoint()  # noqa: T100
         sys.exit(1)
 
@@ -1150,7 +1124,7 @@ def fnames_check_UCC_new_DB(
     fnames_arr = df_UCC_B["fnames"].to_numpy()
 
     if bad_entries:
-        logging.info(
+        print(
             f"\nFound {len(bad_entries)} entries in new_DB matching multiple "
             "entries in the combined DB:"
         )
@@ -1159,21 +1133,21 @@ def fnames_check_UCC_new_DB(
             ucc_entries = ", ".join(
                 f"({j}, {dbs_arr[j]}) {fnames_arr[j]}" for j in ucc_idxs
             )
-            logging.info(f"{new_entry} --> {ucc_entries}")
+            print(f"{new_entry} --> {ucc_entries}")
 
     if duplicates:
-        logging.info(
+        print(
             f"\nFound {len(duplicates)} UCC entries matched by multiple "
             "entries in new_DB:"
         )
         for ucc_idx, new_idxs in duplicates.items():
             new_entries = "; ".join(", ".join(new_DB_fnames[i]) for i in new_idxs)
-            logging.info(
+            print(
                 f"{tuple(new_idxs)} {new_entries} --> "
                 f"({ucc_idx}) {dbs_arr[ucc_idx]}: {fnames_arr[ucc_idx]}"
             )
 
-    logging.info("\nResolve the above issues before moving on")
+    print("\nResolve the above issues before moving on")
     breakpoint()  # noqa: T100
     sys.exit(1)
 
@@ -1214,36 +1188,35 @@ def get_matches_new_DB(
     return db_matches
 
 
-def check_new_entries(logging, new_DB_fnames, db_matches, flag_check_stop: str):
+def check_new_entries(new_DB_fnames, db_matches, flag_check_stop: str):
     """
     Check for new entries in the new DB that are not present in the UCC.
     """
     N_new = db_matches.count(None)
     if N_new > 0:
-        logging.info(f"\nFound {N_new} new entries")
+        print(f"\nFound {N_new} new entries")
         N_max = 50
         count = 0
         for i, idx in enumerate(db_matches):
             if idx is None:
-                logging.info(f"{i}    {new_DB_fnames[i][0]}")
+                print(f"{i}    {new_DB_fnames[i][0]}")
                 count += 1
                 if count % N_max == 0:
-                    logging.info(f"... (shown {count} entries)")
+                    print(f"... (shown {count} entries)")
                     if flag_check_stop != "check_stop":
                         break
                     ans = input("Show 50 more? (y/n) ").strip().lower()
                     if ans != "y":
                         break
         if count % N_max != 0:
-            logging.info(f"... (shown {count} entries in total)")
+            print(f"... (shown {count} entries in total)")
         if flag_check_stop == "check_stop":
             breakpoint()  # noqa: T100
     else:
-        logging.info("\nNo new entries found")
+        print("\nNo new entries found")
 
 
 def check_positions(
-    logging,
     df_UCC_B,
     df_new,
     new_DB_fnames,
@@ -1258,7 +1231,7 @@ def check_positions(
     if (
         "GLON_" in df_new
         and check_new_DB_UCC_positions(
-            logging, df_UCC_B, new_DB_fnames, db_matches, df_new, flag_check_stop
+            df_UCC_B, new_DB_fnames, db_matches, df_new, flag_check_stop
         )
         and flag_check_stop == "check_stop"
     ):
@@ -1267,7 +1240,6 @@ def check_positions(
     # Check positions for matched entries and flag for attention if required
     if (
         check_matched_entries(
-            logging,
             df_UCC_B,
             df_new,
             new_DB_fnames,
@@ -1279,7 +1251,6 @@ def check_positions(
 
 
 def check_new_DB_UCC_positions(
-    logging,
     df_UCC_B: pd.DataFrame,
     new_DB_fnames: list[list[str]],
     db_matches: list[int | None],
@@ -1299,8 +1270,6 @@ def check_new_DB_UCC_positions(
 
     Parameters
     ----------
-    logging : logging.Logger
-        Logger object for outputting information.
     df_UCC_B : pd.DataFrame
         DataFrame of the UCC.
     new_DB_fnames : list
@@ -1326,7 +1295,6 @@ def check_new_DB_UCC_positions(
     ID_call = "UCC"
 
     return close_OC_check(
-        logging,
         cls_dist,
         db_matches,
         col_1,
@@ -1339,7 +1307,6 @@ def check_new_DB_UCC_positions(
 
 
 def check_matched_entries(
-    logging,
     df_UCC_B: pd.DataFrame,
     df_new,
     new_DB_fnames,
@@ -1368,8 +1335,6 @@ def check_matched_entries(
 
     Parameters
     ----------
-    logging : logging.Logger
-        Logger object for outputting information.
     df_UCC : pd.DataFrame
         DataFrame of the UCC.
     new_db_info : dict
@@ -1412,17 +1377,17 @@ def check_matched_entries(
     attention_flag = False
     if len(ocs_attention) > 0:
         attention_flag = True
-        logging.info(
+        print(
             f"\nEntries with coords far from those in the UCC (N={len(ocs_attention)})"
         )
-        logging.info(f"{'DB_idx':<6} {'name':<20} {'d [arcmin]':<5}")
+        print(f"{'DB_idx':<6} {'name':<20} {'d [arcmin]':<5}")
         N_max = 50
         # Order by distance
         ocs_attention = sorted(ocs_attention, key=lambda x: x[2], reverse=True)
         for i, fname, d_arcmin in ocs_attention[:N_max]:
-            logging.info(f"{i:<6} {fname:<20} {d_arcmin:<5.0f}")
+            print(f"{i:<6} {fname:<20} {d_arcmin:<5.0f}")
         if len(ocs_attention) > N_max:
-            logging.info(f"... (only first {N_max} entries shown)")
+            print(f"... (only first {N_max} entries shown)")
 
     return attention_flag
 
@@ -1548,7 +1513,6 @@ def transf_par(par_format, par_v, flag_mult):
 
 
 def combine_UCC_new_DB(
-    logging,
     selected_center_coords: dict,
     new_DB: str,
     newDB_json: dict,
@@ -1563,8 +1527,6 @@ def combine_UCC_new_DB(
 
     Parameters
     ----------
-    logging : logging.Logger
-        Logger object for outputting information.
     new_DB : str
         Name of the new database.
     newDB_json : dict
@@ -1651,7 +1613,7 @@ def combine_UCC_new_DB(
     dbs_merged_new = pd.concat(
         [df_UCC_no_new, pd.DataFrame(new_db_dict)], ignore_index=True
     )
-    logging.info(f"\nNew entries: {N_new}, Updated entries: {N_updt}")
+    print(f"\nNew entries: {N_new}, Updated entries: {N_updt}")
 
     return dbs_merged_new
 
@@ -1952,7 +1914,7 @@ def sort_year_importance(new_JSON: dict, df_UCC_B: pd.DataFrame) -> pd.DataFrame
     return df_UCC_B
 
 
-def add_fpars_stats(logging, df_UCC_B_new: pd.DataFrame) -> pd.DataFrame:
+def add_fpars_stats(df_UCC_B_new: pd.DataFrame) -> pd.DataFrame:
     """
     For each column in 'fpars_order', calculate the median and stddev.
     """
@@ -1970,7 +1932,7 @@ def add_fpars_stats(logging, df_UCC_B_new: pd.DataFrame) -> pd.DataFrame:
             # Identify rows where ALL non-NaN values are fractional
             all_frac = ((temp_df > 0) & (temp_df < 1)).all(axis=1)
             if all_frac.sum() > 0:
-                logging.info(
+                print(
                     f"\nFound {all_frac.sum()} entries with all BSS values in "
                     "(0, 1) range"
                 )
@@ -2112,7 +2074,7 @@ def add_types(
     return df_UCC_B_new
 
 
-def duplicates_fnames_check(logging, df_UCC_B: pd.DataFrame, sep: str = ";") -> bool:
+def duplicates_fnames_check(df_UCC_B: pd.DataFrame, sep: str = ";") -> bool:
     """
     Check for duplicate filenames across rows in 'dbs_merged_new' DataFrame.
 
@@ -2124,8 +2086,6 @@ def duplicates_fnames_check(logging, df_UCC_B: pd.DataFrame, sep: str = ";") -> 
 
     Parameters
     ----------
-    logging : logging.Logger
-        Logger object for outputting information.
     dbs_merged_new : pd.DataFrame
         DataFrame to check for duplicates.
 
@@ -2157,13 +2117,13 @@ def duplicates_fnames_check(logging, df_UCC_B: pd.DataFrame, sep: str = ";") -> 
                         # Ensure consistent order for pairs
                         pair = tuple(sorted((i, j)))
                         if pair not in printed_pairs:
-                            logging.info(f"{i}, {j}, {fname}")
+                            print(f"{i}, {j}, {fname}")
                             printed_pairs.add(pair)
 
     return dup_flag
 
 
-def ra_dec_check(logging, df_UCC_B):
+def ra_dec_check(df_UCC_B):
     """Check that all RA and Dec values are within valid ranges and not NaN."""
 
     ra = df_UCC_B["RA_ICRS"]
@@ -2173,40 +2133,34 @@ def ra_dec_check(logging, df_UCC_B):
     invalid_dec = df_UCC_B[dec.isna() | (dec < -90) | (dec > 90)]
 
     if not invalid_ra.empty:
-        logging.info(f"\nFound {len(invalid_ra)} entries with invalid RA values:")
+        print(f"\nFound {len(invalid_ra)} entries with invalid RA values:")
         for idx, row in invalid_ra.iterrows():
-            logging.info(
-                f"{idx} ({row['fnames'].split(';')[0]}) --> RA={row['RA_ICRS']}"
-            )
+            print(f"{idx} ({row['fnames'].split(';')[0]}) --> RA={row['RA_ICRS']}")
 
     if not invalid_dec.empty:
-        logging.info(f"\nFound {len(invalid_dec)} entries with invalid Dec values:")
+        print(f"\nFound {len(invalid_dec)} entries with invalid Dec values:")
         for idx, row in invalid_dec.iterrows():
-            logging.info(
-                f"{idx} ({row['fnames'].split(';')[0]}) --> Dec={row['DE_ICRS']}"
-            )
+            print(f"{idx} ({row['fnames'].split(';')[0]}) --> Dec={row['DE_ICRS']}")
 
     return not invalid_ra.empty or not invalid_dec.empty
 
 
-def sanity_check(logging, all_names_old, df_UCC_B, N_max=50):
+def sanity_check(all_names_old, df_UCC_B, N_max=50):
     """
     Perform sanity checks on the updated UCC DataFrame after merging with a new
     database.
     """
     # Check every individual fname for duplicates
-    exit_flag = duplicates_fnames_check(logging, df_UCC_B)
+    exit_flag = duplicates_fnames_check(df_UCC_B)
     if exit_flag:
-        logging.info(
-            "\nERROR: duplicated entries found in B cat 'fnames' column. Fix this!"
-        )
+        print("\nERROR: duplicated entries found in B cat 'fnames' column. Fix this!")
         breakpoint()  # noqa: T100
         sys.exit(1)
 
     # Check that (RA, DEC) ranges are valid
-    exit_flag = ra_dec_check(logging, df_UCC_B)
+    exit_flag = ra_dec_check(df_UCC_B)
     if exit_flag:
-        logging.info(
+        print(
             "\nERROR: entries were found with missing (RA, DEC) values in B cat. "
             "Fix this!"
         )
@@ -2243,11 +2197,11 @@ def sanity_check(logging, all_names_old, df_UCC_B, N_max=50):
 
     N_diff = len(diffs_1)
     if N_diff > 0:
-        logging.info(f"Found {N_diff} canonical fnames that changed:\n")
+        print(f"Found {N_diff} canonical fnames that changed:\n")
         for _ in diffs_1[:N_max]:
-            logging.info(_)
+            print(_)
         if N_diff > N_max:
-            logging.info(f"... and {N_diff - N_max} more")
+            print(f"... and {N_diff - N_max} more")
 
 
 def generate_dfs(
@@ -2312,7 +2266,7 @@ def add_lost_fnames(
 
 
 def final_fnames_compare(
-    logging, fnames_old: pd.Series, fnames_new: pd.Series, N_max: int = 50
+    fnames_old: pd.Series, fnames_new: pd.Series, N_max: int = 50
 ) -> None:
     """Find fnames in old 'all_names' that are missing in new 'all_names' and
     raise an error if any are found.
@@ -2333,10 +2287,10 @@ def final_fnames_compare(
 
     N_missing = len(missing_old_in_new)
     if N_missing > 0:
-        logging.info(f"\nFound {N_missing} missing fnames in new 'all_names':")
+        print(f"\nFound {N_missing} missing fnames in new 'all_names':")
         # Print first batch
         for fmiss in missing_old_in_new[:N_max]:
-            logging.info(f"{fmiss}")
+            print(f"{fmiss}")
         remaining = N_missing - N_max
         # Ask whether to show more
         while remaining > 0:
@@ -2348,14 +2302,13 @@ def final_fnames_compare(
             start = N_missing - remaining
             end = start + min(N_max, remaining)
             for fmiss in missing_old_in_new[start:end]:
-                logging.info(fmiss)
+                print(fmiss)
             remaining -= end - start
 
         raise ValueError(f"Found {N_missing} missing fnames")
 
 
 def update_final_files(
-    logging,
     temp_all_OC_names,
     df_UCC_B_path,
     all_names,
@@ -2368,19 +2321,18 @@ def update_final_files(
     (open with Meld or similar)
     """
     diff_found = diff_between_dfs(
-        logging, "all_names", all_names, all_names_new, order_col="fnames"
+        "all_names", all_names, all_names_new, order_col="fnames"
     )
     if diff_found:
-        save_df_UCC(logging, all_names_new, temp_all_OC_names, order_col="fnames")
+        save_df_UCC(all_names_new, temp_all_OC_names, order_col="fnames")
 
-    diff_found = diff_between_dfs(logging, "B cat", df_UCC_B_old, df_UCC_B_new)
+    diff_found = diff_between_dfs("B cat", df_UCC_B_old, df_UCC_B_new)
     if diff_found:
         file_path = df_UCC_B_path.replace(data_folder, temp_folder)
-        save_df_UCC(logging, df_UCC_B_new, file_path)
+        save_df_UCC(df_UCC_B_new, file_path)
 
 
 def move_files(
-    logging,
     df_UCC_B_path: str,
     df_UCC_B_old: pd.DataFrame,
     new_json_dict: dict,
@@ -2410,12 +2362,12 @@ def move_files(
         files_to_move.append(temp_all_OC_names)
 
     if not files_to_move:
-        logging.info("No files to move.")
+        print("No files to move.")
         return
 
-    logging.info(f"{len(files_to_move)} file(s) ready to move")
+    print(f"{len(files_to_move)} file(s) ready to move")
     if input("\nMove files to their final paths? (y/n): ").lower() != "y":
-        logging.info("Files not moved.")
+        print("Files not moved.")
         return
 
     # Update JSON file with all the DBs and store the new DB in place
@@ -2424,7 +2376,7 @@ def move_files(
             json.dump(new_json_dict, f, indent=2)
 
         os.rename(temp_JSON_path, name_DBs_json)
-        logging.info(temp_JSON_path + " --> " + name_DBs_json)
+        print(temp_JSON_path + " --> " + name_DBs_json)
 
     for new_DB in all_dbs_data:
         new_DB_file = new_DB + ".csv"
@@ -2433,26 +2385,26 @@ def move_files(
         if os.path.isfile(db_temp):
             db_stored = dbs_folder + new_DB_file
             os.rename(db_temp, db_stored)
-            logging.info(db_temp + " --> " + db_stored)
+            print(db_temp + " --> " + db_stored)
 
     if os.path.isfile(ucc_temp):
         now_time = pd.Timestamp.now().strftime("%y%m%d%H")
         archived_B_file = archive_folder_path + UCC_cat_B_out.replace(
             ".csv", f"_{now_time}.csv.gz"
         )
-        save_df_UCC(logging, df_UCC_B_old, archived_B_file, compression="gzip")
-        prune_archive(logging, archived_B_file)
+        save_df_UCC(df_UCC_B_old, archived_B_file, compression="gzip")
+        prune_archive(archived_B_file)
 
         os.remove(df_UCC_B_path)
-        logging.info(df_UCC_B_path + " --> " + archived_B_file)
+        print(df_UCC_B_path + " --> " + archived_B_file)
 
         os.rename(ucc_temp, df_UCC_B_path)
-        logging.info(ucc_temp + " --> " + df_UCC_B_path)
+        print(ucc_temp + " --> " + df_UCC_B_path)
 
     if os.path.isfile(temp_all_OC_names):
         final_all_OC_names = data_folder + all_OC_names
         os.rename(temp_all_OC_names, final_all_OC_names)
-        logging.info(temp_all_OC_names + " --> " + final_all_OC_names)
+        print(temp_all_OC_names + " --> " + final_all_OC_names)
 
 
 if __name__ == "__main__":

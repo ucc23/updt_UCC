@@ -37,7 +37,7 @@ def run(current_year, UCC_cl, DBs_JSON, cmmts_JSONS_lst: dict):
                         "url": art_url,
                         "year": art_year,
                         "comment": cmmt_json_dict["clusters"][fname0],
-                        "orig_name": cmmt_json_dict["cl_orig_names"][fname0]
+                        "orig_name": cmmt_json_dict["cl_orig_names"][fname0],
                     }
                 )
                 break
@@ -158,7 +158,9 @@ def level(value, thresholds, labels):
 
 
 def get_C_txt(C_N, C_dens, C_C3, C_lit, plx, Z_GC):
-    """ """
+    """
+    Generate qualitative descriptions based on cluster parameters.
+    """
     members = level(
         C_N,
         [0.9, 0.75, 0.5, 0.25],
@@ -225,7 +227,9 @@ def fpars_spread(
     UCC_cl_row: dict,
     max_years_gap=5,
 ) -> list:
-    """ """
+    """
+    Identify fundamental parameters with large spread across recent sources.
+    """
     labels = {
         "dist": "distance",
         "av": "absorption",
@@ -590,7 +594,9 @@ def fpars_summary(
 def lit_summary(
     current_year, cl_DB, literature, year_gap_recent=3, year_gap_old=5
 ) -> str:
-    """ """
+    """
+    Generate a summary of the literature status for the cluster.
+    """
     # cl_DB is sorted by year, so the first and last articles can be extracted
     parts = cl_DB.split(";")
     oldest_lit_year = int(parts[0].split("_")[0][-4:])

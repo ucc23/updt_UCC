@@ -254,7 +254,8 @@ def _CMD_figure(style_path, cmap, ec, fs):
     # Initial subplot parameters, restored before each tight_layout() call
     sp = fig.subplotpars
     subplotpars = {
-        k: getattr(sp, k) for k in ("left", "right", "bottom", "top", "wspace", "hspace")
+        k: getattr(sp, k)
+        for k in ("left", "right", "bottom", "top", "wspace", "hspace")
     }
 
     artists = {
@@ -527,7 +528,6 @@ def aladin_params(ra, dec, r_50):
 
 
 def plot_aladin(
-    logging,
     ra,
     dec,
     r_50,
@@ -546,8 +546,8 @@ def plot_aladin(
     try:
         img_data = hips_cutout(ra, dec, rad_deg, 350, 245, timeout)
     except Exception as e:
-        logging.warning(f"Error generating plot for {plot_aladin_fpath}:")
-        logging.warning("    " + str(e))
+        print(f"Error generating plot for {plot_aladin_fpath}:")
+        print("    " + str(e))
         raise ValueError("Failed to generate plot")
 
     fig, ax = plt.subplots()
@@ -768,62 +768,3 @@ def make_UTI_plot(path, UTI_vals, dpi=300):
     # https://stackoverflow.com/a/65910539/1391441
     fig.clear()
     plt.close(fig)
-
-
-# def make_dbs_year_plot(path, df_UCC, all_dbs_json, dpi=300):
-#     """ """
-#     plt.style.use("modules/science2.mplstyle")
-
-#     dbs = list(itertools.chain.from_iterable([_.split(';') for _ in df_UCC['DB']]))
-#     N_dbs = Counter(dbs)
-
-#     names, height = [], []
-#     for i, name in enumerate(list(all_dbs_json.keys())):
-#         names.append(all_dbs_json[name]['ref'][1:].split(']')[0])
-#         height.append(N_dbs[name])
-
-#     fig, ax = plt.subplots(1, figsize=(5, 10))
-#     plt.barh(range(len(names)), height, color='grey', alpha=.5)
-#     # plt.scatter(range(len(names)), height)
-
-#     # Add labels on top of the bars
-#     for i, value in enumerate(height):
-#         # plt.text(i, 1.2, str(names[i]), ha='center', va='center', rotation=0)
-#         plt.text(1.2, i, str(names[i]), va='center', ha='left', rotation=0)
-#     #     if height[i] > 100:
-#     #         plt.text(i, value + 0.1, str(height[i]), ha='center', va='bottom', rotation=30)
-
-#     plt.gca().set_yticks([])
-#     # plt.xlabel("Articles")
-#     plt.xscale('log')
-#     # plt.ylabel("N")
-#     # ax.tick_params(axis="x", which="both", length=0)
-#     # plt.minorticks_off()
-#     # plt.xlim(-1, len(height) + .1)
-#     # plt.ylim(1.15, max(height) + 10000)
-#     fig.tight_layout()
-
-#     plt.savefig(path, dpi=dpi, bbox_inches="tight", pad_inches=0.0)
-#     # https://stackoverflow.com/a/65910539/1391441
-#     fig.clear()
-#     plt.close(fig)
-
-
-# if __name__ == "__main__":
-#     import matplotlib
-
-#     matplotlib.use("agg")
-#     import pandas as pd
-#     from files_handler import update_image
-
-#     plt.style.use("science2.mplstyle")
-
-#     fname0, Qfold = "dutrabica58", "Q1P"
-#     # Load datafile with members for this cluster
-#     membs_file = f"/home/gabriel/Github/UCC/{Qfold}/datafiles/{fname0}.parquet"
-#     df_cl = pd.read_parquet(membs_file)
-#     root = "/home/gabriel/Descargas/"
-#     plots_path = root + fname0 + ".webp"
-#     DRY_RUN, logging = False, None
-#     txt = make_plot(DRY_RUN, logging, plots_path, df_cl)
-#     print(txt)
