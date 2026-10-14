@@ -15,14 +15,22 @@ from .utils import comments_check, logger
 from .variables import (
     JSON_struct,
     NASA_API_TOKEN_file,
+    SCIX_root,
+    abund_col_re,
+    citation_count_days_check,
     dbs_folder,
+    ec_val_re,
+    err_col_re,
+    err_percentiles,
+    err_prefix,
+    err_suffix,
+    fmt_name_hints,
+    fmt_ranges,
+    meta_col_re,
     name_DBs_json,
     pars_formats,
     temp_folder,
 )
-
-SCIX_root = "https://scixplorer.org/abs/"
-citation_count_days_check = 180
 
 
 def main():
@@ -68,16 +76,16 @@ def main():
         logging, temp_database_folder, ADS_bibcode, DB_name
     )
 
-    # Extract the names, positions, parameters, and uncertainties column names from
-    # the current JSON
-    names_dict, pos_dict, pars_dict, e_pars_dict = current_JSON_vals(current_JSON)
+    # Extract the names, positions, parameters, uncertainties and types column names
+    # from the current JSON
+    known_cols, types_info = current_JSON_vals(current_JSON)
 
     # Extract the matches for each column in the new DB
-    df_col_id = new_DB_columns_match(
-        logging, names_dict, pos_dict, pars_dict, e_pars_dict, df_all
+    col_match, types = new_DB_columns_match(
+        logging, known_cols, types_info, df_all, title
     )
 
-    names, pos_dict, pars_dict, e_pars_dict = proper_json_struct(df_col_id)
+    names, pos_dict, pars_dict, e_pars_dict = proper_json_struct(col_match)
 
     # Update the JSON file and save the database as CSV.
     new_json_dict = add_DB_to_JSON(
@@ -93,6 +101,7 @@ def main():
         title,
         year,
         names,
+        types,
         pos_dict,
         pars_dict,
         e_pars_dict,
@@ -454,7 +463,7 @@ def get_DB_from_Vizier(logging, table_url: list) -> list | None:
                 cat = viz.get_catalogs(turl)  # pyright: ignore
                 # Convert to pandas before storing
                 df_all.append(cat.values()[0].to_pandas())
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 logging.info(f"Could not extract the data from {turl}\n{e!s}")
 
     return df_all
@@ -530,66 +539,224 @@ def fetch_vizier_data(logging, temp_database_folder, ADS_bibcode, DB_name):
 
 def current_JSON_vals(current_JSON):
     """
-    Extract unique names, positions, parameters, and uncertainties from the current
-    JSON structure.
+    Extract the column names used in the current JSON file for the names, positions,
+    parameters, uncertainties, and embedded clusters types.
+
+    Returns:
+    - known_cols: {target_key: {col_name: fmt}}, where 'target_key' is "names", a
+      'pos' key (e.g. "RA"), a 'pars' key (e.g. "dist") or an 'e_pars' key (e.g.
+      "e_dist"), and 'fmt' is the format key most often used in the JSON file
+      with that column for 'pars' and 'e_pars' (e.g. "dpc", "edpc"), or None for
+      names and positions
+    - types_info: (set of known 'types' column names, set of known EC ids)
     """
-    # Extract unique names from the 'current_JSON' file
-    names_lst = []
-    for key in current_JSON:
-        names_lst.append(current_JSON[key]["names"])
-    names_lst = list(set(names_lst))
-    names_dict = {"names": names_lst}
-
-    # Extract unique column names for the position, parameters and their uncertainties
-    # from the 'current_JSON' file
-    all_dicts = []
+    known_cols = {"names": {}}
     for _id in ("pos", "pars", "e_pars"):
-        # Extract all the entries (dicts) associated to this _id in the current JSON
-        # file
-        dicts_id = []
-        for obj in current_JSON.values():
-            dicts_id.append(obj[_id])
+        for key in JSON_struct["SMITH2500"][_id]:
+            known_cols[key] = {}
+    # Count of the formats used for each (key, column)
+    fmt_counts = {}
 
-        # Extract all the entries listed in the model JSON object
-        pdict = dict(JSON_struct["SMITH2500"][_id])
+    type_cols, ec_ids = set(), set()
+    for obj in current_JSON.values():
+        known_cols["names"][obj["names"]] = None
 
-        # For each key in this entry of the model JSON object
-        for key, pdict_val in pdict.items():
-            # For each dict associated to this _id in the current JSON file
-            for obj_id in dicts_id:
-                # If this object from the current JSON file contains the key, extract
-                # its value
-                if key in obj_id:
-                    if isinstance(obj_id[key], str):  # _id='pos'
-                        pdict_val.append(obj_id[key])
-                    elif isinstance(obj_id[key], dict):  # _id='pars','e_pars'
-                        for v in obj_id[key].values():
-                            if isinstance(v, list):
-                                pdict_val += v
-                            else:
-                                pdict_val.append(v)
-                    else:
-                        raise ValueError(
-                            f"Unknown type {type(obj_id[key])} for key {key}"
-                        )
+        for key, col in obj["pos"].items():
+            known_cols.setdefault(key, {})[col] = None
 
-            pdict[key] = list(set(pdict_val))
-        all_dicts.append(pdict)
+        for _id in ("pars", "e_pars"):
+            for key, fmt_dict in obj[_id].items():
+                if not isinstance(fmt_dict, dict):
+                    raise TypeError(f"Unknown type {type(fmt_dict)} for key {key}")
+                for fmt, cols in fmt_dict.items():
+                    cols = cols if isinstance(cols, list) else [cols]
+                    for col in cols:
+                        cnt = fmt_counts.setdefault((key, col), {})
+                        cnt[fmt] = cnt.get(fmt, 0) + 1
 
-    return names_dict, *all_dicts
+        types = obj.get("types", {})
+        if types.get("col_name", "N/A") not in ("N/A", "ALL"):
+            type_cols.add(types["col_name"])
+            ec_ids.update(types["ec_id"])
+
+    for (key, col), cnt in fmt_counts.items():
+        known_cols.setdefault(key, {})[col] = max(cnt, key=cnt.get)
+
+    return known_cols, (type_cols, ec_ids)
+
+
+def _norm_col(col: str) -> str:
+    """Lower case and remove non alpha-numeric characters"""
+    return re.sub(r"[^a-z0-9]", "", col.lower())
+
+
+def _col_score(col: str, val: str) -> float:
+    """Similarity in [0, 1] between a new column name and a known column name"""
+    if col == val:
+        return 1.0
+    ncol, nval = _norm_col(col), _norm_col(val)
+    if ncol and ncol == nval:
+        return 0.99
+    # Fuzzy matching is meaningless for very short names (e.g. 'D' vs 'R')
+    if min(len(ncol), len(nval)) < 3:
+        return 0.0
+    return (
+        max(
+            fuzz.ratio(col, val),
+            fuzz.ratio(col.lower(), val.lower()),
+            fuzz.ratio(ncol, nval),
+        )
+        / 100
+    )
+
+
+def _col_stats(df, col):
+    """
+    1st, 50th and 99th percentiles of a numeric column, or None if the column is
+    not numeric
+    """
+    vals = pd.to_numeric(df[col], errors="coerce").dropna()
+    if len(vals) == 0 or len(vals) < 0.5 * df[col].notna().sum():
+        return None
+    return np.percentile(vals, (1, 50, 99))
+
+
+def _guess_fmt(df, col, par, fmt):
+    """
+    Check that the values of 'col' are compatible with parameter 'par' and return
+    the format to use, or None if no format is compatible (spurious match) or the
+    column is not numeric.
+
+    For 'age' and 'dist' the format is inferred from the column name (e.g. 'Age_Myr',
+    'd_kpc', 'logt', 'MOD') or else from its values, since the same column name is
+    used with different formats in different DBs (e.g. 'Age'). For the remaining
+    parameters 'fmt' (from the closest matching known column) is kept if its range
+    is compatible, else the first compatible format is used.
+    """
+    stats = _col_stats(df, col)
+    if stats is None:
+        return None
+    p01, med, p99 = stats
+
+    if par != "met" and abund_col_re.search(col):
+        return None
+
+    if par in fmt_name_hints:
+        for regex, hint_fmt in fmt_name_hints[par]:
+            if re.search(regex, col, flags=re.IGNORECASE):
+                return hint_fmt
+        if par == "age":
+            if p01 >= 5 and p99 <= 10.3:
+                return "loga"
+            return "agyr" if p99 <= 14 else "amyr"
+        if par == "dist":
+            if p01 >= 2 and p99 <= 22:
+                return "dm"
+            return "dpc" if med >= 60 else "dkpc"
+
+    ranges = fmt_ranges.get(par, {})
+    if fmt not in ranges:
+        return fmt
+    lo, hi = ranges[fmt]
+    if lo <= med <= hi:
+        return fmt
+    for f, (lo, hi) in ranges.items():
+        if lo <= med <= hi:
+            return f
+    return None
+
+
+def _find_err_cols(col, cols_lower):
+    """
+    Find the uncertainty column(s) associated to 'col': a single column (e.g.
+    'e_X', 'X_sigma') or a pair of percentiles (e.g. 'X_16', 'X_84'; if 'col' is
+    a median such as 'X_50' the base name 'X' is used).
+    """
+    for pre in err_prefix:
+        if (pre + col).lower() in cols_lower:
+            return cols_lower[(pre + col).lower()]
+    for suf in err_suffix:
+        if (col + suf).lower() in cols_lower:
+            return cols_lower[(col + suf).lower()]
+    base = re.sub(r"_?(50|p50)$", "", col)
+    for lo, hi in err_percentiles:
+        c_lo, c_hi = (base + lo).lower(), (base + hi).lower()
+        if c_lo in cols_lower and c_hi in cols_lower:
+            return [cols_lower[c_lo], cols_lower[c_hi]]
+    return None
+
+
+def _types_match(logging, df, types_info, title, max_unique=20):
+    """
+    Auto-detect the column (if any) that identifies embedded clusters.
+
+    A column is a candidate if it has a small number of unique values and some of
+    them match EC ids used in other DBs, or look like an EC id ('EC*', 'IRC*').
+    Columns whose name matches a known 'types'
+    column but contain no known EC ids are only reported, for manual checking.
+    """
+    type_cols, ec_ids = types_info
+    types = dict(JSON_struct["SMITH2500"]["types"])
+    types["ec_id"] = []
+
+    best, best_score = None, (0, 0.0)
+    for col in df:
+        if df[col].dtype.kind not in "OSU":  # Only string columns
+            continue
+        uniq = set(df[col].dropna().astype(str).str.strip().unique())
+        if not uniq or len(uniq) > max_unique:
+            continue
+        name_score = max([_col_score(str(col), _) for _ in type_cols], default=0.0)
+        hits = {_ for _ in uniq if _ in ec_ids or ec_val_re.match(_)}
+        if hits:
+            score = (len(hits), name_score)
+            if score > best_score:
+                best, best_score = (str(col), sorted(hits)), score
+        elif name_score >= 0.99:
+            logging.info(
+                f"Column '{col}' may identify embedded clusters, but contains no "
+                + f"known EC ids. Unique values: {sorted(uniq)}"
+            )
+
+    if best is not None:
+        types["col_name"], types["ec_id"] = best
+        logging.info(f"Embedded clusters column detected: {types}")
+    elif "embedded" in title.lower():
+        logging.info(
+            "No embedded clusters column found but the title mentions 'embedded'. "
+            + 'If all entries are ECs use: "types": {"col_name": "ALL", ...}'
+        )
+
+    return types
 
 
 def new_DB_columns_match(
-    logging, names_dict, pos_dict, pars_dict, e_pars_dict, df_all, ratio_min_fix=0.5
+    logging, known_cols, types_info, df_all, title="", ratio_min=0.8
 ):
     """
     Match columns in the new database with the current JSON structure.
-    """
-    if df_all is None:
-        return None
 
-    # Combine into a single dictionary
-    merged_dict = {**names_dict, **pos_dict, **pars_dict, **e_pars_dict}
+    1. The column that identifies embedded clusters (if any) is detected and
+       removed from the pool of columns to match.
+    2. Every (column, key) pair for the names, positions and parameters is scored
+       against all the column names already used in the JSON file for that key.
+       Uncertainty columns (e.g. 'e_Dist', 'AV16') are excluded here. Names must
+       be string columns, positions and parameters must be numeric, and parameters
+       must have values in a plausible range (which is also used to correct the
+       format, e.g. 'loga' vs 'amyr').
+    3. Pairs are assigned greedily by decreasing score so that each column and each
+       key are used at most once.
+    4. Uncertainties are assigned from the matched parameters: if parameter 'X' is
+       matched, columns such as 'e_X', 'X_sigma' or the percentiles 'X_16', 'X_84'
+       are searched for and stored with the same format as the parameter.
+
+    Returns:
+    - col_match: {key: (column(s), fmt)}
+    - types: dict for the 'types' entry of the JSON file
+    """
+    types = dict(JSON_struct["SMITH2500"]["types"])
+    if df_all is None:
+        return None, types
 
     df = df_all[0]
     if len(df_all) > 1:
@@ -605,82 +772,106 @@ def new_DB_columns_match(
             except ValueError:
                 logging.info("Invalid input")
         df = df_all[tab_idx]
+    df = df.rename(columns=str)
 
-    df_col_id = {}
-    for col in df:
-        id_match, ratio_min = None, ratio_min_fix
-        for key, vals in merged_dict.items():
-            vals_ratios = []
-            for val in vals:
-                ld1 = fuzz.ratio(col, val)
-                ld2 = fuzz.ratio(col.lower(), val.lower())
-                vals_ratios.append(max(ld1, ld2) / 100)
-            if vals_ratios:
-                ratio_max = max(vals_ratios)
-                if ratio_max > ratio_min:
-                    id_match = key
-                    ratio_min = ratio_max
+    # 1. Embedded clusters column
+    types = _types_match(logging, df, types_info, title)
 
-        # Keep the match with the largest value for this 'key'
-        if id_match is not None:
-            try:
-                ratio_old = df_col_id[id_match][0]
-                if ratio_min > ratio_old:
-                    df_col_id[id_match] = [ratio_min, col]
-            except KeyError:
-                df_col_id[id_match] = [ratio_min, col]
+    cols = list(df.columns)
+    match_cols = [
+        _
+        for _ in cols
+        if _ != types["col_name"]
+        and not err_col_re.search(_)
+        and not meta_col_re.match(_)
+    ]
+    pars_keys = JSON_struct["SMITH2500"]["pars"]
 
-    # Only values are used (drop ratios at index 0)
-    df_col_id = {k: v[1] for k, v in df_col_id.items()}
+    # 2. Score all pairs
+    pairs = []
+    for col in match_cols:
+        is_str = _col_stats(df, col) is None
+        for key, vals in known_cols.items():
+            if key.startswith("e_") or is_str != (key == "names"):
+                continue
+            best_score, best_fmt = 0.0, None
+            for val, fmt in vals.items():
+                if val == "None":
+                    continue
+                score = _col_score(col, val)
+                if score > best_score:
+                    best_score, best_fmt = score, fmt
+            if best_score < ratio_min:
+                continue
+            if key in pars_keys:
+                best_fmt = _guess_fmt(df, col, key, best_fmt)
+                if best_fmt is None:
+                    continue
+            pairs.append((best_score, col, key, best_fmt))
 
-    no_match_cols = []
-    for key in df:
-        if key not in df_col_id.values():
-            no_match_cols.append(key)
+    # 3. Greedy one-to-one assignment
+    col_match, scores, used_cols = {}, {}, set()
+    for score, col, key, fmt in sorted(pairs, key=lambda _: -_[0]):
+        if key in col_match or col in used_cols:
+            continue
+        col_match[key] = (col, fmt)
+        scores[key] = score
+        used_cols.add(col)
+
+    # 4. Uncertainties derived from the matched parameters
+    cols_lower = {_.lower(): _ for _ in cols}
+    for key in pars_keys:
+        if key not in col_match:
+            continue
+        col, fmt = col_match[key]
+        e_cols = _find_err_cols(col, cols_lower)
+        if e_cols is None:
+            continue
+        col_match["e_" + key] = (e_cols, "e" + fmt)
+        used_cols.update(e_cols if isinstance(e_cols, list) else [e_cols])
+
+    logging.info("Columns matched (score):")
+    for key, (col, fmt) in col_match.items():
+        fmt_str = f" [{fmt}]" if fmt else ""
+        logging.info(f"  {key:<12} -> {col}{fmt_str} ({scores.get(key, 1.0):.2f})")
+
+    no_match_cols = [_ for _ in cols if _ not in used_cols and _ != types["col_name"]]
     logging.info(f"Columns in new DB with no match:\n  {no_match_cols}")
     logging.info("Column names for temp JSON file extracted")
 
-    return df_col_id
+    return col_match, types
 
 
-def proper_json_struct(df_col_id):
+def proper_json_struct(col_match):
     """Generate the proper structure for storing in the JSON file"""
     names = "None"
     all_dicts = [{}, {}, {}]
 
-    if df_col_id is None:
+    if col_match is None:
         return names, *all_dicts
 
-    if "names" in df_col_id:
-        names = df_col_id["names"]
+    if "names" in col_match:
+        names = col_match["names"][0]
 
     # Positions
     posdict = {}
     for val in JSON_struct["SMITH2500"]["pos"]:
-        if val in df_col_id:
-            posdict[val] = df_col_id[val]
+        if val in col_match:
+            posdict[val] = col_match[val][0]
     all_dicts = [posdict]
 
-    # Parameters and their uncertainties. We use default values here, these need
-    # manual checking once the JSON file is updated
-    def_pars = {
-        "av": "av",
-        "diff_ext": "dav",
-        "dist": "dm",
-        "age": "loga",
-        "met": "feh",
-        "mass": "mass",
-        "bi_frac": "bf",
-        "blue_str": "bs_f",
-    }
+    # Parameters and their uncertainties. The format is the one used by the closest
+    # matching column in the JSON file, it needs manual checking once the JSON file
+    # is updated
     for _id in ("pars", "e_pars"):
         pdict = {}
         for val in JSON_struct["SMITH2500"][_id]:
-            if val in df_col_id:
-                if _id == "pars":
-                    pdict[val] = {def_pars[val]: df_col_id[val]}
-                elif _id == "e_pars":
-                    pdict[val] = {"e" + def_pars[val[2:]]: df_col_id[val]}
+            if val in col_match:
+                col, fmt = col_match[val]
+                if fmt is None:
+                    par = val[2:] if _id == "e_pars" else val
+                    fmt = ("e" if _id == "e_pars" else "") + pars_formats[par][0]
+                pdict[val] = {fmt: col}
         all_dicts.append(pdict)
 
     return names, *all_dicts
@@ -699,6 +890,7 @@ def add_DB_to_JSON(
     title: str,
     year: str,
     names: str,
+    types: dict,
     pos_dict: dict,
     pars_dict: dict,
     e_pars_dict: dict,
@@ -739,7 +931,7 @@ def add_DB_to_JSON(
     new_db_json["year"] = year
     new_db_json["received"] = JSON_struct["SMITH2500"]["received"]
     new_db_json["names"] = names
-    new_db_json["types"] = JSON_struct["SMITH2500"]["types"]
+    new_db_json["types"] = types
     new_db_json["pos"] = pos_dict
     new_db_json["pars"] = pars_dict
     new_db_json["e_pars"] = e_pars_dict
