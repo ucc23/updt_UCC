@@ -4,7 +4,7 @@ import json
 import os
 import re
 from collections import defaultdict
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -18,6 +18,7 @@ from .variables import (
     UCC_cat_C_out,
     UCC_cat_D_in,
     UCC_cmmts_folder,
+    N_plot_workers,
     UCC_members_file,
     aladin_cols,
     all_OC_names,
@@ -697,12 +698,21 @@ def updt_ucc_cluster_plots(
 
     # Good OCs used for GC plot
     msk = df_BC["UTI"] > min_UTI
-    Z_uti = df_BC["Z_GC"][msk]
-    R_uti = df_BC["R_GC"][msk]
+    Z_uti = df_BC["Z_GC"][msk].to_numpy()
+    R_uti = df_BC["R_GC"][msk].to_numpy()
 
-    # plots_generated = {"aladin": [], "GC": [], "CMD": []}
-    fnames_processed = []
+    # Members of the entries flagged for update, grouped once (masking the full
+    # members file for each entry is slow)
+    membs_updt = df_members[df_members["name"].isin(fnames_plots_updt)]
+    membs_by_name = dict(tuple(membs_updt.groupby("name", sort=False)))
+    empty_membs = df_members.iloc[:0]
+
+    # The GC and CMD plots are generated in parallel by worker processes, while
+    # the Aladin plots (limited by the HiPS tiles downloads) are generated here
+    fnames_processed = set()
     aladin_generated = {}
+    executor = ProcessPoolExecutor(max_workers=N_plot_workers)
+    futures = {}
     # Iterate trough each entry in the UCC database
     for i_ucc, UCC_cl in df_BC.iterrows():
         fname0 = str(UCC_cl["fname"])
@@ -748,16 +758,14 @@ def updt_ucc_cluster_plots(
         # Make GC and CMD plots
         # Check if this OC's plot should be generated/updated
         if fname0 in fnames_plots_updt:
-            # Read members
-            df_membs = df_members[df_members["name"] == fname0]
-
             # Temp path were the GC file will be stored
             temp_gc_path = (
                 f"{temp_folder}{plots_folder}plots_{fname0[0]}/gcpos/{fname0}.webp"
             )
             # Generate the GC plot if the temporary image does not exist
+            gc_args = None
             if Path(temp_gc_path).is_file() is False or overwrite_temp is True:
-                ucc_plots.plot_gcpos(
+                gc_args = (
                     temp_gc_path,
                     Z_uti,
                     R_uti,
@@ -770,22 +778,51 @@ def updt_ucc_cluster_plots(
                     vz[i_ucc],
                     vR[i_ucc],
                 )
-                txt += " GC plot generated |"
 
             # Temp path were the CMD file will be stored
             temp_cmd_path = (
                 f"{temp_folder}{plots_folder}plots_{fname0[0]}/UCC/{fname0}.webp"
             )
             # Generate the CMD plot if the temporary image does not exist
+            cmd_args = None
             if Path(temp_cmd_path).is_file() is False or overwrite_temp is True:
-                ucc_plots.plot_CMD(temp_cmd_path, df_membs)
-                txt += " CMD plot generated |"
+                cmd_args = (temp_cmd_path, membs_by_name.get(fname0, empty_membs))
+
+            if gc_args is not None or cmd_args is not None:
+                fut = executor.submit(_plot_gc_cmd, gc_args, cmd_args)
+                futures[fut] = (fname0, i_ucc)
 
         if txt != "":
             logging.info(f"{fname0} -->" + txt + f" ({i_ucc})")
-            fnames_processed.append(fname0)
+            fnames_processed.add(fname0)
 
-    return fnames_processed, aladin_generated
+    # Wait for the GC and CMD plots
+    if futures:
+        logging.info(f"\nWaiting for {len(futures)} GC/CMD plot jobs")
+    try:
+        for fut in as_completed(futures):
+            fname0, i_ucc = futures[fut]
+            logging.info(f"{fname0} -->" + fut.result() + f" ({i_ucc})")
+            fnames_processed.add(fname0)
+    finally:
+        executor.shutdown(cancel_futures=True)
+
+    return list(fnames_processed), aladin_generated
+
+
+def _plot_gc_cmd(gc_args: tuple | None, cmd_args: tuple | None) -> str:
+    """
+    Generate the GC and/or CMD plots of an entry (run by the worker processes of
+    updt_ucc_cluster_plots()). Returns the text logged for the entry.
+    """
+    txt = ""
+    if gc_args is not None:
+        ucc_plots.plot_gcpos(*gc_args)
+        txt += " GC plot generated |"
+    if cmd_args is not None:
+        ucc_plots.plot_CMD(*cmd_args)
+        txt += " CMD plot generated |"
+    return txt
 
 
 def UTI_to_hex(df_UCC):

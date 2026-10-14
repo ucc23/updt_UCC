@@ -12,17 +12,18 @@ from astropy.wcs import WCS
 from astropy_healpix import HEALPix
 from matplotlib.gridspec import GridSpec
 from matplotlib.patches import Circle
+from matplotlib.ticker import AutoLocator
 from PIL import Image
 
 from ..utils import plx_to_pc
 from ..variables import (
-    aladin_tiles_cache,
-    custom_style_path,
     HIPS_MAX_ORDER,
     HIPS_MIN_INTERVAL,
     HIPS_MIN_ORDER,
     HIPS_MIRRORS,
     HIPS_TILE_ORDER,
+    aladin_tiles_cache,
+    custom_style_path,
     spiral_arms,
 )
 
@@ -68,6 +69,87 @@ def velocity(ra, dec, plx, pmRA, pmDE, rad_v, x_gc, y_gc, z_gc, R_gc):
     return vx, vy, vz, vR
 
 
+# Figures of plot_gcpos() and plot_CMD() are built once and re-used for every
+# cluster: only the data, limits, and labels are updated before saving. Building
+# the figure (axes, ticks, static artists) is most of the time of each plot.
+_plot_cache = {}
+
+
+def _gcpos_figure(Z_uti, R_uti, X_sun, Y_sun, Z_sun, R_sun, R_MW):
+    """
+    Return the (cached) figure used by plot_gcpos() with its static artists, and
+    a dict with the artists updated per cluster. The figure is re-built if any of
+    the static inputs change.
+    """
+    key = (X_sun, Y_sun, Z_sun, R_sun, R_MW)
+    cache = _plot_cache.get("gcpos")
+    if (
+        cache is not None
+        and cache["key"] == key
+        and np.array_equal(cache["R_uti"], R_uti)
+        and np.array_equal(cache["Z_uti"], Z_uti)
+    ):
+        return cache["fig"], cache["artists"]
+    if cache is not None:
+        plt.close(cache["fig"])
+
+    fig = plt.figure(figsize=(6, 3))  # Taller than wide
+    gs = GridSpec(1, 2, figure=fig, wspace=0.05)
+    title = fig.suptitle("")
+
+    ax1 = fig.add_subplot(gs[0])
+    # Plot spiral arms
+    for arm, coords in spiral_arms.items():
+        armx, army = np.array(coords).T
+        ax1.plot(armx, army, linestyle="--", label=arm, lw=2, zorder=3)
+    ax1.scatter(X_sun, Y_sun, marker="$\\odot$", c="y", ec="k", lw=0.5, s=150, zorder=5)
+    ax1.scatter(0, 0, marker="x", c="k", s=100, zorder=5)
+    pt1 = ax1.scatter(0, 0, marker="o", c="orange", ec="k", s=80, zorder=10)
+    q1 = ax1.quiver(
+        0, 0, 1, 1, angles="xy", scale_units="xy", scale=1, width=0.01, zorder=9
+    )
+    circle = Circle((0.0, 0.0), R_MW, fill=False, edgecolor="k")
+    ax1.add_patch(circle)
+    ax1.hlines(y=0, xmin=-R_MW, xmax=R_MW, color="k", linestyle=":", alpha=0.5)
+    ax1.vlines(x=0, ymin=-R_MW, ymax=R_MW, color="k", linestyle=":", alpha=0.5)
+    ax1.set_xlabel(r"X$_{GC}$ [kpc]")
+    ax1.set_ylabel(r"Y$_{GC}$ [kpc]", labelpad=1.5)
+
+    ax2 = fig.add_subplot(gs[1])
+    ax2.hlines(y=0, xmin=0, xmax=R_MW, color="k", linestyle="-", linewidth=3, alpha=0.5)
+    ax2.scatter(0, 0, marker="x", c="k", s=100, zorder=5)
+    ax2.scatter(R_sun, Z_sun, marker="$\\odot$", ec="k", lw=0.5, c="y", s=150, zorder=5)
+    pt2 = ax2.scatter(0, 0, marker="o", c="orange", ec="k", s=80, zorder=10)
+    ax2.scatter(
+        R_uti, Z_uti, marker=".", c="cyan", ec="k", lw=0.5, s=30, alpha=0.5, zorder=2
+    )
+    q2 = ax2.quiver(
+        0, 0, 1, 1, angles="xy", scale_units="xy", scale=1, width=0.01, zorder=9
+    )
+    ax2.set_xlabel(r"R$_{GC}$ [kpc]")
+    ax2.set_ylabel(r"Z$_{GC}$ [kpc]", labelpad=1.5)
+    ax2.yaxis.tick_right()
+    ax2.yaxis.set_label_position("right")
+
+    artists = {
+        "title": title,
+        "ax1": ax1,
+        "ax2": ax2,
+        "pt1": pt1,
+        "pt2": pt2,
+        "q1": q1,
+        "q2": q2,
+    }
+    _plot_cache["gcpos"] = {
+        "key": key,
+        "R_uti": np.array(R_uti),
+        "Z_uti": np.array(Z_uti),
+        "fig": fig,
+        "artists": artists,
+    }
+    return fig, artists
+
+
 def plot_gcpos(
     plot_fpath,
     Z_uti,
@@ -87,13 +169,15 @@ def plot_gcpos(
     R_MW=15.0,
     dpi=150,
 ):
-    """ """
-
+    """
+    Plot the Galactocentric position of a star cluster along with its velocity vector.
+    """
+    # Applied on every call (and not only when the figure is built) because other
+    # plots change the style, and some of its values are read when saving
     plt.style.use(custom_style_path)
 
-    fig = plt.figure(figsize=(6, 3))  # Taller than wide
-    gs = GridSpec(1, 2, figure=fig, wspace=0.05)
-    plt.suptitle(f"({X:.2f}, {Y:.2f}, {Z:.2f}) [kpc]")
+    fig, a = _gcpos_figure(Z_uti, R_uti, X_sun, Y_sun, Z_sun, R_sun, R_MW)
+    a["title"].set_text(f"({X:.2f}, {Y:.2f}, {Z:.2f}) [kpc]")
 
     max_l = 7
     scale_xy = min(abs(max_l / vx), abs(max_l / vy))
@@ -106,72 +190,82 @@ def plot_gcpos(
         R_MW * 1.05,
         1.05 * max(point_pos_X, arrow_point_pos_X, point_pos_Y, arrow_point_pos_Y),
     )
+    a["pt1"].set_offsets([[X, Y]])
+    a["q1"].set_offsets([[X, Y]])
+    a["q1"].set_UVC(vx * scale_xy, vy * scale_xy)
+    a["ax1"].set_xlim(-rmax, rmax)
+    a["ax1"].set_ylim(-rmax, rmax)
 
-    ax1 = fig.add_subplot(gs[0])
-    # Plot spiral arms
-    for arm, coords in spiral_arms.items():
-        armx, army = np.array(coords).T
-        ax1.plot(armx, army, linestyle="--", label=arm, lw=2, zorder=3)
-    ax1.scatter(X_sun, Y_sun, marker="$\\odot$", c="y", ec="k", lw=0.5, s=150, zorder=5)
-    ax1.scatter(0, 0, marker="x", c="k", s=100, zorder=5)
-    ax1.scatter(X, Y, marker="o", c="orange", ec="k", s=80, zorder=10)
-    ax1.quiver(
-        X,
-        Y,
-        vx * scale_xy,
-        vy * scale_xy,
-        angles="xy",
-        scale_units="xy",
-        scale=1,
-        width=0.01,
-        zorder=9,
-    )
-    circle = Circle((0.0, 0.0), R_MW, fill=False, edgecolor="k")
-    ax1.add_patch(circle)
-    ax1.hlines(y=0, xmin=-R_MW, xmax=R_MW, color="k", linestyle=":", alpha=0.5)
-    ax1.vlines(x=0, ymin=-R_MW, ymax=R_MW, color="k", linestyle=":", alpha=0.5)
-    ax1.set_xlabel(r"X$_{GC}$ [kpc]")
-    ax1.set_ylabel(r"Y$_{GC}$ [kpc]", labelpad=1.5)
-    ax1.set_xlim(-rmax, rmax)
-    ax1.set_ylim(-rmax, rmax)
-
-    ax2 = fig.add_subplot(gs[1])
-    ax2.hlines(y=0, xmin=0, xmax=R_MW, color="k", linestyle="-", linewidth=3, alpha=0.5)
-    ax2.scatter(0, 0, marker="x", c="k", s=100, zorder=5)
-    ax2.scatter(R_sun, Z_sun, marker="$\\odot$", ec="k", lw=0.5, c="y", s=150, zorder=5)
-    ax2.scatter(R, Z, marker="o", c="orange", ec="k", s=80, zorder=10)
-    ax2.scatter(
-        R_uti, Z_uti, marker=".", c="cyan", ec="k", lw=0.5, s=30, alpha=0.5, zorder=2
-    )
     max_l_R, max_l_z = 2, 0.5
     scale_rz = min(abs(max_l_R / vR), abs(max_l_z / vz))
-    ax2.quiver(
-        R,
-        Z,
-        vR * scale_rz,
-        vz * scale_rz,
-        angles="xy",
-        scale_units="xy",
-        scale=1,
-        width=0.01,
-        zorder=9,
-    )
+    a["pt2"].set_offsets([[R, Z]])
+    a["q2"].set_offsets([[R, Z]])
+    a["q2"].set_UVC(vR * scale_rz, vz * scale_rz)
     point_pos_R = abs(R)
     arrow_point_pos_R = abs(R + vR * scale_rz)
     xlim = max(16.0, 1.05 * max(point_pos_R, arrow_point_pos_R))
-    ax2.set_xlim(-0.5, xlim)
+    a["ax2"].set_xlim(-0.5, xlim)
     point_pos_z = abs(Z)
     arrow_point_pos_z = abs(Z + vz * scale_rz)
     ylim = max(1.0, 1.1 * max(point_pos_z, arrow_point_pos_z))
-    ax2.set_ylim(-ylim, ylim)
-    ax2.set_xlabel(r"R$_{GC}$ [kpc]")
-    ax2.set_ylabel(r"Z$_{GC}$ [kpc]", labelpad=1.5)
-    ax2.yaxis.tick_right()
-    ax2.yaxis.set_label_position("right")
+    a["ax2"].set_ylim(-ylim, ylim)
 
-    plt.savefig(plot_fpath, dpi=dpi)
-    fig.clear()
-    plt.close(fig)
+    fig.savefig(plot_fpath, dpi=dpi)
+
+
+def _CMD_figure(style_path, cmap, ec, fs):
+    """
+    Return the (cached) figure used by plot_CMD() and a dict with the artists
+    updated per cluster.
+    """
+    key = (style_path, cmap, ec, fs)
+    cache = _plot_cache.get("CMD")
+    if cache is not None and cache["key"] == key:
+        return cache["fig"], cache["artists"]
+    if cache is not None:
+        plt.close(cache["fig"])
+
+    fig, axes = plt.subplots(2, 2, figsize=(5.5, 5.5))
+    (ax1, ax2), (ax3, ax4) = axes
+    title = fig.suptitle("", fontsize=fs + 1)
+
+    scatters = []
+    for ax in (ax1, ax2, ax3, ax4):
+        scatters.append(ax.scatter([], [], c=[], alpha=0.8, ec=ec, lw=0.2, cmap=cmap))
+    plx_line = ax3.axvline(0, ls=":", c="k", lw=2)
+
+    x_pos, y_pos, w, h = 0.985, 0.08, 0.02, 0.847
+    cb_ax = fig.add_axes((x_pos, y_pos, w, h))
+    cbar = fig.colorbar(scatters[1], orientation="vertical", cax=cb_ax)
+    cbar.ax.tick_params(labelsize=fs)
+
+    for ax, xlabel, ylabel in (
+        (ax1, "GLON [deg]", "GLAT [deg]"),
+        (ax2, "pmRA [mas/yr]", "pmDE [mas/yr]"),
+        (ax3, "Plx [mas]", "G [mag]"),
+        (ax4, "BP-RP [mag]", "G [mag]"),
+    ):
+        ax.set_xlabel(xlabel, fontsize=fs)
+        ax.set_ylabel(ylabel, fontsize=fs)
+        ax.tick_params(axis="both", which="major", labelsize=fs)
+    # Get and set font size of the offset text
+    ax1.xaxis.get_offset_text().set_fontsize(fs)
+
+    # Initial subplot parameters, restored before each tight_layout() call
+    sp = fig.subplotpars
+    subplotpars = {
+        k: getattr(sp, k) for k in ("left", "right", "bottom", "top", "wspace", "hspace")
+    }
+
+    artists = {
+        "title": title,
+        "subplotpars": subplotpars,
+        "axes": (ax1, ax2, ax3, ax4),
+        "scatters": scatters,
+        "plx_line": plx_line,
+    }
+    _plot_cache["CMD"] = {"key": key, "fig": fig, "artists": artists}
+    return fig, artists
 
 
 def plot_CMD(
@@ -183,16 +277,19 @@ def plot_CMD(
     dpi=200,
     style_path: str | None = None,
 ):
-    """ """
+    """
+    Plot the Color-Magnitude Diagram (CMD) for the given DataFrame of members.
+    """
     if style_path is None:
-        plt.style.use(custom_style_path)
-    else:
-        plt.style.use(style_path)
+        style_path = custom_style_path
+    # Applied on every call (and not only when the figure is built) because other
+    # plots change the style, and some of its values are read when saving
+    plt.style.use(style_path)
 
     # Sort by probabilities
     df_membs = df_membs.sort_values(probs_col, kind="stable")
 
-    pr = df_membs[probs_col]
+    pr = df_membs[probs_col].to_numpy()
     vmin, vmax = min(pr), max(pr)
     if vmin > 0.01:
         if (vmax - vmin) < 0.001:
@@ -215,27 +312,16 @@ def plot_CMD(
     else:
         size = 25
 
-    # num=1, clear=True are there to release memory as per.
-    # https://stackoverflow.com/a/65910539/1391441
-    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(
-        2, 2, figsize=(5.5, 5.5), num=1, clear=True
-    )
-    fig.suptitle(f"{title} (N={len(df_membs)})", fontsize=fs + 1)
+    fig, a = _CMD_figure(style_path, cmap, ec, fs)
+    ax1, ax2, ax3, ax4 = a["axes"]
+    a["title"].set_text(f"{title} (N={len(df_membs)})")
 
-    ax1.scatter(
-        df_membs["GLON"],
-        df_membs["GLAT"],
-        c=pr,
-        alpha=0.8,
-        ec=ec,
-        lw=0.2,
-        s=size,
-        vmin=vmin,
-        vmax=vmax,
-        cmap=cmap,
-    )
-    ax1.set_xlabel("GLON [deg]", fontsize=fs)
-    ax1.set_ylabel("GLAT [deg]", fontsize=fs)
+    xy_cols = (("GLON", "GLAT"), ("pmRA", "pmDE"), ("Plx", "Gmag"), ("BP-RP", "Gmag"))
+    for sc, (xc, yc) in zip(a["scatters"], xy_cols):
+        sc.set_offsets(np.column_stack((df_membs[xc], df_membs[yc])))
+        sc.set_array(pr)
+        sc.set_sizes([size])
+        sc.set_clim(vmin, vmax)
 
     xmin, xmax = np.nanmin(df_membs["GLON"]), np.nanmax(df_membs["GLON"])
     ymin, ymax = np.nanmin(df_membs["GLAT"]), np.nanmax(df_membs["GLAT"])
@@ -246,37 +332,12 @@ def plot_CMD(
     ax1.set_xlim(xmin, xmax)
     ax1.set_ylim(ymin, ymax)
 
-    ax1.tick_params(axis="both", which="major", labelsize=fs)
-    # Get and set font size of the offset text
-    offset_text = ax1.xaxis.get_offset_text()
-    offset_text.set_fontsize(fs)
-
-    # Set a maximum of 5 xticks
+    # Set a maximum of 5 xticks (the locator is reset first, since the figure is
+    # re-used)
+    ax1.xaxis.set_major_locator(AutoLocator())
     Nxt = len("".join([label.get_text() for label in ax1.get_xticklabels()]))
     if Nxt > 5:
         ax1.locator_params(axis="x", nbins=5)
-
-    im2 = ax2.scatter(
-        df_membs["pmRA"],
-        df_membs["pmDE"],
-        c=pr,
-        alpha=0.8,
-        ec=ec,
-        lw=0.2,
-        s=size,
-        vmin=vmin,
-        vmax=vmax,
-        cmap=cmap,
-    )
-
-    x_pos, y_pos, w, h = 0.985, 0.08, 0.02, 0.847
-    cb_ax = fig.add_axes((x_pos, y_pos, w, h))
-    cbar = fig.colorbar(im2, orientation="vertical", cax=cb_ax)
-    # cbar.set_label('Probs')
-    cbar.ax.tick_params(labelsize=fs)
-
-    ax2.set_xlabel("pmRA [mas/yr]", fontsize=fs)
-    ax2.set_ylabel("pmDE [mas/yr]", fontsize=fs)
 
     # Plot limits
     xmin, xmax = np.nanmin(df_membs["pmRA"]), np.nanmax(df_membs["pmRA"])
@@ -287,64 +348,30 @@ def plot_CMD(
     ymin, ymax = ymin - yr, ymax + yr
     ax2.set_xlim(xmin, xmax)
     ax2.set_ylim(ymin, ymax)
-    ax2.tick_params(axis="both", which="major", labelsize=fs)
 
     x_max_cmd, x_min_cmd, y_min_cmd, y_max_cmd = diag_limits(
         df_membs["BP-RP"], df_membs["Gmag"]
     )
 
-    ax3.scatter(
-        df_membs["Plx"],
-        df_membs["Gmag"],
-        c=pr,
-        alpha=0.8,
-        s=size,
-        ec=ec,
-        lw=0.2,
-        vmin=vmin,
-        vmax=vmax,
-        cmap=cmap,
-    )
-    ax3.axvline(np.median(df_membs["Plx"]), ls=":", c="k", lw=2)
-    ax3.invert_yaxis()
-    ax3.set_xlabel("Plx [mas]", fontsize=fs)
-    ax3.set_ylabel("G [mag]", fontsize=fs)
-    # Plot limits
+    a["plx_line"].set_xdata([np.median(df_membs["Plx"])] * 2)
+    # Plot limits (the y axis is inverted: y_min_cmd > y_max_cmd)
     xmin, xmax = np.nanmin(df_membs["Plx"]), np.nanmax(df_membs["Plx"])
     xr = (xmax - xmin) * 0.1
     xmin, xmax = xmin - xr, xmax + xr
     ax3.set_xlim(xmin, xmax)
     ax3.set_ylim(y_min_cmd, y_max_cmd)
-    ax3.tick_params(axis="both", which="major", labelsize=fs)
 
-    ax4.scatter(
-        df_membs["BP-RP"],
-        df_membs["Gmag"],
-        c=pr,
-        alpha=0.8,
-        ec=ec,
-        lw=0.2,
-        s=size,
-        vmin=vmin,
-        vmax=vmax,
-        cmap=cmap,
-    )
-    ax4.invert_yaxis()
-    ax4.set_xlabel("BP-RP [mag]", fontsize=fs)
-    ax4.set_ylabel("G [mag]", fontsize=fs)
-    # Plot limits
     ax4.set_xlim(x_min_cmd, x_max_cmd)
     ax4.set_ylim(y_min_cmd, y_max_cmd)
-    ax4.tick_params(axis="both", which="major", labelsize=fs)
 
+    # tight_layout() depends on the starting subplot positions: restore the
+    # initial ones so that the result does not depend on the previous cluster
+    fig.subplots_adjust(**a["subplotpars"])
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         fig.tight_layout()
 
-    plt.savefig(plot_fpath, dpi=dpi)
-    # https://stackoverflow.com/a/65910539/1391441
-    fig.clear()
-    plt.close(fig)
+    fig.savefig(plot_fpath, dpi=dpi)
 
 
 # def colorbar(mappable):
@@ -556,7 +583,10 @@ def plot_aladin(
 
 
 def make_N_vs_year_plot(file_out_name, df_UCC, fontsize=7, dpi=300):
-    """ """
+    """
+    Make a plot of the number of catalogued OCs in the literature vs year of
+    publication.
+    """
     plt.style.use(custom_style_path)
 
     # Extract minimum year of publication for each catalogued OC
@@ -616,7 +646,7 @@ def make_N_vs_year_plot(file_out_name, df_UCC, fontsize=7, dpi=300):
         fontsize=fontsize,
         verticalalignment="center",
         # Custom arrow
-        arrowprops=dict(arrowstyle="->", lw=0.7),
+        arrowprops={"arrowstyle": "->", "lw": 0.7},
     )
     # plt.annotate(
     #     "Hipparcos + 2MASS",
@@ -651,7 +681,7 @@ def make_N_vs_year_plot(file_out_name, df_UCC, fontsize=7, dpi=300):
         "",
         xy=(2016, 3600),
         xytext=(2016, 350),
-        arrowprops=dict(arrowstyle="->", lw=0.7),
+        arrowprops={"arrowstyle": "->", "lw": 0.7},
         zorder=100,
     )
     plt.text(1950, 300, "Gaia data release", fontsize=fontsize, va="center")
@@ -689,7 +719,9 @@ def make_N_vs_year_plot(file_out_name, df_UCC, fontsize=7, dpi=300):
 
 
 def make_classif_plot(path, height, class_order, dpi=300):
-    """ """
+    """
+    Make a plot of the number of clusters per class.
+    """
     plt.style.use(custom_style_path)
 
     def rescale(x):
@@ -713,11 +745,13 @@ def make_classif_plot(path, height, class_order, dpi=300):
 
 
 def make_UTI_plot(path, UTI_vals, dpi=300):
-    """ """
+    """
+    Make a plot of the number of clusters per UTI value.
+    """
     plt.style.use(custom_style_path)
     my_cmap = plt.get_cmap("RdYlGn")
 
-    fig, ax = plt.subplots(1, figsize=(6, 3))
+    fig, _ = plt.subplots(1, figsize=(6, 3))
     Y, X = np.histogram(UTI_vals, 10)
     x_span = X.max() - X.min()
     C = [my_cmap((x - X.min()) / x_span) for x in X]

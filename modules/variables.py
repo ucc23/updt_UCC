@@ -12,6 +12,7 @@ Variables used by more than one script are in the SHARED block, each with a
 are included). Every other block holds the variables used by a single script.
 """
 
+import os
 import re
 from pathlib import Path
 
@@ -395,6 +396,8 @@ N_membs_min = 25
 
 # Local cache of the HiPS tiles used to build the Aladin plots (D script)
 aladin_tiles_cache = data_folder + "aladin_tiles_nogit/"
+# Number of worker processes used to generate the GC and CMD plots (D script)
+N_plot_workers = max(1, (os.cpu_count() or 2) - 1)
 # HiPS survey used for the Aladin plots. Tiles are static files, mirrored on
 # several CDS servers; they are downloaded once and stored in 'aladin_tiles_cache'
 HIPS_MIRRORS = (
