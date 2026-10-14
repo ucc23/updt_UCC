@@ -1,14 +1,14 @@
 
 # UCC management
 
-The UCC lives in several repositories within the [UCC23](https://github.com/ucc23) organization
-and in its associated [Zenodo repository](https://doi.org/10.5281/zenodo.8250523).
+The UCC lives in several repositories within the [UCC23](https://github.com/ucc23)
+organization and in its associated [Zenodo repository](https://doi.org/10.5281/zenodo.8250523).
 
 - The [updt_ucc](https://github.com/ucc23/updt_UCC) repository, this one, contains the scripts and data files
   required to update the UCC (mostly) automatically. It also contains the
-  main files that make up the UCC: `all_names`, `UCC_cat_B.csv`, `UCC_cat_C.csv`, and the
-  `UCC_members.parquet` file with all the identified members  (stored
-  in the `zenodo/` folder).
+  main files that make up the UCC: `all_names.csv`, `UCC_cat_B_out.csv`,
+  `UCC_cat_C_in.csv`, `UCC_cat_C_out.csv`, and the `UCC_members.parquet` file with
+  all the identified members (stored in the `data/zenodo/` folder).
 
 - The [ucc](https://github.com/ucc23/ucc) repository contains for each entry in the database a corresponding
   entry in the form of an `.md` file, in the `_clusters/` folder. This repository
@@ -29,14 +29,30 @@ Given a new database (DB) to be added to the UCC, the  `A_get_new_DB.py` script
 manages the updating of the JSON file that contains the information for each database
 in the UCC, as well as downloading the Vizier database if available and/or requested:
 
-1. Load the current JSON database file.
-2. Check if the URL is already listed in the current database.
-3. Fetch publication authors and year from NASA/ADS
-4. Generate a new database name based on extracted metadata.
-5. Handle temporary database files and check for existing data.
-6. Fetch Vizier data or allow manual input for Vizier IDs.
-7. Match new database columns with current JSON structure.
-8. Update the JSON file and save the database as CSV.
+1. Load the current JSON database file and check that no two DBs share the same
+   `received` date.
+2. Offer to update the `citations_count` of the DBs whose counts are older than
+   180 days (the script stops after updating them).
+3. Check that every parameter format in the JSON file is valid (`pars_formats` in
+   `variables.py`).
+4. Ask for the NASA/ADS bibcode and check if it is already listed in the JSON file.
+5. Fetch publication authors, year, title, and citations count from NASA/ADS.
+6. Generate a new database name based on extracted metadata.
+7. Fetch the Vizier data (or load the temporary CSV file if it already exists).
+8. Auto-detect the columns of the new DB that match the `names`, `types`, `pos`,
+   `pars`, and `e_pars` keys of the JSON file (see below).
+9. Write the temporary JSON file with the new DB entry and check that every DB
+   marked with `comments` in `data_cmmts` has a comments file (and vice versa).
+
+The columns are matched against the column names already used for each key in the
+JSON file (exact, normalized, and fuzzy matching). Names must be string columns, and
+positions and parameters numeric. Each column and each key are used at most once.
+Uncertainties (`e_pars`) are assigned from the matched parameters: columns such as
+`e_X`, `s_X`, `delta_X`, `X_sigma`, or the percentiles `X_16`/`X_84` for a matched
+parameter `X`. The parameter format (e.g. `loga`, `amyr`, `agyr` for the age) is
+inferred from the column name or values. The `types` key is filled if a column
+contains embedded cluster ids (see [JSON file format](#json-file-format)). The
+patterns and ranges used are defined in the `A` section of `variables.py`.
 
 Once the JSON file with the entry for the new DB and the generated CSV file with the
 DB data are stored in the temporary folder, **check carefully both files before moving
@@ -47,11 +63,14 @@ on** as both might need manual intervention.
 - `ADS_bibcode`: NASA/ADS bibcode for the new DB
 - `data/databases_info.json`: Current JSON file with info about the databases included
   in the UCC
+- `data/NASA_API_TOKEN`: NASA/ADS API token
+- `data/databases/cmmts/*.csv`: Comments files (only checked)
 
 ### Output
 
 - `temp_updt/data/databases_info.json`: Updated JSON file with new DB entry
-- `temp_updt/data/NEW_DB.csv`: New database in CSV format
+- `temp_updt/data/databases/NEW_DB.csv`: New database in CSV format (if Vizier
+  returns several tables they are stored as `NEW_DB_1.csv`, `NEW_DB_2.csv`, ...)
 
 **Important**:
 The column with the names of the new entries can contain several names; these must
@@ -67,7 +86,20 @@ manually moved**.
 ### JSON file format
 
 The format of the `databases_info.json` file is mostly self-explanatory with the
-exception of the parameters section. This can have different formats depending on the
+exception of the `types` and parameters sections.
+
+The `types` key identifies the embedded clusters (ECs) in the DB:
+
+```
+"types": {"col_name": "Type", "ec_id": ["EC", "ECC"]}
+```
+
+where `col_name` is the column that holds the type of each entry and `ec_id` lists
+the values in that column that identify an EC. Use `"col_name": "ALL"` if every entry
+in the DB is an EC, and `"col_name": "N/A"` if the DB does not identify ECs. The B
+script uses this key to generate the `Type` column.
+
+The parameters section This can have different formats depending on the
 database structure. There are three possible formats:
 
 1. **Default**
@@ -128,7 +160,9 @@ The `B_update_UCC` script handles two possible cases:
 2. Adding a new database to the UCC
 
 The case is decided by the script according to whether it finds a temporary
-`databases_info.json` file with new DBs to add.
+`databases_info.json` file with new DBs to add. In both cases the B catalogue is
+re-built from all the DBs (those with `data_cmmts="comments"` are skipped); the new
+DBs are checked more thoroughly (the checks for the rest can be skipped).
 
 The `all_names` file contains the following columns:
 
@@ -137,47 +171,59 @@ The `all_names` file contains the following columns:
 which are the main identifiers for each entry in the UCC. This file is re-built every
 time the `B_update_UCC` script is run.
 
-The final `UCC_cat_B.csv` file contains the following columns:
+The final `UCC_cat_B_out.csv` file contains the following columns:
 
-> "fname","DB","DB_i",
+> "fname","DB","DB_i","F_score"
 
 which identify the position of each entry in the original DBs. The `DB` column
-contains the name of the DB where the entry is present, and the `DB_i` column contains
-the index of the entry in the original DB. Along with these columns,
+contains the names of the DBs where the entry is present, and the `DB_i` column
+contains the index of the entry in each original DB. Along with these columns,
 the file also contains the following columns which are used only as centers to estimate
 membership by the next script:
 
-> "RA_ICRS","DE_ICRS","GLON","GLAT","Plx","pmRA","pmDE"
+> "RA_ICRS","DE_ICRS","GLON","GLAT","Plx","pmRA","pmDE","DB_coords_used"
 
-and finally the `fund_pars` column which contains the fundamental parameters for
-each entry extracted from each DB where it is present.
+where `DB_coords_used` is the DB the center values were taken from (see
+`DB_coords_hierarchy` in `variables.py`, and `UCC_cat_B_in.csv` for manual
+centers). The fundamental parameters extracted from each DB where the entry is
+present are stored in the columns:
+
+> "dist","av","diff_ext","age","met","mass","bi_frac","blue_str"
+
+followed by the `Type` column (`OC`, `EC`, or `EC;OC` if only some DBs catalogue
+the entry as an EC; see the `types` key in the JSON file) and the `<par>_median`, `<par>_stddev` columns for each parameter.
 
 ### Input
 
 - `data/all_names.csv`: File with the names of each entry in the UCC
-- `data/UCC_cat_B.csv`: Current version of this file
+- `data/UCC_cat_B_out.csv`: Current version of this file
+- `data/UCC_cat_B_in.csv`: Manual center coordinates for selected entries
 - `data/databases_info.json`: Current JSON database file
+- `data/databases/*.csv`: All the DBs in the UCC
 - `data/globulars.csv`: Globular clusters data file
 - `temp_updt/data/databases_info.json`: New JSON file (generated by script A)
-- `temp_updt/data/NEW_DB.json`: New database (generated by script A)
+- `temp_updt/data/databases/NEW_DB.csv`: New database (generated by script A)
 
 ### Output
 
-- `UCC_cat_B.csv`: Updated version of this file (old one is archived)
+Files are generated in `temp_updt/` and, after confirmation, moved to their final
+destination:
 
-If new DBs were added then these files are moved from temporary folders to their
-final destination:
+- `data/UCC_cat_B_out.csv`: Updated version of this file (old one is archived in
+  `data/ucc_archived_nogit/`)
+- `data/all_names.csv`: Updated version of this file
+
+If new DBs were added:
 
 - `data/databases_info.json`: Updated UCC database JSON file
-- `data/NEW_DB.csv`: New database in CSV format
+- `data/databases/NEW_DB.csv`: New database in CSV format
 
 
 ### Handling embedded clusters
 
-After running the B script, we must manually add all possible objects classified
-as embedded (sometimes called infrared) to the `embedded.csv` file. Mind the naming,
-if any names were edited during the B script, make sure to use the new names in the
-`embedded.csv` file.
+Embedded clusters are identified through the `types` key of each DB in the JSON
+file (see [JSON file format](#json-file-format)), which is used to generate the
+`Type` column of the B file. Check this key for every new DB.
 
 
 
@@ -191,16 +237,12 @@ the parquet file with all the identified members. It also generates the required
 for uploading to the Zenodo repository (these files need to be manually uploaded to a
 new Zenodo release).
 
-The `UCC_cat_C.csv` file contains columns that represent the following information:
+The C catalogue is split into two files. The `UCC_cat_C_in.csv` file contains the
+(manual) input columns used to process each entry:
 
 ```
-- fnames: names of each entry (must match those in the B file)
-- plots_used: (y/n) tells the E script if an entry plot needs to be generated/updated (n)
+- fname: name of each entry (must match those in the B file)
 - process: (y/n) manual flag that indicates whether to (re)process this entry
-- N_clust: Fixed number of cluster members (has precedence over N_clust_max)
-- N_clust_max: Maximum number of cluster members
-- rad_arcmin: Radius of the cluster (in arcmin), used by the members selection
-- box_size: Size of the box to query (in degrees)
 - frame_limit: A string in the format "x_111.1" where "x" is one of the characters:
 
    - 'l' (left), 'r' (right) for GLON coordinates
@@ -210,17 +252,28 @@ The `UCC_cat_C.csv` file contains columns that represent the following informati
    - 'plxl' (left), 'plxr' (right) for parallax
 
 and the numbers are the limiting values for each. A single limit can be provided (eg,
-"x_111.1") or several separated by a ';' (eg, "x_111.1;y_222.2,...").
+"x_111.1") or several separated by a ';' (eg, "x_111.1;y_222.2;...").
+
+- N_clust: Fixed number of cluster members (has precedence over N_clust_max)
+- N_clust_max: Maximum number of cluster members
+- use_mag_fastmp: (y/n) whether fastMP uses the G magnitudes
 ```
-The rest of the columns are generated using information taken from the estimated members
-for each entry. This script perform the following main operations:
+
+Manual values for new entries can be given in the (optional)
+`data/new_ocs_manual_pars.csv` file.
+
+The `UCC_cat_C_out.csv` file contains the columns generated using information taken
+from the estimated members for each entry. This script performs the following main
+operations:
 
 ### 3.1. Change detection
 Compares two versions of the UCC catalog: a source catalog (`UCC_cat_B.csv`) and the
-current catalog (`UCC_cat_C.csv`). It identifies three sets of open clusters:
+current catalog (`UCC_cat_C.csv`). It identifies four sets of open clusters:
 
 - New clusters to be added (B entry not in C --> Add to C)
-- Old clusters to be removed (C entry not in B --> Remove from C)
+- Old clusters to be removed (C entry not in B and merged into another entry -->
+  Remove from C)
+- Renamed clusters (C entry not in B whose canonical name changed --> Rename in C)
 - Existing clusters that have been manually marked for reprocessing
  (C entry with 'process=y' --> Reprocess in C)
 
@@ -241,28 +294,39 @@ After processing all the necessary clusters, the script updates the main UCC dat
 
 ### 3.4 Post-processing
 - Finds Shared Members: analyzes the entire member list to find stars that belong to
-  more than one cluster and records this information
-- Calculates the UTI
+  more than one cluster and records this information (only if the members changed)
+- Calculates the quality metrics (`C_N`, `C_dens`, `C_C3`, `C_lit`, `C_dup`), the
+  duplicate probability `P_dup`, the UTI, and the `bad_oc` flag
+- Renames/removes the `.md` and `.webp` files of renamed/removed entries in the
+  `ucc/` and `plots/` repositories
 
 
 ### Input
 
-- `data/df_UCC_B_updt.csv`: Current UCC database (produced by the B script)
-- `data/df_UCC_C_updt.csv`: Current version of this file
-- `data/manual_centers.csv`: Manual centers for selected OCs
-- `databases/globulars.csv`: Globular clusters data file
+- `data/UCC_cat_B_out.csv`: Current UCC B catalogue (produced by the B script)
+- `data/all_names.csv`: File with the names of each entry in the UCC
+- `data/UCC_cat_C_in.csv`, `data/UCC_cat_C_out.csv`: Current version of these files
+- `data/new_ocs_manual_pars.csv`: (optional) Manual parameters for new entries
+- `data/globulars.csv`: Globular clusters data file
 - `data/databases_info.json`: Current UCC database JSON file
-- `Gaia data files`: Gaia data files for a given release
-- `zenodo/README.txt`: Zenodo README file
-- `zenodo/UCC_members.parquet`: File with estimated member for all the clusters
+- `Gaia data files`: Gaia data files for a given release (`path_gaia_frames` in
+  `variables.py`)
+- `data/zenodo/README.txt`: Zenodo README file
+- `data/zenodo/UCC_cat.csv`: Current Zenodo catalogue
+- `data/zenodo/UCC_members.parquet`: File with estimated member for all the clusters
   (**FILE NOT TRACKED BECAUSE IT IS TOO LARGE**)
 
 ### Output
 
-- `data/df_UCC_C_updt.csv`: Updated version (previous version is archived)
-- `zenodo/README.txt`: Updated version
-- `zenodo/UCC_cat.csv`: Updated (and simplified) version of the UCC catalog
-- `zenodo/UCC_members.parquet`: Updated version
+Files are generated in `temp_updt/` and, after confirmation, moved to their final
+destination:
+
+- `data/UCC_cat_C_in.csv`, `data/UCC_cat_C_out.csv`: Updated versions (previous
+  versions are archived in `data/ucc_archived_nogit/`)
+- `data/zenodo/README.txt`: Updated version
+- `data/zenodo/UCC_cat.csv`: Updated (and simplified) version of the UCC catalog
+- `data/zenodo/UCC_members.parquet`: Updated version (previous version is archived)
+- `ucc/_clusters/*.md`, `plots/plots_*/*/*.webp`: Renamed/removed if required
 
 The last three files are uploaded to Zenodo to generate a new release.
 
@@ -278,44 +342,53 @@ This script applies the required changes to update the ucc.ar site. It processes
 UCC catalogue and searches for modifications that need to be applied to update the site.
 
 - Generate/update per cluster `.webp` files (stored in the `plots/` folders)
-- If plots were generated/updated, update the `plot_used` column in the
-  `data/df_UCC_C.csv` file
+- If plots were generated/updated, update the plots record file
+  `data/UCC_cat_D_in.csv` (members hash and Aladin parameters used for each entry)
 - Generate/update per cluster `.md` (stored in `ucc/_clusters/`) files
+- Update the per-article tables (`ucc/_tables/dbs/`, `ucc/_tables/cmmts/`)
+- Update the site-wide plots and the `DATABASE.md` and `ARTICLES.md` pages
+- Update the equatorial positions file `ucc/assets/eq_positions.json.gz`
 - Update the split members files (`ucc/assets/members/*.csv.gz`)
-- Update the CSV clusters file `ucc/assets/clusters.csv.gz` and its associated JSON
-  file `clusters-manifest.json`
-- Update the main UCC site files including tables and images
+- Update the CSV clusters file `ucc/assets/clusters_*.csv.gz` (timestamped) and its
+  associated JSON file `clusters_manifest.json`
 - Move all files to their final destination
 - Check that the number of files is correct
 
 ### Input
 
-- `data/df_UCC_B.csv`: Used to access certain columns like Names and DB
-- `data/df_UCC_C.csv`: Primary source of data for most of the website content
+- `data/all_names.csv`: Used to access the Names columns
+- `data/UCC_cat_B_out.csv`: Used to access certain columns like DB and parameters
+- `data/UCC_cat_C_out.csv`: Primary source of data for most of the website content
+- `data/UCC_cat_D_in.csv`: Record of the members/Aladin parameters used for the plots
 - `data/zenodo/UCC_members.parquet`: Used for generating cluster plots
 - `data/databases_info.json`: Latest UCC database JSON file
+- `data/databases/*.csv`: All the DBs in the UCC
 - `data/databases/cmmts/*.csv`: CSV files with comments
 
-- `ucc/assets/clusters.csv.gz`: JSON file with the latest UCC data
-- `ucc/_pages/XXXXX.md` (DATABASES, ARTICLES, TABLES)
-- `ucc/_tables/XXXXX_table.md` (individual table pages)
-- `ucc/_tables/dbs/{db_name}.csv` (one file for each original database in the UCC)
+- `ucc/assets/clusters_*.csv.gz`: CSV file with the latest UCC data
+- `ucc/assets/eq_positions.json.gz`: Equatorial positions of the clusters
+- `ucc/_pages/DATABASE.md`, `ucc/_pages/ARTICLES.md`
+- `ucc/_tables/dbs/{db_name}_table.md`, `ucc/_tables/cmmts/{db_name}_table.md`
+  (individual table pages)
 - `ucc/_clusters/{cluster_name}.md` (individual cluster pages)
 
 
 ### Output
 
-- `UCC/plots/plots_X/*/*.webp`:  Updated or generated (CMD and Aladin plots)
+Files are generated in `temp_updt/` and, after confirmation, moved to their final
+destination:
 
-- `data/df_UCC_C.csv`: Updated `plot_used` column if modified
+- `plots/plots_X/{UCC,aladin,gcpos}/*.webp`: Updated or generated
+- `data/UCC_cat_D_in.csv`: Updated if plots were generated
 
 - `ucc/_clusters/*.md`: Updated or generated
 - `ucc/assets/members/*.csv.gz`: Updated files
-- `ucc/assets/clusters.csv.gz`: Updated
-- `ucc/assets/clusters-manifest.json`: Updated
+- `ucc/assets/clusters_*.csv.gz`: Updated (the old file is deleted)
+- `ucc/assets/clusters_manifest.json`: Updated
+- `ucc/assets/eq_positions.json.gz`: Updated
 - `ucc/images/*.webp`: Updated
-- `ucc/_pages/*.md`: Updated
-- `ucc/_tables/*_table.md`: Updated
+- `ucc/_pages/DATABASE.md`, `ucc/_pages/ARTICLES.md`: Updated
+- `ucc/_tables/{dbs,cmmts}/*_table.md`: Updated
 
 
 
@@ -330,7 +403,8 @@ need to be manually inspected.
 
 The script runs all the checks below with no user input, using the default
 parameters stored at the top of the script (`_CHECK_CONFIG`, `_MEMBS_COORDS_CONFIG`,
-`_PARAMS_CONFIG`, `_B_VS_C_CONFIG`, `_DUP_CONFIG`, `_H23_MEMBS_CONFIG`):
+`_PARAMS_CONFIG`, `_B_VS_C_CONFIG`, `_DUP_CONFIG`, `_PROX_DUP_CONFIG`,
+`_H23_MEMBS_CONFIG`, `_LIT_DIST_CONFIG`):
 
 1. **Cross-DB consistency**: compares the position (angular separation), proper
    motion, and parallax values of each entry across the DBs listed in the B file. The
@@ -344,40 +418,56 @@ parameters stored at the top of the script (`_CHECK_CONFIG`, `_MEMBS_COORDS_CONF
 2. **B center vs members**: compares the center coordinates in the B file with the
    median coordinates of the estimated members (absolute and `dist_norm`
    thresholds).
-3. **Cross-DB parameters**: compares the fundamental parameters (dist, av, diff_ext,
-   age, met, mass, bi_frac, blue_str) of each entry across the DBs listed in the B
-   file, against their median. Distances are compared as distance moduli and ages as
-   log10(age/yr); the threshold is relative to the median for `mass` and absolute for
-   the rest.
-4. **B vs C**: compares the proper motions in the B file with those derived from the
-   members in the C file.
+3. **Cross-DB parameters**: compares the fundamental parameters (dist, av, age, met,
+   mass) of each entry across the DBs listed in the B file, against their median.
+   Distances are compared as distance moduli and ages as log10(age/yr); the threshold
+   is relative to the median for `mass` and absolute for the rest. These are *minor*
+   checks (disagreements in the literature rather than UCC errors): they are scored,
+   but an entry failing only these is not counted as flagged.
+4. **B vs C**: compares the proper motions and parallaxes in the B file with those
+   derived from the members in the C file (only for entries with UTI above
+   `uti_min`).
 5. **Duplicates**: uses the shared members in the C file to identify candidate
-   duplicates.
+   duplicates (several runs, `dup_1` to `dup_5`, by number of candidates and
+   publication date), and flags pairs of entries that share no members but are
+   close in position, parallax, and proper motion (`dup_prox`).
 6. **Members vs HUNT2023**: compares the number of members of each entry (rows in the
    members file) with the `N` column of the HUNT2023 DB. An entry is flagged if
    `max(N)/min(N) > 1 + thr * factor`, with `factor` decreasing with `max(N)`, so
    that differences in larger clusters are flagged and scored more strongly.
+7. **Literature distance vs parallax**: compares the distance modulus of the median
+   literature distance with that of the members' parallax (corrected for the Gaia
+   zero point), for entries with a parallax above `plx_min`.
+
+The integrity of the B and C catalogues and of the members file (repeated or
+unmatched names, missing values, entries without members, negative parallaxes,
+repeated stars) is also checked, with every problem issued as a warning.
 
 Entries from the `hsc, theia, cwnu, ocsn` families are skipped in all checks except
-the duplicates one (`skip_pfx`).
+the duplicates ones (`skip_pfx`; the proximity duplicates check only skips pairs
+where both entries belong to these families).
 
 Entire DBs can be excluded from the checks that compare per-DB values
 (`DBs_<type>_conflicts`, `DBs_<type>_groups`, `params_<param>`) with the
 `exclude_DBs` dictionary at the top of the script, eg:
 `exclude_DBs = {"DBs_pos_conflicts": ("VDBH1975",)}`. The `params` key excludes its
-DBs from all the `params_<param>` checks. The values of an excluded DB
-are ignored only in the checks listed for it, and the exclusions are listed in the
-output file. The script stops if a check does not accept exclusions or a DB is not
-in `databases_info.json`.
+DBs from all the `params_<param>` checks and from `lit_dist_plx`. The values of an
+excluded DB are ignored only in the checks listed for it, and the exclusions are
+listed in the output file. Conversely, the `include_DBs` dictionary (same keys)
+restricts a check to the values of the listed DBs only; a check with an entry in
+`include_DBs` ignores its entries in `exclude_DBs`. The script stops if a check does
+not accept exclusions or a DB is not in `databases_info.json`.
 
 Every failed check gives the entry a score of
 `weight * min(1 + log2(ratio), sev_max) * (uti_floor + (1 - uti_floor) * UTI)`,
 where `ratio` is the measured value over the check's threshold, so larger
 discrepancies score higher, and entries with larger UTI values score higher (entries
-without a UTI value use a factor of 1). The duplicates check has the largest weight.
+without a UTI value use a factor of 1). The duplicates check has the largest weight
+(the original entry of a duplicate pair is scored with `dup_orig_factor`).
 An entry's total score is the sum over its failed checks; since the `conflicts` and
 `groups` checks of the same quantity measure the same discrepancy, only the highest
-of the two counts. The weights and other factors are set in `_SCORE_CONFIG`.
+of the two counts (the same applies to all the `dup_*` checks). The weights and other
+factors are set in `_SCORE_CONFIG`.
 
 The output file lists, right below its `## Clusters` section, all the candidate
 duplicates (entries that failed the duplicates check, as either the duplicate or the
@@ -407,30 +497,35 @@ in the output file.
 
 | Key | Checks down-weighted |
 |---|---|
-| `pos` | `DBs_pos_conflicts`, `DBs_pos_groups`, `membs_coords` |
+| `pos` | `DBs_pos_conflicts`, `DBs_pos_groups`, `B_vs_C_coords` |
 | `pm` | `DBs_pm_conflicts`, `DBs_pm_groups`, `B_vs_C_pm` |
-| `plx` | `DBs_plx_conflicts`, `DBs_plx_groups` |
-| `params` | `params_<param>` for every parameter (`dist`, `av`, `diff_ext`, `age`, `met`, `mass`, `bi_frac`, `blue_str`) |
-| `dup` | `dup` (as either the duplicate or the original of a pair) |
+| `plx` | `DBs_plx_conflicts`, `DBs_plx_groups`, `B_vs_C_plx` |
+| `params` | `params_<param>` for every parameter (`dist`, `av`, `age`, `met`, `mass`), `lit_dist_plx` |
+| `dup` | `dup_1` to `dup_5`, `dup_prox` (as either the duplicate or the original of a pair) |
 | `N_membs` | `H23_membs` |
 
 The file is validated before the checks run, and the script stops with a list of the
 problems if it is not valid JSON (eg: a trailing comma), if an entry or key is
 repeated, if a key is not in the table above, or if a comment is empty. Entries that
 are not in the B file only produce a warning, since their comments never apply.
+Comments whose checks no longer fail (orphan comments) are also reported with a
+warning, since they can be removed.
 
 #### Stale comments
 
 A comment may no longer apply once its entry changes. The
 `data/UCC_cat_E_hashes.csv` file (generated and updated by the script) stores, for
-every commented entry, a hash of its comments, and of its B row, C row, and members
-when the comments were stored:
+every comment (one row per entry and key), a hash of the comment and of the inputs
+of the checks of its key when it was stored: the B columns, the values read from
+the DB files, the C columns, and the members used by those checks
+(`_CMMTS_HASH_DEPS`):
 
 - New or edited comments take the current hashes of their entry.
-- If the comments did not change but the B row, C row, or members of the entry did,
-  the comments are **stale**: the script prints a warning listing what changed, the
-  comments no longer down-weight the entry's checks, and they are marked as `STALE`
-  in the output file.
+- If a comment did not change but the inputs of the checks of its key did, the
+  comment is **stale**: the script prints a warning listing what changed, the
+  comment no longer down-weights the entry's checks, and it is marked as `STALE`
+  in the output file. Changes in parts of the entry that the checks of a key do not
+  use never make its comments stale.
 - A stale comment keeps being flagged until it is reviewed, and either edited, or
   confirmed by removing its entry's row from `UCC_cat_E_hashes.csv`.
 
@@ -447,9 +542,9 @@ when the comments were stored:
 
 ### Output
 
-- `master_check.md`: Warnings issued during the run (also printed to screen),
-  summary of the checks performed, and the highest scoring entries with their
-  scores, failures, and manual comments, stored in the working folder
+- `temp_updt/master_check.md`: Warnings issued during the run (also printed to
+  screen), summary of the checks performed, and the highest scoring entries with
+  their scores, failures, and manual comments
 - `data/UCC_cat_E_hashes.csv`: Updated with the hashes of new or edited comments
 
 
@@ -518,8 +613,8 @@ $ ./test_build.sh 0 melotte55 ngc2682
 
   -a Make sure that the version number in the `zenodo/README.txt` file matches that in
      the `_pages/CHANGELOG.md` file
-  -b Upload the three files stored in the `zenodo/` folder:
-     `README.md, UCC_cat.csv, UCC_members.parquet`
+  -b Upload the three files stored in the `data/zenodo/` folder:
+     `README.txt, UCC_cat.csv, UCC_members.parquet`
   -c Get a new DOI from Zenodo
   -d Add a _Publication date_ with the format: YYYY-MM-DD
   -e Use the same version number from the README (format: YYMMDD) in the release
