@@ -6007,7 +6007,7 @@
     },
     "pars": {
       "av": {
-        "av": "E(B-V)"
+        "ebv": "E(B-V)"
       },
       "dist": {
         "dm": "DM"
