@@ -1,18 +1,36 @@
 import io
+import time
 import warnings
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
 import requests
 from astropy import units as u
 from astropy.coordinates import Galactocentric, SkyCoord
-from astropy.io import fits
+from astropy.wcs import WCS
+from astropy_healpix import HEALPix
 from matplotlib.gridspec import GridSpec
 from matplotlib.patches import Circle
-from scipy import ndimage
+from PIL import Image
 
 from ..utils import plx_to_pc
-from ..variables import custom_style_path, spiral_arms
+from ..variables import (
+    aladin_tiles_cache,
+    custom_style_path,
+    HIPS_MAX_ORDER,
+    HIPS_MIN_INTERVAL,
+    HIPS_MIN_ORDER,
+    HIPS_MIRRORS,
+    HIPS_TILE_ORDER,
+    spiral_arms,
+)
+
+_hips_session = requests.Session()
+_hips_session.headers["User-Agent"] = (
+    "UCC-updater (Unified Cluster Catalogue; https://ucc.ar)"
+)
+_hips_last_request = 0.0
 
 
 def velocity(ra, dec, plx, pmRA, pmDE, rad_v, x_gc, y_gc, z_gc, R_gc):
@@ -355,6 +373,132 @@ def diag_limits(phot_x, phot_y):
     return x_max_cmd, x_min_cmd, y_min_cmd, y_max_cmd
 
 
+def _hips_order(pix_deg):
+    """Lowest HiPS order whose pixels are not larger than 'pix_deg'"""
+    for order in range(HIPS_MIN_ORDER, HIPS_MAX_ORDER + 1):
+        nside = 2 ** (order + HIPS_TILE_ORDER)
+        if HEALPix(nside=nside).pixel_resolution.to_value(u.deg) <= pix_deg:
+            return order
+    return HIPS_MAX_ORDER
+
+
+def _hips_tile(order, npix, timeout, max_tries=5):
+    """
+    Return the (512, 512, 3) RGB array of a HiPS tile, reading it from the local
+    cache or downloading (and caching) it if required. Tiles that do not exist in
+    the survey are stored as an empty '.missing' file and returned as black.
+    """
+    global _hips_last_request
+
+    rel_path = f"Norder{order}/Dir{(npix // 10000) * 10000}/Npix{npix}"
+    fpath = Path(aladin_tiles_cache) / f"{rel_path}.jpg"
+    missing = fpath.with_suffix(".missing")
+    tile_width = 2**HIPS_TILE_ORDER
+    if fpath.is_file():
+        with Image.open(fpath) as img:
+            return np.asarray(img.convert("RGB"))
+    if missing.is_file():
+        return np.zeros((tile_width, tile_width, 3), dtype=np.uint8)
+
+    errors = []
+    for attempt in range(max_tries):
+        # Rotate through the mirrors on each attempt
+        url = f"{HIPS_MIRRORS[attempt % len(HIPS_MIRRORS)]}/{rel_path}.jpg"
+        wait = HIPS_MIN_INTERVAL - (time.monotonic() - _hips_last_request)
+        if wait > 0:
+            time.sleep(wait)
+        _hips_last_request = time.monotonic()
+        try:
+            resp = _hips_session.get(url, timeout=timeout)
+        except requests.RequestException as e:
+            errors.append(f"{url}: {e}")
+            time.sleep(2**attempt)
+            continue
+
+        if resp.status_code == 404:
+            missing.parent.mkdir(parents=True, exist_ok=True)
+            missing.touch()
+            return np.zeros((tile_width, tile_width, 3), dtype=np.uint8)
+        if resp.status_code == 429 or resp.status_code >= 500:
+            errors.append(f"{url}: HTTP {resp.status_code}")
+            retry_after = resp.headers.get("Retry-After", "")
+            time.sleep(int(retry_after) if retry_after.isdigit() else 2**attempt)
+            continue
+        try:
+            resp.raise_for_status()
+            with Image.open(io.BytesIO(resp.content)) as img:
+                data = np.asarray(img.convert("RGB"))
+        except Exception as e:
+            errors.append(f"{url}: {e}")
+            continue
+
+        # Write to a temp file first so an interrupted run never leaves a
+        # truncated tile in the cache
+        fpath.parent.mkdir(parents=True, exist_ok=True)
+        tmp_path = fpath.with_suffix(".tmp")
+        tmp_path.write_bytes(resp.content)
+        tmp_path.replace(fpath)
+        return data
+
+    raise ValueError("Could not download HiPS tile:\n    " + "\n    ".join(errors))
+
+
+def _compact_bits(v):
+    """Keep the even bits of 'v', packed (inverse of a Morton interleave)"""
+    v = v & 0x55555555
+    v = (v | (v >> 1)) & 0x33333333
+    v = (v | (v >> 2)) & 0x0F0F0F0F
+    v = (v | (v >> 4)) & 0x00FF00FF
+    v = (v | (v >> 8)) & 0x0000FFFF
+    return v
+
+
+def hips_cutout(ra, dec, fov, width, height, timeout=15):
+    """
+    Build a (height, width, 3) RGB cutout (north up, east left) centered on
+    (ra, dec) with a 'fov' (deg) along the width axis, from locally cached HiPS
+    tiles. Uses the same WCS (SIN projection) as the default 'hips2fits' query.
+    """
+    pix_deg = fov / width
+    order = _hips_order(pix_deg)
+
+    wcs = WCS(naxis=2)
+    wcs.wcs.ctype = ["RA---SIN", "DEC--SIN"]
+    wcs.wcs.crval = [ra, dec]
+    wcs.wcs.crpix = [width / 2, height / 2]
+    wcs.wcs.cdelt = [-pix_deg, pix_deg]
+    yy, xx = np.mgrid[0:height, 0:width]
+    lon, lat = wcs.pixel_to_world_values(xx.ravel(), yy.ravel())
+
+    # Each tile pixel is a HEALPix (nested) pixel of order 'order + 9'
+    hp = HEALPix(nside=2 ** (order + HIPS_TILE_ORDER), order="nested")
+    idx, weights = hp.bilinear_interpolation_weights(lon * u.deg, lat * u.deg)
+
+    # The upper bits of the index give the tile, the lower bits interleave the
+    # (row, column) of the pixel inside that tile
+    tile_ids = idx >> (2 * HIPS_TILE_ORDER)
+    sub_idx = idx & (4**HIPS_TILE_ORDER - 1)
+    row, col = _compact_bits(sub_idx), _compact_bits(sub_idx >> 1)
+
+    uniq_tiles, inv = np.unique(tile_ids, return_inverse=True)
+    tiles = np.stack([_hips_tile(order, int(t), timeout) for t in uniq_tiles])
+    pixels = tiles[inv.reshape(idx.shape), row, col].astype(float)
+    img = (weights[..., None] * pixels).sum(axis=0)
+
+    img = np.clip(np.round(img), 0, 255).astype(np.uint8).reshape(height, width, 3)
+    # WCS row 0 is the southern edge; flip so north is up in imshow()
+    return img[::-1]
+
+
+def aladin_params(ra, dec, r_50):
+    """
+    (ra, dec, fov) used to build an Aladin plot. The FoV (deg) is twice r_50
+    (arcmin). Rounded so that the values stored in the plots record can be
+    compared with the current ones.
+    """
+    return round(float(ra), 5), round(float(dec), 5), round(2 * (r_50 / 60.0), 3)
+
+
 def plot_aladin(
     logging,
     ra,
@@ -370,55 +514,17 @@ def plot_aladin(
     """
     plt.style.use("default")
 
-    # Convert the radius from arcminutes to degrees and double it for the field of view
-    rad_deg = round(2 * (r_50 / 60.0), 3)
+    ra, dec, rad_deg = aladin_params(ra, dec, r_50)
 
-    aladin_params = {
-        "hips": "P/DSS2/color",
-        "ra": ra,
-        "dec": dec,
-        "fov": rad_deg,
-        "width": 350,
-        "height": 245,
-    }
-    aladin_url = "https://alasky.u-strasbg.fr/hips-image-services/hips2fits"
-
-    skyview_params = {
-        "Position": f"{ra},{dec}",
-        "Coordinates": "J2000",
-        "Survey": "DSS2 IR",
-        "Pixels": "350,254",
-        "Size": rad_deg,
-        "Return": "FITS",
-    }
-    skyview_url = "https://skyview.gsfc.nasa.gov/current/cgi/runquery.pl"
-
-    errors = []
-    for url, params in [(aladin_url, aladin_params), (skyview_url, skyview_params)]:
-        try:
-            resp = requests.get(url, params=params, timeout=timeout)
-            resp.raise_for_status()
-            break
-        except Exception as e:
-            errors.append(f"{e}")
-
-    if len(errors) > 1:
+    try:
+        img_data = hips_cutout(ra, dec, rad_deg, 350, 245, timeout)
+    except Exception as e:
         logging.warning(f"Error generating plot for {plot_aladin_fpath}:")
-        for error in errors:
-            logging.warning("    " + error)
+        logging.warning("    " + str(e))
         raise ValueError("Failed to generate plot")
 
-    with fits.open(io.BytesIO(resp.content)) as hdul:
-        img_data = hdul[0].data.copy()
-    img_data = ndimage.rotate(img_data.T, 90)
-
     fig, ax = plt.subplots()
-
-    if "alasky" in url:
-        ax.imshow(img_data)
-    else:
-        logging.warning(f"Using SkyView instead of Aladin for {plot_aladin_fpath}.")
-        ax.imshow(img_data, cmap="gray")
+    ax.imshow(img_data)
 
     ax.axis("off")
 

@@ -19,6 +19,7 @@ from .variables import (
     UCC_cat_D_in,
     UCC_cmmts_folder,
     UCC_members_file,
+    aladin_cols,
     all_OC_names,
     archive_folder_path,
     articles_md_path,
@@ -68,7 +69,6 @@ def main():
         temp_cmmts_tables_path,
         ucc_dbs_tables_path,
         ucc_cmmts_tables_path,
-        old_gz_CSV_path,
         new_clusters_csv_path,
     ) = load_paths(logging)
 
@@ -96,17 +96,28 @@ def main():
 
     ###########################################
     # Update clusters .webp files
+    # (ra, dec, fov) used for the Aladin plots in the site and in the temp folder.
+    # If there is no temp record, the temp plots (if any) match the site record
+    site_aladin = aladin_records(df_hash_old)
+    temp_aladin = (
+        aladin_records(pd.read_csv(temp_plots_record_path, dtype={"hash": str}))
+        if temp_plots_record_path.is_file()
+        else site_aladin
+    )
+    aladin_generated = {}
     N_plots_updt = len(fnames_plots_updt)
     if (
         N_plots_updt > 0
         and input(f"\nUpdate {N_plots_updt} cluster plots? (y/n): ").strip().lower()
         == "y"
     ):
-        fnames_processed = updt_ucc_cluster_plots(
+        fnames_processed, aladin_generated = updt_ucc_cluster_plots(
             logging,
             df_BC,
             fnames_plots_updt,
             df_members,
+            site_aladin,
+            temp_aladin,
         )
         N_total = len(fnames_processed)
         if N_total > 0:
@@ -125,6 +136,9 @@ def main():
         fnames_plots_updt,
         df_hash_old,
         df_hash_curr,
+        site_aladin,
+        temp_aladin,
+        aladin_generated,
         plots_record_path,
         temp_plots_record_path,
     )
@@ -194,8 +208,6 @@ def main():
             logging,
             plots_record_path,
             temp_plots_record_path,
-            old_gz_CSV_path,
-            new_clusters_csv_path,
         )
 
     # Check number of files
@@ -219,7 +231,6 @@ def load_paths(
     Path,
     Path,
     Path,
-    str,
     str,
 ]:
     """
@@ -285,13 +296,19 @@ def load_paths(
     ucc_dbs_tables_path = root_ucc_path_p / dbs_tables_folder
     ucc_cmmts_tables_path = root_ucc_path_p / cmmts_tables_folder
 
-    # UCC path to compressed CSV file
-    folder = Path(root_ucc_path, assets_folder)
-    matches = list(folder.glob(clusters_csv_path))
-    if matches:
-        old_gz_CSV_path = str(matches[0])
-    else:
-        raise ValueError(f"No file matching '{clusters_csv_path}' found")
+    # Check that the clusters CSV file in the manifest exists. Any other
+    # 'clusters_*.csv.gz' file is stale and is removed when the files are moved
+    ucc_assets = root_ucc_path + assets_folder
+    latest, stale = clusters_csv_files(ucc_assets)
+    if latest is None:
+        raise ValueError(
+            f"File listed in '{clusters_manifest_path}' not found in {ucc_assets}"
+        )
+    if stale:
+        logging.info(
+            f"Stale '{clusters_csv_path}' files in {ucc_assets} (will be removed "
+            + f"when moving files): {', '.join(stale)}"
+        )
 
     # Generate a timestamped filename for the new clusters CSV file
     date = pd.Timestamp.now().strftime("%y%m%d%H")
@@ -311,9 +328,26 @@ def load_paths(
         temp_cmmts_tables_path,
         ucc_dbs_tables_path,
         ucc_cmmts_tables_path,
-        old_gz_CSV_path,
         new_clusters_csv_path,
     )
+
+
+def clusters_csv_files(assets_path: str) -> tuple[str | None, list[str]]:
+    """
+    Return the name of the clusters CSV file listed in the 'clusters_manifest.json'
+    file of 'assets_path' (None if the manifest or the file are missing), and the
+    names of the other 'clusters_*.csv.gz' files in that folder (stale).
+    """
+    all_files = sorted(_.name for _ in Path(assets_path).glob(clusters_csv_path))
+    latest = None
+    manifest_path = Path(assets_path) / clusters_manifest_path
+    if manifest_path.is_file():
+        with open(manifest_path) as f:
+            latest = json.load(f).get("latest")
+    stale = [_ for _ in all_files if _ != latest]
+    if latest not in all_files:
+        latest = None
+    return latest, stale
 
 
 def load_data(
@@ -387,6 +421,8 @@ def load_data(
     # For each DB stored in the cmmts/ folder
     for fname_csv in os.listdir(UCC_cmmts_folder):
         DB_id = fname_csv.replace(".csv", "")
+        if DB_id not in DBs_JSON:
+            raise ValueError(f"DB 'cmmts/{fname_csv}' not found in {name_DBs_json}")
         multiple_names_check = []
         df = pd.read_csv(os.path.join(UCC_cmmts_folder, fname_csv))
 
@@ -529,11 +565,29 @@ def get_fnames_plots_updt(
     return fnames_updt, df_hash_old, df_hash_curr
 
 
+def aladin_records(df_record: pd.DataFrame) -> dict:
+    """
+    Return the (ra, dec, fov) stored in a plots record for each entry, skipping
+    those with unknown values (e.g. records written before these columns existed)
+    """
+    if not set(aladin_cols).issubset(df_record.columns):
+        return {}
+    df = df_record.dropna(subset=aladin_cols)
+    return dict(zip(df["name"], zip(*(df[c] for c in aladin_cols))))
+
+
+def aladin_temp_path(fname: str) -> Path:
+    return Path(f"{temp_folder}{plots_folder}plots_{fname[0]}/aladin/{fname}.webp")
+
+
 def updt_plots_record(
     logging,
     fnames_plots_updt: set,
     df_hash_old: pd.DataFrame,
     df_hash_curr: pd.DataFrame,
+    site_aladin: dict,
+    temp_aladin: dict,
+    aladin_generated: dict,
     plots_record_file: Path,
     temp_plots_record_file: Path,
 ) -> None:
@@ -546,6 +600,10 @@ def updt_plots_record(
     otherwise they keep their old hash (or are left out of the record if new),
     so they are flagged again in the next run. All other entries take their
     current hash, and entries no longer in the members file are dropped.
+
+    The (ra, dec, fov) stored for each entry are those of the Aladin plot that
+    will be in the site: the one generated in this run, else the one in the temp
+    folder, else the one already in the site (empty if unknown).
     """
     pending = {
         fname
@@ -560,13 +618,28 @@ def updt_plots_record(
     df_hash_new = pd.concat(
         [
             df_hash_curr[~df_hash_curr["name"].isin(pending)],
-            df_hash_old[df_hash_old["name"].isin(pending)],
+            df_hash_old.loc[
+                df_hash_old["name"].isin(pending), ["name", "N_membs", "hash"]
+            ],
         ]
     ).sort_values("name", ignore_index=True)
+
+    aladin = []
+    for fname in df_hash_new["name"]:
+        if fname in aladin_generated:
+            aladin.append(aladin_generated[fname])
+        elif aladin_temp_path(fname).is_file():
+            aladin.append(temp_aladin.get(fname, (np.nan,) * 3))
+        else:
+            aladin.append(site_aladin.get(fname, (np.nan,) * 3))
+    df_hash_new[aladin_cols] = pd.DataFrame(aladin, columns=aladin_cols, dtype=float)
 
     if plots_record_file.is_file():
         df_stored = pd.read_csv(plots_record_file, dtype={"hash": str})
         if df_stored.equals(df_hash_new):
+            # Drop a record left by a previous run, so it is not moved over the
+            # (equal) stored one
+            temp_plots_record_file.unlink(missing_ok=True)
             return
 
     df_hash_new.to_csv(temp_plots_record_file, index=False)
@@ -577,15 +650,31 @@ def updt_plots_record(
 
 
 def updt_ucc_cluster_plots(
-    logging, df_BC, fnames_plots_updt, df_members, min_UTI=0.5
-) -> list:
+    logging,
+    df_BC,
+    fnames_plots_updt,
+    df_members,
+    site_aladin,
+    temp_aladin,
+    min_UTI=0.5,
+) -> tuple[list, dict]:
     """
     Generate plots for each cluster in the UCC database and update the 'plot_used'
     column in the dataframe.
+
+    Returns the processed entries, and the (ra, dec, fov) of the Aladin plots
+    generated.
     """
-    # Ask if the Aladin plots should be generated if the file already exists
+    # Ask if the existing Aladin plots of the flagged entries should be
+    # re-generated: only those whose position or FoV changed, or all of them
+    # (e.g. after a change in the plot's style)
     overwrite_aladin = (
-        input("\nRe-generate existing Aladin plots? (y/n): ").strip().lower() == "y"
+        input(
+            "\nRe-generate existing Aladin plots? "
+            "(y: if position/FoV changed, a: all, n: none): "
+        )
+        .strip()
+        .lower()
     )
     overwrite_temp = (
         input("\nOverwrite stored temp plots? (y/n): ").strip().lower() == "y"
@@ -613,6 +702,7 @@ def updt_ucc_cluster_plots(
 
     # plots_generated = {"aladin": [], "GC": [], "CMD": []}
     fnames_processed = []
+    aladin_generated = {}
     # Iterate trough each entry in the UCC database
     for i_ucc, UCC_cl in df_BC.iterrows():
         fname0 = str(UCC_cl["fname"])
@@ -624,30 +714,35 @@ def updt_ucc_cluster_plots(
             f"{root_ucc_path}{plots_folder}plots_{fname0[0]}/aladin/{fname0}.webp"
         )
         # Path to temp file
-        temp_aladin_path = (
-            f"{temp_folder}{plots_folder}plots_{fname0[0]}/aladin/{fname0}.webp"
+        temp_aladin_path = aladin_temp_path(fname0)
+        temp_exists = temp_aladin_path.is_file()
+        aladin_curr = ucc_plots.aladin_params(
+            UCC_cl["RA_ICRS_m"], UCC_cl["DE_ICRS_m"], UCC_cl["r_50"]
         )
+        # (ra, dec, fov) of the plot that would end up in the site if no new plot
+        # is generated: the temp one if it exists, else the original one
+        aladin_prev = (temp_aladin if temp_exists else site_aladin).get(fname0)
+
         generate_aladin = False
         if Path(orig_aladin_path).is_file() is False:
-            # Always generate the plot if the original image does not exist
-            generate_aladin = True
-        else:  # the original image exists
-            # If file is flagged for update and overwriting is enabled
-            if fname0 in fnames_plots_updt and overwrite_aladin is True:
-                # If the temporary image does not exist
-                if Path(temp_aladin_path).is_file() is False:
-                    generate_aladin = True
-                else:
-                    if overwrite_temp is True:
-                        generate_aladin = True
+            # Generate the plot if the original image does not exist, unless an
+            # up to date temp image exists
+            generate_aladin = not temp_exists or aladin_prev != aladin_curr
+        elif fname0 in fnames_plots_updt:
+            # The original image exists and the entry is flagged for update
+            if overwrite_aladin == "y":
+                generate_aladin = aladin_prev != aladin_curr
+            elif overwrite_aladin == "a":
+                generate_aladin = not temp_exists or overwrite_temp is True
         if generate_aladin:
             ucc_plots.plot_aladin(
                 logging,
                 UCC_cl["RA_ICRS_m"],
                 UCC_cl["DE_ICRS_m"],
                 UCC_cl["r_50"],
-                temp_aladin_path,
+                str(temp_aladin_path),
             )
+            aladin_generated[fname0] = aladin_curr
             txt += " Aladin plot generated |"
 
         # Make GC and CMD plots
@@ -690,7 +785,7 @@ def updt_ucc_cluster_plots(
             logging.info(f"{fname0} -->" + txt + f" ({i_ucc})")
             fnames_processed.append(fname0)
 
-    return fnames_processed
+    return fnames_processed, aladin_generated
 
 
 def UTI_to_hex(df_UCC):
@@ -980,6 +1075,11 @@ def updt_cls_CSV(
         inplace=True,
     )
 
+    # Remove clusters CSV files generated in previous runs, so that only the one
+    # listed in the temporary manifest exists in the temporary folder
+    for f in Path(temp_folder + assets_folder).glob(clusters_csv_path):
+        f.unlink()
+
     # Update CSV
     temp_gz_CSV_path = temp_folder + assets_folder + new_clusters_csv_path
     df_new.to_csv(
@@ -1144,8 +1244,6 @@ def move_files(
     logging,
     plots_record_path: Path,
     temp_plots_record_path: Path,
-    old_gz_CSV_path: str,
-    new_clusters_csv_path: str,
 ) -> None:
     """Move files with user confirmation."""
 
@@ -1167,15 +1265,35 @@ def move_files(
     if os.path.exists(temp_plots_record_path):
         planned_actions.append(("move", temp_plots_record_path, plots_record_path))
 
-    # --- Delete old clusters CSV file ---
-    if os.path.exists(new_clusters_csv_path):
-        planned_actions.append(("delete", old_gz_CSV_path, ""))
+    # --- Clusters CSV files ---
+    # Only the file listed in the manifest must exist in 'ucc/assets/': the one
+    # in the temporary manifest if a new file was generated, else the one in the
+    # current manifest. Every other 'clusters_*.csv.gz' file is deleted.
+    ucc_assets = root_ucc_path + assets_folder
+    temp_assets = temp_folder + assets_folder
+    skip_move = set()
+    if os.path.isfile(temp_assets + clusters_manifest_path):
+        latest, temp_stale = clusters_csv_files(temp_assets)
+        if latest is None:
+            raise ValueError(
+                f"File listed in '{temp_assets + clusters_manifest_path}' not found"
+            )
+        for f in temp_stale:
+            planned_actions.append(("delete", temp_assets + f, ""))
+            skip_move.add(temp_assets + f)
+    else:
+        latest, _ = clusters_csv_files(ucc_assets)
+    for f in Path(ucc_assets).glob(clusters_csv_path):
+        if f.name != latest:
+            planned_actions.append(("delete", str(f), ""))
 
     # --- Move files inside temporary ucc/ ---
     temp_ucc_fold = temp_folder + ucc_path
     for root, dirs, files in os.walk(temp_ucc_fold):
         for filename in files:
             src = os.path.join(root, filename)
+            if src in skip_move:
+                continue
             dst = src.replace(temp_folder, root_ucc_path)
             planned_actions.append(("move", src, dst))
 
@@ -1338,6 +1456,20 @@ def file_checker(logging, df_BC: pd.DataFrame) -> None:
         )
         for t in missing_plots_h23_c20:
             logging.warning(t)
+
+    # Check that the only clusters CSV file is the one listed in the manifest
+    ucc_assets = root_ucc_path + assets_folder
+    latest, stale = clusters_csv_files(ucc_assets)
+    if latest is None:
+        logging.warning(
+            f"File listed in '{clusters_manifest_path}' not found in {ucc_assets}"
+        )
+        flag_error = True
+    if stale:
+        logging.warning(
+            f"Stale '{clusters_csv_path}' files in {ucc_assets}: {', '.join(stale)}"
+        )
+        flag_error = True
 
     if flag_error:
         print("\n\n")
