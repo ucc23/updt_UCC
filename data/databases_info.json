@@ -1480,6 +1480,54 @@
       }
     }
   },
+  "CAMARGO2015": {
+    "SCIX_url": "https://scixplorer.org/abs/2015NewA...34...84C",
+    "data_cmmts": "data",
+    "citations_count": {
+      "date": "2026-10-11",
+      "count": "21",
+      "citations_year": 1.9
+    },
+    "data_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2015NewA...34...84C",
+    "authors": "Camargo et al.",
+    "title": "New Galactic embedded clusters and candidates from a WISE Survey",
+    "year": "2015",
+    "received": "20140324",
+    "names": "Name",
+    "types": {
+      "col_name": "Type",
+      "ec_id": [
+        "EC",
+        "ECC"
+      ]
+    },
+    "pos": {
+      "RA": "RA",
+      "DEC": "DEC"
+    },
+    "pars": {
+      "av": {
+        "av": "Av"
+      },
+      "dist": {
+        "dkpc": "d_kpc"
+      },
+      "age": {
+        "amyr": "Age_Myr"
+      }
+    },
+    "e_pars": {
+      "e_av": {
+        "eav": "e_Av"
+      },
+      "e_dist": {
+        "edkpc": "e_d_kpc"
+      },
+      "e_age": {
+        "eamyr": "e_Age_Myr"
+      }
+    }
+  },
   "PERREN2015": {
     "SCIX_url": "https://scixplorer.org/abs/2015A%26A...576A...6P",
     "data_cmmts": "data",
@@ -1681,6 +1729,54 @@
       }
     },
     "e_pars": {}
+  },
+  "CAMARGO2016": {
+    "SCIX_url": "https://scixplorer.org/abs/2016MNRAS.455.3126C",
+    "data_cmmts": "data",
+    "citations_count": {
+      "date": "2026-10-11",
+      "count": "43",
+      "citations_year": 4.3
+    },
+    "data_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2016MNRAS.455.3126C",
+    "authors": "Camargo et al.",
+    "title": "Characterizing star cluster formation with WISE 652 newly found star clusters and candidates",
+    "year": "2016",
+    "received": "20151023",
+    "names": "Name",
+    "types": {
+      "col_name": "Type",
+      "ec_id": [
+        "EC",
+        "ECC"
+      ]
+    },
+    "pos": {
+      "RA": "RA",
+      "DEC": "DEC"
+    },
+    "pars": {
+      "av": {
+        "ejh": "E_JH"
+      },
+      "dist": {
+        "dkpc": "d_kpc"
+      },
+      "age": {
+        "amyr": "Age_Myr"
+      }
+    },
+    "e_pars": {
+      "e_av": {
+        "eejh": "e_E_JH"
+      },
+      "e_dist": {
+        "edkpc": "e_d_kpc"
+      },
+      "e_age": {
+        "eamyr": "e_Age_Myr"
+      }
+    }
   },
   "DIAS2016": {
     "SCIX_url": "https://scixplorer.org/abs/2002A%26A...389..871D",
@@ -2024,7 +2120,7 @@
     },
     "e_pars": {
       "e_dist": {
-        "dkpc": "e_dsun"
+        "edkpc": "e_dsun"
       },
       "e_age": {
         "eagyr": "e_Age"
@@ -2320,9 +2416,9 @@
     },
     "e_pars": {
       "e_av": {
-        "eloga": [
-          "e_logA",
-          "E_logA"
+        "eav": [
+          "e_AV",
+          "E_AV"
         ]
       },
       "e_dist": {
@@ -4502,7 +4598,7 @@
         "ebf": "e_fbin-tot"
       },
       "e_blue_str": {
-        "ebf": "e_fbss-MS"
+        "ebs_f": "e_fbss-MS"
       }
     }
   },
@@ -6125,7 +6221,7 @@
       }
     },
     "e_pars": {
-      "e_feh": {
+      "e_met": {
         "efeh": [
           "e_[Fe/H]",
           "e_[Mg/Fe]",
