@@ -1,4 +1,5 @@
 import hashlib
+import itertools
 import json
 import textwrap
 import warnings
@@ -8,249 +9,53 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from scipy.spatial import cKDTree
+from scipy.spatial import KDTree
 
 from .utils import members_hashes
 from .variables import (
+    B_VS_C_CONFIG,
+    CHECK_CONFIG,
+    CMMT_KEYS,
+    CMMTS_HASH_DEPS,
+    CMMTS_HASH_PARTS,
+    DUP_CHECKS,
+    DUP_COLS_ORDER,
+    DUP_CONFIG,
+    DUP_RUN_PARS,
+    H23_MEMBS_CONFIG,
+    LIT_DIST_CONFIG,
+    MEMBS_COORDS_CONFIG,
+    PARAMS_CONFIG,
+    PROX_DUP_CONFIG,
+    SCORE_CONFIG,
+    E_B_cat_path,
+    E_C_cat_path,
     E_cmmts_record_file,
-    UCC_cat_B_out,
-    UCC_cat_C_out,
+    E_db_path,
+    E_dbs_json_path,
+    E_json_path,
+    E_members_path,
+    E_out_file,
+    E_out_width,
+    E_record_path,
+    N_max_clusters,
     UCC_cat_E_in,
-    UCC_members_file,
-    data_folder,
-    dbs_folder,
-    master_check_file,
-    name_DBs_json,
-    temp_folder,
-    zenodo_folder,
+    exclude_DBs,
+    include_DBs,
+    skip_pfx,
 )
-
-# ---------------------------------------------------------------------------
-# Manual exclusions based on previous checks and known issues
-
-# Families to skip in all checks (except the duplicates check)
-skip_pfx = ("hsc", "theia", "cwnu", "ocsn")
-
-# DBs whose values are ignored in some checks: {check ID: (DB, ...)}. Only the
-# checks that compare per-DB values accept exclusions: "DBs_<type>_conflicts",
-# "DBs_<type>_groups" (type: pos, pm, plx) and "params_<param>"; the "params"
-# key excludes its DBs from every "params_<param>" check and from
-# "lit_dist_plx".
-exclude_DBs = {
-    "DBs_pos_conflicts": ("VDBH1975", "JAEHNIG2021", "RICHER2021", "HE2022_1"),
-    "DBs_plx_conflicts": (
-    ),
-    "DBs_pm_conflicts": (
-    ),
-    "DBs_pm_groups": (
-    ),
-    "params": (
-    ),
-}
-
-# DBs whose values are the only ones used in some checks: {check ID: (DB, ...)}.
-# Same check IDs as `exclude_DBs` (the "params" key applies to every
-# "params_<param>" check and to "lit_dist_plx", and "params_<param>" takes
-# precedence over it). A check with an entry here ignores its entries in
-# `exclude_DBs`.
-include_DBs = {
-    "DBs_plx_conflicts": ("HUNT2023", "CANTAT2020", "PERREN2022"),
-    "DBs_plx_groups": ("HUNT2023", "CANTAT2020", "PERREN2022"),
-    "DBs_pm_conflicts": ("HUNT2023", "CANTAT2020", "PERREN2022"),
-    "DBs_pm_groups": ("HUNT2023", "CANTAT2020", "PERREN2022"),
-    "params": ("HUNT2023", "CANTAT2020", "CAVALLO2024", "PERREN2022"),
-}
-
-# ---------------------------------------------------------------------------
 
 # Warnings issued during a run (see `_warn`), also stored in the output file
 _WARNINGS = []
-
-# Maximum line length of the output file (tables and headings are not wrapped)
-out_width = 80
-
-# Number of clusters (highest scores first) stored in the output file, besides
-# the candidate duplicates (always stored)
-N_max_clusters = 200
-
-
-# Per-check-type config for run_B_DBs_check. `cat_cols` are the keys expected
-# under databases_info.json[<db>]["pos"], e.g. "pos": {"RA": ..., "DEC": ...}.
-# `default_norm_thr` is the minimum `dist_norm` (see `get_norm_dist_rad`) of the
-# clusters checked, or None to check all of them. `default_rel_thr` (optional)
-# raises the threshold of each cluster to that fraction of the median of its DB
-# values, if larger than `default_thr`: e.g. for parallaxes, whose differences
-# between DBs grow with the parallax (nearby clusters).
-_CHECK_CONFIG = {
-    "pos": {
-        "label": "position",
-        "unit": "deg",
-        "default_thr": 0.5,
-        "default_norm_thr": 0.1,
-        "cat_cols": ("RA", "DEC"),
-    },
-    "pm": {
-        "label": "proper motion",
-        "unit": "mas/yr",
-        "default_thr": 0.25,
-        "default_norm_thr": None,
-        "cat_cols": ("pmra", "pmde"),
-    },
-    "plx": {
-        "label": "parallax",
-        "unit": "mas",
-        "default_thr": 0.1,
-        "default_rel_thr": 0.05,
-        "default_norm_thr": None,
-        "cat_cols": ("plx",),
-    },
-}
-
-# Paths in variables.py are relative to the repo root; resolve them from this
-# file's location so the script can be run from any directory.
-_root = Path(__file__).resolve().parents[1]
-B_cat_path = _root / data_folder / UCC_cat_B_out
-C_cat_path = _root / data_folder / UCC_cat_C_out
-E_json_path = _root / data_folder / UCC_cat_E_in
-E_record_path = _root / data_folder / E_cmmts_record_file
-members_path = _root / zenodo_folder / UCC_members_file
-dbs_json_path = _root / name_DBs_json
-db_path = _root / dbs_folder
-out_file = _root / temp_folder / master_check_file
-
-# Hashed parts of each commented cluster: (column in E_record_path, label)
-_CMMTS_HASH_PARTS = (
-    ("B_hash", "B entry"),
-    ("C_hash", "C entry"),
-    ("membs_hash", "members"),
-)
-
-# Per-parameter config for run_B_DBs_params. "relative" thresholds are a
-# fraction of the cluster's median value; "absolute" thresholds are in the
-# parameter's own units and are used for parameters whose median can be ~0 or
-# that are compared in log scale: distances (kpc in B) are compared as
-# distance moduli (mag) and ages (Myr in B) as log10(age/yr) (dex).
-_PARAMS_CONFIG = {
-    "dist": {"kind": "absolute", "default_thr": 1.0, "unit": "mag"},
-    "av": {"kind": "absolute", "default_thr": 1.0, "unit": "mag"},
-    "age": {"kind": "absolute", "default_thr": 0.5, "unit": "dex"},
-    "met": {"kind": "absolute", "default_thr": 0.3, "unit": "dex"},
-    "mass": {"kind": "relative", "default_thr": 1.0, "unit": "Msun"},
-}
-
-# Config for run_B_vs_C_coords: angular separation (arcmin) and normalized
-# separation (see `get_norm_dist_rad`) thresholds; both must be exceeded.
-_MEMBS_COORDS_CONFIG = {"pos_thr": 5.0, "drad_thr": 1.0}
-
-# Config for run_B_vs_C_pm and run_B_vs_C_plx: proper motion threshold
-# (mas/yr), parallax threshold max(plx_thr, plx_rel * |Plx_m|) (mas), and
-# minimum UTI of the clusters checked.
-_B_VS_C_CONFIG = {"pm_thr": 10.0, "plx_thr": 0.1, "plx_rel": 0.1, "uti_min": 0.1}
-
-# Config for run_prox_dup: two clusters are twins if their member-based
-# centers are closer than `sep_fac` x the larger of their r_50, and their
-# parallaxes and proper motions agree within max(plx_thr, plx_rel * Plx)
-# (mas) and max(pm_thr, v_thr * Plx / 4.74) (mas/yr; v_thr in km/s), with Plx
-# the mean of both. Pairs that share members are left to run_dup_check.
-_PROX_DUP_CONFIG = {
-    "sep_fac": 1.0,
-    "plx_thr": 0.1,
-    "plx_rel": 0.1,
-    "pm_thr": 0.5,
-    "v_thr": 2.0,
-}
-
-# Config for run_lit_dist_plx: threshold (mag) on the difference between the
-# distance modulus of the median literature distance and that of the members'
-# parallax, Gaia parallax zero point added to Plx_m (mas, Lindegren et al.
-# 2021), and minimum corrected Plx_m (mas) of the clusters checked.
-_LIT_DIST_CONFIG = {"thr": 1.0, "plx_zp": 0.017, "plx_min": 0.2}
-
-# Config for run_H23_membs: database with the reference member counts (its
-# `N` column), base threshold `thr`, and (N_max, factor) bins. A cluster is
-# flagged if max(N)/min(N) > 1 + thr * factor, with N the UCC and HUNT2023
-# member counts and `factor` set by the first bin with max(N) <= N_max (1
-# above the last bin), so that differences in larger clusters are flagged
-# (and scored) more strongly.
-_H23_MEMBS_CONFIG = {
-    "db": "HUNT2023",
-    "thr": 0.1,
-    "N_bins": ((25, 8.0), (100, 4.0), (500, 2.0)),
-}
-
-# Config for run_dup_check: minimum shared-member percentage.
-_DUP_CONFIG = {"prob_min": 50.0}
-
-# Valid keys for the manual comments of each cluster in E_json_path: the
-# `cmmt_key` of the checks they apply to (see `_flag`).
-_CMMT_KEYS = {"pos", "pm", "plx", "params", "dup", "N_membs"}
-
-# Run configurations for run_dup_check (see its docstring).
-_DUP_RUN_PARS = {
-    "1": {"multi": False, "date": "new-->old"},
-    "2": {"multi": True, "date": "new-->old"},
-    "3": {"multi": False, "date": "old-->new"},
-    "4": {"multi": True, "date": "old-->new"},
-    "5": {"multi": None, "date": "same"},
-}
-
-# Scoring of the failed checks (see _score_flags).
-#   weights: points per check ID for a failure right at the threshold. The
-#     "conflicts" and "groups" checks of the same quantity measure the same
-#     discrepancy, as do "dup" and "dup_prox", so only the highest of each
-#     group counts (see _score_group)
-#   sev_max: maximum severity (reached at 2**(sev_max - 1) x the threshold)
-#   cmmt_factor: score factor for checks with a manual comment in E_json_path
-#   dup_orig_factor: score factor for the original cluster of a duplicate pair
-#   uti_floor: score factor for UTI=0; it grows linearly up to 1 for UTI=1
-_SCORE_CONFIG = {
-    "weights": {
-        "dup": 20.0,
-        "H23_membs": 10.0,
-        "dup_prox": 8.0,
-        "DBs_plx_groups": 6.0,
-        "DBs_pos_groups": 6.0,
-        "DBs_pm_groups": 4.0,
-        "DBs_plx_conflicts": 3.0,
-        "DBs_pos_conflicts": 3.0,
-        "DBs_pm_conflicts": 3.0,
-        "B_vs_C_plx": 2.0,
-        "B_vs_C_coords": 1.0,
-        "B_vs_C_pm": 0.5,
-        **{f"params_{p}": 0.25 for p in _PARAMS_CONFIG},
-        "lit_dist_plx": 0.1,
-    },
-    "sev_max": 5.0,
-    "cmmt_factor": 0.25,
-    "dup_orig_factor": 0.5,
-    "uti_floor": 0.6,
-}
-
-_DUP_COLS_ORDER = [
-    "run",
-    "N_cand",
-    "fname_dup",
-    "date_cl_dup",
-    "N_membs_dup",
-    "shared_p_dup",
-    "fname_orig",
-    "date_cl_orig",
-    "N_membs_orig",
-    "shared_p_orig",
-    "UTI_dup",
-    "UTI_orig",
-    "N_ratio",
-    "dist_arcmin",
-]
 
 
 def main():
     """Run all the UCC catalogue consistency checks and store the results.
 
     No user input is required: every check runs with the default parameters
-    stored in `_CHECK_CONFIG`, `_MEMBS_COORDS_CONFIG`, `_PARAMS_CONFIG`,
-    `_B_VS_C_CONFIG`, `_DUP_CONFIG`, `_PROX_DUP_CONFIG`, `_H23_MEMBS_CONFIG`,
-    and `_LIT_DIST_CONFIG`.
+    stored in `CHECK_CONFIG`, `MEMBS_COORDS_CONFIG`, `PARAMS_CONFIG`,
+    `B_VS_C_CONFIG`, `DUP_CONFIG`, `PROX_DUP_CONFIG`, `H23_MEMBS_CONFIG`,
+    and `LIT_DIST_CONFIG`.
 
     Checks
     ------
@@ -259,7 +64,7 @@ def main():
     2. Catalogue B center coordinates vs member-file medians
        (`run_B_vs_C_coords`)
     3. Cross-DB parameter consistency within catalogue B, for every parameter
-       in `_PARAMS_CONFIG` (`run_B_DBs_params`)
+       in `PARAMS_CONFIG` (`run_B_DBs_params`)
     4. Catalogue B vs C proper motions and parallaxes (`run_B_vs_C_pm`,
        `run_B_vs_C_plx`)
     5. Candidate duplicates from shared members (`run_dup_check`), and from
@@ -269,14 +74,14 @@ def main():
 
     Every failure is scored (see `_score_flags`), and all the candidate
     duplicates plus the `N_max_clusters` other clusters with the highest total
-    scores are written to `out_file`, along with their failures and the manual
+    scores are written to `E_out_file`, along with their failures and the manual
     comments in `E_json_path`.
 
     The integrity of catalogues B and C and of the members file is checked
     (see `check_integrity`), with every problem issued as a warning.
 
     The manual comments are validated (see `load_cmmts`), those whose
-    cluster changed since they were stored are flagged as stale (see
+    check inputs changed since they were stored are flagged as stale (see
     `check_cmmts_hashes`), and those whose check no longer fails are reported
     (see `check_orphan_cmmts`).
 
@@ -298,7 +103,7 @@ def main():
         f"\n{_N_flagged(clusters)} clusters flagged (not counting those with "
         f"only minor failures); the {len(dup_cls)} candidate "
         f"duplicates and the {len(other_cls)} other clusters with the highest "
-        f"scores were stored in: {out_file}"
+        f"scores were stored in: {E_out_file}"
     )
 
 
@@ -317,16 +122,16 @@ def _run_checks():
     print("UCC catalogue consistency checks\n")
 
     print("Loading catalogues and member files...")
-    df_B = pd.read_csv(B_cat_path)
-    df_C = pd.read_csv(C_cat_path)
-    df_members = pd.read_parquet(members_path)
-    with open(dbs_json_path) as f:
+    df_B = pd.read_csv(E_B_cat_path)
+    df_C = pd.read_csv(E_C_cat_path)
+    df_members = pd.read_parquet(E_members_path)
+    with open(E_dbs_json_path) as f:
         databases_info = json.load(f)
     check_DBs_selection(databases_info)
     check_integrity(df_B, df_C, df_members)
 
     oc_cmmts = load_cmmts(df_B["fname"])
-    stale = check_cmmts_hashes(oc_cmmts, df_members)
+    stale = check_cmmts_hashes(oc_cmmts, df_members, databases_info)
 
     df_B_norm = get_norm_dist_rad(df_B, df_members)
 
@@ -334,7 +139,7 @@ def _run_checks():
     checks = []
 
     print("Running check 1: cross-DB position / proper motion / parallax (B)")
-    for check_type, cfg in _CHECK_CONFIG.items():
+    for check_type, cfg in CHECK_CONFIG.items():
         thr, drad_thr = cfg["default_thr"], cfg["default_norm_thr"]
         rel_thr = cfg.get("default_rel_thr")
         flags = run_B_DBs_check(
@@ -352,7 +157,7 @@ def _run_checks():
                 (check, desc, pars, [f for f in flags if f["check"] == check])
             )
 
-    pos_thr, drad_thr = (_MEMBS_COORDS_CONFIG[k] for k in ("pos_thr", "drad_thr"))
+    pos_thr, drad_thr = (MEMBS_COORDS_CONFIG[k] for k in ("pos_thr", "drad_thr"))
     print("Running check 2: B center coords vs member-file medians")
     checks.append(
         (
@@ -364,7 +169,7 @@ def _run_checks():
     )
 
     print("Running check 3: cross-DB parameter consistency (B)")
-    for param, pcfg in _PARAMS_CONFIG.items():
+    for param, pcfg in PARAMS_CONFIG.items():
         thr = pcfg["default_thr"]
         if pcfg["kind"] == "relative":
             pars = f"Δ>{100 * thr:g}% of median ({pcfg['unit']})"
@@ -379,7 +184,7 @@ def _run_checks():
             )
         )
 
-    bc = _B_VS_C_CONFIG
+    bc = B_VS_C_CONFIG
     pm_thr, uti_min = bc["pm_thr"], bc["uti_min"]
     print("Running check 4: B vs C proper motions and parallaxes")
     checks.append(
@@ -394,35 +199,46 @@ def _run_checks():
         (
             "B_vs_C_plx",
             "B vs C parallaxes",
-            f"Δ>max({bc['plx_thr']:g} mas, {100 * bc['plx_rel']:g}% of Plx_m), "
-            f"UTI>{uti_min:g}",
+            (
+                f"Δ>max({bc['plx_thr']:g} mas, {100 * bc['plx_rel']:g}% of Plx_m), "
+                f"UTI>{uti_min:g}"
+            ),
             run_B_vs_C_plx(df_B, df_C),
         )
     )
 
-    prob_min = _DUP_CONFIG["prob_min"]
+    prob_min = DUP_CONFIG["prob_min"]
     print("Running check 5: candidate duplicates from shared members / proximity")
-    checks.append(
-        (
-            "dup",
-            "Candidate duplicates from shared members (C)",
-            f"shared members>={prob_min:g}%",
-            run_dup_check(df_B, df_C, databases_info, prob_min),
+    dup_flags = run_dup_check(df_B, df_C, databases_info, prob_min)
+    for N_run, check in zip(DUP_RUN_PARS, DUP_CHECKS):
+        run = DUP_RUN_PARS[N_run]
+        multi = {False: "single", True: "multi", None: "all"}[run["multi"]]
+        checks.append(
+            (
+                check,
+                (
+                    f"Candidate duplicates from shared members (C), run {N_run} "
+                    f"({multi}, {run['date']})"
+                ),
+                f"shared members>={prob_min:g}%",
+                [f for f in dup_flags if f["check"] == check],
+            )
         )
-    )
-    pc = _PROX_DUP_CONFIG
+    pc = PROX_DUP_CONFIG
     checks.append(
         (
             "dup_prox",
             "Candidate duplicates from proximity, without shared members (C)",
-            f"sep<{pc['sep_fac']:g}*max(r_50), ΔPlx<=max({pc['plx_thr']:g} mas, "
-            f"{100 * pc['plx_rel']:g}%), Δpm<=max({pc['pm_thr']:g} mas/yr, "
-            f"{pc['v_thr']:g} km/s)",
+            (
+                f"sep<{pc['sep_fac']:g}*max(r_50), ΔPlx<=max({pc['plx_thr']:g} mas, "
+                f"{100 * pc['plx_rel']:g}%), Δpm<=max({pc['pm_thr']:g} mas/yr, "
+                f"{pc['v_thr']:g} km/s)"
+            ),
             run_prox_dup(df_B, df_C, databases_info),
         )
     )
 
-    thr, N_bins = _H23_MEMBS_CONFIG["thr"], _H23_MEMBS_CONFIG["N_bins"]
+    thr, N_bins = H23_MEMBS_CONFIG["thr"], H23_MEMBS_CONFIG["N_bins"]
     print("Running check 6: number of members vs HUNT2023")
     bins_txt = ", ".join(f"{f:g} for max(N)<={n}" for n, f in N_bins)
     checks.append(
@@ -434,7 +250,7 @@ def _run_checks():
         )
     )
 
-    lc = _LIT_DIST_CONFIG
+    lc = LIT_DIST_CONFIG
     print("Running check 7: literature distance vs member parallax")
     checks.append(
         (
@@ -456,8 +272,8 @@ def _run_checks():
 def check_DBs_selection(databases_info):
     """Raise a ValueError if `exclude_DBs` or `include_DBs` name a check that
     does not accept a DB selection, or a DB not in the databases JSON file."""
-    valid = {f"DBs_{t}_{m}" for t in _CHECK_CONFIG for m in ("conflicts", "groups")}
-    valid |= {"params"} | {f"params_{p}" for p in _PARAMS_CONFIG}
+    valid = {f"DBs_{t}_{m}" for t in CHECK_CONFIG for m in ("conflicts", "groups")}
+    valid |= {"params"} | {f"params_{p}" for p in PARAMS_CONFIG}
     errors = []
     for name, sel in (("exclude_DBs", exclude_DBs), ("include_DBs", include_DBs)):
         for check, dbs in sel.items():
@@ -492,7 +308,7 @@ def load_cmmts(fnames):
     """Load the manual comments in E_json_path and check their format.
 
     The file must hold a single object {fname: {key: comment}}, with no
-    repeated fnames or keys, every key in `_CMMT_KEYS`, and every comment a
+    repeated fnames or keys, every key in `CMMT_KEYS`, and every comment a
     non-empty string; a ValueError listing every problem is raised
     otherwise. Comments for clusters not in catalogue B (`fnames`) never
     apply to any check, and are reported with a warning.
@@ -519,7 +335,7 @@ def load_cmmts(fnames):
             errors.append(f"{fname}: comments must be a non-empty object")
             continue
         for key, cmmt in cmmts.items():
-            if key not in _CMMT_KEYS:
+            if key not in CMMT_KEYS:
                 errors.append(f"{fname}: unknown key '{key}'")
             if not isinstance(cmmt, str) or not cmmt.strip():
                 errors.append(
@@ -528,7 +344,7 @@ def load_cmmts(fnames):
     if errors:
         raise ValueError(
             f"Invalid file '{E_json_path}' (valid keys: "
-            f"{', '.join(sorted(_CMMT_KEYS))}):\n  " + "\n  ".join(errors)
+            f"{', '.join(sorted(CMMT_KEYS))}):\n  " + "\n  ".join(errors)
         )
 
     # Keep the file sorted alphabetically by fname, rewriting it only if the
@@ -549,110 +365,179 @@ def load_cmmts(fnames):
     return oc_cmmts
 
 
-def _cmmts_hashes(oc_cmmts, df_members):
-    """Current hashes of the manual comments in E_json_path, and of the B and
-    C entries and members of their clusters (empty if the cluster is missing).
+def _hash(txt):
+    """Short (16 hex digits) SHA-256 hash of a text."""
+    return hashlib.sha256(txt.encode()).hexdigest()[:16]
 
-    B and C are read as text so that the hashes do not depend on the inferred
-    dtypes. Members are hashed as in the D script (see `members_hashes`).
+
+def _cmmts_hashes(oc_cmmts, df_B, df_C, df_members, databases_info, dbs_dir=E_db_path):
+    """Current hashes of each manual comment in E_json_path, and of the
+    inputs of its checks (see `CMMTS_HASH_DEPS`): one row per (cluster, key).
+    Hashes of parts not used by the key are those of an empty text, and all
+    of them are empty if the cluster is missing from B.
+
+    `df_B` and `df_C` must be read as text so that the hashes do not depend
+    on the inferred dtypes, and so must the DB files in `dbs_dir`. Members are
+    hashed as in the D script (see `members_hashes`).
     """
-
-    def rows_hash(path):
-        df = pd.read_csv(path, dtype=str, keep_default_na=False)
-        rows = pd.util.hash_pandas_object(df, index=False)
-        return {k: f"{h:016x}" for k, h in zip(df["fname"], rows)}
-
-    B_hash, C_hash = rows_hash(B_cat_path), rows_hash(C_cat_path)
-    df_M = members_hashes(df_members)
+    B = df_B.drop_duplicates("fname").set_index("fname")
+    B["DB_1"] = B["DB"].str.split(";").str[0]
+    C = df_C.drop_duplicates("fname").set_index("fname")
+    df_M = members_hashes(df_members[df_members["name"].isin(oc_cmmts)])
     M_hash = dict(zip(df_M["name"], df_M["hash"]))
+
+    # DB file columns hashed for each key: {key: {DB: (columns)}}
+    db_cols = {}
+    for key, deps in CMMTS_HASH_DEPS.items():
+        db_cols[key] = deps["DB"]
+        if isinstance(deps["DB"], str):
+            cat_cols = CHECK_CONFIG[deps["DB"]]["cat_cols"]
+            db_cols[key] = {
+                db: tuple(info["pos"][c] for c in cat_cols)
+                for db, info in databases_info.items()
+                if all(c in (info.get("pos") or {}) for c in cat_cols)
+            }
+
+    # Columns read from each DB file used by the commented clusters
+    used = {db for f in oc_cmmts if f in B.index for db in B.at[f, "DB"].split(";")}
+    read_cols = {}
+    for cols in db_cols.values():
+        for db, c in cols.items():
+            if db in used:
+                read_cols.setdefault(db, set()).update(c)
+    db_vals = {
+        db: pd.read_csv(
+            dbs_dir / f"{db}.csv", usecols=list(c), dtype=str, keep_default_na=False
+        )
+        for db, c in read_cols.items()
+    }
+
+    def db_txt(fname, cols):
+        dbs, idxs = B.at[fname, "DB"].split(";"), B.at[fname, "DB_i"].split(";")
+        return ";".join(
+            f"{db}:" + ",".join(db_vals[db].iloc[int(i)][list(cols[db])])
+            for db, i in zip(dbs, idxs)
+            if db in cols
+        )
+
+    def cols_txt(df, fname, cols):
+        if fname not in df.index:
+            return ""
+        return "\x1f".join(df.loc[fname, list(cols)])
 
     rows = []
     for fname, cmmts in oc_cmmts.items():
-        txt = json.dumps(cmmts, sort_keys=True)
-        rows.append(
-            {
-                "name": fname,
-                "cmmts_hash": hashlib.sha256(txt.encode()).hexdigest()[:16],
-                "B_hash": B_hash.get(fname, ""),
-                "C_hash": C_hash.get(fname, ""),
-                "membs_hash": M_hash.get(fname, ""),
-            }
-        )
-    cols = ["name", "cmmts_hash"] + [c for c, _ in _CMMTS_HASH_PARTS]
+        for key, cmmt in cmmts.items():
+            row = {"name": fname, "key": key, "cmmt_hash": _hash(cmmt)}
+            row.update(dict.fromkeys((c for c, _ in CMMTS_HASH_PARTS), ""))
+            if fname in B.index:
+                deps = CMMTS_HASH_DEPS[key]
+                row["B_hash"] = _hash(cols_txt(B, fname, deps["B"]))
+                row["DB_hash"] = _hash(db_txt(fname, db_cols[key]))
+                row["C_hash"] = _hash(cols_txt(C, fname, deps["C"]))
+                if deps["membs"]:
+                    row["membs_hash"] = M_hash.get(fname, "")
+            rows.append(row)
+    cols = ["name", "key", "cmmt_hash"] + [c for c, _ in CMMTS_HASH_PARTS]
     df = pd.DataFrame(rows, columns=cols)
-    return df.sort_values("name", ignore_index=True)
+    return df.sort_values(["name", "key"], ignore_index=True)
 
 
-def check_cmmts_hashes(oc_cmmts, df_members):
+def check_cmmts_hashes(oc_cmmts, df_members, databases_info):
     """Flag the manual comments stored for an older version of their cluster.
 
-    `E_record_path` stores, for every cluster with manual comments, the hash
-    of its comments and of its B and C entries and members when they were
-    stored. Comments that are new or were edited since the last run are
-    assumed to refer to the current version of the cluster, and take its
-    current hashes. Comments that were not edited, but whose cluster's B or C
-    entry or members changed, are stale: they keep their stored hashes (so they are
-    flagged again in the next run) until they are edited, or their row is
-    removed from `E_record_path` to confirm they are still valid.
+    `E_record_path` stores, for every manual comment (one row per cluster and
+    key), the hash of the comment and of the inputs of the checks of its key
+    (see `CMMTS_HASH_DEPS`) when it was stored. Comments that are new or were
+    edited since the last run are assumed to refer to the current version of
+    the cluster, and take its current hashes. Comments that were not edited,
+    but whose check inputs changed, are stale: they keep their stored hashes
+    (so they are flagged again in the next run) until they are edited, or
+    their row is removed from `E_record_path` to confirm they are still
+    valid. Changes in the cluster that the checks of a key do not use never
+    make its comments stale.
 
     Hash columns missing from `E_record_path` (added after it was generated)
-    are filled with the current hashes.
+    are filled with the current hashes, and columns no longer used are
+    dropped. A record without the "key" column (older per-cluster format) is
+    regenerated with the current hashes.
 
-    Returns a dict {fname: [changed parts]} with the stale comments.
+    Returns a dict {fname: {key: [changed parts]}} with the stale comments.
     """
-    df_curr = _cmmts_hashes(oc_cmmts, df_members)
+    df_B = pd.read_csv(E_B_cat_path, dtype=str, keep_default_na=False)
+    df_C = pd.read_csv(E_C_cat_path, dtype=str, keep_default_na=False)
+    df_curr = _cmmts_hashes(oc_cmmts, df_B, df_C, df_members, databases_info)
+    ids = ["name", "key"]
     if E_record_path.is_file():
         df_old = pd.read_csv(E_record_path, dtype=str, keep_default_na=False)
     else:
         _warn(f"file '{E_cmmts_record_file}' not found, it will be generated")
         df_old = df_curr.iloc[:0]
+    if "key" not in df_old.columns:
+        _warn(
+            f"file '{E_cmmts_record_file}' has the old per-cluster format, it was "
+            "regenerated with the current hashes (no comment is flagged as stale "
+            "in this run)"
+        )
+        df_old = df_curr.iloc[:0]
 
     missing = [c for c in df_curr.columns if c not in df_old.columns]
     if missing:
-        curr = df_curr.set_index("name")
+        curr = df_curr.set_index(ids)
+        old_ids = pd.MultiIndex.from_frame(df_old[ids])
         for col in missing:
-            df_old[col] = df_old["name"].map(curr[col]).fillna("")
-        df_old = df_old[df_curr.columns]
+            df_old[col] = curr[col].reindex(old_ids).fillna("").to_numpy()
         _warn(
             f"columns {missing} added to '{E_cmmts_record_file}' with the current "
             "hashes"
         )
+    cols_changed = list(df_old.columns) != list(df_curr.columns)
+    df_old = df_old[df_curr.columns]
 
-    df_m = df_curr.merge(df_old, on="name", how="left", suffixes=("", "_old"))
+    df_m = df_curr.merge(df_old, on=ids, how="left", suffixes=("", "_old"))
     stale = {}
-    for r in df_m[df_m["cmmts_hash"] == df_m["cmmts_hash_old"]].itertuples():
+    for r in df_m[df_m["cmmt_hash"] == df_m["cmmt_hash_old"]].itertuples():
         changed = [
             lbl
-            for col, lbl in _CMMTS_HASH_PARTS
+            for col, lbl in CMMTS_HASH_PARTS
             if getattr(r, col) != getattr(r, f"{col}_old")
         ]
         if changed:
-            stale[r.name] = changed
+            stale.setdefault(r.name, {})[r.key] = changed
 
-    # Clusters no longer commented are dropped
+    # Comments no longer present are dropped
+    is_stale = [k in stale.get(n, {}) for n, k in zip(df_curr["name"], df_curr["key"])]
+    old_stale = [k in stale.get(n, {}) for n, k in zip(df_old["name"], df_old["key"])]
     df_new = pd.concat(
-        [df_curr[~df_curr["name"].isin(stale)], df_old[df_old["name"].isin(stale)]]
-    ).sort_values("name", ignore_index=True)
-    if missing or not df_new.equals(df_old):
+        [
+            df_curr[~np.array(is_stale, dtype=bool)],
+            df_old[np.array(old_stale, dtype=bool)],
+        ]
+    ).sort_values(ids, ignore_index=True)
+    if cols_changed or not df_new.equals(df_old):
         df_new.to_csv(E_record_path, index=False)
         print(f"File '{E_record_path}' updated")
 
     if stale:
         cls_txt = "; ".join(
-            f"{fname} ({', '.join(changed)})" for fname, changed in stale.items()
+            f"{fname} ("
+            + ", ".join(f"{k}: {'/'.join(ch)}" for k, ch in keys.items())
+            + ")"
+            for fname, keys in stale.items()
         )
+        N_cmmts = sum(len(keys) for keys in stale.values())
         _warn(
-            f"{len(stale)} clusters changed since their manual comments in "
-            f"'{UCC_cat_E_in}' were stored (stale comments). Review the comments, "
-            f"and edit them or remove their rows from '{E_cmmts_record_file}' to "
-            f"confirm them: {cls_txt}"
+            f"{N_cmmts} manual comments in '{UCC_cat_E_in}' ({len(stale)} clusters) "
+            "are for checks whose inputs changed since they were stored (stale "
+            "comments). Review them, and edit them or remove their rows from "
+            f"'{E_cmmts_record_file}' to confirm them: {cls_txt}"
         )
     return stale
 
 
 def check_orphan_cmmts(oc_cmmts, flags):
     """Warn about the manual comments whose check no longer fails: comments
-    under a key in `_CMMT_KEYS` for a cluster with no flag of that
+    under a key in `CMMT_KEYS` for a cluster with no flag of that
     `cmmt_key`. They no longer apply to any check and can be removed."""
     failed = {(f["fname"], f["cmmt_key"]) for f in flags}
     orphans = [
@@ -721,15 +606,15 @@ def _uti_factor(uti):
     linearly to 1 for UTI=1. Clusters without a UTI value get 1."""
     if not np.isfinite(uti):
         return 1.0
-    floor = _SCORE_CONFIG["uti_floor"]
+    floor = SCORE_CONFIG["uti_floor"]
     return floor + (1 - floor) * uti
 
 
 def _score_group(check):
     """Checks in the same group measure the same discrepancy, and only the
     highest score in a group counts: "DBs_<type>_conflicts" and
-    "DBs_<type>_groups" share the group "DBs_<type>", and "dup" and
-    "dup_prox" the group "dup"."""
+    "DBs_<type>_groups" share the group "DBs_<type>", and all the "dup_*"
+    checks (shared-member runs and "dup_prox") the group "dup"."""
     if check.startswith("DBs_"):
         return check.rsplit("_", 1)[0]
     if check.startswith("dup"):
@@ -756,11 +641,11 @@ def _score_flags(flags, oc_cmmts, stale, UTI):
 
         weight * min(1 + log2(ratio), sev_max) * factor * uti_factor
 
-    with `weight` set by its check ID in _SCORE_CONFIG["weights"], and
+    with `weight` set by its check ID in SCORE_CONFIG["weights"], and
     `uti_factor` set by the cluster's UTI (see `_uti_factor`), so that the
     failures of the clusters most likely to be real score higher. The score
     is multiplied by `cmmt_factor` if the cluster has a manual comment for the
-    flag's `cmmt_key`, unless its comments are stale (see
+    flag's `cmmt_key`, unless that comment is stale (see
     `check_cmmts_hashes`). If a check fails more than once for the same cluster
     (e.g. several duplicate pairs), only its highest score counts. A
     cluster's total score is the sum over its failed checks, counting only
@@ -769,14 +654,15 @@ def _score_flags(flags, oc_cmmts, stale, UTI):
     Returns a list of (fname, total_score, {check: (score, [details])}) sorted
     by decreasing total score.
     """
-    cfg = _SCORE_CONFIG
+    cfg = SCORE_CONFIG
     per_cl = {}
     for f in flags:
         sev = min(1 + np.log2(max(f["ratio"], 1.0)), cfg["sev_max"])
         score = cfg["weights"][f["check"]] * sev * f["factor"]
         score *= _uti_factor(UTI.get(f["fname"], np.nan))
         cl_cmmts = oc_cmmts.get(f["fname"], {})
-        if f["fname"] not in stale and f["cmmt_key"] in cl_cmmts:
+        key = f["cmmt_key"]
+        if key in cl_cmmts and key not in stale.get(f["fname"], {}):
             score *= cfg["cmmt_factor"]
         score_old, details = per_cl.setdefault(f["fname"], {}).get(
             f["check"], (0.0, [])
@@ -797,8 +683,9 @@ def _score_flags(flags, oc_cmmts, stale, UTI):
 def _split_dup_clusters(clusters):
     """Split the scored clusters into the candidate duplicates (all of them)
     and the `N_max_clusters` other clusters with the highest scores."""
-    dup_cls = [cl for cl in clusters if "dup" in cl[2]]
-    other_cls = [cl for cl in clusters if "dup" not in cl[2]][:N_max_clusters]
+    is_dup = [any(c in cl[2] for c in DUP_CHECKS) for cl in clusters]
+    dup_cls = [cl for cl, d in zip(clusters, is_dup) if d]
+    other_cls = [cl for cl, d in zip(clusters, is_dup) if not d][:N_max_clusters]
     return dup_cls, other_cls
 
 
@@ -816,13 +703,13 @@ def _centered_table(header, rows):
 
 def _write_out_file(checks, clusters, oc_cmmts, stale, UTI):
     """Write the summary of the checks and the flagged clusters: all the
-    candidate duplicates first (failed `dup` check), then the
+    candidate duplicates first (failed `dup_1` to `dup_5` checks), then the
     `N_max_clusters` other clusters with the highest scores.
 
-    Text is wrapped at `out_width` characters; table rows and headings are
+    Text is wrapped at `E_out_width` characters; table rows and headings are
     not, since wrapping would break them.
     """
-    cfg = _SCORE_CONFIG
+    cfg = SCORE_CONFIG
 
     def esc(txt):
         return str(txt).replace("|", "\\|")
@@ -832,7 +719,7 @@ def _write_out_file(checks, clusters, oc_cmmts, stale, UTI):
         lines.extend(
             textwrap.wrap(
                 txt,
-                out_width,
+                E_out_width,
                 initial_indent=first,
                 subsequent_indent=rest,
                 break_long_words=False,
@@ -859,7 +746,8 @@ def _write_out_file(checks, clusters, oc_cmmts, stale, UTI):
         f"Clusters flagged: {N_flagged} (plus {len(clusters) - N_flagged} with "
         "only `params_*` failures, scored but not counted). The "
         f"{len(dup_cls)} candidate "
-        f"duplicates (`dup` check) are always listed first, followed by the "
+        f"duplicates (`dup_1` to `dup_5` checks) are always listed first, "
+        "followed by the "
         f"{len(other_cls)} other clusters with the highest scores; both sorted "
         "by decreasing score."
     )
@@ -891,7 +779,10 @@ def _write_out_file(checks, clusters, oc_cmmts, stale, UTI):
     for check, desc, *_ in checks:
         item(f"`{check}`: {desc}")
     lines.append("")
-    para(f"Families skipped in all checks except `dup`: {', '.join(skip_pfx)}")
+    para(
+        "Families skipped in all checks except `dup_1` to `dup_5`: "
+        f"{', '.join(skip_pfx)}"
+    )
     if include_DBs:
         para("Only DBs included in some checks (overrides the exclusions):")
         for check, dbs in include_DBs.items():
@@ -908,22 +799,23 @@ def _write_out_file(checks, clusters, oc_cmmts, stale, UTI):
         "Each failed check scores `weight * min(1 + log2(ratio), "
         f"{cfg['sev_max']:g}) * ({cfg['uti_floor']:g} + "
         f"{1 - cfg['uti_floor']:g} * UTI)`, where `ratio` is the measured value "
-        "over its threshold (for `dup`: the sum of both shared-member "
+        "over its threshold (for `dup_1` to `dup_5`: the sum of both shared-member "
         "percentages over the minimum percentage), and `UTI` is the cluster's "
         "UTI (the factor is 1 if it has no UTI). A cluster's score is the sum "
         "over its failed checks (the highest one if a check fails more than "
         "once). The `conflicts` and `groups` checks of the same quantity "
-        "measure the same discrepancy, as do `dup` and `dup_prox`: only the "
+        "measure the same discrepancy, as do all the `dup_*` checks: only the "
         "highest of each group counts."
     )
     item(
         f"Checks with a manual comment in `{UCC_cat_E_in}` are scored "
-        f"x{cfg['cmmt_factor']:g}, unless the cluster's B or C entry or "
-        "members changed since the comments were stored (stale comments)."
+        f"x{cfg['cmmt_factor']:g}, unless the inputs of the checks of that "
+        "comment (B or C columns, DB values or members) changed since it was "
+        "stored (stale comments)."
     )
     item(
-        f"The original cluster of a candidate duplicate pair (`dup`, "
-        f"`dup_prox`) is scored x{cfg['dup_orig_factor']:g}; the duplicate "
+        f"The original cluster of a candidate duplicate pair (`dup_*`) "
+        f"is scored x{cfg['dup_orig_factor']:g}; the duplicate "
         "gets the full score."
     )
     lines.append("")
@@ -944,7 +836,7 @@ def _write_out_file(checks, clusters, oc_cmmts, stale, UTI):
     bin_idx = np.searchsorted(edges, flagged_scores, side="right")
     labels = (
         [f"< {edges[0]}"]
-        + [f"{lo}-{hi}" for lo, hi in zip(edges[:-1], edges[1:])]
+        + [f"{lo}-{hi}" for lo, hi in itertools.pairwise(edges)]
         + [f">= {edges[-1]}"]
     )
     lines += _centered_table(
@@ -963,24 +855,28 @@ def _write_out_file(checks, clusters, oc_cmmts, stale, UTI):
                 "",
                 f"Score: {total:.1f}, UTI: {UTI.get(fname, np.nan):.2f}",
                 "",
-                "| Check | Score | Details |",
-                "|---|---:|---|",
             ]
         )
+        # One item per check (sorted by decreasing score), with its details
+        # inline if there is only one, or as wrapped sub-items otherwise
         for check, (score, details) in sorted(
             cl_checks.items(), key=lambda x: -x[1][0]
         ):
-            lines.append(
-                f"| `{check}` | {score:.1f} | {'<br>'.join(esc(d) for d in details)} |"
-            )
+            if len(details) == 1:
+                item(f"`{check}` ({score:.1f}): {details[0]}")
+                continue
+            item(f"`{check}` ({score:.1f}):")
+            for d in details:
+                para(d, "  - ", "    ")
+                lines.pop()
         cmmts = oc_cmmts.get(fname, {})
         if cmmts:
-            title = "Manual comments"
-            if fname in stale:
-                title += f" (STALE: {', '.join(stale[fname])} changed)"
             lines.append("")
-            para(f"{title}:")
+            para("Manual comments:")
             for k, v in cmmts.items():
+                changed = stale.get(fname, {}).get(k)
+                if changed:
+                    k += f" (STALE: {', '.join(changed)} changed)"
                 item(f"{k}: {v}")
 
     for title, cls in (
@@ -995,8 +891,8 @@ def _write_out_file(checks, clusters, oc_cmmts, stale, UTI):
     text = "\n".join(lines).strip("\n")
     while "\n\n\n\n" in text:
         text = text.replace("\n\n\n\n", "\n\n\n")
-    out_file.parent.mkdir(parents=True, exist_ok=True)
-    with open(out_file, "w") as f:
+    E_out_file.parent.mkdir(parents=True, exist_ok=True)
+    with open(E_out_file, "w") as f:
         f.write(text + "\n")
 
 
@@ -1041,14 +937,14 @@ def run_B_DBs_check(df_B, databases_info, check_type, thr, drad_thr, rel_thr=Non
     Connected components containing at least two DBs are considered
     well-defined groups. Isolated DB measurements are ignored.
     """
-    cfg = _CHECK_CONFIG[check_type]
+    cfg = CHECK_CONFIG[check_type]
     cat_cols = cfg["cat_cols"]
     unit = cfg["unit"]
 
     # Load the relevant values from each database (DBs without them are
     # skipped).
     all_dbs = {}
-    for db in db_path.glob("*.csv"):
+    for db in E_db_path.glob("*.csv"):
         db_cols = databases_info[db.stem].get("pos")
 
         if db_cols and all(c in db_cols for c in cat_cols):
@@ -1295,11 +1191,11 @@ def run_B_DBs_params(df_B, param_col, thr):
     """Cross-DB parameter consistency within catalogue B.
 
     `thr` is a fraction of the median for "relative" parameters and a value
-    in the parameter's units for "absolute" ones (see _PARAMS_CONFIG). Only
+    in the parameter's units for "absolute" ones (see PARAMS_CONFIG). Only
     the DBs selected for the check ID, or for all the parameters ("params"
     key), are used (see `_skip_DB`).
     """
-    pcfg = _PARAMS_CONFIG[param_col]
+    pcfg = PARAMS_CONFIG[param_col]
     skip = _skip_DB(f"params_{param_col}", "params")
     relative = pcfg["kind"] == "relative"
 
@@ -1383,9 +1279,9 @@ def run_B_vs_C_plx(df_B, df_C):
     """Compare the parallaxes in catalogue B with those derived from the
     members in catalogue C. Clusters with UTI > `uti_min` and a difference
     larger than max(plx_thr, plx_rel * |Plx_m|) are flagged (see
-    `_B_VS_C_CONFIG`): the members may belong to a foreground or background
+    `B_VS_C_CONFIG`): the members may belong to a foreground or background
     group rather than to the catalogued cluster."""
-    cfg = _B_VS_C_CONFIG
+    cfg = B_VS_C_CONFIG
     df = pd.merge(df_B, df_C, on="fname")
     df = df[~df["fname"].str.startswith(skip_pfx, na=False)]
     df = df[(df["UTI"] > cfg["uti_min"]) & df["Plx"].notna()]
@@ -1420,7 +1316,7 @@ def run_prox_dup(df_B, df_C, databases_info):
     and proper motion, for the pairs that do not share members (those are
     covered by `run_dup_check`): e.g. one cluster split in two by fastMP.
 
-    Uses the member-based values in catalogue C (see `_PROX_DUP_CONFIG`).
+    Uses the member-based values in catalogue C (see `PROX_DUP_CONFIG`).
     Pairs where both clusters are in a skipped family (`skip_pfx`) are
     ignored. The cluster published later ('received' of its first DB; on
     ties, the one with fewer members) is the candidate duplicate and gets the
@@ -1428,7 +1324,7 @@ def run_prox_dup(df_B, df_C, databases_info):
     geometric mean of threshold/value for the separation, parallax and
     proper motion differences, each capped at 8.
     """
-    cfg = _PROX_DUP_CONFIG
+    cfg = PROX_DUP_CONFIG
     fnames = df_C["fname"].to_numpy()
     ra, de = (np.deg2rad(df_C[c].to_numpy(float)) for c in ("RA_ICRS_m", "DE_ICRS_m"))
     r50 = df_C["r_50"].to_numpy(float) / 60  # deg
@@ -1443,7 +1339,7 @@ def run_prox_dup(df_B, df_C, databases_info):
     # Pairs closer than sep_fac * r_50 of either cluster (chord distance on
     # the unit sphere)
     xyz = np.c_[np.cos(de) * np.cos(ra), np.cos(de) * np.sin(ra), np.sin(de)]
-    tree = cKDTree(xyz)
+    tree = KDTree(xyz)
     chord = 2 * np.sin(np.deg2rad(cfg["sep_fac"] * r50) / 2)
     pairs = set()
     for i, js in enumerate(tree.query_ball_point(xyz, chord)):
@@ -1489,7 +1385,7 @@ def run_prox_dup(df_B, df_C, databases_info):
                 "dup",
                 ratio,
                 f"orig of: {pair}",
-                _SCORE_CONFIG["dup_orig_factor"],
+                SCORE_CONFIG["dup_orig_factor"],
             )
         )
     return flags
@@ -1499,11 +1395,11 @@ def run_lit_dist_plx(df_B, df_C):
     """Compare the median literature distance of each cluster (catalogue B,
     `dist` column, kpc) with the distance from its members' parallax
     (catalogue C, plus the Gaia zero point), as distance moduli; see
-    `_LIT_DIST_CONFIG`. Only the DBs selected for "params" are used (see
+    `LIT_DIST_CONFIG`. Only the DBs selected for "params" are used (see
     `_skip_DB`).
     Unlike `params_dist`, which compares the literature values among
     themselves, this flags members that may belong to another object."""
-    cfg = _LIT_DIST_CONFIG
+    cfg = LIT_DIST_CONFIG
     skip = _skip_DB("params")
     plx_m = dict(zip(df_C["fname"], df_C["Plx_m"] + cfg["plx_zp"]))
 
@@ -1512,7 +1408,7 @@ def run_lit_dist_plx(df_B, df_C):
         plx = plx_m.get(fname, np.nan)
         if fname.startswith(skip_pfx) or not plx > cfg["plx_min"]:
             continue
-        dbs, vals = _db_param_vals(cl_db, cl_vals, skip)
+        _, vals = _db_param_vals(cl_db, cl_vals, skip)
         vals = [v for v in vals if v > 0]
         if not vals:
             continue
@@ -1535,7 +1431,7 @@ def run_lit_dist_plx(df_B, df_C):
 
 def run_H23_membs(df_B, df_members):
     """Compare the number of members of each cluster with the number given by
-    the `_H23_MEMBS_CONFIG["db"]` database (Hunt & Reffert 2023).
+    the `H23_MEMBS_CONFIG["db"]` database (Hunt & Reffert 2023).
 
     The UCC count is the number of rows of the cluster in the members file;
     the HUNT2023 count is the `N` column of its database file (identical to
@@ -1544,13 +1440,13 @@ def run_H23_membs(df_B, df_members):
 
     The difference is measured as |log2(N_UCC / N_H23)|, symmetric in both
     counts, against the threshold log2(1 + thr * factor), with `factor`
-    decreasing with max(N_UCC, N_H23) (see `_H23_MEMBS_CONFIG`), so that the
+    decreasing with max(N_UCC, N_H23) (see `H23_MEMBS_CONFIG`), so that the
     same relative difference gives a larger ratio (and score) for larger
     clusters.
     """
-    cfg = _H23_MEMBS_CONFIG
+    cfg = H23_MEMBS_CONFIG
     db, thr0 = cfg["db"], cfg["thr"]
-    N_H23 = pd.read_csv(db_path / f"{db}.csv", usecols=["N"])["N"].to_numpy()
+    N_H23 = pd.read_csv(E_db_path / f"{db}.csv", usecols=["N"])["N"].to_numpy()
     N_UCC = df_members.groupby("name").size().to_dict()
 
     flags = []
@@ -1626,7 +1522,8 @@ def run_dup_check(df_B, df_C, databases_info, prob_min=50.0):
 
     Each pair flags both D (full score) and O (scored x`dup_orig_factor`),
     with ratio (p_D + p_O) / prob_min, so that mutually contained pairs
-    score higher.
+    score higher. The flags of each run have check ID "dup_<run>", weighted
+    less from run 1 to run 5 (see SCORE_CONFIG["weights"]).
 
     Parameters
     ----------
@@ -1636,7 +1533,7 @@ def run_dup_check(df_B, df_C, databases_info, prob_min=50.0):
     data = _dup_prepare_data(df_B, df_C, databases_info)
 
     flags = []
-    for N_run in _DUP_RUN_PARS:
+    for N_run in DUP_RUN_PARS:
         df_run = _dup_check_run(*data, N_run, prob_min)
         for r in df_run.itertuples():
             # ratio = np.nansum([r.shared_p_dup, r.shared_p_orig]) / prob_min
@@ -1652,15 +1549,16 @@ def run_dup_check(df_B, df_C, databases_info, prob_min=50.0):
                 f"UTI={r.UTI_orig:.2f}), N_ratio={r.N_ratio:.2f}, "
                 f"dist={r.dist_arcmin:.1f} arcmin"
             )
-            flags.append(_flag(r.fname_dup, "dup", "dup", ratio, f"dup of: {pair}"))
+            check = f"dup_{N_run}"
+            flags.append(_flag(r.fname_dup, check, "dup", ratio, f"dup of: {pair}"))
             flags.append(
                 _flag(
                     r.fname_orig,
-                    "dup",
+                    check,
                     "dup",
                     ratio,
                     f"orig of: {pair}",
-                    _SCORE_CONFIG["dup_orig_factor"],
+                    SCORE_CONFIG["dup_orig_factor"],
                 )
             )
     return flags
@@ -1709,7 +1607,9 @@ def _dup_prepare_data(df_B, df_C, current_JSON):
             continue
         ra_col, dec_col = coord_cols[db]
         if db not in df_cache:
-            df_cache[db] = pd.read_csv(db_path / f"{db}.csv", usecols=[ra_col, dec_col])
+            df_cache[db] = pd.read_csv(
+                E_db_path / f"{db}.csv", usecols=[ra_col, dec_col]
+            )
         df_db = df_cache[db]
         init_coords[fname] = (
             df_db.at[DBs_i[fname], ra_col],
@@ -1765,7 +1665,7 @@ def _dup_select_orig(
 def _dup_check_run(
     df_C, N_membs, UTI, shared_perc_vals, received, init_coords, N_run, prob_min
 ):
-    pars = _DUP_RUN_PARS[N_run]
+    pars = DUP_RUN_PARS[N_run]
     records = []
     for fname_dup, shared_members, shared_members_p, uti_dup in zip(
         df_C["fname"], df_C["shared_members"], df_C["shared_members_p"], df_C["UTI"]
@@ -1811,7 +1711,7 @@ def _dup_check_run(
                 }
             )
 
-    return pd.DataFrame(records, columns=_DUP_COLS_ORDER)
+    return pd.DataFrame(records, columns=DUP_COLS_ORDER)
 
 
 def get_norm_dist_rad(df_B: pd.DataFrame, df_members: pd.DataFrame) -> pd.DataFrame:
