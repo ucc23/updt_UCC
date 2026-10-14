@@ -12,6 +12,9 @@ Variables used by more than one script are in the SHARED block, each with a
 are included). Every other block holds the variables used by a single script.
 """
 
+import re
+from pathlib import Path
+
 # =============================================================================
 # SHARED: variables used by more than one script
 # The paths in the other blocks are built from the folders defined here.
@@ -165,6 +168,73 @@ pars_formats = {
 
 # Path to the file that contains the NASA API token
 NASA_API_TOKEN_file = data_folder + "NASA_API_TOKEN"
+
+# NASA/ADS (SciX) root URL and number of days after which the citation counts
+# are considered outdated
+SCIX_root = "https://scixplorer.org/abs/"
+citation_count_days_check = 180
+
+# -----------------------------------------------------------------------------
+# Auto-detection of the new DB columns (new_DB_columns_match)
+# -----------------------------------------------------------------------------
+
+# Column names that identify an uncertainty or a percentile, e.g.: 'e_Dist', 'E_Av',
+# 'err_age', 'sigma_feh', 's_[Fe/H]', 'delta_logt', 'Dist_err', 'Av_sigma',
+# 'AV16', 'A_V_84'
+err_col_re = re.compile(
+    r"^(e_|s_|err_?|sig(ma)?_|delta_)|(_?err|_sig(ma)?|_unc|_?16|_?84)$",
+    flags=re.IGNORECASE,
+)
+# VizieR meta-columns that are never matched: references, notes, limit flags,
+# flags, multiplicity, number of observations, quality
+meta_col_re = re.compile(r"^[rnlfmoq]_")
+# Prefixes and suffixes used to name the uncertainty of a column 'X'
+err_prefix = ("e_", "s_", "err_", "sigma_", "sig_", "delta_")
+err_suffix = ("_err", "_e", "_sigma", "_sig", "_unc")
+# Percentiles used as uncertainties: (lower, upper)
+err_percentiles = (("_16", "_84"), ("16", "84"), ("_p16", "_p84"))
+
+# Plausible range of the median value of a column, for each parameter and format.
+# Used to discard spurious matches (e.g. a 'feh' match with a median of 50).
+# Formats not listed here are not range-checked.
+fmt_ranges = {
+    "av": {
+        "av": (0.0, 30),
+        "ag": (0.0, 30),
+        "ebv": (0.0, 10),
+        "ebprp": (0.0, 10),
+        "egrp": (0.0, 10),
+        "evi": (0.0, 10),
+        "ejh": (0.0, 10),
+    },
+    "diff_ext": {"dav": (0, 10)},
+    "dist": {"dm": (2, 22), "dkpc": (0.01, 60), "dpc": (10, 60000)},
+    "age": {"loga": (5, 10.3), "agyr": (0, 14), "amyr": (0, 14000)},
+    "met": {"feh": (-3, 1), "z": (0, 0.1)},
+    "mass": {"logm": (0, 7), "mass": (0, 1e7)},
+    "bi_frac": {"bf": (0, 1)},
+    "blue_str": {"bs_f": (0, 1), "bs_n": (0, 5000)},
+}
+# Hints in the column name that identify the format: (regex, fmt). Checked in
+# order, the first match is used
+fmt_name_hints = {
+    "av": (
+        (r"b-?v", "ebv"),
+        (r"g-?rp", "egrp"),
+        (r"bp-?rp", "ebprp"),
+        (r"v-?i", "evi"),
+        (r"j-?h", "ejh"),
+        (r"^a_?g", "ag"),
+        (r"^a_?v|^a0", "av"),
+    ),
+    "age": ((r"myr", "amyr"), (r"gyr", "agyr"), (r"log|^lg", "loga")),
+    # 'mod' but not 'mode' (e.g. 'dmode' is the distance mode in pc)
+    "dist": ((r"kpc", "dkpc"), (r"pc", "dpc"), (r"mod(?!e)|m-m|^dm0?$|mm0", "dm")),
+}
+# Abundance columns (e.g. '[Fe/H]', '[Mg/Fe]', 'FeH_m') can only be matched to 'met'
+abund_col_re = re.compile(r"\[.+/.+\]|fe_?h", flags=re.IGNORECASE)
+# Values that look like an embedded cluster id, e.g.: 'EC', 'ECC', 'EC1', 'IRC'
+ec_val_re = re.compile(r"^(EC|IRC)[A-Z0-9]*$")
 
 # =============================================================================
 # B: B_update_UCC_DB.py
@@ -325,6 +395,16 @@ N_membs_min = 25
 
 # Local cache of the HiPS tiles used to build the Aladin plots (D script)
 aladin_tiles_cache = data_folder + "aladin_tiles_nogit/"
+# HiPS survey used for the Aladin plots. Tiles are static files, mirrored on
+# several CDS servers; they are downloaded once and stored in 'aladin_tiles_cache'
+HIPS_MIRRORS = (
+    "https://alasky.cds.unistra.fr/DSS/DSSColor",
+    "https://alaskybis.cds.unistra.fr/DSS/DSSColor",
+)
+HIPS_MIN_ORDER, HIPS_MAX_ORDER = 3, 9  # 'hips_order' in the survey's properties
+HIPS_TILE_ORDER = 9  # log2(hips_tile_width = 512)
+# Minimum seconds between two tile downloads
+HIPS_MIN_INTERVAL = 0.1
 # CSV file with the hashes of the members used to generate the plots in the site
 # (generated and used by the D script)
 UCC_cat_D_in = "UCC_cat_D_in.csv"
@@ -629,5 +709,275 @@ UCC_cat_E_in = "UCC_cat_E_in.json"
 # their checks (B and C columns, DB values, members) when they were stored, one row
 # per cluster and comment key (generated and used by the E script)
 E_cmmts_record_file = "UCC_cat_E_hashes.csv"
-# Output Markdown file with the E_master_check results (written to the working directory)
+# Output Markdown file with the E_master_check results (written to the temp folder)
 master_check_file = "master_check.md"
+
+# ---------------------------------------------------------------------------
+# Manual exclusions based on previous checks and known issues
+
+# Families to skip in all checks (except the duplicates check)
+skip_pfx = ("hsc", "theia", "cwnu", "ocsn")
+
+# DBs whose values are ignored in some checks: {check ID: (DB, ...)}. Only the
+# checks that compare per-DB values accept exclusions: "DBs_<type>_conflicts",
+# "DBs_<type>_groups" (type: pos, pm, plx) and "params_<param>"; the "params"
+# key excludes its DBs from every "params_<param>" check and from
+# "lit_dist_plx".
+exclude_DBs = {
+    "DBs_pos_conflicts": ("VDBH1975", "JAEHNIG2021", "RICHER2021", "HE2022_1"),
+    "DBs_plx_conflicts": (),
+    "DBs_pm_conflicts": (),
+    "DBs_pm_groups": (),
+    "params": (),
+}
+
+# DBs whose values are the only ones used in some checks: {check ID: (DB, ...)}.
+# Same check IDs as `exclude_DBs` (the "params" key applies to every
+# "params_<param>" check and to "lit_dist_plx", and "params_<param>" takes
+# precedence over it). A check with an entry here ignores its entries in
+# `exclude_DBs`.
+include_DBs = {
+    "DBs_plx_conflicts": ("HUNT2023", "CANTAT2020", "PERREN2022"),
+    "DBs_plx_groups": ("HUNT2023", "CANTAT2020", "PERREN2022"),
+    "DBs_pm_conflicts": ("HUNT2023", "CANTAT2020", "PERREN2022"),
+    "DBs_pm_groups": ("HUNT2023", "CANTAT2020", "PERREN2022"),
+    "params": ("HUNT2023", "CANTAT2020", "CAVALLO2024", "PERREN2022"),
+}
+
+# ---------------------------------------------------------------------------
+
+
+# Maximum line length of the output file (tables and headings are not wrapped)
+E_out_width = 80
+
+# Number of clusters (highest scores first) stored in the output file, besides
+# the candidate duplicates (always stored)
+N_max_clusters = 200
+
+
+# Per-check-type config for run_B_DBs_check. `cat_cols` are the keys expected
+# under databases_info.json[<db>]["pos"], e.g. "pos": {"RA": ..., "DEC": ...}.
+# `default_norm_thr` is the minimum `dist_norm` (see `get_norm_dist_rad`) of the
+# clusters checked, or None to check all of them. `default_rel_thr` (optional)
+# raises the threshold of each cluster to that fraction of the median of its DB
+# values, if larger than `default_thr`: e.g. for parallaxes, whose differences
+# between DBs grow with the parallax (nearby clusters).
+CHECK_CONFIG = {
+    "pos": {
+        "label": "position",
+        "unit": "deg",
+        "default_thr": 0.5,
+        "default_norm_thr": 0.1,
+        "cat_cols": ("RA", "DEC"),
+    },
+    "pm": {
+        "label": "proper motion",
+        "unit": "mas/yr",
+        "default_thr": 0.25,
+        "default_norm_thr": None,
+        "cat_cols": ("pmra", "pmde"),
+    },
+    "plx": {
+        "label": "parallax",
+        "unit": "mas",
+        "default_thr": 0.1,
+        "default_rel_thr": 0.05,
+        "default_norm_thr": None,
+        "cat_cols": ("plx",),
+    },
+}
+
+# Paths above are relative to the repo root; resolve them from this file's
+# location so the E script can be run from any directory.
+_root = Path(__file__).resolve().parents[1]
+E_B_cat_path = _root / data_folder / UCC_cat_B_out
+E_C_cat_path = _root / data_folder / UCC_cat_C_out
+E_json_path = _root / data_folder / UCC_cat_E_in
+E_record_path = _root / data_folder / E_cmmts_record_file
+E_members_path = _root / zenodo_folder / UCC_members_file
+E_dbs_json_path = _root / name_DBs_json
+E_db_path = _root / dbs_folder
+E_out_file = _root / temp_folder / master_check_file
+
+# Hashed parts of each manual comment: (column in E_record_path, label)
+CMMTS_HASH_PARTS = (
+    ("B_hash", "B entry"),
+    ("DB_hash", "DB values"),
+    ("C_hash", "C entry"),
+    ("membs_hash", "members"),
+)
+
+# Per-parameter config for run_B_DBs_params. "relative" thresholds are a
+# fraction of the cluster's median value; "absolute" thresholds are in the
+# parameter's own units and are used for parameters whose median can be ~0 or
+# that are compared in log scale: distances (kpc in B) are compared as
+# distance moduli (mag) and ages (Myr in B) as log10(age/yr) (dex).
+PARAMS_CONFIG = {
+    "dist": {"kind": "absolute", "default_thr": 1.0, "unit": "mag"},
+    "av": {"kind": "absolute", "default_thr": 1.0, "unit": "mag"},
+    "age": {"kind": "absolute", "default_thr": 0.5, "unit": "dex"},
+    "met": {"kind": "absolute", "default_thr": 0.3, "unit": "dex"},
+    "mass": {"kind": "relative", "default_thr": 1.0, "unit": "Msun"},
+}
+
+# Config for run_B_vs_C_coords: angular separation (arcmin) and normalized
+# separation (see `get_norm_dist_rad`) thresholds; both must be exceeded.
+MEMBS_COORDS_CONFIG = {"pos_thr": 5.0, "drad_thr": 1.0}
+
+# Config for run_B_vs_C_pm and run_B_vs_C_plx: proper motion threshold
+# (mas/yr), parallax threshold max(plx_thr, plx_rel * |Plx_m|) (mas), and
+# minimum UTI of the clusters checked.
+B_VS_C_CONFIG = {"pm_thr": 10.0, "plx_thr": 0.1, "plx_rel": 0.1, "uti_min": 0.1}
+
+# Config for run_prox_dup: two clusters are twins if their member-based
+# centers are closer than `sep_fac` x the larger of their r_50, and their
+# parallaxes and proper motions agree within max(plx_thr, plx_rel * Plx)
+# (mas) and max(pm_thr, v_thr * Plx / 4.74) (mas/yr; v_thr in km/s), with Plx
+# the mean of both. Pairs that share members are left to run_dup_check.
+PROX_DUP_CONFIG = {
+    "sep_fac": 1.0,
+    "plx_thr": 0.1,
+    "plx_rel": 0.1,
+    "pm_thr": 0.5,
+    "v_thr": 2.0,
+}
+
+# Config for run_lit_dist_plx: threshold (mag) on the difference between the
+# distance modulus of the median literature distance and that of the members'
+# parallax, Gaia parallax zero point added to Plx_m (mas, Lindegren et al.
+# 2021), and minimum corrected Plx_m (mas) of the clusters checked.
+LIT_DIST_CONFIG = {"thr": 1.0, "plx_zp": 0.017, "plx_min": 0.2}
+
+# Config for run_H23_membs: database with the reference member counts (its
+# `N` column), base threshold `thr`, and (N_max, factor) bins. A cluster is
+# flagged if max(N)/min(N) > 1 + thr * factor, with N the UCC and HUNT2023
+# member counts and `factor` set by the first bin with max(N) <= N_max (1
+# above the last bin), so that differences in larger clusters are flagged
+# (and scored) more strongly.
+H23_MEMBS_CONFIG = {
+    "db": "HUNT2023",
+    "thr": 0.1,
+    "N_bins": ((25, 8.0), (100, 4.0), (500, 2.0)),
+}
+
+# Config for run_dup_check: minimum shared-member percentage.
+DUP_CONFIG = {"prob_min": 50.0}
+
+# Valid keys for the manual comments of each cluster in E_json_path: the
+# `cmmt_key` of the checks they apply to (see `_flag`).
+CMMT_KEYS = {"pos", "pm", "plx", "params", "dup", "N_membs"}
+
+# Inputs of the checks of each comment key in `CMMT_KEYS`, hashed to detect
+# stale comments (see `check_cmmts_hashes`): only a change in these makes the
+# comments of that key stale.
+#   B: columns of catalogue B ("DB_1" is the first DB in "DB", which sets the
+#     cluster's publication date). "DB_i" is never hashed: it is a row index
+#     into the DB files, and changes whenever rows are added to or removed
+#     from them
+#   DB: values read from the DB files through "DB" and "DB_i": the
+#     `CHECK_CONFIG` type whose "pos" columns are read, or {DB: (columns)}
+#   C: columns of catalogue C
+#   membs: whether the cluster's members are hashed
+CMMTS_HASH_DEPS = {
+    "pos": {"B": ("DB", "RA_ICRS", "DE_ICRS"), "DB": "pos", "C": (), "membs": True},
+    "pm": {
+        "B": ("DB", "pmRA", "pmDE"),
+        "DB": "pm",
+        "C": ("pmRA_m", "pmDE_m"),
+        "membs": False,
+    },
+    "plx": {"B": ("DB", "Plx"), "DB": "plx", "C": ("Plx_m",), "membs": False},
+    "params": {
+        "B": ("DB", "dist", "av", "age", "met", "mass"),
+        "DB": {},
+        "C": ("Plx_m",),
+        "membs": False,
+    },
+    "dup": {
+        "B": ("DB_1",),
+        "DB": {},
+        "C": (
+            "RA_ICRS_m",
+            "DE_ICRS_m",
+            "Plx_m",
+            "pmRA_m",
+            "pmDE_m",
+            "N_membs",
+            "r_50",
+            "shared_members",
+            "shared_members_p",
+        ),
+        "membs": False,
+    },
+    "N_membs": {
+        "B": (),
+        "DB": {H23_MEMBS_CONFIG["db"]: ("N",)},
+        "C": ("N_membs",),
+        "membs": False,
+    },
+}
+
+# Run configurations for run_dup_check (see its docstring). Each run is its
+# own check, with ID "dup_<run>" and weight in SCORE_CONFIG["weights"].
+DUP_RUN_PARS = {
+    "1": {"multi": False, "date": "new-->old"},
+    "2": {"multi": True, "date": "new-->old"},
+    "3": {"multi": False, "date": "old-->new"},
+    "4": {"multi": True, "date": "old-->new"},
+    "5": {"multi": None, "date": "same"},
+}
+DUP_CHECKS = tuple(f"dup_{N_run}" for N_run in DUP_RUN_PARS)
+
+# Scoring of the failed checks (see _score_flags).
+#   weights: points per check ID for a failure right at the threshold. The
+#     "conflicts" and "groups" checks of the same quantity measure the same
+#     discrepancy, as do all the "dup_*" checks, so only the highest of each
+#     group counts (see _score_group). The runs of the shared-members
+#     duplicates check ("dup_1" to "dup_5") weigh less from first to last
+#   sev_max: maximum severity (reached at 2**(sev_max - 1) x the threshold)
+#   cmmt_factor: score factor for checks with a manual comment in E_json_path
+#   dup_orig_factor: score factor for the original cluster of a duplicate pair
+#   uti_floor: score factor for UTI=0; it grows linearly up to 1 for UTI=1
+SCORE_CONFIG = {
+    "weights": {
+        "dup_1": 20.0,
+        "dup_2": 17.0,
+        "dup_3": 14.0,
+        "dup_4": 11.0,
+        "dup_5": 8.0,
+        "H23_membs": 10.0,
+        "dup_prox": 8.0,
+        "DBs_plx_groups": 6.0,
+        "DBs_pos_groups": 6.0,
+        "DBs_pm_groups": 4.0,
+        "DBs_plx_conflicts": 3.0,
+        "DBs_pos_conflicts": 3.0,
+        "DBs_pm_conflicts": 3.0,
+        "B_vs_C_plx": 2.0,
+        "B_vs_C_coords": 1.0,
+        "B_vs_C_pm": 0.5,
+        **{f"params_{p}": 0.25 for p in PARAMS_CONFIG},
+        "lit_dist_plx": 0.1,
+    },
+    "sev_max": 5.0,
+    "cmmt_factor": 0.25,
+    "dup_orig_factor": 0.5,
+    "uti_floor": 0.6,
+}
+
+DUP_COLS_ORDER = [
+    "run",
+    "N_cand",
+    "fname_dup",
+    "date_cl_dup",
+    "N_membs_dup",
+    "shared_p_dup",
+    "fname_orig",
+    "date_cl_orig",
+    "N_membs_orig",
+    "shared_p_orig",
+    "UTI_dup",
+    "UTI_orig",
+    "N_ratio",
+    "dist_arcmin",
+]
