@@ -166,6 +166,7 @@ cython_debug/
 logs/*
 OLD/*
 data/ucc_archived_nogit/*
+data/aladin_tiles_nogit/
 temp_updt/*
 data/B_cache/
 NASA_API_TOKEN

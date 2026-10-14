@@ -402,9 +402,9 @@ It is **optional** and does not modify any UCC file; it is meant to flag entries
 need to be manually inspected.
 
 The script runs all the checks below with no user input, using the default
-parameters stored at the top of the script (`_CHECK_CONFIG`, `_MEMBS_COORDS_CONFIG`,
-`_PARAMS_CONFIG`, `_B_VS_C_CONFIG`, `_DUP_CONFIG`, `_PROX_DUP_CONFIG`,
-`_H23_MEMBS_CONFIG`, `_LIT_DIST_CONFIG`):
+parameters stored in the `E` section of `variables.py` (`CHECK_CONFIG`, `MEMBS_COORDS_CONFIG`,
+`PARAMS_CONFIG`, `B_VS_C_CONFIG`, `DUP_CONFIG`, `PROX_DUP_CONFIG`,
+`H23_MEMBS_CONFIG`, `LIT_DIST_CONFIG`):
 
 1. **Cross-DB consistency**: compares the position (angular separation), proper
    motion, and parallax values of each entry across the DBs listed in the B file. The
@@ -449,7 +449,7 @@ where both entries belong to these families).
 
 Entire DBs can be excluded from the checks that compare per-DB values
 (`DBs_<type>_conflicts`, `DBs_<type>_groups`, `params_<param>`) with the
-`exclude_DBs` dictionary at the top of the script, eg:
+`exclude_DBs` dictionary (`E` section of `variables.py`), eg:
 `exclude_DBs = {"DBs_pos_conflicts": ("VDBH1975",)}`. The `params` key excludes its
 DBs from all the `params_<param>` checks and from `lit_dist_plx`. The values of an
 excluded DB are ignored only in the checks listed for it, and the exclusions are
@@ -467,7 +467,7 @@ without a UTI value use a factor of 1). The duplicates check has the largest wei
 An entry's total score is the sum over its failed checks; since the `conflicts` and
 `groups` checks of the same quantity measure the same discrepancy, only the highest
 of the two counts (the same applies to all the `dup_*` checks). The weights and other
-factors are set in `_SCORE_CONFIG`.
+factors are set in `SCORE_CONFIG`.
 
 The output file lists, right below its `## Clusters` section, all the candidate
 duplicates (entries that failed the duplicates check, as either the duplicate or the
@@ -492,7 +492,7 @@ already inspected, as `{fname: {key: comment}}`:
 ```
 
 An entry can have several keys. The checks matching each key are down-weighted (by
-the `cmmt_factor` in `_SCORE_CONFIG`), and all the comments are listed with the entry
+the `cmmt_factor` in `SCORE_CONFIG`), and all the comments are listed with the entry
 in the output file.
 
 | Key | Checks down-weighted |
@@ -518,7 +518,7 @@ A comment may no longer apply once its entry changes. The
 every comment (one row per entry and key), a hash of the comment and of the inputs
 of the checks of its key when it was stored: the B columns, the values read from
 the DB files, the C columns, and the members used by those checks
-(`_CMMTS_HASH_DEPS`):
+(`CMMTS_HASH_DEPS`):
 
 - New or edited comments take the current hashes of their entry.
 - If a comment did not change but the inputs of the checks of its key did, the
