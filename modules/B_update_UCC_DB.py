@@ -420,18 +420,21 @@ def handle_all_names(logging, sep=";") -> tuple[pd.DataFrame, dict]:
             logging.info(f"{idx}: {all_names.loc[idx, 'fnames']}")
         sys.exit(1)
 
-    # Check if sorted
-    all_n_fame0 = [_.split(sep)[0] for _ in all_names["fnames"]]
-    for i in range(len(all_n_fame0) - 1):
-        if all_n_fame0[i] > all_n_fame0[i + 1]:
-            logging.info(
-                f"Not sorted at index {i}: {all_n_fame0[i]!r} > {all_n_fame0[i + 1]!r}"
+    # Check if sorted by the first fname
+    all_names["fname0"] = all_names["fnames"].str.split(sep).str[0]
+    if not all_names["fname0"].is_monotonic_increasing:
+        logging.info("\n'all_names' file is not sorted by the first fname")
+        if input("Sort and store as temp file? (y/n): ").lower() == "y":
+            all_names = (
+                all_names.sort_values(by="fname0")
+                .drop(columns="fname0")
+                .reset_index(drop=True)
             )
-            if input("Sort and continue? (y/n): ").lower() == "y":
-                all_names = all_names.sort_values(by="fnames").reset_index(drop=True)
-                logging.info("Sorted all_names by 'fnames'")
-            else:
-                sys.exit(1)
+            logging.info(
+                "Sorted all_names by the first fname. Manually update the file"
+            )
+            all_names.to_csv(temp_folder + all_OC_names, index=False)
+        sys.exit(1)
 
     # Create all_names_dict mapping each alias to its canonical fname and Names
     all_names_dict, all_fnames_list, all_names_list = {}, [], []
