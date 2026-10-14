@@ -1154,8 +1154,20 @@ def find_shared_members(
     )
     result_df = result_df.sort_values("fname").reset_index(drop=True)
 
-    if result_df["fname"].tolist() != df_UCC_C_new["fname"].tolist():
-        raise ValueError("The 'fname' columns do not match in 'find_shared_members'")
+    # Sanity check
+    fnames_1 = result_df["fname"].tolist()
+    fnames_2 = df_UCC_C_new["fname"].tolist()
+    if fnames_1 != fnames_2:
+        idx = next(
+            (i for i, (a, b) in enumerate(zip(fnames_1, fnames_2)) if a != b),
+            min(len(fnames_1), len(fnames_2)),
+        )
+        raise ValueError(
+            f"The 'fname' columns first differ at index {idx}: "
+            f"result_df={fnames_1[idx] if idx < len(fnames_1) else '<end>'!r}, "
+            f"df_UCC_C_new={fnames_2[idx] if idx < len(fnames_2) else '<end>'!r}. "
+            f"Lengths: {len(fnames_1)} vs {len(fnames_2)}."
+        )
 
     # Update data columns for shared members
     df_UCC_C_new = df_UCC_C_new.reset_index(drop=True)
@@ -1543,10 +1555,20 @@ def updt_zenodo_csv(
         .reset_index(drop=True)
     )
     fnames_from_C = df_UCC_C["fname"].astype("string").reset_index(drop=True)
-    if not fnames_from_C.equals(fnames_from_all_names):
+
+    # Sanity check
+    fnames_1 = fnames_from_C.tolist()
+    fnames_2 = fnames_from_all_names.tolist()
+    if fnames_1 != fnames_2:
+        idx = next(
+            (i for i, (a, b) in enumerate(zip(fnames_1, fnames_2)) if a != b),
+            min(len(fnames_1), len(fnames_2)),
+        )
         raise ValueError(
-            "The 'fname' column in df_UCC_C does not match the canonical fname in "
-            "the 'fnames' column in all_names."
+            f"The 'fname' columns first differ at index {idx}: "
+            f"result_df={fnames_1[idx] if idx < len(fnames_1) else '<end>'!r}, "
+            f"df_UCC_C_new={fnames_2[idx] if idx < len(fnames_2) else '<end>'!r}. "
+            f"Lengths: {len(fnames_1)} vs {len(fnames_2)}."
         )
 
     # Add the 'Names' column from all_names
