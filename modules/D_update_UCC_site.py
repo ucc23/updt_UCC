@@ -393,11 +393,13 @@ def load_data(
 
     # Read the data for every DB in the UCC as a pandas DataFrame
     DBs_full_data = {}
-    for k, v in DBs_JSON.items():
-        # Don't load DBs that only have comments files, as they dont have a CSV
-        # file with the full data
-        if v["data_cmmts"] != "comments":
-            DBs_full_data[k] = pd.read_csv(dbs_folder + k + ".csv")
+    for DB_name in DBs_JSON:
+        db_csv_path = dbs_folder + DB_name + ".csv"
+        if os.path.isfile(db_csv_path) is True:
+            DBs_full_data[DB_name] = pd.read_csv(db_csv_path)
+        else:
+            # Don't load DBs that only have comments files
+            print(f"{DB_name} has no CSV file, skipping loading full data")
 
     # Build a dictionary mapping each fname to its canonical fname
     all_fnames_dict = {}
@@ -1349,7 +1351,8 @@ def move_files(
 
     if cluster_actions:
         print(
-            f"_temp_updt/ucc/clusters/*.md -> ucc/_clusters/*.md ({len(cluster_actions)} files)"
+            f"_temp_updt/ucc/clusters/*.md -> ucc/_clusters/*.md "
+            f"({len(cluster_actions)} files)"
         )
 
     clusters_plots_actions = []
@@ -1375,7 +1378,8 @@ def move_files(
 
     if len(clusters_plots_actions) > 100:
         print(
-            f"{len(clusters_plots_actions)} files in '_clusters/*.md' and 'plots/*' updated"
+            f"{len(clusters_plots_actions)} files in '_clusters/*.md' "
+            "and 'plots/*' updated"
         )
     else:
         for action in clusters_plots_actions:

@@ -908,7 +908,6 @@ def add_DB_to_JSON(
     SCIX_url = SCIX_root + ADS_bibcode
     new_db_json = {}
     new_db_json["SCIX_url"] = SCIX_url
-    new_db_json["data_cmmts"] = JSON_struct["SMITH2500"]["data_cmmts"]
     new_db_json["citations_count"] = {
         "date": date_now,
         "count": citations,

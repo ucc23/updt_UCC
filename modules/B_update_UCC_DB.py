@@ -24,6 +24,7 @@ from .variables import (
     GCs_cat,
     UCC_cat_B_in,
     UCC_cat_B_out,
+    UCC_cmmts_folder,
     all_OC_names,
     archive_folder_path,
     c_Ag,
@@ -321,7 +322,7 @@ def load_data(
         with open(temp_JSON_path) as f:
             temp_JSON = json.load(f)
         new_JSON = temp_JSON
-        # Extract new DB's name(s)
+        # Extract new DB's name(s) from the temp JSON file
         new_DBs = list(set(temp_JSON.keys()) - set(current_JSON.keys()))
     else:
         print("\n=== Rebuilding the UCC ===\n")
@@ -334,15 +335,24 @@ def load_data(
     all_dbs_data = {}
     # Load existing DBs
     for DB, vals in new_JSON.items():
-        if vals["data_cmmts"] == "comments":
-            print(f"Skipping {DB} (marked as 'comments' in JSON)")
-            continue
-        new_db_flag = ""
         if DB in new_DBs:
             new_db_flag = "(new DB)"
-            df_new = pd.read_csv(temp_database_folder + DB + ".csv")
+            db_csv_path = temp_database_folder + DB + ".csv"
         else:
-            df_new = pd.read_csv(dbs_folder + DB + ".csv")
+            new_db_flag = ""
+            db_csv_path = dbs_folder + DB + ".csv"
+
+        if os.path.isfile(db_csv_path) is True:
+            df_new = pd.read_csv(db_csv_path)
+        else:
+            # If the DB was not found as a data file, check if it is only a comments file
+            cmmts_path = UCC_cmmts_folder + DB + ".csv"
+            if os.path.isfile(cmmts_path) is False:
+                raise FileNotFoundError(
+                    f"Neither {db_csv_path} nor {cmmts_path} found for {DB}"
+                )
+            print(f"Skipping {DB} (only stored as 'comments' file)")
+            continue
 
         # Check that the all columns specified in the JSON file are present in the DB
         json_cols = [
@@ -421,6 +431,7 @@ def handle_all_names(sep=";") -> tuple[pd.DataFrame, dict]:
             print("Sorted all_names by the first fname. Manually update the file")
             all_names.to_csv(temp_folder + all_OC_names, index=False)
         sys.exit(1)
+    all_names = all_names.drop(columns="fname0")
 
     # Create all_names_dict mapping each alias to its canonical fname and Names
     all_names_dict, all_fnames_list, all_names_list = {}, [], []

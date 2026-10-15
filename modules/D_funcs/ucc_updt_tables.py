@@ -4,7 +4,9 @@ from pathlib import Path
 import numpy as np
 
 from ..variables import (
+    UCC_cmmts_folder,
     cmmts_tables_folder,
+    dbs_folder,
     header_default,
     root_ucc_path,
     table_sort_js,
@@ -78,6 +80,7 @@ def count_OCs_in_tables(
 ) -> tuple[dict, dict]:
     """
     Count the number of occurrences of each database in the UCC and the number of
+    comments in the corresponding tables.
     """
     # Count DB occurrences in UCC
     N_in_DB = {_: 0 for _ in current_JSON}
@@ -89,7 +92,8 @@ def count_OCs_in_tables(
     # read from original folder)
     N_cmmts_dict = {}
     for DB in current_JSON:
-        if "comments" in current_JSON[DB]["data_cmmts"]:
+        # Only DBs stored as a 'comments' file have a comments table
+        if os.path.isfile(UCC_cmmts_folder + DB + ".csv"):
             # Read from temp folder if the table was updated/generated, otherwise read
             # from the original folder
             if os.path.exists(f"{temp_cmmts_tables_path}/{DB}_table.md"):
@@ -192,7 +196,7 @@ def updt_DBs_tables(dbs_used, df_updt, cmmts_JSONS_lst, DBs_dups_badOCs) -> dict
     for DB_id, vals in dbs_used.items():
         ref_url = f"[{vals['authors']} ({vals['year']})]({vals['SCIX_url']})"
 
-        if "comments" in vals["data_cmmts"]:
+        if DB_id in cmmts_JSONS_lst:
             # Original dictionary
             clusters_dict = cmmts_JSONS_lst[DB_id]["clusters"]
             # Build flat lookup: individual fname -> comment
@@ -212,7 +216,7 @@ def updt_DBs_tables(dbs_used, df_updt, cmmts_JSONS_lst, DBs_dups_badOCs) -> dict
             new_table = generate_table(header_cmmt, DB_id, ref_url, names_cols, "")
             new_tables_dict["comments"][DB_id] = new_table
 
-        if "data" in vals["data_cmmts"]:
+        if os.path.isfile(dbs_folder + DB_id + ".csv"):
             msk = []
             for _ in df_updt["DB"].values:
                 if DB_id in _.split(";"):

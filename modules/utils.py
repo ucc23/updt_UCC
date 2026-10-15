@@ -8,7 +8,12 @@ import pandas as pd
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from modules.variables import N_archive_versions, UCC_cmmts_folder, temp_folder
+from modules.variables import (
+    N_archive_versions,
+    UCC_cmmts_folder,
+    dbs_folder,
+    temp_folder,
+)
 
 
 def load_BC_cats(cat_ID: str, path: str):
@@ -372,22 +377,28 @@ def diff_between_dfs(
 
 
 def comments_check(new_json_dict):
-    """Sanity check to see if the new JSON file contains the proper comments files"""
-    # Keys that require a comments file
-    json_keys_with_cmmts = {
-        k for k, v in new_json_dict.items() if "comments" in v["data_cmmts"]
-    }
-    # File stems present in comments folder
-    folder_keys = {p.stem for p in Path(UCC_cmmts_folder).glob("*.csv")}
-    # JSON -> file
-    missing_files = sorted(json_keys_with_cmmts - folder_keys)
+    """Check that JSON keys match exactly the union of data and comments file stems"""
+    cmmts_keys = {p.stem for p in Path(UCC_cmmts_folder).glob("*.csv")}
+    data_keys = {p.stem for p in Path(dbs_folder).glob("*.csv")}
+    # Stems present in either folder (overlap allowed)
+    folder_keys = cmmts_keys | data_keys
+
+    json_keys = set(new_json_dict)
+
+    # JSON -> folders: keys with no file in either folder
+    missing_files = sorted(json_keys - folder_keys)
     if missing_files:
-        print(f"⚠️ WARNING: missing comments file(s) {';'.join(missing_files)}")
-    # Folder -> JSON
-    extra_files = sorted(folder_keys - set(new_json_dict))
+        print(
+            "⚠️ WARNING: JSON key(s) with no file in either folder: "
+            f"{';'.join(missing_files)}"
+        )
+
+    # Folders -> JSON: files not listed in the JSON
+    extra_files = sorted(folder_keys - json_keys)
     if extra_files:
         print(
-            f"⚠️ WARNING: file(s) in folder not present in JSON {';'.join(extra_files)}"
+            "⚠️ WARNING: file(s) in folders not present in JSON: "
+            f"{';'.join(extra_files)}"
         )
 
 

@@ -107,9 +107,6 @@ plots_folder = "plots/"
 JSON_struct = {
     "SMITH2500": {
         "SCIX_url": "https://scixplorer.org/abs/xxxx",
-        # Use 'data' if only data is available, use 'comments' if only comments are
-        # available, else use 'data,comments'
-        "data_cmmts": "data",
         "citations_count": {"date": "", "count": "", "citations_year": ""},
         "data_url": "N/A",
         "authors": "Smith et al.",
