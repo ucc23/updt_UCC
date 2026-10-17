@@ -52,6 +52,8 @@ badge_age_url: "{badge_age_url}"
 badge_bss: "{badge_bss}"
 badge_bss_url: "{badge_bss_url}"
 badge_nofpars_url: "{badge_nofpars_url}"
+badge_ec: "{badge_ec}"
+badge_ec_url: "{badge_ec_url}"
 comments: |
 {comments}
 class3: |
@@ -123,38 +125,7 @@ def make(
         descriptors
     )
 
-    # Badges
-    badges_names = ("dist", "av", "mass", "feh", "age", "bss")
-    badge_dist, badge_av, badge_mass, badge_feh, badge_age, badge_bss = [
-        fpars_badges.get(k, "") for k in badges_names
-    ]
-
-    def make_url(key):
-        if not (val := badges_url.get(key)):
-            return ""
-        vmin, vmax = val
-        return f"{key}_min={vmin}&{key}_max={vmax}"
-
-    (
-        badge_dist_url,
-        badge_av_url,
-        badge_mass_url,
-        badge_feh_url,
-        badge_age_url,
-        badge_bss_url,
-    ) = [make_url(k) for k in badges_names]
-
-    # No fpars badge
-    badge_nofpars_url = ""
-    if all(
-        b == ""
-        for b in [badge_dist, badge_av, badge_mass, badge_feh, badge_age, badge_bss]
-    ):
-        # vmin = "1e6"
-        vmax = "-99"
-        badge_nofpars_url = f"dav_max={vmax}&bf_max={vmax}&"
-        badge_nofpars_url += "&".join([f"{k}_max={vmax}" for k in badges_names])
-        badge_nofpars_url += "&nofpars=true"
+    badges = make_badges(UCC_cl, fpars_badges, badges_url)
 
     # Comments
     comments, N_comments = "", ""
@@ -247,19 +218,7 @@ def make(
         UTI_C_lit_desc=UTI_C_lit_desc,
         UTI_C_dup_desc=UTI_C_dup_desc,
         summary=summary,
-        badge_dist=badge_dist,
-        badge_dist_url=badge_dist_url,
-        badge_av=badge_av,
-        badge_av_url=badge_av_url,
-        badge_mass=badge_mass,
-        badge_mass_url=badge_mass_url,
-        badge_feh=badge_feh,
-        badge_feh_url=badge_feh_url,
-        badge_age=badge_age,
-        badge_age_url=badge_age_url,
-        badge_bss=badge_bss,
-        badge_bss_url=badge_bss_url,
-        badge_nofpars_url=badge_nofpars_url,
+        **badges,
         comments=comments,
         N_comments=N_comments,
         class3=abcd_c,
@@ -279,6 +238,48 @@ def make(
     )
 
     return contents
+
+
+def make_badges(UCC_cl, fpars_badges, badges_url):
+    """
+    Generate the badges (text and search URL) shown in the cluster's page, for the
+    fundamental parameters and the 'Embedded' classification.
+
+    Returns a dictionary with the 'badge_*' keys used in the header.
+    """
+    badges_names = ("dist", "av", "mass", "feh", "age", "bss")
+
+    def make_url(key):
+        if not (val := badges_url.get(key)):
+            return ""
+        vmin, vmax = val
+        return f"{key}_min={vmin}&{key}_max={vmax}"
+
+    badges = {}
+    for k in badges_names:
+        badges[f"badge_{k}"] = fpars_badges.get(k, "")
+        badges[f"badge_{k}_url"] = make_url(k)
+
+    # No fpars badge
+    badge_nofpars_url = ""
+    if all(badges[f"badge_{k}"] == "" for k in badges_names):
+        # vmin = "1e6"
+        vmax = "-99"
+        badge_nofpars_url = f"dav_max={vmax}&bf_max={vmax}&"
+        badge_nofpars_url += "&".join([f"{k}_max={vmax}" for k in badges_names])
+        badge_nofpars_url += "&nofpars=true"
+    badges["badge_nofpars_url"] = badge_nofpars_url
+
+    # Embedded cluster badge
+    badge_ec, badge_ec_url = "", ""
+    if "EC" in UCC_cl["Type"]:
+        badge_ec = "Embedded"
+        # Show only embedded clusters (types 'E' and 'EO') in the search page
+        badge_ec_url = "showOC=false&showEC=true"
+    badges["badge_ec"] = badge_ec
+    badges["badge_ec_url"] = badge_ec_url
+
+    return badges
 
 
 def existing_plots(dbs=("HUNT23", "CANTAT20")) -> set:
