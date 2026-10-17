@@ -943,6 +943,32 @@
       }
     }
   },
+  "KRONE2010": {
+    "SCIX_url": "https://scixplorer.org/abs/2010A%26A...516A...3K",
+    "citations_count": {
+      "date": "2026-10-16",
+      "count": "31",
+      "citations_year": 1.9
+    },
+    "data_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2010A%26A...516A...3K",
+    "authors": "Krone-Martins et al.",
+    "title": "Kinematic parameters and membership probabilities of open clusters in the Bordeaux PM2000 catalogue",
+    "year": "2010",
+    "received": "20091215",
+    "names": "Cluster",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
+    "pos": {
+      "RA": "RA_ICRS",
+      "DEC": "DE_ICRS",
+      "pmra": "pmRAc",
+      "pmde": "pmDEc"
+    },
+    "pars": {},
+    "e_pars": {}
+  },
   "PAUNZEN2010": {
     "SCIX_url": "https://scixplorer.org/abs/2010A%26A...517A..32P",
     "citations_count": {
@@ -991,6 +1017,53 @@
     },
     "pos": {},
     "pars": {},
+    "e_pars": {}
+  },
+  "FROEBRICH2010": {
+    "SCIX_url": "https://scixplorer.org/abs/2010MNRAS.409.1281F",
+    "citations_count": {
+      "date": "2026-10-16",
+      "count": "39",
+      "citations_year": 2.4
+    },
+    "data_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2010MNRAS.409.1281F",
+    "authors": "Froebrich et al.",
+    "title": "Old star clusters in the FSR catalogue",
+    "year": "2010",
+    "received": "20100620",
+    "names": "Names",
+    "types": {
+      "col_name": "N/A",
+      "ec_id": []
+    },
+    "pos": {
+      "RA": "_RA.icrs",
+      "DEC": "_DE.icrs"
+    },
+    "pars": {
+      "av": {
+        "ak": "AK",
+        "ebv": "E(B-V)L"
+      },
+      "dist": {
+        "dkpc": [
+          "Dist",
+          "DistL"
+        ]
+      },
+      "age": {
+        "loga": [
+          "Age",
+          "AgeL"
+        ]
+      },
+      "met": {
+        "feh": [
+          "[M/H]",
+          "[M/H]L"
+        ]
+      }
+    },
     "e_pars": {}
   },
   "BORISSOVA2011": {
@@ -1055,6 +1128,30 @@
         "edkpc": "e_d_kpc"
       }
     }
+  },
+  "SOLIN2012": {
+    "SCIX_url": "https://scixplorer.org/abs/2012A%26A...542A...3S",
+    "citations_count": {
+      "date": "2026-10-16",
+      "count": "27",
+      "citations_year": 1.9
+    },
+    "data_url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=2012A%26A...542A...3S",
+    "authors": "Solin et al.",
+    "title": "Mining the UKIDSS Galactic Plane Survey star formation and embedded clusters",
+    "year": "2012",
+    "received": "20111128",
+    "names": "Name",
+    "types": {
+      "col_name": "ALL",
+      "ec_id": []
+    },
+    "pos": {
+      "RA": "RA_ICRS",
+      "DEC": "DE_ICRS"
+    },
+    "pars": {},
+    "e_pars": {}
   },
   "KHARCHENKO2012": {
     "SCIX_url": "https://scixplorer.org/abs/2012A%26A...543A.156K",
