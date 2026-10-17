@@ -28,6 +28,7 @@ from .variables import (
     all_OC_names,
     archive_folder_path,
     c_Ag,
+    c_Ak,
     c_Ebprp,
     c_Ebv,
     c_Egrp,
@@ -428,7 +429,7 @@ def handle_all_names(sep=";") -> tuple[pd.DataFrame, dict]:
                 .drop(columns="fname0")
                 .reset_index(drop=True)
             )
-            print("Sorted all_names by the first fname. Manually update the file")
+            print("Sorted all_names by the first fname.\n\nMANUALLY UPDATE THE FILE")
             all_names.to_csv(temp_folder + all_OC_names, index=False)
         sys.exit(1)
     all_names = all_names.drop(columns="fname0")
@@ -1509,6 +1510,7 @@ def transf_par(par_format, par_v, flag_mult):
         "bs_n": lambda x: f"{x:.0f}",
         "av": lambda x: f"{x:.2f}",
         "ag": lambda x: f"{c_Ag * x:.2f}",
+        "ak": lambda x: f"{c_Ak * x:.2f}",
         "ebv": lambda x: f"{c_Ebv * x:.2f}",
         "evi": lambda x: f"{c_Evi * x:.2f}",
         "ejh": lambda x: f"{c_Ejh * x:.2f}",

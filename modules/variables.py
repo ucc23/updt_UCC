@@ -154,7 +154,7 @@ JSON_struct = {
 # The values should cover the different formats used in the various databases for each
 # fundamental parameter.
 pars_formats = {
-    "av": ["ebv", "egrp", "av", "ag", "evi", "ebprp", "ejh"],
+    "av": ["ebv", "egrp", "av", "ag", "ak", "evi", "ebprp", "ejh"],
     "diff_ext": ["dav"],
     "dist": ["dm", "dpc", "dkpc"],
     "age": ["agyr", "amyr", "loga"],
@@ -199,6 +199,7 @@ fmt_ranges = {
     "av": {
         "av": (0.0, 30),
         "ag": (0.0, 30),
+        "ak": (0.0, 3),
         "ebv": (0.0, 10),
         "ebprp": (0.0, 10),
         "egrp": (0.0, 10),
@@ -223,6 +224,7 @@ fmt_name_hints = {
         (r"v-?i", "evi"),
         (r"j-?h", "ejh"),
         (r"^a_?g", "ag"),
+        (r"^a_?k", "ak"),
         (r"^a_?v|^a0", "av"),
     ),
     "age": ((r"myr", "amyr"), (r"gyr", "agyr"), (r"log|^lg", "loga")),
@@ -321,10 +323,12 @@ coeffs = {
     "c_RP": 0.589,  # Gaia RP
     "c_J": 0.243,  # 2MASS J
     "c_H": 0.131,  # 2MASS H
+    "c_K": 0.078,  # 2MASS Ks
 }
 c_Ebv = 1 / (coeffs["c_B"] - coeffs["c_V"])
 c_Evi = 1 / (coeffs["c_V"] - coeffs["c_I"])
 c_Ag = 1 / coeffs["c_G"]
+c_Ak = 1 / coeffs["c_K"]
 c_Ebprp = 1 / (coeffs["c_BP"] - coeffs["c_RP"])
 c_Egrp = 1 / (coeffs["c_G"] - coeffs["c_RP"])
 c_Ejh = 1 / (coeffs["c_J"] - coeffs["c_H"])
