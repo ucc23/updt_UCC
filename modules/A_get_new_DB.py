@@ -3,6 +3,7 @@ import datetime
 import json
 import re
 import sys
+import unicodedata
 from pathlib import Path
 
 import numpy as np
@@ -364,7 +365,21 @@ def get_DB_name(current_JSON: dict, authors: str, year: str) -> str:
     Generate a unique database name based on the author's name and year.
     """
     # Create a new database name
-    DB_name = authors.split(" ")[0].strip().split("-")[0].upper() + year
+    DB_name = authors.split(" ")[0].strip().split("-")[0]
+    # Replace letters that do not decompose into base letter + accent
+    special_chars = {
+        "ø": "o", "Ø": "O", "ß": "ss", "ẞ": "SS", "æ": "ae", "Æ": "AE",
+        "œ": "oe", "Œ": "OE", "ł": "l", "Ł": "L", "đ": "d", "Đ": "D",
+        "ð": "d", "Ð": "D", "þ": "th", "Þ": "TH", "ı": "i", "ħ": "h", "Ħ": "H",
+    }  # fmt: skip
+    DB_name = DB_name.translate(str.maketrans(special_chars))
+    # Remove accents (e.g.: 'É' -> 'E')
+    DB_name = "".join(
+        c for c in unicodedata.normalize("NFKD", DB_name) if not unicodedata.combining(c)
+    )
+    # Drop any remaining non-ASCII character
+    DB_name = DB_name.encode("ascii", "ignore").decode()
+    DB_name = DB_name.upper() + year
 
     DBs_in_JSON = list(current_JSON.keys())
 
