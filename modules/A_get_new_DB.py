@@ -1,6 +1,7 @@
 import csv
 import datetime
 import json
+import random
 import re
 import sys
 import unicodedata
@@ -27,6 +28,7 @@ from .variables import (
     err_suffix,
     fmt_name_hints,
     fmt_ranges,
+    fmt_to_UCC,
     meta_col_re,
     name_DBs_json,
     pars_formats,
@@ -49,7 +51,6 @@ def main():
 
     # Check if any citation counts are older than 6 months and offer to update them
     update_citation_count(
-        temp_JSON_file,
         date_now,
         current_year,
         six_months_ago,
@@ -155,7 +156,6 @@ def load_data():
 
 
 def update_citation_count(
-    temp_JSON_file,
     date_now,
     current_year,
     six_months_ago,
@@ -169,26 +169,51 @@ def update_citation_count(
     outdated_keys = {}
     for key, vals in citations_date.items():
         date_str, scix_url = vals
+        # Remove trailing '/'
+        scix_url = scix_url.rstrip("/")
         date = datetime.datetime.strptime(date_str, "%Y-%m-%d")
         if date < six_months_ago:
             outdated_keys[key] = scix_url.split("/")[-1]
-    if outdated_keys:
+    # Only ask about half of the times to avoid prompting on every run
+    if outdated_keys and random.random() < 0.5:
         print(
             "The following databases have 'citations_count' data older "
             f"than 6 months:\n  {', '.join(outdated_keys)}"
         )
         if input("Update these data before moving on? (y/n): ").lower() == "y":
+            N_updt, failed = 0, {}
             for key, ADS_bibcode in outdated_keys.items():
-                _, year, _, citations = get_ADS_data(ADS_bibcode)
+                try:
+                    _, year, _, citations = get_ADS_data(ADS_bibcode)
+                except (ValueError, requests.RequestException) as e:
+                    failed[key] = str(e)
+                    continue
                 citations_year = get_citations_year(current_year, year, citations)
-                current_JSON["citations_count"] = {
+                current_JSON[key]["citations_count"] = {
                     "date": date_now,
                     "count": citations,
                     "citations_year": citations_year,
                 }
+                N_updt += 1
+
+            if failed:
+                print("\nCould not update 'citations_count' for:")
+                for key, err in failed.items():
+                    print(f"  {key}: {err}")
+                print(
+                    "  (arXiv bibcodes may have been replaced by the published "
+                    "one, check their 'SCIX_url')"
+                )
+            if N_updt == 0:
+                print("No 'citations_count' updated, moving on")
+                return
+
             with open(name_DBs_json, "w") as f:
-                json.dump(temp_JSON_file, f, indent=2)
-            print("Updated 'citations_count'. Check the JSON file before moving on.")
+                json.dump(current_JSON, f, indent=2)
+            print(
+                f"\nUpdated 'citations_count' for {N_updt} DBs. "
+                "Check the JSON file before moving on."
+            )
             sys.exit(1)
 
 
@@ -219,6 +244,13 @@ def check_pars_format(current_JSON):
         raise ValueError(
             "Mismatch between 'pars_formats' keys and 'JSON_struct[pars]' keys."
             "Check the 'variables.py' file."
+        )
+    # Every format must have a converter to the UCC units (used by B)
+    no_conv = [f for v in pars_formats.values() for f in v if f not in fmt_to_UCC]
+    if no_conv:
+        raise ValueError(
+            f"Formats in 'pars_formats' without a converter in 'fmt_to_UCC': "
+            f"{no_conv}. Check the 'variables.py' file."
         )
 
     # Print info to screen
