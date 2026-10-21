@@ -3,6 +3,243 @@ import csv
 import numpy as np
 import pandas as pd
 
+
+# df1 = pd.read_csv("/home/gabriel/Github/UCC/updt_UCC/data/databases/SOLIN2014.csv")
+df2 = pd.read_csv("/home/gabriel/Descargas/SOLIN2014_2.csv")
+
+# # Combine column "T" and "Seq" in df1 using a '_'
+# df1["T_Seq"] = df1["T"].astype(str) + "_" + df1["Seq"].astype(str)
+
+# # Add to df2 the "Name" values from df1, matching the "T_Seq" columns
+# df2 = df2.merge(df1[["T_Seq", "Name"]], on="T_Seq", how="left")
+# # Rename df['Name'] to 'Cluster'
+# df2.rename(columns={"Name": "Cluster"}, inplace=True)
+
+# Drop "T_Seq" column, 
+df2 = df2.drop(columns=["T_Seq"])
+# move 'Cluster' column to beginning
+cols = df2.columns.tolist()
+cols = ["Cluster"] + [col for col in cols if col != "Cluster"]
+df2 = df2[cols]
+
+
+# cluster_df = pd.DataFrame(cmmts)
+df2.to_csv(
+    "/home/gabriel/Descargas/SOLIN2014_2.csv", index=False, quoting=csv.QUOTE_ALL
+)
+breakpoint()
+
+
+df = pd.read_csv("../data/databases/MAJAESS2013.csv")
+
+cmmts = {"Cluster": [], "Comment": []}
+for i, row in df.iterrows():
+    txt = "Heavily-obscured (sub)cluster host of candidate YSOs"
+    cmmts["Cluster"].append(row["Name"])
+    cmmts["Comment"].append(txt)
+
+cluster_df = pd.DataFrame(cmmts)
+cluster_df.to_csv(
+    "../data/databases/cmmts/MAJAESS2013.csv", index=False, quoting=csv.QUOTE_ALL
+)
+breakpoint()
+
+
+df = pd.read_csv("../data/databases/KRONE2010.csv")
+
+cmmts = {"Cluster": [], "Comment": []}
+for i, row in df.iterrows():
+    txt = f"Solution quality: {row['Qual'].lower()}"
+    cmmts["Cluster"].append(row["Cluster"])
+    cmmts["Comment"].append(txt)
+
+cluster_df = pd.DataFrame(cmmts)
+cluster_df.to_csv(
+    "../data/databases/cmmts/KRONE2010.csv", index=False, quoting=csv.QUOTE_ALL
+)
+breakpoint()
+
+
+df1 = pd.read_csv("/home/gabriel/Descargas/FROEBRICH2010.csv")
+df2 = pd.read_csv("/home/gabriel/Descargas/FROEBRICH2010_2.csv")
+
+
+def stitch(df):
+    df = df.dropna(subset=["Name"]).copy()
+    df["Name"] = df["Name"].astype(str).str.strip()
+    df["Note"] = df["Note"].fillna("").astype(str).str.strip()
+    return (
+        df.groupby("Name", sort=False)["Note"]
+        .agg(lambda s: " ".join(x for x in s if x))
+        .reset_index()
+    )
+
+
+merged = stitch(pd.concat([stitch(df1), stitch(df2)], ignore_index=True))
+
+df = pd.DataFrame(
+    {
+        "Cluster": merged["Name"],
+        "Comment": merged["Note"],
+    }
+)
+
+df.to_csv(
+    "../data/databases/cmmts/FROEBRICH2010.csv", index=False, quoting=csv.QUOTE_ALL
+)
+breakpoint()
+
+
+df = pd.read_csv("../data/databases/RYU2018.csv")
+
+f_Age = {
+    "a": "determined to be 0.8±0.2 Gyr.",
+    "b": "determined to be 2.0 (+0.5,-0.4) Gyr.",
+}
+emb = {"o": "an embedded cluster", "x": "a non-embedded cluster"}
+# Class of new cluster
+q_Seq = {"A": "best", "B": "good", "C": "poor"}
+
+
+cmmts = {"Cluster": [], "Comment": []}
+for i, row in df.iterrows():
+    txt = f"Classified as {emb[row['Emb']]} of {q_Seq[row['q_Seq']]} quality"
+    if str(row["Age"]) != "nan":
+        txt += f" and {row['Age'].lower()} age"
+    if str(row["f_Age"]) != "nan":
+        txt += f" ({f_Age[row['f_Age']]})"
+
+    cmmts["Cluster"].append(row["Name"])
+    cmmts["Comment"].append(txt)
+
+cluster_df = pd.DataFrame(cmmts)
+cluster_df.to_csv(
+    "../data/databases/cmmts/RYU2018.csv", index=False, quoting=csv.QUOTE_ALL
+)
+breakpoint()
+
+
+df = pd.read_csv("../data/databases/FROEBRICH2017.csv")
+
+types = {
+    "N": "Classified as new cluster",
+    "CC": "Classified as confirmed cluster candidate",
+    "NC": "Classified as new cluster candidate",
+    "UC": "Unconfirmed cluster candidate",
+    "UO": "Unclassified candidate object",
+}
+
+
+cmmts = {"Cluster": [], "Comment": []}
+for i, row in df.iterrows():
+    txt = f"{types[row['Sample']]}"
+    # "HII","Maser","Neb"
+    txt2 = []
+    if str(row["HII"]) == "Y":
+        txt2.append("HII")
+    if str(row["Maser"]) == "Y":
+        txt2.append("maser")
+    if str(row["Neb"]) == "Y":
+        txt2.append("nebula")
+    if txt2:
+        plural = "s" if len(txt2) > 1 else ""
+        txt += "; associated with known " + ", ".join(txt2) + " region" + plural
+    cmmts["Cluster"].append(row["Name"])
+    cmmts["Comment"].append(txt)
+
+cluster_df = pd.DataFrame(cmmts)
+cluster_df.to_csv(
+    "../data/databases/cmmts/FROEBRICH2017.csv", index=False, quoting=csv.QUOTE_ALL
+)
+breakpoint()
+
+
+df = pd.read_csv("../data/databases/FROEBRICH2017.csv")
+
+types = {
+    "N": "Classified as new cluster",
+    "CC": "Classified as confirmed cluster candidate",
+    "NC": "Classified as new cluster candidate",
+    "UC": "Unconfirmed cluster candidate",
+    "UO": "Unclassified candidate object",
+}
+
+
+cmmts = {"Cluster": [], "Comment": []}
+for i, row in df.iterrows():
+    txt = f"{types[row['Sample']]}"
+    # "HII","Maser","Neb"
+    txt2 = []
+    if str(row["HII"]) == "Y":
+        txt2.append("HII")
+    if str(row["Maser"]) == "Y":
+        txt2.append("maser")
+    if str(row["Neb"]) == "Y":
+        txt2.append("nebula")
+    if txt2:
+        plural = "s" if len(txt2) > 1 else ""
+        txt += "; associated with known " + ", ".join(txt2) + " region" + plural
+    cmmts["Cluster"].append(row["Name"])
+    cmmts["Comment"].append(txt)
+
+cluster_df = pd.DataFrame(cmmts)
+cluster_df.to_csv(
+    "../data/databases/cmmts/FROEBRICH2017.csv", index=False, quoting=csv.QUOTE_ALL
+)
+breakpoint()
+
+
+df = pd.read_csv("../temp_updt/data/databases/CAMARGO2016.csv")
+
+types = {
+    "OC": "Open cluster",
+    "OCC": "Open cluster candidate",
+    "EC": " Embedded cluster",
+    "ECC": "Embedded cluster candidate",
+}
+
+
+cmmts = {"Cluster": [], "Comment": []}
+for i, row in df.iterrows():
+    txt = f"{types[row['Type']]}"
+    if str(row["Com"]) != "nan":
+        txt += f"; {row['Com']}"
+    cmmts["Cluster"].append(row["Name"])
+    cmmts["Comment"].append(txt)
+
+cluster_df = pd.DataFrame(cmmts)
+cluster_df.to_csv(
+    "../data/databases/cmmts/CAMARGO2016.csv", index=False, quoting=csv.QUOTE_ALL
+)
+breakpoint()
+
+
+df = pd.read_csv("../temp_updt/data/databases/CAMARGO2015.csv")
+
+types = {
+    "OC": "Open cluster",
+    "OCC": "Open cluster candidate",
+    "EC": " Embedded cluster",
+    "ECC": "Embedded cluster candidate",
+}
+
+aved_txt = "Cross-identified with Avedisova (2002ARep...46..193A, Cat. V/112) SFRs or candidates within 5' of the central coordinates."
+
+cmmts = {"Cluster": [], "Comment": []}
+for i, row in df.iterrows():
+    txt = f"{types[row['Type']]}"
+    if str(row["Com"]) != "nan":
+        txt += f"; {row['Com']}"
+    cmmts["Cluster"].append(row["Name"])
+    cmmts["Comment"].append(txt)
+
+cluster_df = pd.DataFrame(cmmts)
+cluster_df.to_csv(
+    "../data/databases/cmmts/CAMARGO2015.csv", index=False, quoting=csv.QUOTE_ALL
+)
+breakpoint()
+
+
 df = pd.read_csv("/home/gabriel/Github/UCC/updt_UCC/temp_updt/todo/BICA2019_1.csv")
 
 # cmmt_dict = {
@@ -64,8 +301,8 @@ df["Name"] = df["Name"].str.strip()
 cmmts = {"Cluster": [], "Comment": []}
 for i, row in df.iterrows():
     txt = ""
-    c1 = row['Class1']
-    c2 = row['Class2']
+    c1 = row["Class1"]
+    c2 = row["Class2"]
     txt = ""
     if str(c2) != "nan":
         txt += f"Classified as {class_dict[c1]} and {class_dict[c2]}."
@@ -82,7 +319,7 @@ for i, row in df.iterrows():
                         txt += refs_csv[ref][0] + ", "
                     else:
                         txt += refs_csv[ref][1] + ", "
-            txt = txt[:-2] +  "."
+            txt = txt[:-2] + "."
         else:
             txt += " Reference: "
             if refs[0] in refs_csv:
@@ -90,8 +327,6 @@ for i, row in df.iterrows():
                     txt += refs_csv[refs[0]][0] + "."
                 else:
                     txt += refs_csv[refs[0]][1] + "."
-
-
 
     if txt != "":
         cmmts["Cluster"].append(row["Name"])

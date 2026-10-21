@@ -7,12 +7,175 @@ import numpy as np
 import pandas as pd
 from astropy.coordinates import SkyCoord
 
-df = pd.read_csv("../temp_updt/data/databases/CAMARGO2015.csv")
 
-# # Remove 'type'=="EGr" entries
-# df = df[df["Type"] != "OCC"]
-# df = df[df["Type"] != "ECC"]
-# df = df[df["Type"] != "EGr"]
+
+df = pd.read_csv("../temp_updt/data/databases/SOLIN2012.csv")
+
+# Convert GLON,GLAT columns to RA,DEC using astropy
+coords = SkyCoord(
+    l=df["GLON"].values * u.deg, b=df["GLAT"].values * u.deg, frame="galactic"
+).icrs
+df["RA_ICRS"] = coords.ra.deg.round(5)
+df["DE_ICRS"] = coords.dec.deg.round(5)
+
+# Drop "RAJ2000","DEJ2000" columns
+df = df.drop(columns=["RAJ2000", "DEJ2000"])
+
+df.to_csv(
+    "../temp_updt/data/databases/SOLIN2012_2.csv",
+    na_rep="nan",
+    index=False,
+    quoting=csv.QUOTE_NONNUMERIC,
+)
+
+breakpoint()
+
+
+
+df = pd.read_csv("../temp_updt/data/databases/KRONE2010.csv")
+
+# Convert GLON,GLAT columns to RA,DEC using astropy
+coords = SkyCoord(
+    l=df["GLON"].values * u.deg, b=df["GLAT"].values * u.deg, frame="galactic"
+).icrs
+df["RA_ICRS"] = coords.ra.deg.round(5)
+df["DE_ICRS"] = coords.dec.deg.round(5)
+
+# Drop "RAJ2000","DEJ2000" columns
+df = df.drop(columns=["RAJ2000", "DEJ2000"])
+
+df.to_csv(
+    "../temp_updt/data/databases/KRONE2010_2.csv",
+    na_rep="nan",
+    index=False,
+    quoting=csv.QUOTE_NONNUMERIC,
+)
+
+breakpoint()
+
+
+
+
+df = pd.read_csv("../temp_updt/data/databases/FROEBRICH2010.csv")
+
+# Combine columns 'Names' and 'ONames' using a ','
+df["Names"] = df.apply(
+    lambda row: (
+        f"{row['Names']}, {row['ONames']}" if pd.notna(row["ONames"]) else row["Names"]
+    ),
+    axis=1,
+)
+
+df.to_csv(
+    "../temp_updt/data/databases/FROEBRICH2010_2.csv",
+    na_rep="nan",
+    index=False,
+    quoting=csv.QUOTE_NONNUMERIC,
+)
+
+breakpoint()
+
+
+df = pd.read_csv("../temp_updt/data/databases/BARBA2015.csv")
+
+
+# Drop "RAJ2000","DEJ2000" columns
+df = df.drop(columns=["Class1", "Class2"])
+
+df.to_csv(
+    "../temp_updt/data/databases/BARBA2015.csv",
+    na_rep="nan",
+    index=False,
+    quoting=csv.QUOTE_NONNUMERIC,
+)
+
+
+breakpoint()
+
+
+# df1 = pd.read_csv("../temp_updt/data/databases/RYU2018.csv")
+# df2 = pd.read_csv("../temp_updt/data/databases/RYU2018_1.csv")
+df = pd.read_csv("../temp_updt/data/databases/RYU2018_3.csv")
+
+# # Add columns with nan values
+# for col in ("E(B-V)","E_E(B-V)","e_E(B-V)","Dist","E_Dist","e_Dist","Age","f_Age"):
+#     df1[col] = np.nan
+
+# Drop "RAJ2000","DEJ2000" columns
+df = df.drop(columns=["RAJ2000", "DEJ2000"])
+
+# # Extract from the columns ("E(B-V)","E_E(B-V)","e_E(B-V)","Dist","E_Dist","e_Dist","Age","f_Age")
+# # in df2 the values for each row and add them to df1 matching the "Seq" column
+# cols = ["E(B-V)", "E_E(B-V)", "e_E(B-V)", "Dist", "E_Dist", "e_Dist", "Age", "f_Age"]
+
+# df1 = df1.merge(
+#     df2[["Seq", *cols]],
+#     on="Seq",
+#     how="left",
+#     validate="many_to_one",
+#     suffixes=("", "_df2"),
+# )
+
+
+df.to_csv(
+    "../temp_updt/data/databases/RYU2018_3.csv",
+    na_rep="nan",
+    index=False,
+    quoting=csv.QUOTE_NONNUMERIC,
+)
+
+
+breakpoint()
+
+
+df = pd.read_csv("../temp_updt/data/databases/FROEBRICH2017_2.csv")
+
+# # Convert GLON,GLAT columns to RA,DEC using astropy
+# coords = SkyCoord(
+#     l=df["GLON"].values * u.deg, b=df["GLAT"].values * u.deg, frame="galactic"
+# ).icrs
+# df["RA_ICRS"] = coords.ra.deg.round(5)
+# df["DE_ICRS"] = coords.dec.deg.round(5)
+
+# Drop "RAJ2000","DEJ2000" columns
+df = df.drop(columns=["RAJ2000", "DEJ2000"])
+# df = df.drop(columns=["Com","Code"])
+
+df.to_csv(
+    "../temp_updt/data/databases/FROEBRICH2017_2.csv",
+    na_rep="nan",
+    index=False,
+    quoting=csv.QUOTE_NONNUMERIC,
+)
+
+
+breakpoint()
+
+
+df = pd.read_csv("BICA2019_orig.csv")
+
+# # Convert GLON,GLAT columns to RA,DEC using astropy
+# coords = SkyCoord(
+#     l=df["GLON"].values * u.deg, b=df["GLAT"].values * u.deg, frame="galactic"
+# ).icrs
+# df["RA_ICRS"] = coords.ra.deg.round(5)
+# df["DE_ICRS"] = coords.dec.deg.round(5)
+
+# # Drop "RAJ2000","DEJ2000" columns
+# df = df.drop(columns=["RAJ2000", "DEJ2000"])
+df = df.drop(columns=["Com", "Code"])
+
+df.to_csv(
+    "BICA2019_orig.csv",
+    na_rep="nan",
+    index=False,
+    quoting=csv.QUOTE_NONNUMERIC,
+)
+
+
+breakpoint()
+
+df = pd.read_csv("../temp_updt/data/databases/CAMARGO2016_2.csv")
 
 # # Convert GLON,GLAT columns to RA,DEC using astropy
 # coords = SkyCoord(
@@ -21,12 +184,139 @@ df = pd.read_csv("../temp_updt/data/databases/CAMARGO2015.csv")
 # df["RA"] = coords.ra.deg.round(5)
 # df["DEC"] = coords.dec.deg.round(5)
 
-# Add columns with nan values
-for col in ("Av", "e_Av", "Age_Myr", "e_Age_Myr", "d_kpc", "e_d_kpc"):
-    df[col] = np.nan
+# # Add columns with nan values
+# for col in ("E_JH", "e_E_JH", "Age_Myr", "e_Age_Myr", "d_kpc", "e_d_kpc"):
+#     df[col] = np.nan
+
+
+# Cluster,E_JH,e_E_JH,Age_Myr,e_Age_Myr,d_kpc,e_d_kpc
+# Camargo 716,0.50,0.03,2,1,3.1,0.4
+# Camargo 741,0.44,0.03,2,1,2.8,0.4
+# Camargo 758,0.32,0.01,1,0.5,5.1,0.7
+# Camargo 789,0.27,0.02,3,1,3.1,0.3
+# Camargo 793,0.26,0.03,4,1.5,3.0,0.4
+# Camargo 853,0.39,0.03,2,1,3.2,0.5
+# Camargo 943,0.22,0.03,3,2,2.9,0.5
+# Camargo 978,0.20,0.03,3,1,3.7,0.5
+# Camargo 1043,0.15,0.02,4,2,6.0,0.8
 
 pars_dict = {
-    "Camargo 14": {
+    "Camargo 716, Cmg 716": {
+        "E_JH": 0.50,
+        "e_E_JH": 0.03,
+        "Age_Myr": 2,
+        "e_Age_Myr": 1,
+        "d_kpc": 3.1,
+        "e_d_kpc": 0.4,
+    },
+    "Camargo 741, Cmg 741": {
+        "E_JH": 0.44,
+        "e_E_JH": 0.03,
+        "Age_Myr": 2,
+        "e_Age_Myr": 1,
+        "d_kpc": 2.8,
+        "e_d_kpc": 0.4,
+    },
+    "Camargo 758, Cmg 758": {
+        "E_JH": 0.32,
+        "e_E_JH": 0.01,
+        "Age_Myr": 1,
+        "e_Age_Myr": 0.5,
+        "d_kpc": 5.1,
+        "e_d_kpc": 0.7,
+    },
+    "Camargo 789, Cmg 789": {
+        "E_JH": 0.27,
+        "e_E_JH": 0.02,
+        "Age_Myr": 3,
+        "e_Age_Myr": 1,
+        "d_kpc": 3.1,
+        "e_d_kpc": 0.3,
+    },
+    "Camargo 793, Cmg 793": {
+        "E_JH": 0.26,
+        "e_E_JH": 0.03,
+        "Age_Myr": 4,
+        "e_Age_Myr": 1.5,
+        "d_kpc": 3.0,
+        "e_d_kpc": 0.4,
+    },
+    "Camargo 853, Cmg 853": {
+        "E_JH": 0.39,
+        "e_E_JH": 0.03,
+        "Age_Myr": 2,
+        "e_Age_Myr": 1,
+        "d_kpc": 3.2,
+        "e_d_kpc": 0.5,
+    },
+    "Camargo 943, Cmg 943": {
+        "E_JH": 0.22,
+        "e_E_JH": 0.03,
+        "Age_Myr": 3,
+        "e_Age_Myr": 2,
+        "d_kpc": 2.9,
+        "e_d_kpc": 0.4,
+    },
+    "Camargo 978, Cmg 978": {
+        "E_JH": 0.20,
+        "e_E_JH": 0.03,
+        "Age_Myr": 3,
+        "e_Age_Myr": 1,
+        "d_kpc": 3.7,
+        "e_d_kpc": 0.5,
+    },
+    "Camargo 1043, Cmg 1043": {
+        "E_JH": 0.15,
+        "e_E_JH": 0.02,
+        "Age_Myr": 4,
+        "e_Age_Myr": 2,
+        "d_kpc": 6.0,
+        "e_d_kpc": 0.8,
+    },
+}
+
+# Find some clusters by name and replace column values
+for cl in (
+    "716",
+    "741",
+    "758",
+    "789",
+    "793",
+    "853",
+    "943",
+    "978",
+    "1043",
+):
+    cluster_name = "Camargo " + cl + ", Cmg " + cl
+    for col in ("E_JH", "e_E_JH", "Age_Myr", "e_Age_Myr", "d_kpc", "e_d_kpc"):
+        df.loc[df["Name"] == cluster_name, col] = pars_dict[cluster_name][col]
+
+
+df.to_csv(
+    "../temp_updt/data/databases/CAMARGO2016_2.csv",
+    na_rep="nan",
+    index=False,
+    quoting=csv.QUOTE_NONNUMERIC,
+)
+
+breakpoint()
+
+
+df = pd.read_csv("../temp_updt/data/databases/CAMARGO2015_2.csv")
+
+# # Convert GLON,GLAT columns to RA,DEC using astropy
+# coords = SkyCoord(
+#     l=df["GLON"].values * u.deg, b=df["GLAT"].values * u.deg, frame="galactic"
+# ).icrs
+# df["RA"] = coords.ra.deg.round(5)
+# df["DEC"] = coords.dec.deg.round(5)
+
+# # Add columns with nan values
+# for col in ("Av", "e_Av", "Age_Myr", "e_Age_Myr", "d_kpc", "e_d_kpc"):
+#     df[col] = np.nan
+
+pars_dict = {
+    "Camargo 14, Cmg 14": {
         "Av": 3.57,
         "e_Av": 0.2,
         "Age_Myr": 3,
@@ -34,7 +324,7 @@ pars_dict = {
         "d_kpc": 2.8,
         "e_d_kpc": 0.26,
     },
-    "Camargo 18": {
+    "Camargo 18, Cmg 18": {
         "Av": 2.28,
         "e_Av": 0.2,
         "Age_Myr": 2,
@@ -42,7 +332,7 @@ pars_dict = {
         "d_kpc": 5.66,
         "e_d_kpc": 0.54,
     },
-    "Camargo 74": {
+    "Camargo 74, Cmg 74": {
         "Av": 4.27,
         "e_Av": 0.2,
         "Age_Myr": 3,
@@ -50,7 +340,7 @@ pars_dict = {
         "d_kpc": 3.83,
         "e_d_kpc": 0.27,
     },
-    "Camargo 133": {
+    "Camargo 133, Cmg 133": {
         "Av": 2.28,
         "e_Av": 0.2,
         "Age_Myr": 10,
@@ -58,7 +348,7 @@ pars_dict = {
         "d_kpc": 3.26,
         "e_d_kpc": 0.3,
     },
-    "Camargo 149": {
+    "Camargo 149, Cmg 149": {
         "Av": 1.49,
         "e_Av": 0.2,
         "Age_Myr": 2,
@@ -66,7 +356,7 @@ pars_dict = {
         "d_kpc": 9.1,
         "e_d_kpc": 2,
     },
-    "Camargo 209": {
+    "Camargo 209, Cmg 209": {
         "Av": 4.46,
         "e_Av": 0.2,
         "Age_Myr": 2,
@@ -74,7 +364,7 @@ pars_dict = {
         "d_kpc": 4.1,
         "e_d_kpc": 0.5,
     },
-    "Camargo 245": {
+    "Camargo 245, Cmg 245": {
         "Av": 3.67,
         "e_Av": 0.2,
         "Age_Myr": 1,
@@ -82,7 +372,7 @@ pars_dict = {
         "d_kpc": 3.94,
         "e_d_kpc": 0.4,
     },
-    "Camargo 260": {
+    "Camargo 260, Cmg 260": {
         "Av": 2.28,
         "e_Av": 0.2,
         "Age_Myr": 2,
@@ -90,7 +380,7 @@ pars_dict = {
         "d_kpc": 4.5,
         "e_d_kpc": 0.43,
     },
-    "Camargo 292": {
+    "Camargo 292, Cmg 292": {
         "Av": 3.47,
         "e_Av": 0.2,
         "Age_Myr": 1,
@@ -98,7 +388,7 @@ pars_dict = {
         "d_kpc": 3.86,
         "e_d_kpc": 0.37,
     },
-    "Camargo 353": {
+    "Camargo 353, Cmg 353": {
         "Av": 3.47,
         "e_Av": 0.2,
         "Age_Myr": 1,
@@ -106,7 +396,7 @@ pars_dict = {
         "d_kpc": 4.23,
         "e_d_kpc": 0.4,
     },
-    "Camargo 394": {
+    "Camargo 394, Cmg 394": {
         "Av": 1.98,
         "e_Av": 0.2,
         "Age_Myr": 1,
@@ -114,7 +404,7 @@ pars_dict = {
         "d_kpc": 5.12,
         "e_d_kpc": 0.5,
     },
-    "Camargo 399": {
+    "Camargo 399, Cmg 399": {
         "Av": 5.46,
         "e_Av": 0.2,
         "Age_Myr": 1,
@@ -139,13 +429,13 @@ for cl in (
     "394",
     "399",
 ):
-    cluster_name = "Camargo " + cl
+    cluster_name = "Camargo " + cl + ", Cmg " + cl
     for col in ("Av", "e_Av", "Age_Myr", "e_Age_Myr", "d_kpc", "e_d_kpc"):
         df.loc[df["Name"] == cluster_name, col] = pars_dict[cluster_name][col]
 
 
 df.to_csv(
-    "../temp_updt/data/databases/CAMARGO2015.csv",
+    "../temp_updt/data/databases/CAMARGO2015_2.csv",
     na_rep="nan",
     index=False,
     quoting=csv.QUOTE_NONNUMERIC,
