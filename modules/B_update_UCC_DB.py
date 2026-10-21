@@ -1,3 +1,4 @@
+import csv
 import json
 import os
 import re
@@ -27,16 +28,9 @@ from .variables import (
     UCC_cmmts_folder,
     all_OC_names,
     archive_folder_path,
-    c_Ag,
-    c_Ak,
-    c_Ebprp,
-    c_Ebv,
-    c_Egrp,
-    c_Ejh,
-    c_Evi,
-    c_z_sun,
     data_folder,
     dbs_folder,
+    fmt_to_UCC,
     fpars_order,
     name_DBs_json,
     naming_order,
@@ -430,7 +424,11 @@ def handle_all_names(sep=";") -> tuple[pd.DataFrame, dict]:
                 .reset_index(drop=True)
             )
             print("Sorted all_names by the first fname.\n\nMANUALLY UPDATE THE FILE")
-            all_names.to_csv(temp_folder + all_OC_names, index=False)
+            all_names.to_csv(
+                temp_folder + all_OC_names,
+                index=False,
+                quoting=csv.QUOTE_NONNUMERIC,
+            )
         sys.exit(1)
     all_names = all_names.drop(columns="fname0")
 
@@ -470,10 +468,27 @@ def handle_all_names(sep=";") -> tuple[pd.DataFrame, dict]:
             print(f"{sorted(idxs)} --> '{name}'")
         sys.exit(1)
 
-    # Check that all fnames are equivalent to the normalized names
+    # Sanity check: all fnames are equivalent to the normalized names
     all_fnames_norm = get_fnames(all_names_list, sep=sep)
-    if (all_fnames_list == all_fnames_norm) is False:
+    if all_fnames_list != all_fnames_norm:
+        n_max = 10
+        diffs = [
+            i for i, (a, b) in enumerate(zip(all_fnames_list, all_fnames_norm)) if a != b
+        ]
+        len_a, len_b = len(all_fnames_list), len(all_fnames_norm)
+        if len_a != len_b:
+            print(f"Length mismatch: {len_a} vs {len_b}")
+            # Indexes present in only one of the lists
+            diffs += list(range(min(len_a, len_b), max(len_a, len_b)))
+
+        for i in diffs[:n_max]:
+            a = all_fnames_list[i] if i < len_a else None
+            b = all_fnames_norm[i] if i < len_b else None
+            print(f"[{i}] {a} != {b}")
+        if len(diffs) > n_max:
+            print(f"... and {len(diffs) - n_max} more")
         raise ValueError("Mismatch between all_fnames_list and new_DB_fnames")
+
 
     return all_names, all_names_dict
 
@@ -1384,7 +1399,8 @@ def check_matched_entries(
 
             # Store information on the OCs that require attention
             if d_arcmin > rad_dup:
-                ocs_attention.append([i, new_DB_fnames[i][0], d_arcmin])
+                names = f"{new_DB_fnames[i][1]} ({new_DB_fnames[i][0]})"
+                ocs_attention.append([i, names, d_arcmin])
 
     attention_flag = False
     if len(ocs_attention) > 0:
@@ -1392,12 +1408,12 @@ def check_matched_entries(
         print(
             f"\nEntries with coords far from those in the UCC (N={len(ocs_attention)})"
         )
-        print(f"{'DB_idx':<6} {'name':<20} {'d [arcmin]':<5}")
+        print(f"{'DB_idx':<6} {'name':<30} {'d [arcmin]':<5}")
         N_max = 50
         # Order by distance
         ocs_attention = sorted(ocs_attention, key=lambda x: x[2], reverse=True)
         for i, fname, d_arcmin in ocs_attention[:N_max]:
-            print(f"{i:<6} {fname:<20} {d_arcmin:<5.0f}")
+            print(f"{i:<6} {fname:<30} {d_arcmin:<5.0f}")
         if len(ocs_attention) > N_max:
             print(f"... (only first {N_max} entries shown)")
 
@@ -1497,32 +1513,7 @@ def transf_par(par_format, par_v, flag_mult):
                 out.append(f"{expr(float(x))}{f}")
         return out
 
-    fmt_map = {
-        "loga": lambda x: f"{10**x / 1e6:.0f}",
-        "amyr": lambda x: f"{x:.0f}",
-        "agyr": lambda x: f"{1000 * x:.0f}",
-        "feh": lambda x: f"{x:.3f}",
-        "z": lambda x: f"{np.log10(x / c_z_sun):.3f}",
-        "mass": lambda x: f"{x:.0f}",
-        "logm": lambda x: f"{10**x:.0f}",
-        "bf": lambda x: f"{x:.2f}",
-        "bs_f": lambda x: f"{x:.2f}",
-        "bs_n": lambda x: f"{x:.0f}",
-        "av": lambda x: f"{x:.2f}",
-        "ag": lambda x: f"{c_Ag * x:.2f}",
-        "ak": lambda x: f"{c_Ak * x:.2f}",
-        "ebv": lambda x: f"{c_Ebv * x:.2f}",
-        "evi": lambda x: f"{c_Evi * x:.2f}",
-        "ejh": lambda x: f"{c_Ejh * x:.2f}",
-        "ebprp": lambda x: f"{c_Ebprp * x:.2f}",
-        "egrp": lambda x: f"{c_Egrp * x:.2f}",
-        "dav": lambda x: f"{x:.2f}",
-        "dkpc": lambda x: f"{x:.2f}",
-        "dpc": lambda x: f"{x / 1000:.2f}",
-        "dm": lambda x: f"{10 ** (0.2 * (x + 5)) / 1000:.2f}",
-    }
-
-    return apply(fmt_map[par_format])
+    return apply(fmt_to_UCC[par_format])
 
 
 def combine_UCC_new_DB(
