@@ -143,87 +143,6 @@ def get_frame_limits(
     return box_s_eq, plx_min
 
 
-def set_centers(
-    my_field,
-    ra_c: float,
-    de_c: float,
-    pmra_c_in: float,
-    pmde_c_in: float,
-    plx_c_in: float,
-    max_dist_arcmin: int = 1,
-) -> asteca.Cluster:
-    """
-    Estimate the cluster's center coordinates
-
-    Parameters
-    ----------
-    my_field : asteca.Cluster
-        Cluster object
-    radec_c : tuple
-        Center coordinates (RA, Dec) for fastMP.
-    pms_c : tuple
-        Center proper motion (pmRA, pmDE) for fastMP.
-    plx_c : float
-        Center parallax for fastMP.
-    """
-    radec_c = (ra_c, de_c)
-
-    pms_c, plx_c = None, None
-    if not np.isnan(pmra_c_in):
-        pms_c = (pmra_c_in, pmde_c_in)
-    if not np.isnan(plx_c_in):
-        plx_c = plx_c_in
-
-    my_field.get_center(radec_c=radec_c, pms_c=pms_c, plx_c=plx_c)
-
-    # If no PMs and plx are given initially or the 'max_dist_arcmin' is exceeded,
-    # use the initial (ra, dec) values to avoid wandering off the actual cluster
-    d_arcmin = np.linalg.norm(np.array(my_field.radec_c) - np.array(radec_c)) * 60
-    if (np.isnan(pmra_c_in) and np.isnan(plx_c_in)) or (d_arcmin > max_dist_arcmin):
-        my_field.radec_c = radec_c
-
-    # If PMs or plx are given initially, re-write using initial values
-    if not np.isnan(pmra_c_in):
-        my_field.pms_c = (pmra_c_in, pmde_c_in)
-    if not np.isnan(plx_c_in):
-        my_field.plx_c = plx_c_in
-
-    return my_field
-
-
-def get_Nmembs(
-    N_clust: float,
-    N_clust_max: float,
-    my_field: asteca.Cluster,
-) -> None:
-    """
-    Estimate the number of cluster members
-
-    Parameters
-    ----------
-    N_clust: float
-        Manual value for the fixed number of members
-    N_clust_max: float
-        Manual value for the maximum number of members
-    my_field : asteca.Cluster
-        ASteCA Cluster object
-    """
-    # If 'N_clust' was given, use it
-    if not np.isnan(N_clust):
-        my_field.N_cluster = int(N_clust)
-        print(f"  Using manual N_cluster={int(N_clust)}")
-        return
-
-    # If 'N_clust_max' was given use it to cap the maximum number of members
-    if not np.isnan(N_clust_max):
-        my_field.N_clust_max = int(N_clust_max)
-        print(f"  Using manual N_clust_max={int(N_clust_max)}")
-
-    # Use default ASteCA method
-    my_field.get_nmembers()
-    print(f"  Using N_clust={int(my_field.N_cluster)}")
-
-
 def get_fastMP_membs(
     df_GCs: pd.DataFrame,
     df_UCC_m: pd.DataFrame,
@@ -306,6 +225,88 @@ def get_fastMP_membs(
     )
 
     return df_field, df_membs
+
+
+def set_centers(
+    my_field,
+    ra_c: float,
+    de_c: float,
+    pmra_c_in: float,
+    pmde_c_in: float,
+    plx_c_in: float,
+    max_dist_arcmin: int = 1,
+) -> asteca.Cluster:
+    """
+    Estimate the cluster's center coordinates
+
+    Parameters
+    ----------
+    my_field : asteca.Cluster
+        Cluster object
+    radec_c : tuple
+        Center coordinates (RA, Dec) for fastMP.
+    pms_c : tuple
+        Center proper motion (pmRA, pmDE) for fastMP.
+    plx_c : float
+        Center parallax for fastMP.
+    """
+    radec_c = (ra_c, de_c)
+
+    pms_c, plx_c = None, None
+    if not np.isnan(pmra_c_in):
+        pms_c = (pmra_c_in, pmde_c_in)
+    if not np.isnan(plx_c_in):
+        plx_c = plx_c_in
+
+    my_field.get_center(radec_c=radec_c, pms_c=pms_c, plx_c=plx_c)
+
+    # If no PMs and plx are given initially or the 'max_dist_arcmin' is exceeded,
+    # use the initial (ra, dec) values to avoid wandering off the actual cluster
+    d_arcmin = np.linalg.norm(np.array(my_field.radec_c) - np.array(radec_c)) * 60
+    if (np.isnan(pmra_c_in) and np.isnan(plx_c_in)) or (d_arcmin > max_dist_arcmin):
+        my_field.radec_c = radec_c
+
+    # If PMs or plx are given initially, re-write using initial values
+    if not np.isnan(pmra_c_in):
+        my_field.pms_c = (pmra_c_in, pmde_c_in)
+    if not np.isnan(plx_c_in):
+        my_field.plx_c = plx_c_in
+
+    return my_field
+
+
+def get_Nmembs(
+    N_clust: float,
+    N_clust_max: float,
+    my_field: asteca.Cluster,
+) -> None:
+    """
+    Estimate the number of cluster members
+
+    Parameters
+    ----------
+    N_clust: float
+        Manual value for the fixed number of members
+    N_clust_max: float
+        Manual value for the maximum number of members
+    my_field : asteca.Cluster
+        ASteCA Cluster object
+    """
+    # If 'N_clust' was given, use it
+    if not np.isnan(N_clust):
+        my_field.N_cluster = int(N_clust)
+        print(f"  Using manual N_cluster={int(N_clust)}")
+        return
+
+    # If 'N_clust_max' was given use it to cap the maximum number of members
+    if not np.isnan(N_clust_max):
+        my_field.N_clust_max = int(N_clust_max)
+        print(f"  Using manual N_clust_max={int(N_clust_max)}")
+
+    # Use default ASteCA method
+    my_field.get_nmembers()
+    print(f"  Using N_clust={int(my_field.N_cluster)}")
+
 
 
 def check_close_cls(
