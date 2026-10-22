@@ -26,6 +26,7 @@ from .variables import (
     UCC_cat_B_in,
     UCC_cat_B_out,
     UCC_cmmts_folder,
+    UCC_excl_folder,
     all_OC_names,
     archive_folder_path,
     data_folder,
@@ -48,10 +49,6 @@ def main():
     Function to update the UCC (Unified Cluster Catalogue) with a new database.
     """
 
-    skip_check_flag = False
-    if input("\nSkip check for non new DBs? (y/n): ").lower() == "y":
-        skip_check_flag = True
-
     # Generate paths and check for required folders and files
     temp_database_folder, temp_all_OC_names, df_UCC_B_path, temp_JSON_path = (
         get_paths_check_paths()
@@ -65,24 +62,39 @@ def main():
         all_dbs_data,
         df_UCC_B_old,
         df_UCC_B_new,
-        flag_interactive,
+        new_DBs_lst,
         all_names_old,
         all_names_dict,
     ) = load_data(df_UCC_B_path, temp_JSON_path, temp_database_folder)
+
+    skip_check_flag = ""
+    if input("\nSkip check for non new DBs? (y/n): ").lower() == "y":
+        skip_check_flag = "y"
+    else:
+        skip_check_flag = input(
+            "\nSelect old DBs (comma separated) to stop, or\n"
+            "leave empty to check all never stopping: "
+        )
+        skip_check_flag = [_.strip().lower() for _ in skip_check_flag.split(",")]
 
     for new_DB, (df_new, newDB_json) in all_dbs_data.items():
         print("\n" + "-" * 40 + f"\nAdding {new_DB} ({len(df_new)}) to the UCC")
 
         # Determine the level of checking to perform for this DB
-        if new_DB in flag_interactive:
-            # For new DBS, perform all checks and stop if problems are found
+        if new_DB in new_DBs_lst:
+            # For new DBS, always perform checks and stop if problems are found
             flag_check_stop = "check_stop"
         else:
-            if skip_check_flag is False:
-                flag_check_stop = "check_no_stop"  # Never used
-            else:
-                # For non-new DBs, skip all checks if skip_check_flag=True
+            if skip_check_flag == "y":
+                # For non-new DBs, skip all checks
                 flag_check_stop = "no_check"
+            else:
+                # For non-new DBs
+                if new_DB.lower() in skip_check_flag:
+                    # check and stop
+                    flag_check_stop = "check_stop"
+                else:
+                    flag_check_stop = "check_no_stop"  # Never used
 
         # Add inner columns with galactic coordinates if possible
         if "RA" in newDB_json["pos"]:
@@ -134,7 +146,7 @@ def main():
 
         if flag_check_stop != "no_check":
             # Report and check new entries (if any)
-            check_new_entries(new_DB_fnames, db_matches, flag_check_stop)
+            check_new_entries(new_DB_fnames, db_matches, flag_check_stop, df_new.index)
 
             # Check positions in the DB vs the UCC
             check_positions(
@@ -336,6 +348,7 @@ def load_data(
         else:
             new_db_flag = ""
             db_csv_path = dbs_folder + DB + ".csv"
+        excl_path = get_excl_path(DB)
 
         if os.path.isfile(db_csv_path) is True:
             df_new = pd.read_csv(db_csv_path)
@@ -369,10 +382,11 @@ def load_data(
         if missing:
             raise ValueError(f"Missing columns in {DB}: {missing}")
 
+        df_new = exclude_entries(DB, df_new, vals["names"], excl_path)
+
         print(f"{DB} loaded (N={len(df_new)}) {new_db_flag}")
         all_dbs_data[DB] = [df_new, vals]
 
-    # flag_interactive == new_DBs
     return (
         new_JSON,
         df_GCs,
@@ -385,6 +399,61 @@ def load_data(
         all_names,
         all_names_dict,
     )
+
+
+def get_excl_path(DB: str) -> str:
+    """
+    Path to the exclusion file of a DB. A file in the temporary folder (new or
+    updated exclusions) takes precedence over the stored one.
+    """
+    temp_excl_path = temp_folder + UCC_excl_folder + DB + ".csv"
+    if os.path.isfile(temp_excl_path):
+        return temp_excl_path
+    return UCC_excl_folder + DB + ".csv"
+
+
+def exclude_entries(
+    DB: str, df_new: pd.DataFrame, names_col: str, excl_path: str
+) -> pd.DataFrame:
+    """
+    Drop the entries of the DB listed in its exclusion file (if any), i.e. entries
+    identified as duplicates, GCs, non-clusters, etc.
+
+    The exclusion file has the columns:
+    - row: position (0-based) of the entry in the DB file
+    - name: value of the DB's names column for that entry, used to validate 'row'
+    - category: duplicate, GC, not_cluster, other
+    - comment: free text
+
+    The index of the returned DataFrame is NOT reset: it holds the original row
+    positions in the DB file, which are stored in the 'DB_i' column and used by
+    all the scripts to access the DB entries.
+    """
+    if not os.path.isfile(excl_path):
+        return df_new
+
+    df_excl = pd.read_csv(excl_path)
+    rows = df_excl["row"].to_numpy()
+
+    out_of_range = [r for r in rows if not 0 <= r < len(df_new)]
+    if out_of_range:
+        raise ValueError(f"{excl_path}: rows out of range {out_of_range}")
+    rows_unq, counts = np.unique(rows, return_counts=True)
+    if (counts > 1).any():
+        raise ValueError(f"{excl_path}: repeated rows {list(rows_unq[counts > 1])}")
+
+    # Validate rows using the names
+    names_db = df_new[names_col].astype(str).str.strip().to_numpy()[rows]
+    names_excl = df_excl["name"].astype(str).str.strip().to_numpy()
+    msk = names_db != names_excl
+    if msk.any():
+        print(f"\n{excl_path}: names do not match the DB file")
+        for r, n_excl, n_db in zip(rows[msk], names_excl[msk], names_db[msk]):
+            print(f"  row {r}: '{n_excl}' (exclusion file) != '{n_db}' (DB file)")
+        raise ValueError(f"Fix the rows in {excl_path}")
+
+    print(f"{DB}: {len(rows)} entries excluded")
+    return df_new.drop(index=rows)
 
 
 def handle_all_names(sep=";") -> tuple[pd.DataFrame, dict]:
@@ -473,7 +542,9 @@ def handle_all_names(sep=";") -> tuple[pd.DataFrame, dict]:
     if all_fnames_list != all_fnames_norm:
         n_max = 10
         diffs = [
-            i for i, (a, b) in enumerate(zip(all_fnames_list, all_fnames_norm)) if a != b
+            i
+            for i, (a, b) in enumerate(zip(all_fnames_list, all_fnames_norm))
+            if a != b
         ]
         len_a, len_b = len(all_fnames_list), len(all_fnames_norm)
         if len_a != len_b:
@@ -488,7 +559,6 @@ def handle_all_names(sep=";") -> tuple[pd.DataFrame, dict]:
         if len(diffs) > n_max:
             print(f"... and {len(diffs) - n_max} more")
         raise ValueError("Mismatch between all_fnames_list and new_DB_fnames")
-
 
     return all_names, all_names_dict
 
@@ -612,7 +682,10 @@ def vdberg_check(newDB_json: dict, df_new: pd.DataFrame) -> bool:
         print("* BH ; vdBergh-Hagen --> VDBH")
         print("* vdBergh            --> VDB")
         for i, new_cl, name_check, sm_ratio in vds_found:
-            print(f"{i}, {new_cl.strip()} --> {name_check} (P={sm_ratio:.2f})")
+            print(
+                f"{df_new.index[i]}, {new_cl.strip()} --> {name_check} "
+                f"(P={sm_ratio:.2f})"
+            )
 
     return vdb_flag
 
@@ -653,7 +726,7 @@ def close_OC_inner_check(
     msk = dist == 0.0
     dist[msk] = np.inf
 
-    col_1 = df_new[newDB_json["names"]]
+    col_1 = df_new[newDB_json["names"]].to_numpy()
     col_2 = None
     db_matches = None
     ID_call = "inner"
@@ -667,6 +740,7 @@ def close_OC_inner_check(
         leven_rad,
         sep,
         flag_check_stop,
+        df_new.index.to_numpy(),
     )
 
 
@@ -679,12 +753,15 @@ def close_OC_check(
     leven_rad: float,
     sep: str,
     flag_check_stop: str,
+    row_ids: np.ndarray,
     rad_dup: float = 10,
     N_max: int = 50,
 ):
     """
     Check for close OCs in the new DB (or between new DB and UCC) whose names are
     somewhat similar (Levenshtein distance).
+
+    row_ids: original row positions in the new DB file, used for printing
     """
     idxs = np.arange(0, len(col_1))
     all_dups, dups_list = [], []
@@ -755,7 +832,7 @@ def close_OC_check(
                     }
                 )
                 print(
-                    f"{i:<6} {cl_name.strip():<30} (N={N_inner_dups}) --> "
+                    f"{row_ids[i]:<6} {cl_name.strip():<30} (N={N_inner_dups}) --> "
                     + f"{dups_unq:<30} | d={';'.join(dist)}, L={';'.join(L_ratios)}"
                 )
 
@@ -871,8 +948,8 @@ def GCs_check(
         for idx, row_id, idx_gc, df_gcs_name, d_arcmin in gc_list:
             row_id = row_id.strip()
             print(
-                f"{idx:<6} {row_id:<40} --> {idx_gc:<6} {df_gcs_name.strip():<25}"
-                + f"d={round(d_arcmin, 2)}"
+                f"{df_new.index[idx]:<6} {row_id:<40} --> {idx_gc:<6} "
+                f"{df_gcs_name.strip():<25}" + f"d={round(d_arcmin, 2)}"
             )
 
     return gc_flag
@@ -975,106 +1052,12 @@ def check_new_DB_fnames(
             N_g += 1
             idxs_s = sorted(idxs)
             for idx_s in idxs_s:
-                dnames = str(df_new.loc[idx_s, newDB_json["names"]]).split(",")
-                print(f" -{', '.join(dnames[1:])} --> {dnames[0]} ({idx_s})")
+                dnames = str(df_new.iloc[idx_s][newDB_json["names"]]).split(",")
+                print(
+                    f" -{', '.join(dnames[1:])} --> {dnames[0]} ({df_new.index[idx_s]})"
+                )
         breakpoint()  # noqa: T100
         sys.exit(1)
-
-
-# def fnames_check_UCC_new_DB(
-#     logging,
-#     df_UCC_B: pd.DataFrame,
-#     all_names_dict: dict,
-#     newDB_json: dict,
-#     new_DB_fnames: list[list[str]],
-#     df_new: pd.DataFrame,
-#     sep: str = ";",
-# ) -> None:
-#     """
-#     Check that no fname associated to each entry in the new DB is listed in more than
-#     one entry in the UCC.
-#     """
-
-#     new_fnames_dup = []
-#     for i, new_fnames in enumerate(new_DB_fnames):
-#         c_fname = []
-#         for new_fname in set(new_fnames):
-#             if new_fname in all_names_dict:
-#                 c_fname.append(all_names_dict[new_fname]["fnames"])
-#         if len(set(c_fname)) > 1:
-#             new_fnames_dup.append(i)
-
-#     if new_fnames_dup:
-#         N = len(new_fnames_dup)
-#         txt = "y" if N == 1 else "ies"
-#         logging.info(f"\nFound {N} entr{txt} with multiple fnames in 'all_names':")
-#         for k in new_fnames_dup:
-#             logging.info(f"{df_new.iloc[k][newDB_json['names']]}")
-#         breakpoint()
-#         sys.exit(1)
-
-#     return
-
-#     # Assign an index to each fname in the UCC for O(1) lookup
-#     fname_ucc_map = {
-#         fname: i
-#         for i, fnames in enumerate(df_UCC_B["fnames"])
-#         for fname in fnames.split(sep)
-#     }
-
-#     # Index matching: Set comprehensions ensure uniqueness at extraction time O(1)
-#     fnames_ucc_idxs = {}
-#     for k, fnames in enumerate(new_DB_fnames):
-#         matched_idxs = {fname_ucc_map[f] for f in fnames if f in fname_ucc_map}
-#         if matched_idxs:
-#             fnames_ucc_idxs[k] = matched_idxs
-
-#     # Detect bad entries
-#     bad_entries = {k: list(v) for k, v in fnames_ucc_idxs.items() if len(v) > 1}
-
-#     # Duplicates: Invert mapping efficiently
-#     locations = defaultdict(list)
-#     for k, matched_idxs in fnames_ucc_idxs.items():
-#         for idx in matched_idxs:
-#             locations[idx].append(k)
-#     duplicates = {item: keys for item, keys in locations.items() if len(keys) > 1}
-
-#     dup_flag = bool(bad_entries or duplicates)
-
-#     # Logging: Extract raw numpy arrays to bypass extreme pd.DataFrame.iloc latency
-#     if dup_flag:
-#         dbs_arr = df_UCC_B["DB"].values
-#         fnames_arr = df_UCC_B["fnames"].values
-
-#         if bad_entries:
-#             logging.info(
-#                 f"\nFound {len(bad_entries)} entries in new_DB with duplicated "
-#                 "fnames in the combined DB:"
-#             )
-#             for k, v in bad_entries.items():
-#                 new_db_entries = f"({k}) {', '.join(new_DB_fnames[k])}"
-#                 ucc_entries = ", ".join(
-#                     [f"({_}, {dbs_arr[_]}) {fnames_arr[_]}" for _ in v]
-#                 )
-#                 logging.info(f"{new_db_entries} --> {ucc_entries}")
-
-#         if duplicates:
-#             logging.info(
-#                 f"\nFound {len(duplicates) * 2} entries in new_DB with combined "
-#                 "fnames in the combined DB:"
-#             )
-#             for k, v in duplicates.items():
-#                 new_db_entries = "; ".join([", ".join(new_DB_fnames[_]) for _ in v])
-#                 u_dbs = ",".join(set(str(dbs_arr[k]).split(";")))
-#                 u_fnames = ",".join(set(str(fnames_arr[k]).split(";")))
-#                 logging.info(
-#                     f"{tuple(v)} {new_db_entries} --> ({k}) {u_dbs}: {u_fnames}"
-#                 )
-
-#     if dup_flag:
-#         logging.info("\nResolve the above issues before moving on")
-#         breakpoint()
-#         sys.exit(1)
 
 
 def fnames_check_UCC_new_DB(
@@ -1156,7 +1139,7 @@ def fnames_check_UCC_new_DB(
             "entries in the combined DB:"
         )
         for i, ucc_idxs in bad_entries.items():
-            new_entry = f"({i}) {', '.join(new_DB_fnames[i])}"
+            new_entry = f"({df_new.index[i]}) {', '.join(new_DB_fnames[i])}"
             ucc_entries = ", ".join(
                 f"({j}, {dbs_arr[j]}) {fnames_arr[j]}" for j in ucc_idxs
             )
@@ -1170,7 +1153,7 @@ def fnames_check_UCC_new_DB(
         for ucc_idx, new_idxs in duplicates.items():
             new_entries = "; ".join(", ".join(new_DB_fnames[i]) for i in new_idxs)
             print(
-                f"{tuple(new_idxs)} {new_entries} --> "
+                f"{tuple(df_new.index[i] for i in new_idxs)} {new_entries} --> "
                 f"({ucc_idx}) {dbs_arr[ucc_idx]}: {fnames_arr[ucc_idx]}"
             )
 
@@ -1215,9 +1198,11 @@ def get_matches_new_DB(
     return db_matches
 
 
-def check_new_entries(new_DB_fnames, db_matches, flag_check_stop: str):
+def check_new_entries(new_DB_fnames, db_matches, flag_check_stop: str, row_ids):
     """
     Check for new entries in the new DB that are not present in the UCC.
+
+    row_ids: original row positions in the new DB file, used for printing
     """
     N_new = db_matches.count(None)
     if N_new > 0:
@@ -1226,7 +1211,7 @@ def check_new_entries(new_DB_fnames, db_matches, flag_check_stop: str):
         count = 0
         for i, idx in enumerate(db_matches):
             if idx is None:
-                print(f"{i}    {new_DB_fnames[i][0]}")
+                print(f"{row_ids[i]}    {new_DB_fnames[i][0]}")
                 count += 1
                 if count % N_max == 0:
                     print(f"... (shown {count} entries)")
@@ -1330,6 +1315,7 @@ def check_new_DB_UCC_positions(
         leven_rad,
         sep,
         flag_check_stop,
+        df_new.index.to_numpy(),
     )
 
 
@@ -1400,7 +1386,7 @@ def check_matched_entries(
             # Store information on the OCs that require attention
             if d_arcmin > rad_dup:
                 names = f"{new_DB_fnames[i][1]} ({new_DB_fnames[i][0]})"
-                ocs_attention.append([i, names, d_arcmin])
+                ocs_attention.append([df_new.index[i], names, d_arcmin])
 
     attention_flag = False
     if len(ocs_attention) > 0:
@@ -1588,7 +1574,7 @@ def combine_UCC_new_DB(
         new_db_dict = updt_new_DB(
             new_DB,
             new_db_dict,
-            str(i_new_cl),
+            str(df_new.index[i_new_cl]),
             row_n,
             new_DB_fnames[i_new_cl],
             oc_names,
@@ -2052,7 +2038,8 @@ def add_types(
             continue
         ec_id = new_JSON[DB]["types"]["ec_id"]
         msk = df_db[col_name].astype(str).str.strip().isin(ec_id).to_numpy()
-        embedded_rows[DB] = {str(i) for i in np.flatnonzero(msk)}
+        # Index of the DBs holds the original row positions (see exclude_entries)
+        embedded_rows[DB] = {str(i) for i in df_db.index[msk]}
 
     type_col = []
     for dbs, dbs_i in zip(df_UCC_B_new["DB"], df_UCC_B_new["DB_i"]):
@@ -2357,6 +2344,9 @@ def move_files(
         db_temp = temp_database_folder + new_DB + ".csv"
         if os.path.isfile(db_temp):
             files_to_move.append(db_temp)
+        excl_temp = temp_folder + UCC_excl_folder + new_DB + ".csv"
+        if os.path.isfile(excl_temp):
+            files_to_move.append(excl_temp)
 
     ucc_temp = temp_folder + UCC_cat_B_out
     if os.path.isfile(ucc_temp):
@@ -2390,6 +2380,13 @@ def move_files(
             db_stored = dbs_folder + new_DB_file
             os.rename(db_temp, db_stored)
             print(db_temp + " --> " + db_stored)
+
+        excl_temp = temp_folder + UCC_excl_folder + new_DB_file
+        if os.path.isfile(excl_temp):
+            os.makedirs(UCC_excl_folder, exist_ok=True)
+            excl_stored = UCC_excl_folder + new_DB_file
+            os.rename(excl_temp, excl_stored)
+            print(excl_temp + " --> " + excl_stored)
 
     if os.path.isfile(ucc_temp):
         now_time = pd.Timestamp.now().strftime("%y%m%d%H")

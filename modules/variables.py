@@ -39,6 +39,10 @@ name_DBs_json = data_folder + "databases_info.json"
 # Used by: A (through utils.comments_check), D
 # Folder that contains the files with per-article comments
 UCC_cmmts_folder = dbs_folder + "cmmts/"
+# Used by: B
+# Folder that contains the per-DB files listing the rows excluded from the UCC
+# (duplicates, GCs, non-clusters, etc). The DB files themselves are kept unedited
+UCC_excl_folder = dbs_folder + "excluded/"
 
 # Used by: B, C, D
 # Main CSV file with all OCs names

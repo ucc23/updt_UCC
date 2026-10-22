@@ -163,18 +163,24 @@ def rename_standard(all_names: str, sep_in: str = ",", sep_out: str = ";") -> st
                 # This assumes that all ESO clusters are names as: 'ESO XXX YY'
                 n1, n2 = name[4 : 4 + 3], name[4 + 3 :]
 
-            n1 = int(n1)
-            if n1 < 10:
-                n1 = "00" + str(n1)
-            elif n1 < 100:
-                n1 = "0" + str(n1)
-            else:
-                n1 = str(n1)
-            n2 = int(n2)
-            if n2 < 10:
-                n2 = "0" + str(n2)
-            else:
-                n2 = str(n2)
+            # Some Magellanic objects have characters in their 'ESO' naming
+            try:
+                n1_int = int(n1)
+                if n1_int < 10:
+                    n1 = "00" + str(n1_int)
+                elif n1_int < 100:
+                    n1 = "0" + str(n1_int)
+                else:
+                    n1 = str(n1)
+            except ValueError:
+                pass
+            try:
+                n2_int = int(n2)
+                if n2_int < 10:
+                    n2 = "0" + str(n2_int)
+            except ValueError:
+                pass
+
             name = "ESO_" + n1 + "_" + n2
 
         if "UBC" in name and "UBC " not in name and "UBC_" not in name:
