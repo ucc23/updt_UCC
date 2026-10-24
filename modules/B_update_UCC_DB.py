@@ -128,13 +128,14 @@ def main():
                 flag_check_stop,
             )
 
-        # Standardize names in the DB
+        # Standardize names in the DB (keep a copy of the original fnames)
+        orig_DB_fnames = [list(_) for _ in new_DB_fnames]
         new_DB_fnames = get_canonical_fnames(
             df_new, newDB_json, all_names_dict, new_DB_fnames
         )
 
         # Check that no fname is repeated across entries in the new DB
-        check_new_DB_fnames(df_new, newDB_json, new_DB_fnames)
+        check_new_DB_fnames(df_new, newDB_json, new_DB_fnames, orig_DB_fnames)
 
         # Check uniqueness of fnames (fnames in new DB vs fnames in UCC so far)
         fnames_check_UCC_new_DB(
@@ -1020,42 +1021,73 @@ def check_duplicated_fnames(fnames_list: list[list[str]]) -> dict:
 
 
 def check_new_DB_fnames(
-    df_new: pd.DataFrame, newDB_json: dict, new_DB_fnames: list[list[str]]
+    df_new: pd.DataFrame,
+    newDB_json: dict,
+    new_DB_fnames: list[list[str]],
+    orig_DB_fnames: list[list[str]],
 ):
-    """Check that no fname is repeated across entries in the new DB"""
+    """Check that no fname is repeated across entries in the new DB
+
+    Duplicates are split into three groups:
+    - fnames repeated in the names of the DB itself (in all entries of the group)
+    - fnames shared because entries were assigned the same canonical fname
+      through all_names, and the canonical entry is present in the DB (it is kept)
+    - fnames shared because entries were assigned the same canonical fname
+      through all_names, and the canonical entry is not present in the DB (no
+      entry is kept)
+    """
     duplicates = check_duplicated_fnames(new_DB_fnames)
 
     if duplicates:
-        # If the canonical fname is in the group of duplicates, remove it from
-        # the set of elements that should be removed from the DB. If it is not,
-        # select the first element of the list of duplicates as canonical and
-        # keep the rest as elements that should be removed from the DB
-        duplicates_clean = {}
+        # If the fname is among the original names of an entry in the group of
+        # duplicates, keep that entry and mark the rest as elements that should
+        # be removed from the DB. If it is not, mark all the entries in the group
+        # as elements that should be removed (none is kept)
+        dups_in_DB, dups_all_names, dups_all_names_noDB = {}, {}, {}
         for fname, idxs in duplicates.items():
-            rm_idx = None
-            for idx in idxs:
-                if fname in new_DB_fnames[idx][1:]:
-                    rm_idx = idx
-                    break
-            if rm_idx is not None:
-                duplicates_clean[fname] = [_ for _ in idxs if _ != rm_idx]
+            idxs = sorted(idxs)
+            in_orig = [idx for idx in idxs if fname in orig_DB_fnames[idx]]
+            keep_idx = in_orig[0] if in_orig else None
+            rm_idxs = [_ for _ in idxs if _ != keep_idx]
+            if len(in_orig) == len(idxs):
+                dups_in_DB[fname] = (keep_idx, rm_idxs)
+            elif in_orig:
+                dups_all_names[fname] = (keep_idx, rm_idxs)
             else:
-                duplicates_clean[fname] = list(idxs)[1:]
+                dups_all_names_noDB[fname] = (keep_idx, rm_idxs)
 
-        print(
-            f"\nFound {len(duplicates_clean)} groups of duplicated fnames within "
-            "the DB:"
+        def entry_names(idx: int) -> tuple[str, list[str]]:
+            """Return the (canonical, original) names of an entry. The canonical
+            name is only prepended if the entry was found in all_names"""
+            dnames = [
+                _.strip() for _ in str(df_new.iloc[idx][newDB_json["names"]]).split(",")
+            ]
+            if len(new_DB_fnames[idx]) > len(orig_DB_fnames[idx]):
+                return dnames[0], dnames[1:]
+            return dnames[0], dnames
+
+        def print_groups(dups: dict, msg: str):
+            if not dups:
+                return
+            print(f"\nFound {len(dups)} groups of duplicated fnames {msg}:")
+            for N_g, (fname, (keep_idx, idxs)) in enumerate(dups.items(), 1):
+                print(f"Group {N_g}: {fname}")
+                # Name of the entry that is kept in the DB. If none is kept, use the
+                # canonical name assigned (through all_names) to all the entries
+                keep_name = entry_names(idxs[0] if keep_idx is None else keep_idx)[0]
+                for idx_s in idxs:
+                    names = ", ".join(entry_names(idx_s)[1])
+                    print(f" - {names} --> {keep_name} ({df_new.index[idx_s]})")
+
+        print_groups(dups_in_DB, "repeated within the DB names")
+        print_groups(
+            dups_all_names,
+            "assigned the same canonical entry in all_names (present in the DB)",
         )
-        N_g = 1
-        for fname, idxs in duplicates_clean.items():
-            print(f"Group {N_g}: {fname}")
-            N_g += 1
-            idxs_s = sorted(idxs)
-            for idx_s in idxs_s:
-                dnames = str(df_new.iloc[idx_s][newDB_json["names"]]).split(",")
-                print(
-                    f" -{', '.join(dnames[1:])} --> {dnames[0]} ({df_new.index[idx_s]})"
-                )
+        print_groups(
+            dups_all_names_noDB,
+            "assigned the same canonical entry in all_names (NOT present in the DB)",
+        )
         breakpoint()  # noqa: T100
         sys.exit(1)
 
