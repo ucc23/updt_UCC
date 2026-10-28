@@ -344,6 +344,11 @@ naming_order_exceptions = {
     "vdb92",  # Over NGC 2327
 }
 
+# Maximum distance (arcmin) between the entries of a conflict found by
+# all_names_canonical_check() for a main name to be suggested. Entries farther
+# apart are likely a wrong cross-ID rather than the same object
+max_dist_suggest = 30
+
 # Manual hierarchy of databases for selecting coordinates, smaller is preferred
 # DBs not mentioned here inherit a default value of max()/2 = 500
 # For matching values, the newer DB is preferred.

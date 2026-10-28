@@ -3,6 +3,7 @@ import json
 import os
 import re
 import sys
+from collections.abc import Callable
 from datetime import datetime
 
 import numpy as np
@@ -33,6 +34,7 @@ from .variables import (
     dbs_folder,
     fmt_to_UCC,
     fpars_order,
+    max_dist_suggest,
     name_DBs_json,
     naming_order,
     naming_order_exceptions,
@@ -76,6 +78,9 @@ def main():
             "leave empty to check all never stopping: "
         )
         skip_check_flag = [_.strip().lower() for _ in skip_check_flag.split(",")]
+
+    # Positions and earliest DB of the UCC entries, used to report conflicts
+    ucc_info = get_ucc_entries_info(df_UCC_B_old, new_JSON)
 
     for new_DB, (df_new, newDB_json) in all_dbs_data.items():
         print("\n" + "-" * 40 + f"\nAdding {new_DB} ({len(df_new)}) to the UCC")
@@ -128,32 +133,41 @@ def main():
                 flag_check_stop,
             )
 
+        # Check that no fname is repeated across entries in the DB's own names
+        check_own_DB_fnames(df_new, newDB_json, new_DB_fnames)
+
+        # Check that no entry points to multiple canonical entries in all_names
+        all_names_canonical_check(
+            new_DB, df_new, newDB_json, all_names_dict, new_DB_fnames, ucc_info
+        )
+
         # Standardize names in the DB (keep a copy of the original fnames)
         orig_DB_fnames = [list(_) for _ in new_DB_fnames]
         new_DB_fnames = get_canonical_fnames(
             df_new, newDB_json, all_names_dict, new_DB_fnames
         )
 
-        # Check that no fname is repeated across entries in the new DB
+        # Check that no canonical fname is shared across entries in the new DB
         check_new_DB_fnames(df_new, newDB_json, new_DB_fnames, orig_DB_fnames)
 
         # Check uniqueness of fnames (fnames in new DB vs fnames in UCC so far)
-        fnames_check_UCC_new_DB(
-            df_UCC_B_new, all_names_dict, newDB_json, new_DB_fnames, df_new
-        )
+        fnames_check_UCC_new_DB(df_UCC_B_new, new_DB_fnames, orig_DB_fnames, df_new)
 
         # Match the new DB with the UCC
         db_matches = get_matches_new_DB(df_UCC_B_new, new_DB_fnames)
 
         if flag_check_stop != "no_check":
             # Report and check new entries (if any)
-            check_new_entries(new_DB_fnames, db_matches, flag_check_stop, df_new.index)
+            check_new_entries(
+                new_DB_fnames, orig_DB_fnames, db_matches, flag_check_stop, df_new.index
+            )
 
             # Check positions in the DB vs the UCC
             check_positions(
                 df_UCC_B_new,
                 df_new,
                 new_DB_fnames,
+                orig_DB_fnames,
                 db_matches,
                 flag_check_stop,
             )
@@ -199,6 +213,16 @@ def main():
     # Add any missing fnames to all_names_new (if any), using all_names_dict as
     # reference
     all_names_final = add_lost_fnames(all_names_dict, all_names_new)
+
+    # Add the names of the entries excluded as duplicates to their main entries
+    all_names_final = add_excl_duplicate_names(new_JSON, all_names_final)
+
+    # Check that the names in all_names are 1 to 1 with the names in the DBs
+    db_paths = {
+        DB: (temp_database_folder if DB in new_DBs_lst else dbs_folder) + DB + ".csv"
+        for DB in new_JSON
+    }
+    all_names_DBs_check(all_names_final, new_JSON, db_paths)
 
     # Compare final 'fnames' column with the old one to check for unexpected changes
     final_fnames_compare(all_names_old["fnames"], all_names_final["fnames"])
@@ -833,8 +857,8 @@ def close_OC_check(
                     }
                 )
                 print(
-                    f"{row_ids[i]:<6} {cl_name.strip():<30} (N={N_inner_dups}) --> "
-                    + f"{dups_unq:<30} | d={';'.join(dist)}, L={';'.join(L_ratios)}"
+                    f"{row_ids[i]:<6} [d={';'.join(dist)}, L={';'.join(L_ratios)}] {cl_name.strip():<30} (N={N_inner_dups}) --> "
+                    + f"{dups_unq:<30}"
                 )
 
             if flag_check_stop != "check_stop":
@@ -956,6 +980,299 @@ def GCs_check(
     return gc_flag
 
 
+def get_ucc_entries_info(df_UCC_B: pd.DataFrame, new_JSON: dict) -> dict:
+    """
+    Map the canonical fname of each UCC entry to its (GLON, GLAT) position, the
+    DBs (and rows in them) that list it, and the earliest DB (by 'received' date)
+    that lists it. Used to report the conflicts in all_names_canonical_check()
+    """
+    ucc_info = {}
+    for fname, dbs, dbs_i, lon, lat in zip(
+        df_UCC_B["fname"],
+        df_UCC_B["DB"],
+        df_UCC_B["DB_i"],
+        df_UCC_B["GLON"],
+        df_UCC_B["GLAT"],
+    ):
+        dbs_known = [db for db in str(dbs).split(";") if db in new_JSON]
+        db0 = min(dbs_known, key=lambda db: new_JSON[db]["received"], default=None)
+        # (DB, row in the DB file, names column of the DB)
+        dbs_rows = [
+            (db, row, new_JSON[db]["names"] if db in new_JSON else None)
+            for db, row in zip(str(dbs).split(";"), str(dbs_i).split(";"))
+        ]
+        ucc_info[fname] = {
+            "pos": (lon, lat),
+            "DBs": dbs_rows,
+            "DB": db0,
+            "received": new_JSON[db0]["received"] if db0 else "99999999",
+        }
+    return ucc_info
+
+
+def get_DB_entry_names(
+    DB: str, row: str, names_col: str | None, DBs_names: dict, sep: str = ","
+) -> str:
+    """
+    Names of the entry stored in a given row of a DB file, as they appear in the
+    DB. The names column of each DB is loaded once and stored in 'DBs_names'
+    """
+    if DB not in DBs_names:
+        names = None
+        for folder in (temp_folder + dbs_folder, dbs_folder):
+            path = folder + DB + ".csv"
+            if names_col is not None and os.path.isfile(path):
+                df = pd.read_csv(path, usecols=[names_col])
+                names = df[names_col].astype(str).to_numpy()
+                break
+        DBs_names[DB] = names
+    names = DBs_names[DB]
+    try:
+        return ", ".join(_.strip() for _ in names[int(row)].split(sep))
+    except (TypeError, ValueError, IndexError):
+        return "?"
+
+
+def lonlat_dist(lon1: float, lat1: float, lon2: float, lat2: float) -> float:
+    """Approximate distance in arcmin between two (GLON, GLAT) positions"""
+    dlon = ((lon1 - lon2 + 180) % 360 - 180) * np.cos(np.deg2rad(0.5 * (lat1 + lat2)))
+    return float(np.hypot(dlon, lat1 - lat2) * 60)
+
+
+def all_names_canonical_check(
+    DB: str,
+    df_new: pd.DataFrame,
+    newDB_json: dict,
+    all_names_dict: dict,
+    new_DB_fnames: list[list[str]],
+    ucc_info: dict,
+) -> None:
+    """
+    Check that the fnames of each new-DB entry do not point to multiple canonical
+    entries in all_names. Must run before get_canonical_fnames(), which assigns
+    the canonical of the first fname found in all_names
+
+    For each conflict, the distances between the DB entry and the UCC entries
+    involved are shown, along with the suggested main name: the one that appeared
+    first in the literature (same criteria used by sort_year_importance()). No
+    main name is suggested if any distance is larger than 'max_dist_suggest'
+    (arcmin). These entries are printed first in each section
+    """
+    bad_all_names = []
+    for i, fnames in enumerate(new_DB_fnames):
+        canonical = {
+            all_names_dict[f]["fnames"] for f in set(fnames) if f in all_names_dict
+        }
+        if len(canonical) > 1:
+            bad_all_names.append(i)
+    if not bad_all_names:
+        return
+
+    # DB entries pointing to each canonical entry in all_names
+    canonical_entries = {}
+    for i, fnames in enumerate(new_DB_fnames):
+        for f in fnames:
+            if f in all_names_dict:
+                canonical_entries.setdefault(all_names_dict[f]["fnames"], set()).add(i)
+
+    def fmt(names: list[str]) -> str:
+        return names[0] if len(names) == 1 else "[" + ", ".join(names) + "]"
+
+    def c_name(c_fname: str) -> str:
+        return all_names_dict[c_fname]["Names"]
+
+    def fmt_dist(d: float) -> str:
+        return "nan" if np.isnan(d) else f"{d:.1f}'"
+
+    # Names column of each DB, loaded only if required by details()
+    DBs_names = {}
+
+    def ucc_pos(c_fname: str) -> tuple[float, float]:
+        return ucc_info.get(c_fname, {}).get("pos", (np.nan, np.nan))
+
+    def details(i: int, main_c_fname: str, dup_c_fnames: list[str]) -> tuple[str, bool]:
+        """
+        Distances between the entries in conflict, and suggested main name. Also
+        returns True if the entries are too far apart to suggest a main name
+        """
+        c_fnames = [main_c_fname] + dup_c_fnames
+        # Distances between the main UCC entry and each duplicate UCC entry
+        lon_m, lat_m = ucc_pos(main_c_fname)
+        d_main = {c: lonlat_dist(lon_m, lat_m, *ucc_pos(c)) for c in dup_c_fnames}
+        # Distances between the new-DB entry and each UCC entry
+        d_db = {}
+        if "GLON_" in df_new.columns:
+            lon, lat = df_new["GLON_"].iloc[i], df_new["GLAT_"].iloc[i]
+            d_db = {c: lonlat_dist(lon, lat, *ucc_pos(c)) for c in c_fnames}
+
+        dists = [
+            f"{c_name(main_c_fname)} <-> {c_name(c)} = {fmt_dist(d)}"
+            for c, d in d_main.items()
+        ]
+        txt = "    Distances: " + ", ".join(dists)
+        if d_db:
+            dists = [f"{c_name(c)} = {fmt_dist(d)}" for c, d in d_db.items()]
+            txt += " | DB entry <-> " + ", ".join(dists)
+
+        # Entries too far apart are not the same object: no main name to suggest
+        all_d = list(d_main.values()) + list(d_db.values())
+        max_d = np.nanmax(all_d) if not np.isnan(all_d).all() else np.nan
+        if max_d > max_dist_suggest:
+            # One line per UCC entry with its distances, followed by the DBs that
+            # list it and the names used in them
+            db_entry = f"{DB} ({df_new.index[i]})"
+            lines = []
+            for c in c_fnames:
+                if c == main_c_fname:
+                    line = f"    {c_name(c)} (main name):"
+                    dists = [f"{fmt_dist(d_db[c])} from {db_entry}"] if d_db else []
+                else:
+                    line = f"    {c_name(c)} (duplicate):"
+                    dists = [f"{fmt_dist(d_db[c])} from {db_entry}"] if d_db else []
+                    dists.append(f"{fmt_dist(d_main[c])} from {c_name(main_c_fname)}")
+                lines.append(line + (" " + ", ".join(dists) if dists else ""))
+                dbs = [
+                    f"{db} [{get_DB_entry_names(db, row, col, DBs_names)}]"
+                    for db, row, col in ucc_info.get(c, {}).get("DBs", [])
+                ]
+                lines.append("        listed in: " + ("; ".join(dbs) or "?"))
+            return "\n".join(lines), True
+
+        # Suggest the main name: naming exceptions first, then by importance
+        # ('naming_order'), then by the earliest DB that lists the entry
+        received = {
+            c: ucc_info.get(c, {}).get("received", "99999999") for c in c_fnames
+        }
+        suggested = min(
+            c_fnames,
+            key=lambda c: (
+                c not in naming_order_exceptions,
+                get_importance(c),
+                received[c],
+            ),
+        )
+        firsts = []
+        for c in c_fnames:
+            db0 = ucc_info.get(c, {}).get("DB")
+            firsts.append(
+                f"{c_name(c)}: {db0} ({received[c][:4]})" if db0 else f"{c_name(c)}: ?"
+            )
+        reason = (
+            "" if received[suggested] == min(received.values()) else ", naming order"
+        )
+        txt += (
+            f"\n    Suggested main name: {c_name(suggested)}"
+            + f" [first listed in {'; '.join(firsts)}{reason}]"
+        )
+        return txt, False
+
+    # Each conflicting entry is assigned to the section of how it should be resolved
+    sections = {
+        "in_DB": (
+            "The duplicate entry in 'all_names' is also matched by another entry"
+            + " of this DB.\nResolve: exclude one of the DB entries as 'duplicate'"
+            + " in the DB's exclusion file"
+        ),
+        "secondary": (
+            "The duplicate name is a secondary name of another entry in"
+            + " 'all_names'.\nResolve: move (or remove) that name in 'all_names'"
+        ),
+        "canonical_exact": (
+            "The duplicate name is the main name of another entry in 'all_names',"
+            + " written exactly as in 'all_names'.\nResolve: merge both entries in"
+            + " 'all_names', or fix the DB entry"
+        ),
+        "canonical": (
+            "The duplicate name is the main name of another entry in 'all_names',"
+            + " written differently or along with other names (-->).\nResolve:"
+            + " merge both entries in 'all_names', or fix the DB entry"
+        ),
+    }
+    section_lines = {k: [] for k in sections}
+    for i in bad_all_names:
+        names = str(df_new.iloc[i][newDB_json["names"]]).split(",")
+        # Group the names by the canonical entry they point to. The main entry is
+        # the one of the first fname found in all_names (see get_canonical_fnames)
+        groups, not_in = {}, []
+        for name, fname in zip(names, new_DB_fnames[i]):
+            if fname in all_names_dict:
+                c_fname = all_names_dict[fname]["fnames"]
+                groups.setdefault(c_fname, []).append((name.strip(), fname))
+            else:
+                not_in.append(name.strip())
+        main_c_fname = next(iter(groups))
+        dup_c_fnames = [c for c in groups if c != main_c_fname]
+
+        def is_exact(c_fname: str) -> bool:
+            # The DB names in the group are just the canonical name of the entry
+            c_names = [n for n, _ in groups[c_fname]]
+            return c_names == [all_names_dict[c_fname]["Names"]]
+
+        def link(c_fname: str, label: str) -> str:
+            canonical = all_names_dict[c_fname]["Names"]
+            c_names = [n for n, _ in groups[c_fname]]
+            if is_exact(c_fname):
+                return f"{canonical} ({label})"
+            return f"{fmt(c_names)} --> {canonical} ({label})"
+
+        links = [link(c, "duplicate") for c in dup_c_fnames]
+        links.append(link(main_c_fname, "main name"))
+        if not_in:
+            links.append(f"{fmt(not_in)} (not in all_names)")
+
+        if any(canonical_entries[c] - {i} for c in dup_c_fnames):
+            section = "in_DB"
+        elif any(all(f != c for _, f in groups[c]) for c in dup_c_fnames):
+            section = "secondary"
+        elif all(is_exact(c) for c in dup_c_fnames):
+            section = "canonical_exact"
+        else:
+            section = "canonical"
+        txt_details, too_far = details(i, main_c_fname, dup_c_fnames)
+        section_lines[section].append(
+            (too_far, f"({df_new.index[i]}) " + "; ".join(links) + "\n" + txt_details)
+        )
+
+    N = len(bad_all_names)
+    txt = "y" if N == 1 else "ies"
+    print(f"\nFound {N} entr{txt} pointing to multiple entries in 'all_names'")
+    for section, lines in section_lines.items():
+        if not lines:
+            continue
+        print(f"\n--- (N={len(lines)}) {sections[section]}")
+        # Entries with no suggested main name (too far apart) first
+        far = [line for too_far, line in lines if too_far]
+        close = [line for too_far, line in lines if not too_far]
+        if far:
+            print(
+                f"\nNo suggested main name (N={len(far)}), entries are far apart"
+                + f" (>{max_dist_suggest}') and it's likely a wrong cross-ID:\n"
+            )
+            print("\n".join(far))
+        if close:
+            print(f"\nSuggested main name (N={len(close)}):\n")
+            print("\n".join(close))
+    breakpoint()  # noqa: T100
+    sys.exit(1)
+
+
+def entry_names(
+    df_new: pd.DataFrame,
+    names_col: str,
+    new_DB_fnames: list[list[str]],
+    orig_DB_fnames: list[list[str]],
+    idx: int,
+) -> tuple[str | None, list[str]]:
+    """
+    Return the canonical name assigned to a new-DB entry through all_names (None
+    if the entry is not in all_names) and the entry's own names in the DB
+    """
+    dnames = [_.strip() for _ in str(df_new.iloc[idx][names_col]).split(",")]
+    if len(new_DB_fnames[idx]) > len(orig_DB_fnames[idx]):
+        return dnames[0], dnames[1:]
+    return None, dnames
+
+
 def get_canonical_fnames(
     df_new: pd.DataFrame,
     newDB_json: dict,
@@ -1020,51 +1337,76 @@ def check_duplicated_fnames(fnames_list: list[list[str]]) -> dict:
     return duplicates
 
 
+def check_own_DB_fnames(
+    df_new: pd.DataFrame, newDB_json: dict, new_DB_fnames: list[list[str]]
+):
+    """
+    Check that no fname is repeated across entries in the DB's own names. Must
+    run before get_canonical_fnames(), i.e. on the fnames of the DB alone. The
+    first entry of each group is kept, the rest are marked as elements that
+    should be removed from the DB
+    """
+    duplicates = check_duplicated_fnames(new_DB_fnames)
+    if not duplicates:
+        return
+
+    def names(idx: int) -> list[str]:
+        return [
+            _.strip() for _ in str(df_new.iloc[idx][newDB_json["names"]]).split(",")
+        ]
+
+    print(
+        f"\nFound {len(duplicates)} groups of duplicated fnames repeated within "
+        "the DB names:"
+    )
+    for N_g, (fname, idxs) in enumerate(duplicates.items(), 1):
+        print(f"Group {N_g}: {fname}")
+        idxs = sorted(idxs)
+        keep_name = names(idxs[0])[0]
+        for idx_s in idxs[1:]:
+            print(
+                f" - {', '.join(names(idx_s))} --> {keep_name} ({df_new.index[idx_s]})"
+            )
+    breakpoint()  # noqa: T100
+    sys.exit(1)
+
+
 def check_new_DB_fnames(
     df_new: pd.DataFrame,
     newDB_json: dict,
     new_DB_fnames: list[list[str]],
     orig_DB_fnames: list[list[str]],
 ):
-    """Check that no fname is repeated across entries in the new DB
+    """Check that no canonical fname is shared across entries in the new DB
 
-    Duplicates are split into three groups:
-    - fnames repeated in the names of the DB itself (in all entries of the group)
-    - fnames shared because entries were assigned the same canonical fname
-      through all_names, and the canonical entry is present in the DB (it is kept)
-    - fnames shared because entries were assigned the same canonical fname
-      through all_names, and the canonical entry is not present in the DB (no
-      entry is kept)
+    Runs after check_own_DB_fnames() so every duplicate here comes from the
+    canonical fnames added through all_names. Duplicates are split into two groups:
+    - the canonical entry is present in the DB (it is kept)
+    - the canonical entry is not present in the DB (no entry is kept)
     """
     duplicates = check_duplicated_fnames(new_DB_fnames)
 
     if duplicates:
         # If the fname is among the original names of an entry in the group of
-        # duplicates, keep that entry and mark the rest as elements that should
-        # be removed from the DB. If it is not, mark all the entries in the group
-        # as elements that should be removed (none is kept)
-        dups_in_DB, dups_all_names, dups_all_names_noDB = {}, {}, {}
+        # duplicates (at most one, see check_own_DB_fnames()), keep that entry and
+        # mark the rest as elements that should be removed from the DB. If it is
+        # not, mark all the entries in the group as elements that should be
+        # removed (none is kept)
+        dups_all_names, dups_all_names_noDB = {}, {}
         for fname, idxs in duplicates.items():
             idxs = sorted(idxs)
             in_orig = [idx for idx in idxs if fname in orig_DB_fnames[idx]]
             keep_idx = in_orig[0] if in_orig else None
             rm_idxs = [_ for _ in idxs if _ != keep_idx]
-            if len(in_orig) == len(idxs):
-                dups_in_DB[fname] = (keep_idx, rm_idxs)
-            elif in_orig:
+            if in_orig:
                 dups_all_names[fname] = (keep_idx, rm_idxs)
             else:
                 dups_all_names_noDB[fname] = (keep_idx, rm_idxs)
 
-        def entry_names(idx: int) -> tuple[str, list[str]]:
-            """Return the (canonical, original) names of an entry. The canonical
-            name is only prepended if the entry was found in all_names"""
-            dnames = [
-                _.strip() for _ in str(df_new.iloc[idx][newDB_json["names"]]).split(",")
-            ]
-            if len(new_DB_fnames[idx]) > len(orig_DB_fnames[idx]):
-                return dnames[0], dnames[1:]
-            return dnames[0], dnames
+        def names(idx: int) -> tuple[str | None, list[str]]:
+            return entry_names(
+                df_new, newDB_json["names"], new_DB_fnames, orig_DB_fnames, idx
+            )
 
         def print_groups(dups: dict, msg: str):
             if not dups:
@@ -1074,12 +1416,12 @@ def check_new_DB_fnames(
                 print(f"Group {N_g}: {fname}")
                 # Name of the entry that is kept in the DB. If none is kept, use the
                 # canonical name assigned (through all_names) to all the entries
-                keep_name = entry_names(idxs[0] if keep_idx is None else keep_idx)[0]
+                canonical, own = names(idxs[0] if keep_idx is None else keep_idx)
+                keep_name = canonical or own[0]
                 for idx_s in idxs:
-                    names = ", ".join(entry_names(idx_s)[1])
-                    print(f" - {names} --> {keep_name} ({df_new.index[idx_s]})")
+                    own_s = ", ".join(names(idx_s)[1])
+                    print(f" - {own_s} --> {keep_name} ({df_new.index[idx_s]})")
 
-        print_groups(dups_in_DB, "repeated within the DB names")
         print_groups(
             dups_all_names,
             "assigned the same canonical entry in all_names (present in the DB)",
@@ -1092,44 +1434,115 @@ def check_new_DB_fnames(
         sys.exit(1)
 
 
+def UCC_matches_check(
+    new_DB_fnames: list[list[str]],
+    orig_DB_fnames: list[list[str]],
+    fname_map: dict,
+    ucc_str: Callable[[int], str],
+    row_ids,
+) -> bool:
+    """
+    Check the matches of the new DB against the UCC (so far), flagging:
+    - new-DB entries matching multiple UCC entries
+    - UCC entries matched by multiple new-DB entries
+
+    Each case is split by the source of the matched fnames: the entry's own names
+    in the DB, or the canonical fname added through all_names (marked with '*')
+
+    Parameters
+    ----------
+    fname_map : dict
+        Maps each fname in the UCC to its UCC entry index.
+    ucc_str : Callable
+        Returns the string that describes a UCC entry, given its index.
+    row_ids :
+        Original row positions in the new DB file, used for printing.
+
+    Returns
+    -------
+    bool
+        True if any issue was found.
+    """
+    # matches[i][j]: fnames of new-DB entry i that match UCC entry j
+    matches = {}
+    for i, fnames in enumerate(new_DB_fnames):
+        for f in dict.fromkeys(fnames):
+            if f in fname_map:
+                matches.setdefault(i, {}).setdefault(fname_map[f], []).append(f)
+
+    def via_own(i: int, fnames: list[str]) -> bool:
+        return any(f in orig_DB_fnames[i] for f in fnames)
+
+    def tag(i: int, fnames: list[str]) -> str:
+        return ", ".join(f if f in orig_DB_fnames[i] else f + "*" for f in fnames)
+
+    # One new-DB entry matching multiple UCC entries. If at least two of them are
+    # matched by the entry's own names, the DB merges UCC entries. Otherwise the
+    # canonical from all_names points to a different UCC entry than the own names
+    multi_own, multi_all_names = {}, {}
+    for i, ucc_m in matches.items():
+        if len(ucc_m) > 1:
+            n_own = sum(via_own(i, fs) for fs in ucc_m.values())
+            (multi_own if n_own > 1 else multi_all_names)[i] = ucc_m
+
+    # Multiple new-DB entries matching the same UCC entry
+    ucc_to_new = {}
+    for i, ucc_m in matches.items():
+        for j, fs in ucc_m.items():
+            ucc_to_new.setdefault(j, {})[i] = fs
+    dups_own, dups_all_names = {}, {}
+    for j, new_m in ucc_to_new.items():
+        if len(new_m) > 1:
+            all_own = all(via_own(i, fs) for i, fs in new_m.items())
+            (dups_own if all_own else dups_all_names)[j] = new_m
+
+    if not (multi_own or multi_all_names or dups_own or dups_all_names):
+        return False
+
+    msg_own = "through the DB's own names"
+    msg_all_names = "through the canonical fname from all_names"
+    for multi, msg in ((multi_own, msg_own), (multi_all_names, msg_all_names)):
+        if not multi:
+            continue
+        print(
+            f"\nFound {len(multi)} entries in new_DB matching multiple entries in "
+            f"the combined DB {msg}:"
+        )
+        for i, ucc_m in multi.items():
+            print(f"({row_ids[i]}) {', '.join(orig_DB_fnames[i])}")
+            for j, fs in ucc_m.items():
+                print(f"   {tag(i, fs)} --> {ucc_str(j)}")
+
+    for dups, msg in ((dups_own, msg_own), (dups_all_names, msg_all_names)):
+        if not dups:
+            continue
+        print(
+            f"\nFound {len(dups)} UCC entries matched by multiple entries in "
+            f"new_DB {msg}:"
+        )
+        for j, new_m in dups.items():
+            print(ucc_str(j))
+            for i, fs in new_m.items():
+                print(
+                    f"   ({row_ids[i]}) {', '.join(orig_DB_fnames[i])} [{tag(i, fs)}]"
+                )
+
+    print("(*: canonical fname added through all_names)")
+    return True
+
+
 def fnames_check_UCC_new_DB(
     df_UCC_B: pd.DataFrame,
-    all_names_dict: dict,
-    newDB_json: dict,
     new_DB_fnames: list[list[str]],
+    orig_DB_fnames: list[list[str]],
     df_new: pd.DataFrame,
     sep: str = ";",
 ) -> None:
     """
-    Check consistency of fnames between the new DB, all_names, and the UCC.
-
-    Checks that:
-    - Each new-DB entry refers to at most one canonical fname in all_names.
+    Check consistency of fnames between the new DB and the UCC. Checks that:
     - Each new-DB entry matches at most one existing UCC entry.
     - Multiple new-DB entries do not match the same existing UCC entry.
     """
-
-    # Check that the fnames associated with each new-DB entry do not point to
-    # multiple canonical entries in all_names
-    bad_all_names = []
-    for i, fnames in enumerate(new_DB_fnames):
-        canonical = {
-            all_names_dict[fname]["fnames"]
-            for fname in set(fnames)
-            if fname in all_names_dict
-        }
-        if len(canonical) > 1:
-            bad_all_names.append(i)
-
-    if bad_all_names:
-        N = len(bad_all_names)
-        txt = "y" if N == 1 else "ies"
-        print(f"\nFound {N} entr{txt} with multiple fnames in 'all_names':")
-        for i in bad_all_names:
-            print(f"{df_new.iloc[i][newDB_json['names']]}")
-        breakpoint()  # noqa: T100
-        sys.exit(1)
-
     # Map each fname currently in the UCC to its row index
     fname_ucc_map = {
         fname: i
@@ -1137,61 +1550,18 @@ def fnames_check_UCC_new_DB(
         for fname in fnames.split(sep)
     }
 
-    # Match each new-DB entry against existing UCC entries
-    ucc_matches = {}
-    for i, fnames in enumerate(new_DB_fnames):
-        matched = {fname_ucc_map[f] for f in fnames if f in fname_ucc_map}
-        if matched:
-            ucc_matches[i] = matched
-
-    # One new-DB entry matching multiple UCC entries
-    bad_entries = {i: idxs for i, idxs in ucc_matches.items() if len(idxs) > 1}
-
-    # Multiple new-DB entries matching the same UCC entry
-    ucc_to_new = {}
-    for new_idx, ucc_idxs in ucc_matches.items():
-        for ucc_idx in ucc_idxs:
-            ucc_to_new.setdefault(ucc_idx, []).append(new_idx)
-
-    duplicates = {
-        ucc_idx: new_idxs
-        for ucc_idx, new_idxs in ucc_to_new.items()
-        if len(new_idxs) > 1
-    }
-
-    if not (bad_entries or duplicates):
-        return
-
     dbs_arr = df_UCC_B["DB"].to_numpy()
     fnames_arr = df_UCC_B["fnames"].to_numpy()
 
-    if bad_entries:
-        print(
-            f"\nFound {len(bad_entries)} entries in new_DB matching multiple "
-            "entries in the combined DB:"
-        )
-        for i, ucc_idxs in bad_entries.items():
-            new_entry = f"({df_new.index[i]}) {', '.join(new_DB_fnames[i])}"
-            ucc_entries = ", ".join(
-                f"({j}, {dbs_arr[j]}) {fnames_arr[j]}" for j in ucc_idxs
-            )
-            print(f"{new_entry} --> {ucc_entries}")
+    def ucc_str(j: int) -> str:
+        return f"({j}, {dbs_arr[j]}) {fnames_arr[j]}"
 
-    if duplicates:
-        print(
-            f"\nFound {len(duplicates)} UCC entries matched by multiple "
-            "entries in new_DB:"
-        )
-        for ucc_idx, new_idxs in duplicates.items():
-            new_entries = "; ".join(", ".join(new_DB_fnames[i]) for i in new_idxs)
-            print(
-                f"{tuple(df_new.index[i] for i in new_idxs)} {new_entries} --> "
-                f"({ucc_idx}) {dbs_arr[ucc_idx]}: {fnames_arr[ucc_idx]}"
-            )
-
-    print("\nResolve the above issues before moving on")
-    breakpoint()  # noqa: T100
-    sys.exit(1)
+    if UCC_matches_check(
+        new_DB_fnames, orig_DB_fnames, fname_ucc_map, ucc_str, df_new.index
+    ):
+        print("\nResolve the above issues before moving on")
+        breakpoint()  # noqa: T100
+        sys.exit(1)
 
 
 def get_matches_new_DB(
@@ -1230,40 +1600,63 @@ def get_matches_new_DB(
     return db_matches
 
 
-def check_new_entries(new_DB_fnames, db_matches, flag_check_stop: str, row_ids):
+def check_new_entries(
+    new_DB_fnames, orig_DB_fnames, db_matches, flag_check_stop: str, row_ids
+):
     """
     Check for new entries in the new DB that are not present in the UCC.
 
+    New entries are split into those not found in all_names (new OCs) and those
+    found in all_names (known OCs not added to the UCC so far, e.g. because the
+    DBs that list them come later or their entries were excluded)
+
     row_ids: original row positions in the new DB file, used for printing
     """
-    N_new = db_matches.count(None)
-    if N_new > 0:
-        print(f"\nFound {N_new} new entries")
-        N_max = 50
-        count = 0
-        for i, idx in enumerate(db_matches):
-            if idx is None:
-                print(f"{row_ids[i]}    {new_DB_fnames[i][0]}")
-                count += 1
-                if count % N_max == 0:
-                    print(f"... (shown {count} entries)")
-                    if flag_check_stop != "check_stop":
-                        break
-                    ans = input("Show 50 more? (y/n) ").strip().lower()
-                    if ans != "y":
-                        break
-        if count % N_max != 0:
-            print(f"... (shown {count} entries in total)")
-        if flag_check_stop == "check_stop":
-            breakpoint()  # noqa: T100
-    else:
+    new_idxs = [i for i, idx in enumerate(db_matches) if idx is None]
+    if not new_idxs:
         print("\nNo new entries found")
+        return
+
+    print(f"\nFound {len(new_idxs)} new entries")
+    in_all_names = [
+        i for i in new_idxs if len(new_DB_fnames[i]) > len(orig_DB_fnames[i])
+    ]
+    not_all_names = [
+        i for i in new_idxs if len(new_DB_fnames[i]) == len(orig_DB_fnames[i])
+    ]
+    N_max = 50
+    for idxs, msg in (
+        (not_all_names, "not in all_names"),
+        (in_all_names, "in all_names but not in the UCC so far"),
+    ):
+        if not idxs:
+            continue
+        print(f"\n{len(idxs)} entries {msg}:")
+        for count, i in enumerate(idxs, 1):
+            if len(new_DB_fnames[i]) > len(orig_DB_fnames[i]):
+                print(
+                    f"{row_ids[i]}    {orig_DB_fnames[i][0]} --> {new_DB_fnames[i][0]}"
+                )
+            else:
+                print(f"{row_ids[i]}    {new_DB_fnames[i][0]}")
+            if count % N_max == 0 and count < len(idxs):
+                print(f"... (shown {count} entries)")
+                if flag_check_stop != "check_stop":
+                    break
+                ans = input("Show 50 more? (y/n) ").strip().lower()
+                if ans != "y":
+                    break
+        else:
+            print(f"... (shown {len(idxs)} entries in total)")
+    if flag_check_stop == "check_stop":
+        breakpoint()  # noqa: T100
 
 
 def check_positions(
     df_UCC_B,
     df_new,
     new_DB_fnames,
+    orig_DB_fnames,
     db_matches,
     flag_check_stop: str,
 ) -> None:
@@ -1287,6 +1680,7 @@ def check_positions(
             df_UCC_B,
             df_new,
             new_DB_fnames,
+            orig_DB_fnames,
             db_matches,
         )
         and flag_check_stop == "check_stop"
@@ -1355,8 +1749,10 @@ def check_matched_entries(
     df_UCC_B: pd.DataFrame,
     df_new,
     new_DB_fnames,
+    orig_DB_fnames,
     db_matches,
     rad_dup: float = 30.0,
+    sep: str = ";",
 ) -> bool:
     """
     Checks the positions of clusters in the new database against those in the UCC.
@@ -1387,6 +1783,9 @@ def check_matched_entries(
     rad_dup : float
         Search radius in arcmin.
 
+    Entries are split by the source of the match: the entry's own names in the
+    DB, or only the canonical fname added through all_names
+
     Returns
     -------
     bool
@@ -1402,8 +1801,9 @@ def check_matched_entries(
         df_UCC_B["GLON"].to_numpy(),
         df_UCC_B["GLAT"].to_numpy(),
     )
+    df_UCC_fnames = df_UCC_B["fnames"].to_numpy()
 
-    ocs_attention = []
+    ocs_attention = {True: [], False: []}
     for i, j in enumerate(db_matches):
         # Check centers if the OC is already present in the UCC
         if j is not None:
@@ -1417,22 +1817,33 @@ def check_matched_entries(
 
             # Store information on the OCs that require attention
             if d_arcmin > rad_dup:
-                names = f"{new_DB_fnames[i][1]} ({new_DB_fnames[i][0]})"
-                ocs_attention.append([df_new.index[i], names, d_arcmin])
+                names = orig_DB_fnames[i][0]
+                if len(new_DB_fnames[i]) > len(orig_DB_fnames[i]):
+                    names += f" ({new_DB_fnames[i][0]})"
+                # Matched through the entry's own names or only through the
+                # canonical fname added from all_names
+                via_own = not set(orig_DB_fnames[i]).isdisjoint(
+                    str(df_UCC_fnames[j]).split(sep)
+                )
+                ocs_attention[via_own].append([df_new.index[i], names, d_arcmin])
 
     attention_flag = False
-    if len(ocs_attention) > 0:
+    N_max = 50
+    for via_own, msg in (
+        (True, "matched through the DB's own names"),
+        (False, "matched through the canonical fname from all_names"),
+    ):
+        ocs = ocs_attention[via_own]
+        if not ocs:
+            continue
         attention_flag = True
-        print(
-            f"\nEntries with coords far from those in the UCC (N={len(ocs_attention)})"
-        )
+        print(f"\nEntries with coords far from those in the UCC, {msg} (N={len(ocs)})")
         print(f"{'DB_idx':<6} {'name':<30} {'d [arcmin]':<5}")
-        N_max = 50
         # Order by distance
-        ocs_attention = sorted(ocs_attention, key=lambda x: x[2], reverse=True)
-        for i, fname, d_arcmin in ocs_attention[:N_max]:
+        ocs = sorted(ocs, key=lambda x: x[2], reverse=True)
+        for i, fname, d_arcmin in ocs[:N_max]:
             print(f"{i:<6} {fname:<30} {d_arcmin:<5.0f}")
-        if len(ocs_attention) > N_max:
+        if len(ocs) > N_max:
             print(f"... (only first {N_max} entries shown)")
 
     return attention_flag
@@ -1831,6 +2242,14 @@ def get_db_fscore(
     return db_fscore
 
 
+def get_importance(item: str) -> int | float:
+    """Optimized importance map (stops at first match)"""
+    for j, p in enumerate(naming_order):
+        if item.startswith(p):
+            return j
+    return np.inf
+
+
 def sort_year_importance(new_JSON: dict, df_UCC_B: pd.DataFrame) -> pd.DataFrame:
     """
     The fnames are first sorted by year, then by importance ('naming_order' variable,
@@ -1854,13 +2273,6 @@ def sort_year_importance(new_JSON: dict, df_UCC_B: pd.DataFrame) -> pd.DataFrame
     mask = df_UCC_B["DB"].str.contains(";", na=False)
     if not mask.any():
         return df_UCC_B
-
-    def get_importance(item: str) -> int | float:
-        """Optimized importance map (stops at first match)"""
-        for j, p in enumerate(naming_order):
-            if item.startswith(p):
-                return j
-        return np.inf
 
     # Extract only the necessary subset into native Python lists
     cols = ["Names", "fnames", "DB", "DB_i"] + list(fpars_order)
@@ -2286,6 +2698,156 @@ def add_lost_fnames(
         )
 
     return all_names_new
+
+
+def add_excl_duplicate_names(
+    new_JSON: dict,
+    all_names_new: pd.DataFrame,
+    sep: str = ";",
+) -> pd.DataFrame:
+    """
+    Add the names of the DB entries excluded with the 'duplicate' category to the
+    entry in 'all_names_new' of their main name (stored in the 'comment' column of
+    the exclusion file). This way the duplicated naming is not lost.
+    This process DOES NOT ALTER the canonical fnames in 'all_names_new'
+    """
+    # Map each alias to its position index
+    alias_idx = {}
+    for i, row in enumerate(all_names_new.itertuples(index=False)):
+        for alias in str(row.fnames).split(sep):
+            alias_idx[alias] = i
+
+    N_added, conflicts = 0, []
+    for DB in new_JSON:
+        excl_path = get_excl_path(DB)
+        if not os.path.isfile(excl_path):
+            continue
+        df_excl = pd.read_csv(excl_path)
+        df_dup = df_excl[df_excl["category"] == "duplicate"]
+
+        for row in df_dup.itertuples(index=False):
+            main_fname = get_fnames([row.comment])[0][0]
+            if main_fname not in alias_idx:
+                raise ValueError(
+                    f"{excl_path}, row {row.row}: main name '{row.comment}' not "
+                    + "found in 'all_names'"
+                )
+            idx = alias_idx[main_fname]
+
+            dup_names = rename_standard(str(row.name)).split(sep)
+            dup_fnames = get_fnames(dup_names, sep=sep)
+            for dup_name, (dup_fname,) in zip(dup_names, dup_fnames):
+                if dup_fname in alias_idx:
+                    if alias_idx[dup_fname] != idx:
+                        conflicts.append(
+                            f"{DB} row {row.row}: '{dup_name}' --> "
+                            + f"{all_names_new.at[alias_idx[dup_fname], 'fnames']}"
+                            + f" (expected main: {all_names_new.at[idx, 'fnames']})"
+                        )
+                    continue
+                all_names_new.at[idx, "fnames"] += sep + dup_fname
+                all_names_new.at[idx, "Names"] += sep + dup_name.strip()
+                alias_idx[dup_fname] = idx
+                N_added += 1
+
+    if N_added > 0:
+        print(f"\nAdded {N_added} names from excluded duplicates to 'all_names'")
+    if conflicts:
+        print(
+            f"\nWARNING: {len(conflicts)} names from excluded duplicates are "
+            + "assigned to a different entry in 'all_names' (not added):"
+        )
+        for _ in conflicts:
+            print(_)
+
+    return all_names_new
+
+
+def all_names_DBs_check(
+    all_names: pd.DataFrame,
+    new_JSON: dict,
+    db_paths: dict,
+    N_max: int = 50,
+    sep: str = ";",
+) -> None:
+    """
+    Check that the names in 'all_names' are 1 to 1 correlated with the names in
+    the DBs, i.e.:
+    - every fname in 'all_names' is listed by at least one DB entry
+    - every fname listed by a DB entry is in 'all_names'
+    - no fname appears more than once in 'all_names'
+
+    The DB names are read again from the DB files. Entries excluded as
+    'duplicate' count as DB entries (their names are stored along the main name),
+    entries excluded under any other category do not.
+
+    The full list of issues is stored in the temporary folder.
+    """
+    # fname --> (name as in the DB, list of 'DB (row)' that list it)
+    db_fnames = {}
+    for DB, path in db_paths.items():
+        if not os.path.isfile(path):
+            # Only stored as 'comments' file
+            continue
+        names_col = new_JSON[DB]["names"]
+        names = pd.read_csv(path, usecols=[names_col])[names_col]
+        excl_rows = set()
+        excl_path = get_excl_path(DB)
+        if os.path.isfile(excl_path):
+            df_excl = pd.read_csv(excl_path)
+            excl_rows = set(df_excl.loc[df_excl["category"] != "duplicate", "row"])
+        for row, (name, fnames) in enumerate(zip(names, get_fnames(names))):
+            if row in excl_rows:
+                continue
+            for n, f in zip(str(name).split(","), fnames):
+                db_fnames.setdefault(f, (n.strip(), []))[1].append(f"{DB} ({row})")
+
+    # fname --> (alias name, main name) of the entry in 'all_names'
+    an_fnames, an_counts = {}, {}
+    for fnames, names in zip(all_names["fnames"], all_names["Names"]):
+        fnames, names = str(fnames).split(sep), str(names).split(sep)
+        for f, n in zip(fnames, names):
+            an_fnames[f] = (n, names[0])
+            an_counts[f] = an_counts.get(f, 0) + 1
+
+    issues = []
+    for f, (n, main) in an_fnames.items():
+        if f not in db_fnames:
+            where = "" if n == main else f"(entry: {main})"
+            issues.append(("not in any DB", f, n, where))
+    for f, (n, dbs) in db_fnames.items():
+        if f not in an_fnames:
+            where = "listed in: " + "; ".join(dbs)
+            issues.append(("not in all_names", f, n if n else "(empty name)", where))
+    for f, N in an_counts.items():
+        if N > 1:
+            issues.append(("repeated in all_names", f, an_fnames[f][0], f"{N} times"))
+    if not issues:
+        return
+
+    msgs = {
+        "not in any DB": "Names in 'all_names' that are not listed in any DB",
+        "not in all_names": "Names listed in the DBs that are not in 'all_names'",
+        "repeated in all_names": "Names repeated in 'all_names'",
+    }
+    print("\nThe names in 'all_names' are not 1 to 1 with the names in the DBs")
+    for issue, msg in msgs.items():
+        lines = [i for i in issues if i[0] == issue]
+        if not lines:
+            continue
+        print(f"\n{msg} (N={len(lines)}):")
+        for _, f, n, where in lines[:N_max]:
+            print(f"  {n} {where}".rstrip())
+        if len(lines) > N_max:
+            print(f"  ... and {len(lines) - N_max} more")
+
+    out_path = temp_folder + "all_names_DBs_check.csv"
+    pd.DataFrame(issues, columns=["issue", "fname", "name", "where"]).to_csv(
+        out_path, index=False
+    )
+    print(f"\nFull list stored in {out_path}")
+    if input("Continue anyway? (y/n): ").lower() != "y":
+        sys.exit(1)
 
 
 def final_fnames_compare(
